@@ -313,6 +313,9 @@ def shared_report_text_audit(current, reference):
 
 
 def paired_uncertainty(current, reference):
+    if not all(arm["precision_complete"] and arm["coverage"]["unknown_expected_rounds"] == 0
+               for arm in (current, reference)):
+        return None
     names = sorted(current["per_cluster"])
     assert len(names) == 9 and names == sorted(reference["per_cluster"])
     draws = np.random.default_rng(20260906).integers(0, 9, size=(10000, 9))
@@ -404,7 +407,7 @@ def main():
                                       for name, value in cell["input_hashes"].items() if value != vc[p, r]["input_hashes"].get(name)})
                                       for (p, r), cell in sorted(ac.items())]
         result["source_hashes"].update({**ah, **ajh, **selection_hashes})
-        result["paired_uncertainty"] = paired_uncertainty(result["a2"], result["v61"]) if aj else None
+        result["paired_uncertainty"] = paired_uncertainty(result["a2"], result["v61"])
         result["provider_paired_sensitivity"] = provider_paired_sensitivity(result["a2"], result["v61"])
         result["shared_report_text_audit"] = shared_report_text_audit(result["a2"], result["v61"])
         full = {(r["ledger_id"], r["round"]): r for r in result["v61"]["expected"]}

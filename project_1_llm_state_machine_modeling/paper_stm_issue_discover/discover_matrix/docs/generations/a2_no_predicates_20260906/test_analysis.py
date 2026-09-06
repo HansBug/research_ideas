@@ -35,17 +35,23 @@ def test_frozen_metrics_preserve_report_denominators_and_distinct_hit_units():
     assert result["hitall"] == analysis.ratio(0, 2)
     assert result["strict"]["precision"] == analysis.ratio(3, 5)
     assert result["strict"]["hit1"] == analysis.ratio(2, 6)
-    same = dict(per_cluster={str(i): result for i in range(9)})
+    same = dict(precision_complete=True, coverage=dict(unknown_expected_rounds=0),
+                per_cluster={str(i): result for i in range(9)})
     compared = analysis.paired_uncertainty(same, same)
     for metric in compared["metrics"].values():
         assert metric["a2_minus_v61"] == 0 and metric["percentile95"] == [0, 0]
         assert metric["defined_replicates"] == 10000
     empty = analysis.quality([], items)
-    zero = dict(per_cluster={str(i): empty for i in range(9)})
+    zero = {**same, "per_cluster": {str(i): empty for i in range(9)}}
     undefined = analysis.paired_uncertainty(zero, same)
     assert undefined["metrics"]["precision"]["undefined_replicates"] == 10000
     assert undefined["metrics"]["precision"]["percentile95"] is None
     json.dumps(undefined, allow_nan=False)
+    incomplete = {**same, "precision_complete": False}
+    assert analysis.paired_uncertainty(incomplete, same) is None
+    assert analysis.paired_uncertainty(same, incomplete) is None
+    unknown = {**same, "coverage": dict(unknown_expected_rounds=1)}
+    assert analysis.paired_uncertainty(unknown, same) is None
 
 
 def test_judge_loader_preserves_failures_and_rejects_protocol_drift(tmp_path):
