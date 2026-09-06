@@ -3485,7 +3485,9 @@ class AgentApp:
             "request_max_output_tokens": max_output_override if max_output_override is not None else getattr(
                 self.model, "max_output_tokens", getattr(self.model, "max_tokens", None)
             ),
-            "source": "run_override" if max_output_override is not None else "profile",
+            "source": "run_override" if max_output_override is not None else (
+                "provider_remaining_context" if self.config.output_budget_mode == "remaining_context" else "profile"
+            ),
         }
         compact_threshold = (
             math.floor(context_window_tokens * compact_trigger_ratio)

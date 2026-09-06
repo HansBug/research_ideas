@@ -104,6 +104,8 @@ Google 的单次调用输出上限会从公共 `max_tokens` 映射到 `max_outpu
 
 `PublicStructuredRuntime` 的真实调用默认沿用 profile 中经核验的 `max_output_tokens`，不再添加统一 10K 覆盖值；缺少该配置时明确报错。显式调用覆盖值在共用适配层先映射为 OpenAI 的 `max_completion_tokens`、Google 的 `max_output_tokens` 或其他适配器的 `max_tokens`，避免 Responses SDK 合并别名时让构造值覆盖调用值。审计逐调用保存 profile、显式覆盖值、请求输出上限及 provider 的 finish/stop/incomplete 信息；请求上限不等于实际生成量，也不等于服务端结合输入和剩余 context 后的最终容量。Anthropic 持久 runtime 使用由自身创建和关闭的异步 HTTP 客户端，避免跨事件循环复用已关闭的连接。
 
+仅当兼容 API 已验证省略输出字段会使用全部剩余 context 时，可配置 `output_budget_mode: remaining_context`，并令 `max_output_tokens` 等于部署窗口以记录容量声明。该模式省略 HTTP 输出限额，审计来源为 `provider_remaining_context`；不能用于省略字段会落回小默认值的渠道。SGLang 0.5.19 的 Chat Completions 默认将 `max_new_tokens=None` 传给调度器，再以完整输入、总窗口和 KV 页容量约束输出；须保持输入自动截断关闭，并另存引擎版本、源码及实际配置证据。
+
 接入依据：[LangChain Google 集成](https://docs.langchain.com/oss/python/integrations/chat/google_generative_ai)、[Gemini 结构化输出](https://ai.google.dev/gemini-api/docs/structured-output)、[generateContent 参数](https://ai.google.dev/api/generate-content)。
 
 ### 2.2 `utils.agent`

@@ -125,7 +125,7 @@ def model_kwargs(
     """Build provider constructor kwargs from ``LLMConfig`` without side imports."""
 
     kwargs = config.connection_kwargs()
-    if config.max_output_tokens is not None:
+    if config.max_output_tokens is not None and config.output_budget_mode == "profile":
         kwargs.update(output_token_options(config, {"max_tokens": config.max_output_tokens}))
     if config.adapter in {"openai", "openai-responses"}:
         kwargs["use_responses_api"] = config.adapter == "openai-responses"

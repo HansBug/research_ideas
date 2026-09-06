@@ -100,6 +100,9 @@ def request_one(args, text, index, warmup=False):
         payload['messages'].insert(0, {'role': 'system', 'content': args.system_prompt})
     if args.extra_body:
         payload.update(json.loads(args.extra_body))
+    if getattr(args, 'remaining_context_output', False):
+        payload.pop('max_tokens', None)
+        payload.pop('max_completion_tokens', None)
     if args.tool_call:
         payload.pop('response_format', None)
         payload['tools'] = [{'type': 'function', 'function': {
@@ -175,6 +178,8 @@ def main():
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--input-tokens', type=int, default=2000)
     p.add_argument('--output-tokens', type=int, default=256)
+    p.add_argument('--remaining-context-output', action='store_true',
+                   help='Only for serving APIs verified to allocate all remaining context when the cap is omitted')
     p.add_argument('--concurrency', type=int, nargs='+', default=[1, 2, 4, 8, 16, 32])
     p.add_argument('--rounds', type=int, default=2)
     p.add_argument('--thinking', action='store_true')
@@ -250,8 +255,10 @@ if __name__ == '__main__':
     response.iter_lines.return_value = iter([('data: ' + json.dumps(e)).encode() for e in events] + [b'data: [DONE]'])
     args = SimpleNamespace(model='mock', output_tokens=256, thinking=True, system_prompt='Reasoning strength: high',
                            extra_body=None, tool_call=True, endpoint='http://localhost/v1', timeout=2)
+    args.remaining_context_output = True
     with patch.object(requests, 'post', return_value=response):
         row = request_one(args, 'synthetic', 0)
+    assert 'max_tokens' not in row['payload'] and 'max_completion_tokens' not in row['payload']
     assert row['eligible'] and row['tool_arguments'] == answer and not row['placeholder_present']
     assert row['ttft_seconds'] is not None
     main()

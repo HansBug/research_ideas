@@ -17,6 +17,30 @@ class BudgetAnswer(BaseModel):
 ADAPTERS = ["openai", "openai-responses", "anthropic", "deepseek", "google-genai"]
 
 
+def test_verified_remaining_context_mode_omits_wire_cap(tmp_path, monkeypatch):
+    requests = []
+    _mock_wire(monkeypatch, "openai", requests, reject=True)
+    config = LLMConfig(adapter="openai", model="self-hosted", api_key="offline-key",
+                       base_url="https://example.invalid", context_window_tokens=131072,
+                       max_output_tokens=131072, output_budget_mode="remaining_context")
+    monkeypatch.setattr("utils.structured_runtime.load_llm_registry", lambda: LLMRegistry({"fixture": config}, "fixture"))
+    runtime = PublicStructuredRuntime("fixture", tmp_path, transport_retries=0, streaming=True)
+    try:
+        result = runtime.call(kind="budget", schema=BudgetAnswer, system_prompt="Answer.", prompt="ok",
+                              artifact_id="remaining", retry_cell_on_provider_error=False)
+    finally:
+        runtime.close()
+    assert len(requests) == 1
+    assert not {"max_tokens", "max_completion_tokens", "max_output_tokens"} & requests[0].keys()
+    assert result.usage[0]["output_budget"] == {
+        "profile_max_output_tokens": 131072, "call_max_output_tokens": None,
+        "request_max_output_tokens": None, "source": "provider_remaining_context",
+    }
+    with pytest.raises(ValueError, match="remaining_context"):
+        LLMConfig(model="invalid", max_output_tokens=4096, context_window_tokens=131072,
+                  output_budget_mode="remaining_context")
+
+
 def _response(adapter):
     arguments = {"answer": "ok"}
     if adapter == "google-genai":

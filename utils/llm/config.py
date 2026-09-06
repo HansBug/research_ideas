@@ -62,6 +62,7 @@ class LLMConfig(BaseModel):
     model: str = Field(min_length=1)
     context_window_tokens: int | None = Field(default=None, gt=0)
     max_output_tokens: int | None = Field(default=None, gt=0)
+    output_budget_mode: Literal["profile", "remaining_context"] = "profile"
     stream_usage: bool | None = None
     pricing: LLMPricing | None = None
 
@@ -107,6 +108,11 @@ class LLMConfig(BaseModel):
 
     @model_validator(mode="after")
     def _check_token_bounds(self) -> LLMConfig:
+        if self.output_budget_mode == "remaining_context" and (
+            self.adapter != "openai" or self.context_window_tokens is None
+            or self.max_output_tokens != self.context_window_tokens
+        ):
+            raise ValueError("remaining_context requires a verified compatible API and output equal to its context window")
         if (
             self.context_window_tokens is not None
             and self.max_output_tokens is not None
@@ -150,6 +156,8 @@ class LLMConfig(BaseModel):
         }
         if self.stream_usage is not None:
             result["stream_usage"] = self.stream_usage
+        if self.output_budget_mode != "profile":
+            result["output_budget_mode"] = self.output_budget_mode
         return result
 
     def fingerprint(self) -> str:
