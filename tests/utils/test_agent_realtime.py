@@ -1140,6 +1140,48 @@ def test_retryable_stream_failure_replays_request_without_repeating_tool(
     assert "MODEL TRANSPORT | RECOVERED" in rendered
 
 
+def test_empty_responses_stream_is_replayed_as_transport_failure(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    import utils.agent.runtime as runtime
+
+    monkeypatch.setattr(runtime, "_TRANSPORT_RETRY_DELAYS", (0.0,))
+    calls = {"count": 0}
+
+    class EmptyThenGoodModel(ChatOpenAI):
+        def __init__(self) -> None:
+            super().__init__(
+                model="gpt-4o-mini",
+                api_key="sk-test-not-real",
+                streaming=True,
+            )
+
+        async def _astream(self, messages: list[Any], stop=None, **kwargs: Any):
+            calls["count"] += 1
+            if calls["count"] == 1:
+                if False:
+                    yield ChatGenerationChunk(message=AIMessageChunk(content=""))
+                return
+            yield ChatGenerationChunk(message=AIMessageChunk(content="recovered"))
+
+    audit = tmp_path / "empty-stream-retry.jsonl"
+    result = AgentApp._for_test(
+        AgentSpec(name="empty-stream-retry", system_prompt="Answer."),
+        LLMConfig(model="gpt-4o-mini"),
+        EmptyThenGoodModel(),
+    ).run("run", renderer="quiet", audit_out=audit)
+
+    assert result.status == "success", result.error
+    assert calls["count"] == 2
+    assert result.final_text == "recovered"
+    assert any(
+        event.get("record") == "transport_retry"
+        and event.get("operation") == "scheduled"
+        for event in (json.loads(line) for line in audit.read_text().splitlines())
+    )
+
+
 def test_retryable_stream_failure_stops_after_two_replays(
     monkeypatch: Any,
     tmp_path: Path,

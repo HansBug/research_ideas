@@ -247,6 +247,15 @@ def _read_audit_records(path: Path) -> list[dict[str, Any]]:
     return records
 
 
+def _provider_retry_allowed(error: dict[str, Any] | None) -> bool:
+    """Keep provider attribution separate from permission to replay the request."""
+
+    details = (error or {}).get("details")
+    return _is_provider_error(error) and not (
+        isinstance(details, dict) and details.get("retryable") is False
+    )
+
+
 class StructuredSchemaValidationFailure(BaseModel):
     """One exact rejected structured action revalidated against its runtime schema."""
 
@@ -906,7 +915,7 @@ class PublicStructuredRuntime:
                 error = result.error if isinstance(result.error, dict) else None
                 provider_error = _is_provider_error(error)
                 actual_outer_retry = bool(
-                    provider_error and outer_attempt < max_outer_attempts
+                    _provider_retry_allowed(error) and outer_attempt < max_outer_attempts
                 )
                 _annotate_usage_billing(
                     rows,
@@ -945,7 +954,7 @@ class PublicStructuredRuntime:
                     response = validated_response
                     status = "success"
                     break
-                if provider_error and outer_attempt < max_outer_attempts:
+                if actual_outer_retry:
                     continue
                 status = "failed"
                 break
@@ -1012,7 +1021,7 @@ class PublicStructuredRuntime:
                     }
                 provider_error = _is_provider_error(error_payload)
                 actual_outer_retry = bool(
-                    provider_error and outer_attempt < max_outer_attempts
+                    _provider_retry_allowed(error_payload) and outer_attempt < max_outer_attempts
                 )
                 _annotate_usage_billing(
                     rows,
@@ -1062,7 +1071,7 @@ class PublicStructuredRuntime:
                         ),
                     }
                 )
-                if provider_error and outer_attempt < max_outer_attempts:
+                if actual_outer_retry:
                     continue
                 status = "failed"
                 last_result = (

@@ -127,3 +127,17 @@ A1 的 recovery 书面登记晚于它自身启动，A1 已明确披露；A2 引�
 ## 10. 首次 A2 judge 前追加：按完成格滚动裁定
 
 A2 正式方法已开始、尚无 A2 judge 调用时，明确执行顺序：judge 可对已原子落盘且 eligible 的完整格滚动启动，同一轮内按固定 pair 顺序选择当前已完成且从未提交 judge 的格。每条 CLI 运行都冻结完整 pair 列表、来源 hash 和独立 run ID；只跑 A2，workers=2，各 judge 批次串行，合计最多 2 个活跃 judge pair workers。选择不读取报告质量或命中，不使用 report-filter，零报告的 eligible 格仍裁定其空报告集合；失败格产物单列隔离。等待 method 全量结束后统一核销 162 格、全部 eligible 报告与 judge 失败，不能把先完成的子集称为全量结果。滚动处理不把裁定反馈给 method，不更改 §5 的 judge 配置与统计口径。
+
+## 11. 正式 A2 期间追加：采用 A1 的传输修复与稀疏续接
+
+2026-09-06，用户要求关注 pane8 的 Luna 稳定性措施并移植到 A2。此时已经产生 A2 部分 method 和 judge 结果；本补充是运行期间的工程变更，不追溯声称为初始预登记。合入 A1 的原提交 `d2e6843e6023f6eb7e3d9bf08f3148d49bab8260` 和 `7fb300640bba3eb5b10b3acd83c7d07e46d20ebe`，不另写一套共享修复。它们在 SDK 向 LangChain 交付 SSE 前保留失败事件、request/response ID、usage 和终止状态，把空流及明确定义的瞬时上游错误纳入已有有界请求重试；未知非瞬时错误和 `response.incomplete` 保留为不可重试诊断。方法的成功请求参数、prompt/schema、判定规则和 judge 协议不变。
+
+旧 method `2d9c2b12efb4498489af2f268e9ede94` 在精确核对 PID、父子关系和启动时钟后停止派发，让已开始的格到达终态，最长等待 300 秒。逐次信号先写持久回执。切换实际保留 20 个 completed/eligible 格、155 条报告；`0006:r3` 刚开始的新请求只有 context，没有已返回的 decision。旧文件及未完成 audit 原件保留，不修改 source identity。续接 ID 预留为 `55f3799341d046888d8b2e61261913c6`，在新调用前冻结全部 162 格的选择表、旧文件 hash、输入/model/prompt hash、新干净源码和续接脚本 hash。
+
+选择规则只看运行证据：完整且没有待恢复 provider 失败的格原样复用；未运行/中断格继续；明确 provider 失败按原请求恢复。不按 hit、precision、报告数或 judge 结果挑选重跑。复用格保留旧 run/source 身份，新增格记录新身份。成功阶段直接复用精确 outcome；只有 audit 的阶段回放成功 provider turn 及其 schema 修订历史，逐项比对 system/input/schema 和实际请求投影后到达首个未完成请求。仅归一化 `handle_errors` 函数内存地址，任何实质差异停止续接并保留诊断。关闭整阶段的 provider 外层冷启动重试，transport retries 仍为 8；这不增加方法修订预算。
+
+A2 method 和 judge 各保持 2 个 worker。A1 已独立提高并发，因此 §7 的全机合计 6 个 method worker 不再是当前可满足的控制条件；A2 不调整 sibling 进程，实际共享服务并发与调用时段另记为运行条件。保留 §4 的总 method 上限 16，并按实际活跃进程核验。并发、版本和服务时序不能当成已消除的混杂。
+
+前两批完整 judge `441ffdfffd4f5aaab90870395cb35618` / `62388b064f2255daa02439dcd045dbb0` 原样保留。退出旧调度器后，第三批 `82023a87854e5198b71a3ca48832a548` 的进程消失且没有 terminal receipt；该批标为切换中断，不解释成正常零报告或 provider 质量失败。其已有响应、未完成请求及来源 hash 保留，使用相同请求前缀核验恢复缺失裁定，不重裁定已完整格。新滚动调度只读取冻结选择表指定的 method 来源，跨目录核销重复提交、失败和未裁定项。所有实际调用仍只属于 A2，主比较继续使用 §9 的 v61 原件。
+
+合流验收包括共享 runtime、A1/A2 schema/flow/resume 回归；完整 full 的 default/显式 `none` 与 `87e969b29` 的既有 provider-free 实际请求和决策对拍；真实 A2 已成功格、失败 smoke 及中断请求的离线回放边界检查。具体命令和原件随实验归档，动态执行状态留在 PR。
