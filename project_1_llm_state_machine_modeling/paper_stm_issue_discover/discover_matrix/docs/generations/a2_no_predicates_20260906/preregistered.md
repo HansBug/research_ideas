@@ -151,3 +151,13 @@ A2 method 和 judge 各保持 2 个 worker。A1 已独立提高并发，因此 �
 本补充在 `0009:r2` 的任何独立 judge 调用前固定：后续遇到明确 provider 失败的格先保留诊断原件，暂缓提交其报告集合；当前 method 批次结束后，仅对有 provider 失败证据的格按 §11 的精确成功前缀做稀疏恢复。非 provider 的内部诊断格仍按原 eligibility 门裁定，效果差、零报告或命中低本身不触发恢复。所有原始失败、恢复来源、缺失和最终选择逐项核销；若恢复仍失败，保留其诊断并在固定分母及缺失敏感性中披露，不无限冷启动。已有正常 method/judge 结果不重采样。
 
 滚动 judge 调度器在已完成批次边界暂停并更新来源选择，保留在途子进程直到其终态，以免再次依赖孤儿进程存活。pane8 新评估的另一 endpoint 尚未用于 A2；本批次保持已登记 model/config hash，任何服务迁移必须另记配置身份与时间边界。
+
+## 13. 用户指定新 Luna 站点与正常运行路径
+
+2026-09-06，用户明确要求切换 pane8 已评估的 Luna-only 服务并清理非必要修改。本补充覆盖 §11/§12 的旧站点、低并发、精确前缀恢复及逐小批等待安排。新 endpoint 为 `https://api.aizzz.xyz/v1`，独立私有配置 profile 为 `aizzz-luna-eval`，请求模型仍为 `gpt-5.6-luna`、adapter 为 `openai-responses`。共享 `.llmconfig.yml` 不修改；真实配置 hash、源码、时间、请求和实际响应身份分别落盘。pane8 的可用性评估只作为迁移依据，其探针和八个 A1 评估格不进入正式 A2 数据。
+
+新 method run `af618190b34652b58ed0ae9ec231bdfe` 以普通 `PublicStructuredRuntime` 调用现有 `_method_cell`，仅调度尚未落盘或有明确 provider 失败证据的 A2 格，总并发 16。已完整格按字节 hash 保留旧来源，选择不依据报告数、效果或裁定。旧 method 停止时的在途请求和原始审计保留并记为主动服务切换中断；新站点缺格以新身份完整执行，不冒称旧配置 resume，也不使用在线 PrefixRetry、RecordedModel 或 ContinuingRuntime。该最小稀疏调度仅弥补现有 CLI 不能选择非连续 round 的限制。普通非 provider 诊断不触发重跑。
+
+旧 judge 在当前批次终态停止；已完整裁定复用。后续使用原生 judge CLI，逐轮总并发 16，读取逐格冻结来源视图，不修改原格状态或身份；不叠加三轮各 16。正常有界 transport retry、空流/失败事件/异常 EOF 识别、错误与 usage 回执及节点内 schema 修订保留；不增加探针或重复压测作为启动前置条件。method、judge 的并发上限各 16，A1 的独立运行条件另列，不更改 sibling 进程。
+
+模型配置从此按来源分段核验，禁止把不同 endpoint 的结果标成同一 config hash。最终报告须列出切换前后完成数、失败与中断、配置差异及分段敏感性。本条是已见部分结果后的运行条件变更，不能称为初始预登记；不改变 54×3、145 台账、435 expected-round、A2 prompt/schema、judge v3.11 和 §9 的冻结 v61 对照，也不新增 full 或 full judge 调用。
