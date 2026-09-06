@@ -2,10 +2,20 @@
 
 import unittest
 
-from analyze_a1 import calculate
+from analyze_a1 import calculate, validate
 
 
 class MetricTests(unittest.TestCase):
+    def test_global_report_count_cannot_hide_missing_cell_reports(self):
+        items = {str(i): {"L": "L0" if i < 71 else "L1" if i < 106 else "L2"} for i in range(145)}
+        cells = [{"pair_id": str(p), "round": rnd, "reports": int(p == 0 and rnd < 3)}
+                 for p in range(54) for rnd in (1, 2, 3)]
+        arm = {"cells": cells, "coverage": {"planned_cells": 162, "eligible_cells": 162,
+               "judged_cells": 162, "planned_expected_rounds": 435, "unjudged_reports": 0},
+               "reports": [{"original_report_id": str(i), "pair_id": "0", "round": 1} for i in range(2)]}
+        with self.assertRaisesRegex(AssertionError, "per-cell report coverage"):
+            validate({"a1": arm, "v61": arm}, items)
+
     def test_repeated_hit_does_not_replace_missing_issues_or_invalid_reports(self):
         items = {"e0": {"L": "L0"}, "e1": {"L": "L1"}, "e2": {"L": "L2"}}
         rows = [{"validity": "VALID_KNOWN", "round": rnd, "pair_id": "0000",

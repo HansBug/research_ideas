@@ -132,8 +132,14 @@ def validate(data, items):
         pairs = {p for p, _ in cells}
         assert len(pairs) == 54 and cells == {(p, r) for p in pairs for r in (1, 2, 3)}
         assert len(arm["cells"]) == arm["coverage"]["judged_cells"] == 162
+        assert arm["coverage"]["planned_cells"] == arm["coverage"]["eligible_cells"] == 162
+        assert arm["coverage"]["planned_expected_rounds"] == 435
+        assert arm["coverage"]["unjudged_reports"] == 0
         reports = {r["original_report_id"]: r for r in arm["reports"]}
         assert len(reports) == len(arm["reports"]) == sum(c["reports"] for c in arm["cells"])
+        per_cell = Counter((r["pair_id"], r["round"]) for r in reports.values())
+        assert set(per_cell) <= cells, "reports outside the planned cells"
+        assert all(per_cell[c["pair_id"], c["round"]] == c["reports"] for c in arm["cells"]), "per-cell report coverage"
         expected = {(r["ledger_id"], r["round"]): r for r in arm["expected"]}
         assert len(expected) == len(arm["expected"]) == 435
         assert set(expected) == {(e, r) for e in items for r in (1, 2, 3)}
