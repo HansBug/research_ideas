@@ -77,6 +77,7 @@ class LLMConfig(BaseModel):
     context_window_tokens: int | None = None
     max_output_tokens: int | None = None
     stream_usage: bool | None = None
+    inference: LLMInferenceConfig | None = None
 ```
 
 只有 `model` 必填；`adapter` 可省略且严格默认为 `openai`。`adapter` 显式选择 LangChain client 与传输协议，不表示实际 provider 或 endpoint：`openai` 与 `openai-responses` 都使用 `ChatOpenAI`，但分别固定走 Chat Completions 与 Responses；`anthropic`、`deepseek` 分别对应 `ChatAnthropic`、`ChatDeepSeek`。运行时不根据 model 名或 host 猜测传输协议。其他字段为 `None` 时，Agent 构造模型时不传对应参数。`LLMRegistry` 是只读 `Mapping[str, LLMConfig]`：
@@ -90,6 +91,8 @@ registry.names()
 ```
 
 `stream_usage` 可在 profile 中显式设置，适合已经验证支持 usage 的自托管兼容端点。缺省时保留 provider 安全默认；调用方显式参数优先于 profile。该字段仅在显式配置时加入公开配置与 fingerprint，因此不改变旧 profile 的身份。`PublicStructuredRuntime` 给 Anthropic 传浮点 timeout，OpenAI/DeepSeek 保留 `httpx.Timeout` 以隔离 async client 生命周期。
+
+OpenAI 兼容 profile 的可选 `inference` 保存已实测的推理/采样默认：必填 `think_mode`，可选 `reasoning_effort`、`temperature`、`top_p`、`top_k`、`chat_template_kwargs` 与 `structured_output_tokens`。模板参数仅允许 enable_thinking/preserve_thinking/clear_thinking/force_nonempty_content/reasoning_effort/reasoning_strength；与推理模式矛盾的配置会被拒绝。省略整段时保留旧行为和 fingerprint；显式配置会进入公开身份。通用 factory 与 AgentApp 共用参数构造，后者未传 `think_mode` 时采用 profile；与 profile 冲突的显式模式会报错。structured runtime 使用显式阶段输出上限，其次 profile 的 `structured_output_tokens`，最后保留历史默认 10,000。profile 的 `max_output_tokens` 仍是模型容量上限，不自动代替阶段预算。完整例子见根目录 `.llmconfig.example.yml`。
 
 路径优先级为显式参数、`LLM_CONFIG_FILE`、根 `.llmconfig.yml`。加载器不访问网络、不创建 client、不维护全局可变单例。公开摘要必须脱敏；`api_key` 不能打印。
 ### 2.2 `utils.agent`
@@ -177,7 +180,9 @@ await app.arun(input_text, context=context, renderer="auto", think_mode=False,
 
 `renderer` 使用 `auto`、`rich`、`jsonl` 或 `quiet`；`log_level` 使用标准 logging 的 `DEBUG`、`INFO`、`WARNING`、`ERROR`。`INFO` 显示 Agent 阶段、模型可见输出、工具参数/结果和最终结果；heartbeat 只在 `DEBUG` 显示。`auto` 会按终端环境选择适合的人类可读输出；`arun` 是已有 event loop 时的入口；`run` 只用于普通同步脚本。`model_call_options` 只作用于当前推理，不能携带 secret、覆盖 profile 身份或重复设置 think/reasoning；允许的键为 `temperature`、`top_p`、`stop`、`seed`、`verbosity` 与 `max_tokens`，其中只有 `max_tokens` 可以覆盖单次 output reserve。
 
-`think_mode` 默认关闭，所有模型都必须显式传入 `True` 才会开启 provider 的 thinking/reasoning 模式；`reasoning_effort` 只有在 `think_mode=True` 时才可传入。`openai-responses` adapter 在 think-off 时统一发送 `reasoning_effort=none`，不按模型名或 endpoint 猜测；因此只应给接受该 Responses reasoning 合同的 profile 使用。当前 Anthropic adapter 不开放 extended thinking，因为 Anthropic 不允许 thinking 与框架的强制工具选择同时使用；显式开启时配置阶段直接失败，不静默弱化必用工具合同。模型请求默认 `streaming=True`；`stream_usage` 的安全默认值由 runtime adapter 统一决定：Anthropic 与官方 OpenAI endpoint 默认开启，DeepSeek 与其他 OpenAI-compatible endpoint 默认关闭，调用方仍可在 `model_options` 中显式覆盖。Anthropic adapter 还会在底座层自动安装官方 `AnthropicPromptCachingMiddleware`，以 5 分钟 ephemeral cache 标记静态 system prompt、工具定义和可缓存消息前缀；业务 Agent、prompt 和工具不感知 provider 细节。每次调用的 `input_tokens`、`output_tokens`、`total_tokens`、`cache_read`、`cache_creation` 以及可用时的 `ephemeral_5m_input_tokens` / `ephemeral_1h_input_tokens` 都写入 audit/result；原始 Anthropic usage 仅提供未缓存输入量时，runtime 会把缓存读取和写入量补回真实 input/total 口径。YAML 不保存这些单次运行参数；缺少 terminal usage 时审计记录 `unavailable`。`seed`、`verbosity` 等 OpenAI 专属调用参数不会透传给 Anthropic。
+未配置 profile `inference` 时，`think_mode` 保留历史默认 False；配置后，未传模式的调用采用 profile 默认。`reasoning_effort` 只用于有效模式 True。标准 OpenAI/DeepSeek 模式有各自的显式开关；其他兼容模型的服务端默认未必关闭，必须按官方模板配置并实测，不能仅凭记录中的 False 推断服务行为。`openai-responses` 在 think-off 时发送 `reasoning_effort=none`，只适用于接受该合同的端点。当前 Anthropic 路径不开放 extended thinking，因为现有强制工具语义与该模式不兼容；显式开启会报错，不弱化必用工具合同。
+
+模型请求默认 `streaming=True`；`stream_usage` 依次采用调用显式值、profile 值、provider 安全默认。安全默认对 Anthropic/官方 OpenAI 开启，对 DeepSeek/其他兼容端点关闭。Anthropic 底座继续使用 5 分钟 `AnthropicPromptCachingMiddleware`。每次调用的 input/output/total、cache_read/cache_creation 及可用的缓存分档写入 audit/result；原始 Anthropic 未缓存输入会补回缓存量以形成真实 input/total。缺少 terminal usage 时明确记录 `unavailable`，单次调用覆盖不回写 YAML。`seed`、`verbosity` 等 OpenAI 专属参数不透传给 Anthropic。
 
 当某个方法阶段存在由 Controller 定义、但参数必须由 Agent 生成的必用工具顺序时，
 可以同时传入 `tool_choice_resolver` 与稳定的 `tool_choice_policy_name`。resolver 在每次

@@ -47,6 +47,42 @@ class LLMPricing(BaseModel):
         return value
 
 
+class LLMChatTemplate(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    enable_thinking: bool | None = None
+    preserve_thinking: bool | None = None
+    clear_thinking: bool | None = None
+    force_nonempty_content: bool | None = None
+    reasoning_effort: Literal["low", "medium", "high", "xhigh"] | None = None
+    reasoning_strength: Literal["low", "medium", "high", "xhigh"] | None = None
+
+
+class LLMInferenceConfig(BaseModel):
+    """Explicit, auditable defaults for a model's tested inference configuration."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    think_mode: bool
+    reasoning_effort: Literal["low", "medium", "high", "xhigh", "max"] | None = None
+    temperature: float | None = Field(default=None, ge=0, le=2)
+    top_p: float | None = Field(default=None, gt=0, le=1)
+    top_k: int | None = Field(default=None, ge=0)
+    chat_template_kwargs: LLMChatTemplate | None = None
+    structured_output_tokens: int | None = Field(default=None, gt=0)
+
+    @model_validator(mode="after")
+    def _consistent_thinking(self) -> LLMInferenceConfig:
+        template = self.chat_template_kwargs
+        if template and template.enable_thinking is not None and template.enable_thinking != self.think_mode:
+            raise ValueError("chat template enable_thinking must match think_mode")
+        if not self.think_mode and (self.reasoning_effort or (template and (template.reasoning_effort or template.reasoning_strength))):
+            raise ValueError("reasoning settings require think_mode=True")
+        if template and self.reasoning_effort and template.reasoning_effort and self.reasoning_effort != template.reasoning_effort:
+            raise ValueError("chat template reasoning_effort must match reasoning_effort")
+        return self
+
+
 class LLMConfig(BaseModel):
     """One direct-value connection profile.
 
@@ -63,6 +99,7 @@ class LLMConfig(BaseModel):
     context_window_tokens: int | None = Field(default=None, gt=0)
     max_output_tokens: int | None = Field(default=None, gt=0)
     stream_usage: bool | None = None
+    inference: LLMInferenceConfig | None = None
     pricing: LLMPricing | None = None
 
     @field_validator("model", mode="before")
@@ -113,6 +150,14 @@ class LLMConfig(BaseModel):
             and self.context_window_tokens < self.max_output_tokens
         ):
             raise ValueError("context_window_tokens must be >= max_output_tokens")
+        if self.inference and self.inference.structured_output_tokens:
+            limit = self.inference.structured_output_tokens
+            if any(bound is not None and limit > bound for bound in (self.context_window_tokens, self.max_output_tokens)):
+                raise ValueError("structured_output_tokens must fit the profile token limits")
+        if self.inference and self.adapter not in {"openai", "openai-responses"}:
+            raise ValueError("profile inference settings currently require an OpenAI-compatible adapter")
+        if self.inference and self.inference.chat_template_kwargs and self.adapter != "openai":
+            raise ValueError("chat_template_kwargs require the chat-completions adapter")
         return self
 
     def connection_kwargs(self) -> dict[str, Any]:
@@ -150,6 +195,8 @@ class LLMConfig(BaseModel):
         }
         if self.stream_usage is not None:
             result["stream_usage"] = self.stream_usage
+        if self.inference is not None:
+            result["inference"] = self.inference.model_dump(exclude_none=True)
         return result
 
     def fingerprint(self) -> str:

@@ -58,6 +58,20 @@ def test_stream_usage_profile_override_is_recorded_without_changing_legacy_ident
     assert legacy.fingerprint() != explicit.fingerprint()
 
 
+def test_profile_inference_configuration_is_bounded_and_auditable() -> None:
+    config = LLMConfig(model="local", max_output_tokens=32768,
+                       inference={"think_mode": True, "structured_output_tokens": 32768})
+    assert config.public_dict()["inference"]["structured_output_tokens"] == 32768
+    assert "inference" not in LLMConfig(model="local").public_dict()
+    with pytest.raises(ValueError, match="must fit"):
+        LLMConfig(model="local", max_output_tokens=10000,
+                  inference={"think_mode": True, "structured_output_tokens": 32768})
+    with pytest.raises(ValueError, match="must match think_mode"):
+        LLMConfig(model="local", inference={"think_mode": True, "chat_template_kwargs": {"enable_thinking": False}})
+    with pytest.raises(ValueError):
+        LLMConfig(model="local", inference={"think_mode": True, "chat_template_kwargs": {"api_key": "forbidden"}})
+
+
 def test_config_loads_auditable_token_pricing() -> None:
     config = LLMConfig.model_validate(
         {

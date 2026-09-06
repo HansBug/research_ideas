@@ -846,11 +846,12 @@ class PublicStructuredRuntime:
         max_output_tokens: int | None = None,
     ) -> StructuredCallOutcome[T]:
         use_streaming = self.streaming if streaming is None else streaming
-        selected_max_output_tokens = (
-            MAX_STRUCTURED_OUTPUT_TOKENS
-            if max_output_tokens is None
-            else max_output_tokens
-        )
+        inference = getattr(self.config, "inference", None)
+        selected_max_output_tokens = max_output_tokens
+        if selected_max_output_tokens is None:
+            selected_max_output_tokens = (
+                inference.structured_output_tokens if inference is not None else None
+            ) or MAX_STRUCTURED_OUTPUT_TOKENS
         if selected_max_output_tokens <= 0:
             raise ValueError("max_output_tokens must be positive")
         attempts: list[dict[str, Any]] = []

@@ -23,7 +23,7 @@ from urllib.parse import quote, urlsplit
 from pydantic import BaseModel
 
 from utils.llm import LLMConfig, LLMRegistry, prompt_cache_policy
-from utils.llm.model_factory import default_stream_usage
+from utils.llm.model_factory import default_stream_usage, model_kwargs
 
 try:
     from langchain.agents import create_agent
@@ -552,16 +552,28 @@ def _resolve_inference_options(
     config: LLMConfig,
     *,
     model_call_options: Mapping[str, Any] | None,
-    think_mode: bool,
+    think_mode: bool | None,
     reasoning_effort: str | None,
 ) -> tuple[dict[str, Any], bool | None]:
+    inference = config.inference
+    if think_mode is None:
+        think_mode = inference.think_mode if inference is not None else False
+    elif inference is not None and think_mode != inference.think_mode:
+        raise ValueError("think_mode conflicts with the profile inference configuration; select a matching profile")
+    if inference is not None:
+        if reasoning_effort is None:
+            reasoning_effort = inference.reasoning_effort
+        elif inference.reasoning_effort is not None and reasoning_effort != inference.reasoning_effort:
+            raise ValueError("reasoning_effort conflicts with the profile inference configuration")
     if not isinstance(think_mode, bool):
         raise ValueError("think_mode must be a boolean")
     if reasoning_effort is not None and not isinstance(reasoning_effort, str):
         raise ValueError("reasoning_effort must be a string or None")
     if reasoning_effort is not None and not think_mode:
         raise ValueError("reasoning_effort requires think_mode=True")
-    options = dict(model_call_options or {})
+    options = {key: value for key in ("temperature", "top_p")
+               if inference is not None and (value := getattr(inference, key)) is not None}
+    options.update(dict(model_call_options or {}))
     if not think_mode and options.get("reasoning_effort") is not None:
         raise ValueError("reasoning_effort requires think_mode=True")
     if reasoning_effort is not None:
@@ -3346,23 +3358,7 @@ class AgentApp:
                 "deepseek": "langchain-deepseek",
             }[adapter]
             raise AgentError("config_error", f"{package} is required") from exc
-        kwargs = config.connection_kwargs()
-        if config.max_output_tokens is not None:
-            kwargs[
-                "max_completion_tokens"
-                if adapter in {"openai", "openai-responses"}
-                else "max_tokens"
-            ] = config.max_output_tokens
-        if adapter in {"openai", "openai-responses"}:
-            kwargs["use_responses_api"] = adapter == "openai-responses"
-        kwargs.update(
-            {
-                "streaming": True,
-                "stream_usage": _default_stream_usage(config),
-                "max_retries": 0,
-            }
-        )
-        kwargs.update(dict(model_options or {}))
+        kwargs = model_kwargs(config, model_options=model_options)
         try:
             model = ChatModel(**kwargs)
         except Exception as exc:
@@ -3385,7 +3381,7 @@ class AgentApp:
         context: Sequence[str | Mapping[str, Any]] | None = None,
         renderer: str = "auto",
         log_level: str = "INFO",
-        think_mode: bool = False,
+        think_mode: bool | None = None,
         reasoning_effort: str | None = None,
         compact_trigger_ratio: float | None = _DEFAULT_COMPACT_TRIGGER_RATIO,
         on_event: Callable[[AgentEvent], None] | None = None,
