@@ -88,7 +88,7 @@
 
 | 优先级 | 模型 | 为什么当前值得关注 | 风险/注意 |
 |---:|---|---|---|
-| 1 | Gemini 3.5 Flash / 3.8 Flash | 3.5 为本轮工程主候选；3.8 已有官方卡 | 3.5 现有网关探针失败；3.8 用户暂时无法获取，均不能写成接入完成 |
+| 1 | Gemini 3.5 / 3.7 / 3.8 Flash | 3.7/3.8 已有 Gateway B native 接入和 method smoke；3.5 仍保留为受阻候选 | 3.5 旧渠道探针失败；3.7/3.8 严格 native schema/canary 仍有限制；E2 未冻结 |
 | 2 | Gemini 3 Pro / 3 Flash | Gemini 3 系列 frontier/低价组合 | preview/lifecycle 变化快 |
 | 3 | Gemini 2.5 Pro / Flash / Flash-Lite | baseline 文献常见，GA/长上下文对照 | 低于 Gemini 3.x，适合作历史/稳定对照 |
 
@@ -185,6 +185,7 @@
 
 | 时间 | 更新内容 | 备注 |
 |---|---|---|
+| 2026-09-06 15:59:00 | 更新 Gemini 3.7/3.8 Gateway B native profile、registry 与 method smoke 状态 | 3.5 旧渠道仍 blocked；严格 schema/canary 和成本资格单独保留；E2 未冻结 |
 | 2026-09-06 11:00:00 | 更新 E1 的 7 个模型条目、精确发布时间/输出限制、官方价格和调用风险 | 只覆盖 E1 范围；Gemma4 公告日为 2026-04-02，Qwen3.8-27B 官方开放日为 2026-08-14；两个 Qwen3.6 型号日期分开 |
 | 2026-06-04 16:05:00 | 将 SUMMARY 中完整大表拆分为 [01-baseline-models.md](./01-baseline-models.md)、[02-openai-models.md](./02-openai-models.md)、[03-claude-models.md](./03-claude-models.md)、[04-gemini-models.md](./04-gemini-models.md)、[05-deepseek-models.md](./05-deepseek-models.md)、[06-qwen-models.md](./06-qwen-models.md)、[07-llama-models.md](./07-llama-models.md)、[08-grok-models.md](./08-grok-models.md)、[09-other-open-models.md](./09-other-open-models.md) | SUMMARY 改为统计结论、重点模型与链接索引 |
 | 2026-06-04 15:31:19 | 初始化根目录 LLM 模型现状微型文库，建立 README/GUIDE/SUMMARY 三件套，并把 issue #32 调研内容整理为长期总账 | 各模型表按发布时间降序；后续仍需持续核验价格与生命周期 |

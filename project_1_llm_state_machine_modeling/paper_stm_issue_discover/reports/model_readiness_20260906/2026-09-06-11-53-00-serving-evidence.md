@@ -23,11 +23,13 @@ Muse 的旧 `muse-context90` 两条响应都有占位符，旧 `muse-long16k-thi
 
 ## Profile 与真实 workflow
 
-通过 `LLM_CONFIG_FILE` 指向权限 600 的隔离 `.llmconfig.yml`，调用未修改的 `utils.llm.create_chat_model`。四款开放模型均完成普通生成、JSON schema、tool call、streaming usage 四类探针。现有 Luna/Sonnet/Haiku 同样完成四类；Gemini 3.5 的兼容路径、原生 Google 路径均未成功。所有 workflow 仅用事前选定 pair `0001`、一轮、一 worker、零额外 transport retry，不读取 ledger、不评分。[clm-workflow-status]
+通过 `LLM_CONFIG_FILE` 指向权限 600 的隔离 `.llmconfig.yml`，调用未修改的 `utils.llm.create_chat_model`。四款开放模型均完成普通生成、JSON schema、tool call、streaming usage 四类探针。现有 Luna/Sonnet/Haiku 同样完成四类；Gemini 3.5 的旧兼容/原生路径均未成功，Gateway B 的 3.7/3.8 native profile 已完成正式接入和 method smoke。所有 workflow 仅用事前选定 pair `0001`、一轮、一 worker、零额外 transport retry，不读取 ledger、不评分。[clm-workflow-status]
 
 ## 配置字段迁移审计
 
 本地主 registry 只接受 `LLMConfig` 的显式字段。旧的七个开放模型 profile 曾在本地配置中携带临时 `inference` 扩展字段；这些字段已从 `.llmconfig.yml` 清理，因此 registry 可正常加载。原设置保留在本报告和远程服务证据中，未被当作当前 profile schema 或新的运行参数：
+
+本轮最终核验时主 registry 可加载共 23 个 profile；`gateway-b-gemini-3.7-native` 与 `gateway-b-gemini-3.8-native` 的 profile identity、endpoint 和凭据存在性与隔离实测配置一致。公开记录只保留布尔核验结果，不包含凭据或私有端点。
 
 | profile | 原记录的 thinking / effort | 原记录的 sampling | 原记录的结构化输出预算 |
 |---|---|---|---:|
@@ -78,7 +80,7 @@ Gemma 的 provider 持续返回，不能把长延迟归为网络故障。其 con
 
 ## E2 交接
 
-- 商用讨论候选：Luna + Gemini 3.5 Flash，后者必须先补通现有网关；Sonnet/Haiku 为低优先级替代，原生 method 兼容性需处理。
+- 商用讨论候选：Luna + Gateway B 的 Gemini 3.7/3.8 native 路径；Gemini 3.5 的旧渠道仍 blocked，Sonnet/Haiku 为低优先级替代。E2 名单尚未冻结，严格 native schema/canary 限制和成本资格仍需在最终讨论中单独考虑。
 - 开放模型优先保留 Qwen3.8；另一款在 Gemma4 的独立模型族覆盖与 Muse 的工作流稳定性之间讨论。Qwen3.6 也是已实测的替代。名单未冻结，不能根据这一个 pair 的问题数量选优。
 - 四款开放模型都具备远程容量/负载证据；Gemma 的 method 降级和 usage 缺口仍需纳入正式运行前判断。[clm-handoff]
 - 本文件不提供 defect-ledger 命中、precision、人工确认量或方法优越性结论；E2 必须新建正式 run record，并将 provider 错误、schema/truncation、partial run 和 eligibility 分开统计。

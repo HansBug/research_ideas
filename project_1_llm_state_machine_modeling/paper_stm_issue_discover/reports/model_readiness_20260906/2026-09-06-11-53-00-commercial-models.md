@@ -73,7 +73,7 @@ Luna 的 profile、baseline 和 method smoke 均通过；Sonnet 5 / Haiku 4.5 �
 |---|---|---|---|---|---|---|---|
 | [clm-commercial-table] | E1-COM-TABLE | 商用模型的官方日期、规格、价格及公开分数 | trace | [src-commercial-specs]、[src-commercial-prices]、[src-commercial-bench] 对应型号行/图片列 | [cmd-commercial-sources] 人工复验 | high | 独立来源的 harness 不统一；缺测不补零；发布评测预算不等于 API 输出上限 |
 | [clm-commercial-access] | E1-COM-ACCESS | 单调用通过与 method 完成分开；Gemini 3.7/3.8 native method 已通，Gemini 3.5 仍缺接入 | classification | [src-commercial-probes] 与 Gateway B native method receipts；`per_pair/0001/status` | [cmd-commercial-probes] | high | 网关回显不证明上游身份；strict schema/canary 仍受网关限制；只代表本轮路径 |
-| [clm-commercial-selection] | E1-COM-CHOICE | 保留 Luna；Gemini 3.5/3.7/3.8 和 Claude 作为待定商用候选 | decision | [src-advisor]、[clm-commercial-table]、[clm-commercial-access] | 人工复验：核对偏好、来源和访问回执 | medium | E2 名单尚未冻结；不同渠道的 Gemini 能力与价格资格需分别记录 |
+| [clm-commercial-selection] | E1-COM-CHOICE | 保留 Luna；Gemini 3.5/3.7/3.8 和 Claude 作为待定商用候选，3.7/3.8 已有 Gateway B native method 证据 | decision | [src-advisor]、[clm-commercial-table]、[clm-commercial-access] | 人工复验：核对偏好、来源和访问回执 | medium | E2 名单尚未冻结；不同渠道的 Gemini 能力、schema 限制和价格资格需分别记录 |
 
 ### A.4 复验命令
 
