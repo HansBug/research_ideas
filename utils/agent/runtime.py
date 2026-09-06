@@ -542,6 +542,12 @@ def _is_openai_reasoning_model(config: LLMConfig) -> bool:
     return config.adapter == "openai" and model.startswith(("gpt-5", "o1", "o3", "o4"))
 
 
+def _is_gpt_oss_harmony(config: LLMConfig) -> bool:
+    """gpt-oss/Harmony rejects the OpenAI ``none`` reasoning value."""
+
+    return config.adapter == "openai-responses" and config.model.lower().startswith("gpt-oss")
+
+
 def _resolve_inference_options(
     config: LLMConfig,
     *,
@@ -580,7 +586,8 @@ def _resolve_inference_options(
     deepseek = _is_deepseek_config(config)
     effective_think_mode = think_mode
     if not think_mode and (
-        _is_openai_reasoning_model(config) or config.adapter == "openai-responses"
+        _is_openai_reasoning_model(config)
+        or (config.adapter == "openai-responses" and not _is_gpt_oss_harmony(config))
     ):
         # Pin the adapter's explicit think-off value instead of relying on a
         # provider default that would change the experiment semantics.

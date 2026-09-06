@@ -185,6 +185,22 @@ def test_think_off_pins_official_reasoning_defaults() -> None:
         )
 
 
+def test_gpt_oss_harmony_uses_provider_default_when_thinking_is_off() -> None:
+    from utils.agent.runtime import _resolve_inference_options
+
+    config = LLMConfig(
+        model="gpt-oss-20b",
+        adapter="openai-responses",
+        base_url="http://127.0.0.1:8100/v1",
+        api_key="local-not-used",
+    )
+    options, enabled = _resolve_inference_options(
+        config, model_call_options=None, think_mode=False, reasoning_effort=None
+    )
+    assert enabled is False
+    assert options == {}
+
+
 def test_deepseek_profiles_use_the_official_langchain_adapter() -> None:
     from utils.agent import AgentApp
 
