@@ -3,7 +3,7 @@
 from copy import deepcopy
 from typing import Any
 
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 from ..inputs.context import prompt_context_payload as full_prompt_context_payload
 from ..inputs.context import (
@@ -66,6 +66,10 @@ def without_inspection(pair: PairInput) -> NoInspectInput:
 
 def prompt_context_payload(pair: PairInput, *, stage: str) -> dict[str, Any]:
     payload = full_prompt_context_payload(pair, stage=stage)
+    if getattr(pair, "ablation_mode", "none") == "no-predicates":
+        from .no_predicates import project_context
+
+        return project_context(payload)
     if not isinstance(pair, NoInspectInput):
         return payload
     for role in INSPECTION_ROLES:
@@ -117,6 +121,10 @@ inspection fact remains unresolved. """, ""),
 def system_prompt_for(prompt: str, *, ablation: str = "none") -> str:
     if ablation == "none":
         return prompt
+    if ablation == "no-predicates":
+        from .no_predicates import project_instruction
+
+        return project_instruction(prompt)
     if ablation != "no-inspect":
         raise ValueError(f"No prompt implementation for ablation: {ablation}")
     for source, replacement in _INSPECTION_GUIDANCE:
@@ -125,4 +133,14 @@ def system_prompt_for(prompt: str, *, ablation: str = "none") -> str:
 
 
 def pair_system_prompt(pair: PairInput, prompt: str) -> str:
-    return system_prompt_for(prompt, ablation="no-inspect" if isinstance(pair, NoInspectInput) else "none")
+    return system_prompt_for(prompt, ablation="no-inspect" if isinstance(pair, NoInspectInput) else getattr(pair, "ablation_mode", "none"))
+
+
+def response_schema_for(schema: type[BaseModel], *, ablation: str = "none") -> type[BaseModel]:
+    if ablation == "no-predicates":
+        from .no_predicates import response_schema
+
+        return response_schema(schema)
+    if ablation not in {"none", "no-inspect"}:
+        raise ValueError(f"No response schema implementation for ablation: {ablation}")
+    return schema

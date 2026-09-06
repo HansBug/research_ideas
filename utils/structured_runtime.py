@@ -1163,7 +1163,7 @@ class FixtureStructuredRuntime:
         selected_max_output_tokens = int(
             kwargs.get("max_output_tokens") or MAX_STRUCTURED_OUTPUT_TOKENS
         )
-        if schema.__name__ == "NLContractResponse":
+        if any(base.__name__ == "NLContractResponse" for base in schema.__mro__):
             payload: dict[str, Any] = {
                 "contracts": [],
                 "segment_disposition": {},
@@ -1203,7 +1203,7 @@ class FixtureStructuredRuntime:
                 "reason": "Fixture grounding output leaves candidate generation to the fallback receipt.",
                 "basis": "provider-free fixture runtime",
             }
-        elif schema.__name__ == "DAdjudicationResponse":
+        elif any(base.__name__ == "DAdjudicationResponse" for base in schema.__mro__):
             parts = artifact_id.split("/")
             pair_id = parts[1] if len(parts) > 1 else "fixture"
             round_id = next(

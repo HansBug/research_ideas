@@ -37,7 +37,7 @@ from ..inputs.models import PairInput
 from ..inputs.context import context_payload
 from ..semantics.ablation import (
     DISABLED_INSPECTION_STEPS, INSPECTION_ROLES, NO_INSPECT_VERSION,
-    NoInspectInput, pair_system_prompt, system_prompt_for, without_inspection,
+    NoInspectInput, pair_system_prompt, response_schema_for, system_prompt_for, without_inspection,
 )
 from ..semantics.author_source import build_author_index, enclosing_endpoint_carriers
 from ..registry import load_registry
@@ -96,6 +96,7 @@ from ..semantics.predicate_routing import (
     finalize_route_telemetry,
     route_primary_candidates,
 )
+from ..semantics.frontier import candidate_preserves_contract_identity
 from .contracts import (
     AblationMode,
     MethodCellReceipt,
@@ -357,16 +358,19 @@ def _prompt_schema_hash(ablation: AblationMode = "none") -> str:
                 "contract": system_prompt_for(CONTRACT_SYSTEM_PROMPT, ablation=ablation),
                 "contract_completion": system_prompt_for(CONTRACT_SYSTEM_PROMPT, ablation=ablation),
                 "discovery_grounding": system_prompt_for(DISCOVERY_GROUNDING_SYSTEM_PROMPT, ablation=ablation),
-                "discovery_lenses": DISCOVERY_GROUNDING_AUDIT_LENSES,
+                "discovery_lenses": {
+                    name: system_prompt_for(prompt, ablation=ablation)
+                    for name, prompt in DISCOVERY_GROUNDING_AUDIT_LENSES.items()
+                },
                 "d_adjudication": system_prompt_for(D_SYSTEM_PROMPT, ablation=ablation),
             },
             "schemas": {
-                "nl_contract": NLContractResponse.model_json_schema(),
-                "contract_completion": ContractCompletionResponse.model_json_schema(),
-                "grounding": GroundingResponse.model_json_schema(),
+                "nl_contract": response_schema_for(NLContractResponse, ablation=ablation).model_json_schema(),
+                "contract_completion": response_schema_for(ContractCompletionResponse, ablation=ablation).model_json_schema(),
+                "grounding": response_schema_for(GroundingResponse, ablation=ablation).model_json_schema(),
                 "grounding_exact_identity_contract": {
                     "version": GROUNDING_EXACT_IDENTITY_CONTRACT_VERSION,
-                    "base_schema": ExactGroundingResponse.model_json_schema(),
+                    "base_schema": response_schema_for(ExactGroundingResponse, ablation=ablation).model_json_schema(),
                     "specialization": (
                         "Per method cell, supplied contract identities and the "
                         "cardinality-contract subset are closed; every cardinality "
@@ -376,7 +380,7 @@ def _prompt_schema_hash(ablation: AblationMode = "none") -> str:
                         "additional contracts can be referenced."
                     ),
                 },
-                "d_adjudication": DAdjudicationResponse.model_json_schema(),
+                "d_adjudication": response_schema_for(DAdjudicationResponse, ablation=ablation).model_json_schema(),
             },
         }
     )
@@ -889,6 +893,8 @@ def _stage_receipt(
         raise ValueError("stage receipt requires a complete context manifest")
     if isinstance(pair, NoInspectInput):
         artifact_roles = tuple(role for role in artifact_roles if role not in INSPECTION_ROLES)
+    if getattr(pair, "ablation_mode", "none") == "no-predicates":
+        artifact_roles = tuple(role for role in artifact_roles if role != "predicate_registry")
     context_budget = (
         ContextBudgetReceipt.model_validate(
             outcome.context_budget.model_dump(mode="json")
@@ -2143,6 +2149,7 @@ def _normalize_state_retention_carriers(
 def _preflight_synthetic_root_wrapper_reachability(
     pair: PairInput,
     candidates: Sequence[CandidateIssue],
+    contracts_by_id: Mapping[str, NLContract] | None = None,
 ) -> tuple[list[CandidateIssue], list[dict[str, Any]]]:
     """Do not transfer a generated root-wrapper diagnostic to a reachable child."""
 
@@ -2154,6 +2161,7 @@ def _preflight_synthetic_root_wrapper_reachability(
 
     retained: list[CandidateIssue] = []
     dispositions: list[dict[str, Any]] = []
+    semantic_only = getattr(pair, "ablation_mode", "none") == "no-predicates"
     for candidate in candidates:
         source_values = candidate.predicate_inputs.get("source")
         source_values = (
@@ -2161,10 +2169,17 @@ def _preflight_synthetic_root_wrapper_reachability(
             if isinstance(source_values, (list, tuple))
             else [source_values]
         )
+        contract = (contracts_by_id or {}).get(candidate.contract_id)
+        if semantic_only:
+            source_values = [
+                resolve_state_ref(hint.value, pair.model)
+                for hint in (contract.binding_hints if contract else ())
+                if hint.role == "source"
+            ]
         if not (
             candidate.property == "reachability"
             and candidate.violation_direction == "unreachable"
-            and candidate.predicate_id == "G1"
+            and (semantic_only or candidate.predicate_id == "G1")
             and root_ref in source_values
         ):
             retained.append(candidate)
@@ -2175,6 +2190,8 @@ def _preflight_synthetic_root_wrapper_reachability(
             if isinstance(target_values, (list, tuple))
             else [target_values]
         )
+        if semantic_only:
+            target_values = [hint.value for hint in contract.binding_hints if hint.role == "target"]
         target_states = []
         for value in target_values:
             if not isinstance(value, str):
@@ -2215,7 +2232,7 @@ def _preflight_synthetic_root_wrapper_reachability(
                 "root_wrapper_ref": root_ref,
                 "reachable_target_refs": [state.ref for state in target_states],
                 "source_initial_refs": [item.raw_ref for item in initial_rows],
-                "reason": "The G1 source is the compiler-owned machine wrapper, while the exact target is reached by a supplied top-level initial transition and is marked reachable by the owned hierarchical projection.",
+                "reason": "The G1 source is the compiler-owned machine wrapper, while the exact target is reached by a supplied top-level initial transition and is marked reachable by the owned hierarchical projection." if not semantic_only else "The required source is the compiler-owned machine wrapper, while the exact target has a supplied top-level initial transition and is marked reachable by the owned hierarchical projection.",
                 "basis": "InspectionEquivalentFacts.machine_root_ref/reachable_state_refs plus exact author-source initial-transition inventory",
             }
         )
@@ -2538,8 +2555,12 @@ def _prepare_candidate(
     """Bind, compile, and execute once before the separate semantic D call."""
 
     obligation_id = f"{pair.pair_id}:r{round_index}:i{index}"
+    semantic_only = getattr(pair, "ablation_mode", "none") == "no-predicates"
+    if semantic_only and (candidate.predicate_id is not None or candidate.predicate_inputs):
+        raise ValueError("A2 candidate preparation received disabled predicate arguments")
     candidate = _normalize_candidate_model_refs(pair, candidate)
-    candidate = _apply_typed_predicate_boundary(pair, candidate)
+    if not semantic_only:
+        candidate = _apply_typed_predicate_boundary(pair, candidate)
     binding = bind_candidate(candidate, pair.model)
     if contracts_by_id is not None:
         contract = contracts_by_id.get(candidate.contract_id)
@@ -2573,40 +2594,42 @@ def _prepare_candidate(
                     + "; W0 and D_UNRESOLVED are required",
                 }
             )
-    candidate = _enrich_candidate(candidate, binding, pair)
-    plan = compile_plan(
-        candidate,
-        binding,
-        load_registry(),
-        obligation_id=obligation_id,
-        round_index=round_index,
-        model=pair.model,
-        model_hash=pair.hashes["fcstm"],
-    )
-    validate_plan(plan)
-    try:
-        receipt = run_backend(plan, pair.model, f"{obligation_id}:receipt")
-    except Exception as exc:  # noqa: BLE001 - backend failures become structured uncertainty
-        # Backend failures are execution uncertainty, not violations. Preserve
-        # a structured receipt so the candidate remains auditable and W cannot
-        # be promoted by an exception path.
-        receipt = RawReceipt(
-            receipt_id=f"{obligation_id}:receipt",
-            backend=f"error:{plan.predicate_id or 'none'}",
-            terminal_state="error",
-            verdict="unknown",
-            reason=f"The backend raised {type(exc).__name__}; the exception was downgraded to execution uncertainty, not a violation.",
-            basis="backend exception downgraded to explicit execution uncertainty",
-            run_metadata={"error_type": type(exc).__name__, "error_message": str(exc)},
+    plan = receipt = None
+    if not semantic_only:
+        candidate = _enrich_candidate(candidate, binding, pair)
+        plan = compile_plan(
+            candidate,
+            binding,
+            load_registry(),
+            obligation_id=obligation_id,
+            round_index=round_index,
+            model=pair.model,
+            model_hash=pair.hashes["fcstm"],
         )
+        validate_plan(plan)
+        try:
+            receipt = run_backend(plan, pair.model, f"{obligation_id}:receipt")
+        except Exception as exc:  # noqa: BLE001 - backend failures become structured uncertainty
+            # Backend failures are execution uncertainty, not violations. Preserve
+            # a structured receipt so the candidate remains auditable and W cannot
+            # be promoted by an exception path.
+            receipt = RawReceipt(
+                receipt_id=f"{obligation_id}:receipt",
+                backend=f"error:{plan.predicate_id or 'none'}",
+                terminal_state="error",
+                verdict="unknown",
+                reason=f"The backend raised {type(exc).__name__}; the exception was downgraded to execution uncertainty, not a violation.",
+                basis="backend exception downgraded to explicit execution uncertainty",
+                run_metadata={"error_type": type(exc).__name__, "error_message": str(exc)},
+            )
     attribution = build_source_attribution(
         pair_id=pair.pair_id,
         obligation_id=obligation_id,
         nl_path=pair.pair_dir / "nl.txt",
         model_path=pair.pair_dir / "fcstm.fcstm",
         model_hash=pair.hashes["fcstm"],
-        plan_id=plan.plan_id,
-        receipt_id=receipt.receipt_id,
+        plan_id=plan.plan_id if plan is not None else None,
+        receipt_id=receipt.receipt_id if receipt is not None else None,
         plan=plan,
         requirement_quote=candidate.requirement_quote,
         source_refs=candidate.source_refs,
@@ -2629,6 +2652,10 @@ def _prepare_candidate(
         for role in ("inspection_facts", "verify_facts", "smt_facts"):
             attribution["roles"][role] = "disabled_by_ablation"
         attribution["input_context"]["ablation"] = "no-inspect"
+    if semantic_only:
+        attribution["roles"]["fcstm"] = "closed_model_semantic_binding"
+        attribution["predicate_execution"] = "disabled_by_ablation"
+        attribution["input_context"]["ablation"] = "no-predicates"
     return {
         "obligation_id": obligation_id,
         "candidate": candidate,
@@ -2651,6 +2678,7 @@ def _materialize_exact_s2_inventory_candidates(
 
     materialized: list[CandidateIssue] = []
     receipts: list[dict[str, Any]] = []
+    predicates_enabled = getattr(pair, "ablation_mode", "none") != "no-predicates"
     for contract in contracts.contracts:
         if (
             contract.property != "transition_endpoints"
@@ -2688,9 +2716,12 @@ def _materialize_exact_s2_inventory_candidates(
         for candidate in llm_candidates:
             if (
                 candidate.contract_id != contract.contract_id
-                or candidate.predicate_id != "S2"
-                or candidate.predicate_inputs.get("source") != source_state.name
-                or candidate.predicate_inputs.get("target") != target_state.name
+                or (predicates_enabled and (
+                    candidate.predicate_id != "S2"
+                    or candidate.predicate_inputs.get("source") != source_state.name
+                    or candidate.predicate_inputs.get("target") != target_state.name
+                ))
+                or (not predicates_enabled and not candidate_preserves_contract_identity(candidate, contract))
             ):
                 continue
             binding = bind_candidate(candidate, pair.model)
@@ -2721,12 +2752,12 @@ def _materialize_exact_s2_inventory_candidates(
                 f"{target_state.name} is absent"
             ),
             requirement_quote=contract.quote,
-            predicate_id="S2",
+            predicate_id="S2" if predicates_enabled else None,
             predicate_inputs={
                 "source": source_state.name,
                 "target": target_state.name,
                 "scope": "closed_fcstm",
-            },
+            } if predicates_enabled else {},
             element_refs=[source_ref, target_ref],
             source_refs=source_refs,
             expected=contract.normative_statement,
@@ -2753,7 +2784,7 @@ def _materialize_exact_s2_inventory_candidates(
         receipts.append(
             {
                 "contract_id": contract.contract_id,
-                "predicate_id": "S2",
+                "predicate_id": "S2" if predicates_enabled else None,
                 "source": source_state.name,
                 "target": target_state.name,
                 "element_refs": [source_ref, target_ref],
@@ -3789,18 +3820,27 @@ def _deterministic_candidate(
     receipt = prepared["receipt"]
     attribution = prepared["source_attribution"]
     obligation_id = prepared["obligation_id"]
-    record = build_evidence_record(
-        pair=pair,
-        obligation_id=obligation_id,
-        candidate=candidate,
-        binding=binding,
-        plan=plan,
-        receipt=receipt,
-        source_attribution=attribution,
-        retry_records=retry_records,
-        semantic_adjudication=semantic_adjudication,
-        run_id=run_id,
-    )
+    if getattr(pair, "ablation_mode", "none") == "no-predicates":
+        from ..semantics.no_predicates import build_semantic_evidence_record
+
+        record = build_semantic_evidence_record(
+            obligation_id=obligation_id, candidate=candidate, binding=binding,
+            source_attribution=attribution, retry_records=retry_records,
+            semantic_adjudication=semantic_adjudication,
+        )
+    else:
+        record = build_evidence_record(
+            pair=pair,
+            obligation_id=obligation_id,
+            candidate=candidate,
+            binding=binding,
+            plan=plan,
+            receipt=receipt,
+            source_attribution=attribution,
+            retry_records=retry_records,
+            semantic_adjudication=semantic_adjudication,
+            run_id=run_id,
+        )
     record.update(
         {
             "issue_id": f"{pair.pair_id}:r{round_index}:issue:{index}",
@@ -3928,10 +3968,15 @@ def _d_decision_consistency_errors(
                 if any(edge.source_ref == state.ref for edge in pair.model.transitions)
             ]
             if bound_states and len(states_with_outgoing) == len(bound_states):
+                frontier_boundary = (
+                    "unreachability is not a local dead-end"
+                    if getattr(pair, "ablation_mode", "none") == "no-predicates"
+                    else "unreachability is not a local dead-end or V1 deadlock violation"
+                )
                 errors.append(
                     "grounding=established contradicts the exact closed-model outgoing-transition inventory: "
                     f"every bound dead_end locus has outgoing transitions ({states_with_outgoing}); "
-                    "unreachability is not a local dead-end or V1 deadlock violation"
+                    + frontier_boundary
                 )
         if (
             isinstance(candidate, CandidateIssue)
@@ -4206,7 +4251,8 @@ def _comparison_operators(text: str) -> frozenset[str]:
 
 
 def _aggregate_guard_modality_issues(
-    pair: PairInput, release: list[dict[str, Any]]
+    pair: PairInput, release: list[dict[str, Any]],
+    contracts_by_id: Mapping[str, NLContract] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """One report per cell for "condition written as the trigger label" (v61 C4.3).
 
@@ -4224,16 +4270,31 @@ def _aggregate_guard_modality_issues(
     index = build_author_index(pair)
     if index is None:
         return release, []
+    semantic_only = getattr(pair, "ablation_mode", "none") == "no-predicates"
     members: list[dict[str, Any]] = []
+    guard_identities: dict[str, tuple[str, str]] = {}
     for issue in release:
-        if not (issue.get("predicate_id") == "S5" and issue.get("property") == "guard" and issue.get("violation_direction") == "missing"):
+        if not ((semantic_only or issue.get("predicate_id") == "S5") and issue.get("property") == "guard" and issue.get("violation_direction") == "missing"):
             continue
         inputs = issue.get("predicate_inputs") or {}
         ref = inputs.get("transition") or inputs.get("transition_ref")
+        required = str(inputs.get("guard") or inputs.get("expected_guard") or "")
+        if semantic_only:
+            refs = {
+                ref for ref in (issue.get("binding") or {}).get("element_refs", issue.get("element_refs") or [])
+                if ref.startswith("transition:") and pair.model.transition(ref) is not None
+            }
+            if len(refs) != 1:
+                continue
+            ref = next(iter(refs))
+            contract = (contracts_by_id or {}).get(issue.get("contract_id"))
+            guards = {hint.value for hint in contract.binding_hints if hint.role == "guard"} if contract else set()
+            if len(guards) > 1:
+                continue
+            required = next(iter(guards), "")
         author = index.author_transition_for_carrier(pair.model.transition(ref)) if ref else None
         if author is None or not author.label.event:
             continue
-        required = str(inputs.get("guard") or inputs.get("expected_guard") or "")
         event_text = author.label.event
         same_words = False
         if required and _condition_tokens(event_text) and _condition_tokens(required):
@@ -4249,16 +4310,16 @@ def _aggregate_guard_modality_issues(
             if len(left & right) / len(left | right) < 0.5 or _comparison_operators(event_text) != _comparison_operators(required):
                 continue
         members.append(issue)
+        guard_identities[issue["issue_id"]] = (ref, required)
     if len(members) < 2:
         return release, []
     root = members[0]
     others = members[1:]
     lines = []
     for index_no, issue in enumerate(members, start=1):
-        inputs = issue.get("predicate_inputs") or {}
-        ref = inputs.get("transition") or inputs.get("transition_ref")
+        ref, required = guard_identities[issue["issue_id"]]
         author = index.author_transition_for_carrier(pair.model.transition(ref))
-        lines.append(f"({index_no}) {' -> '.join(issue.get('locus_names') or ())}: label `{author.label.raw}`, required guard {str(inputs.get('guard') or inputs.get('expected_guard') or '')!r} ({author.anchor()})")
+        lines.append(f"({index_no}) {' -> '.join(issue.get('locus_names') or ())}: label `{author.label.raw}`, required guard {required!r} ({author.anchor()})")
     root["folded_sub_claims"] = [*(root.get("folded_sub_claims") or []), *(
         {
             "issue_id": issue["issue_id"], "title": issue.get("title"), "property": issue.get("property"),
@@ -4284,6 +4345,11 @@ def _aggregate_guard_modality_issues(
         "reason": "S5 missing-guard issues whose author label is the condition itself (boolean expression or the requirement's guard words) describe one modelling decision and are published as one report.",
         "basis": "author label grammar from the canonical source IR; typed S5 inputs; no prose similarity",
     }
+    if semantic_only:
+        root["guard_modality_aggregation"].update({
+            "reason": "Missing-guard issues whose author label is the condition itself describe one modelling decision and are published as one report.",
+            "basis": "author label grammar, exact semantic carrier refs, and NL contract guard hints; existing guard-modality comparison",
+        })
     dropped = {issue["issue_id"] for issue in others}
     kept = [issue for issue in release if issue["issue_id"] not in dropped]
     return kept, [{"issue_id": issue["issue_id"], "aggregated_into": root["issue_id"]} for issue in others]
@@ -4392,6 +4458,11 @@ def _method_cell(
         audit["reason"] = "Original input closure is audit-only; method consumers receive the no-inspect projection."
         write_json(output_root / "input_audits" / f"{pair.pair_id}.json", audit)
         pair = without_inspection(pair)
+    elif ablation == "no-predicates":
+        from ..semantics.no_predicates import without_predicates
+
+        pair = without_predicates(pair)
+    predicates_enabled = ablation != "no-predicates"
     stage_receipts: list[dict[str, Any]] = []
     stage_outputs: dict[str, Any] = {}
     all_outcomes: list[StructuredCallOutcome[Any]] = []
@@ -4423,6 +4494,15 @@ def _method_cell(
         }
         for role in ("inspection_facts", "verify_facts", "smt_facts"):
             prepare_output["source_roles"][role] = "disabled_by_ablation"
+    if not predicates_enabled:
+        from ..semantics.no_predicates import DISABLED_PREDICATE_STEPS, NO_PREDICATES_VERSION
+
+        stage_outputs["ablation"] = {
+            "mode": ablation, "projection_version": NO_PREDICATES_VERSION,
+            "disabled_steps": [{"function": name, "status": "disabled_by_ablation"} for name in DISABLED_PREDICATE_STEPS],
+            "predicate_execution": "disabled_by_ablation", "inspection_context": "enabled",
+        }
+        prepare_output["source_roles"]["fcstm"] = "closed_model_semantic_binding"
     stage_receipts.append(
         _stage_receipt(
             pair=pair,
@@ -4439,7 +4519,7 @@ def _method_cell(
     contract_prompt = build_contract_prompt(pair, round_index)
     contract_outcome: StructuredCallOutcome[NLContractResponse] = runtime.call(
         kind="contract_extraction",
-        schema=NLContractResponse,
+        schema=response_schema_for(NLContractResponse, ablation=ablation),
         system_prompt=pair_system_prompt(pair, CONTRACT_SYSTEM_PROMPT),
         prompt=contract_prompt,
         artifact_id=f"method/{pair.pair_id}/round-{round_index}/contract-extraction",
@@ -4513,7 +4593,7 @@ def _method_cell(
         )
         contract_completion_outcome = runtime.call(
             kind="contract_completion",
-            schema=ContractCompletionResponse,
+            schema=response_schema_for(ContractCompletionResponse, ablation=ablation),
             system_prompt=pair_system_prompt(pair, CONTRACT_SYSTEM_PROMPT),
             prompt=contract_completion_prompt,
             artifact_id=(
@@ -4632,6 +4712,7 @@ def _method_cell(
     grounding_schema = _grounding_response_contract(
         contract_response.contracts,
         contract_reference_aliases=contract_reference_aliases,
+        ablation=ablation,
     )
     # The method samples the two complementary lenses sequentially inside one
     # cell. Pair workers provide process-level parallelism without changing the
@@ -4659,6 +4740,8 @@ def _method_cell(
                 )
             ),
         )
+        if not predicates_enabled:
+            response = GroundingResponse.model_validate(response.model_dump(mode="json"))
         response, identity_receipts = canonicalize_grounding_response(response)
         identity_normalization_receipts.extend(identity_receipts)
         response, exact_fact_diagnostics = _normalize_grounding_exact_facts(
@@ -4753,6 +4836,7 @@ def _method_cell(
         (initial_candidates, []) if isinstance(pair, NoInspectInput) else _preflight_synthetic_root_wrapper_reachability(
             pair,
             initial_candidates,
+            contracts_by_id,
         )
     )
     initial_candidates, route_controller_preflight_dispositions = (
@@ -4845,8 +4929,11 @@ def _method_cell(
         contracts_by_id,
         grounding_responses,
         [*admitted_llm_candidates, *frontier_candidates],
+    ) if predicates_enabled else None
+    routed_primary_candidates = (
+        list(primary_route_projection.candidates) if predicates_enabled
+        else [*admitted_llm_candidates, *frontier_candidates]
     )
-    routed_primary_candidates = list(primary_route_projection.candidates)
     exact_s2_candidates, exact_s2_receipts = (
         _materialize_exact_s2_inventory_candidates(
             pair,
@@ -4856,7 +4943,7 @@ def _method_cell(
         )
     )
     execution_probe_candidates, execution_probe_contracts, execution_probe_dispositions = (
-        _materialize_deterministic_execution_probes(
+        ([], {}, []) if not predicates_enabled else _materialize_deterministic_execution_probes(
             pair,
             contracts_by_id,
             grounding_responses,
@@ -4897,10 +4984,10 @@ def _method_cell(
             errors.append({"candidate_index": index, "error_type": type(exc).__name__, "message": str(exc), "reason": "Candidate processing failed; the cell remains readable.", "basis": "Candidate-level diagnostic preservation."})
     finding_candidates = [
         item for item in prepared_candidates if _prepared_is_finding_candidate(item)
-    ]
+    ] if predicates_enabled else list(prepared_candidates)
     satisfied_candidates = [
         item for item in prepared_candidates if not _prepared_is_finding_candidate(item)
-    ]
+    ] if predicates_enabled else []
     execution_receipts = [
         build_predicate_execution_receipt(
             pair_id=pair.pair_id,
@@ -4914,7 +5001,7 @@ def _method_cell(
             binding_precise=item["binding"].precise,
         )
         for item in prepared_candidates
-    ]
+    ] if predicates_enabled else []
     receipt_witness_levels = {
         str(receipt["obligation_id"]): str(receipt["witness_level"])
         for receipt in execution_receipts
@@ -4928,7 +5015,7 @@ def _method_cell(
         primary_route_projection.telemetry,
         prepared_candidates,
         primary_route_witness_levels,
-    )
+    ) if predicates_enabled else []
     stage_outputs["execute_batch"] = {
         "candidate_count": len(candidates),
         "llm_candidate_count": len(response.issues),
@@ -4991,6 +5078,12 @@ def _method_cell(
         "reason": "Exact binding, protected source-transition macro closure, primary typed-contract predicate routing, frozen domain-invariant projection, the typed domain frontier, the exact S2 inventory scout, frozen predicate compilation, and deterministic backend execution were applied inside one execute batch; completed true receipts remain passing-check audit records while only counterexamples, unresolved W1/W0, or errors become findings.",
         "basis": "LLM-established typed contracts, frozen language invariants, exact source inventory, published working-contract macro membership, owned pyfcstm-native ModelIR/inspection facts, frozen predicate registry, compiler plans, backend receipts, primary-route telemetry, and the passing-check exclusion rule",
     }
+    if not predicates_enabled:
+        stage_outputs["execute_batch"].update({
+            "disabled_steps": stage_outputs["ablation"]["disabled_steps"],
+            "reason": "Exact semantic binding, protected source-transition closure, native language invariants, retained semantic frontier findings, and exact missing-edge inventory checks were applied; all prepared candidates continue to semantic D adjudication.",
+            "basis": "NL contracts, exact source inventory, working-contract provenance, and owned ModelIR/inspection facts; predicate mechanism disabled by A2",
+        })
     stage_receipts.append(
         _stage_receipt(
             pair=pair,
@@ -5044,8 +5137,8 @@ def _method_cell(
                 "obligation_id": item["obligation_id"],
                 "candidate": item["candidate"].model_dump(mode="json"),
                 "binding": item["binding"].model_dump(mode="json"),
-                "plan": item["plan"].to_dict(),
-                "receipt": item["receipt"].to_dict(),
+                "plan": item["plan"].to_dict() if item["plan"] is not None else None,
+                "receipt": item["receipt"].to_dict() if item["receipt"] is not None else None,
                 "source_attribution": item["source_attribution"],
                 "defeater_evidence_reference_catalog": list(
                     _d_defeater_evidence_reference_catalog(item)
@@ -5106,7 +5199,7 @@ def _method_cell(
                 continue
             d_outcome: StructuredCallOutcome[DAdjudicationResponse] = runtime.call(
                 kind="d_adjudication",
-                schema=DAdjudicationResponse,
+                schema=response_schema_for(DAdjudicationResponse, ablation=ablation),
                 system_prompt=pair_system_prompt(pair, D_SYSTEM_PROMPT),
                 prompt=batch.prompt,
                 artifact_id=batch_artifact,
@@ -5264,7 +5357,7 @@ def _method_cell(
                     continue
                 correction_outcome: StructuredCallOutcome[DAdjudicationResponse] = runtime.call(
                     kind="d_adjudication_correction",
-                    schema=DAdjudicationResponse,
+                    schema=response_schema_for(DAdjudicationResponse, ablation=ablation),
                     system_prompt=pair_system_prompt(pair, D_SYSTEM_PROMPT),
                     prompt=batch.prompt,
                     artifact_id=batch_artifact,
@@ -5484,7 +5577,7 @@ def _method_cell(
             errors.append({"candidate_index": index, "error_type": type(exc).__name__, "message": str(exc), "reason": "Candidate publication failed; the cell remains readable.", "basis": "Candidate-level diagnostic preservation."})
     release = _deduplicate_release_issues(release)
     release, folded_issues = _fold_consequence_issues(release, pair)
-    release, aggregated_issues = _aggregate_guard_modality_issues(pair, release)
+    release, aggregated_issues = _aggregate_guard_modality_issues(pair, release, contracts_by_id)
     _annotate_author_anchors(pair, release)
     publish_output = {
         "evidence_record_count": len(records),
@@ -5506,6 +5599,8 @@ def _method_cell(
         "reason": "Deterministic W publication retained only D1/D2 violations and collapsed exact typed duplicate defects.",
         "basis": "binding completeness, frozen predicate support, backend terminal verdict, method-owned D, and exact-typed-defect-key.v1",
     }
+    if not predicates_enabled:
+        publish_output["basis"] = "ordinary binding completeness, method-owned D, and exact-typed-defect-key.v1; semantic W0/W1 only"
     stage_outputs["publish"] = publish_output
     stage_receipts.append(
         _stage_receipt(
@@ -5618,6 +5713,7 @@ def _grounding_response_contract(
     contracts: Sequence[NLContract],
     *,
     contract_reference_aliases: Mapping[str, str] | None = None,
+    ablation: AblationMode = "none",
 ) -> type[ExactGroundingResponse]:
     """Specialize grounding identity and cardinality coverage to one method cell."""
 
@@ -5664,7 +5760,7 @@ def _grounding_response_contract(
     )
     response_model = create_model(
         f"ExactGroundingResponse_{contract_key}",
-        __base__=ExactGroundingResponse,
+        __base__=response_schema_for(ExactGroundingResponse, ablation=ablation),
         cardinality_bindings=(
             list[CardinalityDomainBinding],
             Field(default_factory=list, description=cardinality_description),
@@ -5788,7 +5884,7 @@ def _method_metrics(
             "unresolved_or_error_records": sum(
                 int(
                     record.get("d_level") == "D_UNRESOLVED"
-                    or record.get("execution_receipt", {}).get("execution_state") == "failed"
+                    or (record.get("execution_receipt") or {}).get("execution_state") == "failed"
                 )
                 for record in pair_records
             ),
@@ -5822,7 +5918,7 @@ def _method_metrics(
             "unresolved_or_error_records": sum(
                 int(
                     record.get("d_level") == "D_UNRESOLVED"
-                    or record.get("execution_receipt", {}).get("execution_state") == "failed"
+                    or (record.get("execution_receipt") or {}).get("execution_state") == "failed"
                 )
                 for record in records
             ),
