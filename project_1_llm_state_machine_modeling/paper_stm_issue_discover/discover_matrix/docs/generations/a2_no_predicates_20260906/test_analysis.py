@@ -4,6 +4,8 @@ import importlib.util
 import json
 from pathlib import Path
 
+import pytest
+
 
 spec = importlib.util.spec_from_file_location("a2_analysis", Path(__file__).with_name("analyze.py"))
 analysis = importlib.util.module_from_spec(spec)
@@ -42,3 +44,34 @@ def test_frozen_metrics_preserve_report_denominators_and_distinct_hit_units():
     assert undefined["metrics"]["precision"]["undefined_replicates"] == 10000
     assert undefined["metrics"]["precision"]["percentile95"] is None
     json.dumps(undefined, allow_nan=False)
+
+
+def test_judge_loader_preserves_failures_and_rejects_protocol_drift(tmp_path):
+    source = tmp_path / "method.json"
+    source.write_text("{}\n")
+    root = tmp_path / "judge"
+    (root / "pairs").mkdir(parents=True)
+    (root / "failures").mkdir()
+    manifest = dict(judge_algorithm_version="semantic-judge.two-stage.v3.11",
+                    protocol_sha256="d774d9bd3e4c4fe04735ed1d4ec064be197cfadcd52e21c8226e37175b29b210",
+                    k_closure="relation_first", closure_profile="full", validity_readings=2,
+                    validity_aggregation="arbitration", validity_arbitration_trigger="any",
+                    model_profile="gpt-5.6-luna", selected_pair_ids=["0000", "0001"],
+                    selected_rounds=[1], run_id="test")
+    manifest_path = root / "run_manifest.json"
+    manifest_path.write_text(json.dumps(manifest))
+    failure_path = root / "failures/0001.json"
+    failure_path.write_text(json.dumps(dict(pair_id="0001", round=1, error_type="RuntimeError")))
+    result_path = root / "pairs/0000.json"
+    result_path.write_text(json.dumps(dict(pair_id="0000", round=1, run_id="test", status="completed",
+                                         adapter_audit=dict(source_hash=analysis.digest(source)),
+                                         report_outcomes=[], expected_outcomes=[])))
+    cells = {(p, 1): dict(eligible=True, source=str(source)) for p in ("0000", "0001")}
+    reports, expected, judged, hashes, failures = analysis.load_judges([root], cells, {}, {})
+    assert reports == expected == {} and judged == {("0000", 1)}
+    assert set(cells) - judged == {("0001", 1)}
+    assert failures[0]["pair_id"] == "0001" and hashes[str(failure_path)] == analysis.digest(failure_path)
+    manifest["protocol_sha256"] = "different protocol"
+    manifest_path.write_text(json.dumps(manifest))
+    with pytest.raises(AssertionError):
+        analysis.load_judges([root], cells, {}, {})

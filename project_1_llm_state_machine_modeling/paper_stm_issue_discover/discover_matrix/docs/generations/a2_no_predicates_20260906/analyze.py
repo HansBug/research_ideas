@@ -79,6 +79,7 @@ def load_cells(roots, *, historical=False):
             divergence = {c["canonical_contract_id"] for c in execute.get("frontier_batch", {}).get("checks", []) if c.get("kind") == "source_divergence"}
             cells[key] = dict(pair_id=key[0], round=key[1], status=raw["status"], eligible=raw["eligible"],
                               source=str(path), reports=len(raw["report_issue_clusters"]), errors=raw.get("errors", []),
+                              input_hashes=raw["input_hashes"],
                               degraded=raw["status"] != "completed" or bool(raw.get("errors")),
                               publish=stage.get("publish"),
                               receipt_count=len(raw["predicate_execution_receipts"]))
@@ -99,20 +100,28 @@ def load_cells(roots, *, historical=False):
 
 
 def load_judges(roots, cells, method_reports, items):
-    reports, expected, judged, hashes = {}, {}, set(), {}
+    reports, expected, judged, hashes, failures = {}, {}, set(), {}, []
     for root in roots:
         manifest = read(root / "run_manifest.json")
         hashes[str(root / "run_manifest.json")] = digest(root / "run_manifest.json")
         assert manifest["judge_algorithm_version"] == "semantic-judge.two-stage.v3.11"
+        assert manifest["protocol_sha256"] == "d774d9bd3e4c4fe04735ed1d4ec064be197cfadcd52e21c8226e37175b29b210"
         assert manifest["k_closure"] == "relation_first" and manifest["closure_profile"] == "full"
         assert manifest["validity_readings"] == 2 and manifest["validity_aggregation"] == "arbitration"
         assert manifest["validity_arbitration_trigger"] == "any" and manifest["model_profile"] == "gpt-5.6-luna"
         assert manifest.get("report_filter_path") is None
+        selected_cells = {(p, r) for p in manifest["selected_pair_ids"] for r in manifest["selected_rounds"]}
+        assert selected_cells <= set(cells)
+        for path in sorted((root / "failures").glob("*.json")):
+            failure = read(path)
+            key = (failure["pair_id"], failure["round"])
+            assert key in selected_cells and cells[key]["eligible"]
+            hashes[str(path)] = digest(path)
+            failures.append(dict(source=str(path), run_id=manifest["run_id"], **failure))
         for path in sorted((root / "pairs").glob("*.json")):
             raw = read(path)
-            if "report_outcomes" not in raw:
-                continue
             key = (raw["pair_id"], raw["round"])
+            assert raw["run_id"] == manifest["run_id"] and key in selected_cells
             assert key in cells and key not in judged, ("unexpected/duplicate judge cell", key)
             assert cells[key]["eligible"] and raw["status"] == "completed"
             hashes[str(path)] = digest(path)
@@ -136,7 +145,7 @@ def load_judges(roots, cells, method_reports, items):
                 assert full == set(e["full_report_ids"]) and partial == set(e["partial_report_ids"])
                 assert e["hit"] == bool(full) and e["supported"] == bool(full | partial)
                 expected[e["ledger_id"], key[1]] = e
-    return reports, expected, judged, hashes
+    return reports, expected, judged, hashes, failures
 
 
 def summarize(label, cells, method_reports, reports, expected, judged, items, clusters):
@@ -186,11 +195,12 @@ def summarize(label, cells, method_reports, reports, expected, judged, items, cl
                               eligible_reports=len(method_reports), judged_reports=len(reports), unjudged_reports=sorted(unjudged),
                               quarantined_report_count=sum(c["reports"] for c in cells.values() if not c["eligible"]),
                               planned_expected_rounds=435, observed_expected_rounds=435-unknown, unknown_expected_rounds=unknown,
-                              transport_or_runtime_affected_expected_rounds=sum(r["degraded"] for r in rows),
+                              degraded_expected_rounds=sum(r["degraded"] for r in rows),
                               hit_bounds_with_unknown_cells=hit_bounds,
-                              hit1_upper_if_runtime_affected_misses_were_hits=(hits + sum(r["hit"] is not True and (r["degraded"] or not r["observed"]) for r in rows)) / 435,
+                              hit1_upper_if_degraded_or_unknown_misses_were_hits=(hits + sum(r["hit"] is not True and (r["degraded"] or not r["observed"]) for r in rows)) / 435,
                               precision_bounds_on_eligible_emitted_reports=precision_bounds),
-                precision_complete=not unjudged, metric_interpretation="Observed outcomes on the fixed planned denominator; missing cells are not normal zero-report cells.",
+                precision_complete=not unjudged and eligible <= judged,
+                metric_interpretation="Observed outcomes on the fixed planned denominator; missing cells are not normal zero-report cells. Degradation bounds include all diagnostics and do not attribute them to transport.",
                 per_round=per_round,
                 per_cluster={c: quality([r for r in reports.values() if clusters[r["pair_id"]] == c],
                                         {e: i for e, i in items.items() if clusters[i["pair"]] == c}) for c in sorted(set(clusters.values()))},
@@ -238,10 +248,10 @@ def main():
     clusters = {p: hashlib.sha256((args.report_root / "pairs" / p / "nl.txt").read_bytes()).hexdigest()[:8] for p, _ in vc}
     assert sorted(Counter(clusters.values()).values()) == [6] * 9
     assert all(clusters[i["pair"]] == i["pair_context"]["nl_sha8"] for i in items.values())
-    vj, ve, vseen, vjh = load_judges(sorted((vr / "judge_v3.11_iter6cfg").glob("current-r*")), vc, vm, items)
+    vj, ve, vseen, vjh, vf = load_judges(sorted((vr / "judge_v3.11_iter6cfg").glob("current-r*")), vc, vm, items)
     result = dict(schema="paper1.a2-v61-analysis.v1", human_confirmations=0, ledger_hash=digest(args.ledger),
                   v61=summarize("frozen_v61_ours", vc, vm, vj, ve, vseen, items, clusters),
-                  historical_replaced_attempts=va, source_hashes={**vh, **vjh})
+                  historical_replaced_attempts=va, historical_judge_failures=vf, source_hashes={**vh, **vjh})
     m = result["v61"]["metrics"]
     assert [m[k] for k in ("reports", "K", "N", "I")] == [903, 561, 198, 144]
     assert [m[k]["numerator"] for k in ("hit1", "hit3", "hitall")] == [323, 130, 82]
@@ -249,9 +259,13 @@ def main():
     assert len(vseen) == 162 and len(vj) == 903
     if args.a2_root:
         ac, am, aq, ah, _ = load_cells([args.a2_root])
-        aj, ae, aseen, ajh = load_judges(args.a2_judge_root, ac, am, items)
+        aj, ae, aseen, ajh, af = load_judges(args.a2_judge_root, ac, am, items)
         result["a2"] = summarize("a2_no_predicates", ac, am, aj, ae, aseen, items, clusters)
         result["quarantined_reports"] = aq
+        result["a2_judge_failures"] = af
+        result["input_comparison"] = [dict(pair_id=p, round=r, differences={name: dict(a2=value, v61=vc[p, r]["input_hashes"].get(name))
+                                      for name, value in cell["input_hashes"].items() if value != vc[p, r]["input_hashes"].get(name)})
+                                      for (p, r), cell in sorted(ac.items())]
         result["source_hashes"].update({**ah, **ajh})
         result["paired_uncertainty"] = paired_uncertainty(result["a2"], result["v61"]) if aj else None
         full = {(r["ledger_id"], r["round"]): r for r in result["v61"]["expected"]}
