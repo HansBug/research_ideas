@@ -222,6 +222,22 @@ def test_archive_retains_partial_transport_evidence_and_detects_inventory_drift(
                     eligible_reports=1, judged_reports=1)
     archive._write(destination / "derived/analysis.json", dict(a2=dict(precision_complete=True, coverage=coverage), changes=[]))
     archive._write(destination / "derived/change_audit.json", dict(rows=[]))
+    input_value = dict(artifact_closure=dict(artifacts=[dict(artifact_id="nl", content="source", authority="author")]),
+                       expected_issues=[dict(ledger_id="known")])
+    changed = json.loads(json.dumps(input_value))
+    changed["artifact_closure"]["closure_hash"] = "path-dependent hash"
+    changed["reports"] = [dict(claim="different method result")]
+    assert archive.judge_input_fingerprints(input_value) == archive.judge_input_fingerprints(changed)
+    changed["artifact_closure"]["artifacts"][0]["authority"] = "converter"
+    assert archive.judge_input_fingerprints(input_value) != archive.judge_input_fingerprints(changed)
+    input_rows = []
+    for pair in range(54):
+        for rnd in (1, 2, 3):
+            path = destination / f"raw/judge/r{rnd}/inputs/{pair:04d}.json"
+            archive._write(path, input_value)
+            input_rows.append(dict(pair_id=f"{pair:04d}", round=rnd, run_id=f"r{rnd}",
+                                   a2_input_sha256=analysis.digest(path), fingerprints=archive.judge_input_fingerprints(input_value)))
+    archive._write(destination / "derived/judge_input_audit.json", dict(rows=input_rows))
     archive.finalize(destination)
     archive.validate(destination)
     (destination / "unexpected.json").write_text("{}")

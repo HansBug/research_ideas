@@ -13,12 +13,54 @@ import analyze
 from paper_stm_evaluation.final_results_archive import (
     EXCLUDED_RULES, _copy_tree, _file_manifest, _write,
 )
+from paper_stm_judge.artifacts import stable_model_hash
 
 
 RUN_ID = "af618190b34652b58ed0ae9ec231bdfe"
 PAPER = analyze.PAPER
 BASE = PAPER.parents[1] / "runs/paper1/a2_no_predicates_20260906"
 DESTINATION = PAPER / "final_results/a2_no_predicates_vs_v61_20260906"
+
+
+def judge_input_fingerprints(value):
+    artifacts = value["artifact_closure"]["artifacts"]
+    documents = {row["artifact_id"]: stable_model_hash(row) for row in artifacts}
+    assert len(documents) == len(artifacts)
+    return dict(documents=documents, expected_issues=stable_model_hash(value["expected_issues"]))
+
+
+def judge_input_audit(judges):
+    reference = {}
+    frozen = PAPER / "final_results/v61_source_divergence_vs_x1v2_baseline/raw/judge_v3.11_iter6cfg"
+    original = PAPER.parents[1] / "runs/paper1/judge-v61-full-ea6141607"
+    for path in sorted(frozen.glob("current-r*/pairs/*.json")):
+        pair = analyze.read(path)
+        key = pair["pair_id"], pair["round"]
+        assert key not in reference
+        live = original / path.parents[1].name / "pairs" / path.name
+        assert analyze.digest(live) == analyze.digest(path), ("v61 result changed", live)
+        source = live.parent.parent / "inputs" / path.name
+        value = analyze.read(source)
+        assert stable_model_hash(value) == pair["serialized_input_hash"]
+        reference[key] = source, value
+    assert len(reference) == 162
+    rows = []
+    for root in judges:
+        for path in sorted((root / "pairs").glob("*.json")):
+            pair = analyze.read(path)
+            source = root / "inputs" / path.name
+            value = analyze.read(source)
+            assert stable_model_hash(value) == pair["serialized_input_hash"]
+            old_path, old = reference[pair["pair_id"], pair["round"]]
+            current, baseline = map(judge_input_fingerprints, (value, old))
+            assert current == baseline, ("judge evidence changed", source, old_path)
+            rows.append(dict(pair_id=pair["pair_id"], round=pair["round"], run_id=root.name,
+                             a2_input_sha256=analyze.digest(source), v61_input=str(old_path),
+                             v61_input_sha256=analyze.digest(old_path), fingerprints=baseline,
+                             closure_metadata_differences=[key for key in value["artifact_closure"]
+                                 if key != "artifacts" and value["artifact_closure"][key] != old["artifact_closure"].get(key)]))
+    return dict(schema="paper1.a2-judge-input-audit.v1", rows=rows,
+                interpretation="Every completed pair's serialized input is verified against its result receipt. All fields of each evidence document and all expected issues match frozen v61 inputs. Reports and outer closure metadata are not asserted equal. Original v61 inputs remain in ignored runs; their file and structured fingerprints are retained here.")
 
 
 def transport_index(root):
@@ -114,6 +156,7 @@ def build(base, archive):
     subprocess.run(analysis_command(archive, archive / "derived/analysis.json"), check=True, stdout=subprocess.DEVNULL)
     result = analyze.read(archive / "derived/analysis.json")
     assert result["a2"]["precision_complete"] and result["a2"]["coverage"]["judged_cells"] == 162
+    _write(archive / "derived/judge_input_audit.json", judge_input_audit(judges))
     for name in ("case_audit.json", "change_audit.json"):
         shutil.copy2(analyze.HERE / name, archive / "derived" / name)
     finalize(archive)
@@ -127,7 +170,8 @@ def finalize(archive):
         schema="paper1.final-results-archive.v1", batch="a2_no_predicates_vs_v61_20260906",
         generated_at_utc=datetime.now(timezone.utc).isoformat(), generator=str(Path(__file__)),
         included_files=_file_manifest(archive, excluded_relative_paths={"archive_manifest.json"}),
-        excluded_rules=EXCLUDED_RULES,
+        excluded_rules=[dict(row, reason="Interrupted provider streams remain in ignored runs; their hashes and observable errors/usage are retained in raw/transport_audit.json.")
+                        if "*.part" in row["rule"] else row for row in EXCLUDED_RULES],
     ))
 
 
@@ -144,6 +188,12 @@ def validate(archive):
     reviewed = analyze.read(archive / "derived/change_audit.json")["rows"]
     assert len(reviewed) == len(changes), "Every changed expected-round needs a separate audit row"
     assert {(r["ledger_id"], r["round"]): r["change"] for r in reviewed} == changes
+    inputs = analyze.read(archive / "derived/judge_input_audit.json")["rows"]
+    assert len(inputs) == len({(r["pair_id"], r["round"]) for r in inputs}) == 162
+    for row in inputs:
+        path = archive / "raw/judge" / row["run_id"] / "inputs" / f"{row['pair_id']}.json"
+        assert analyze.digest(path) == row["a2_input_sha256"]
+        assert judge_input_fingerprints(analyze.read(path)) == row["fingerprints"]
     print(json.dumps(dict(verified_files=len(manifest["included_files"]), coverage=coverage), indent=2))
 
 
