@@ -28,7 +28,7 @@
 
 - Qwen method run `e2cd347fb8f84886b1c496675724046b`：pair `0001`、1 round，`1/1 method eligible`，0 errors，0 audit errors；5 个 method stage 均 success。为避开该模型长 structured 请求超过现有 30 秒 streaming 首字节边界，本次 method 使用 `--no-stream`；stream usage 已单独通过，首次 streaming timeout 也保留为诊断证据。
 - Muse method run `2d2926079fef4ea5a7758d28ccbc8ab3`：pair `0001`、1 round，`1/1 method eligible`，0 errors，0 audit errors；contract、grounding、execution 和终态均正常，未运行 candidate judge。
-- 新环境迁移后的 16-worker 负载：Qwen `32/32`，总用时约 7.26 s；Muse function/tool `32/32`，总用时约 5.22 s。两者均收到合法 tool 参数和 usage。
-- 两款历史 0.9 官方窗口证据继续复用：Qwen 原生/YaRN 扩展和 Muse 原生窗口均已达到既定约 0.9 边界；本次迁移未改变权重、TP、context 或 parser，只补做了迁移敏感的独立环境启动、profile、API/tool/usage、推理控制和 16-worker 验收。
+- 新环境迁移后的 16-worker 短负载：Qwen `32/32`，输入仅 47–48 tokens 的普通生成，总用时约 7.26 s；Muse `32/32`，输入约 395 tokens 的简易 function/tool，总用时约 5.22 s。Qwen 这组不是工具请求；两组均不能替代约 16K thinking/tool 长输入并发。2026-09-07 逐请求复核修正了此前将两者都写成工具负载的错误。
+- 两款历史 0.9 官方窗口与约 16K/16-worker 证据保留：Qwen 原生/YaRN 扩展和 Muse 原生窗口均已达到既定约 0.9 边界。独立环境迁移保留相同权重、TP、context 与 parser，但上述短请求不能证明迁移后的长输入承载情况；新旧环境证据需分开解释。
 
-本轮没有运行 judge；A1/A2 与所有 judge 继续固定 Luna。两款已满足开放模型侧的 E2 交接条件；商业模型配对和 E2 协议冻结仍需按 E1 既定流程完成，E2/O2 本轮未启动。
+本轮没有运行 judge；A1/A2 与所有 judge 继续固定 Luna。这里证明的是两款独立环境的接入、短负载与 pair `0001`；大输入 pair `0029 / 0019 / 0049` 和迁移后长输入承载需单独给出证据，不能由本报告推导为已完成。商业模型配对和 E2 协议冻结仍按 E1 既定流程执行，E2/O2 本轮未启动。

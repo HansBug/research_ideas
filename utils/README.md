@@ -91,6 +91,8 @@ registry.names()
 
 `stream_usage` 可在 profile 中显式设置，适合已经验证支持 usage 的自托管兼容端点。缺省时保留 provider 安全默认；调用方显式参数优先于 profile。该字段仅在显式配置时加入公开配置与 fingerprint，因此不改变旧 profile 的身份。`PublicStructuredRuntime` 给 Anthropic 传浮点 timeout，OpenAI/DeepSeek 保留 `httpx.Timeout` 以隔离 async client 生命周期。
 
+`PublicStructuredRuntime` 的 stream 首字节及读取空闲等待为 300 秒，单次模型调用总时限为 600 秒；长输入 prefill、推理和工具参数缓冲均可能超过旧 30 秒边界。阶段与外层时限按现有调用配额和 grace 自动推导：零 transport retries 时为 3630 / 3660 秒，不增加原有六次调用配额。非流式调用仍可用于诊断，但不能替代要求 stream 的接入验收。运行 manifest 和 structured outcome 记录实际时限；该调整不改变输出预算映射、prompt、schema 或 eligibility。Google SDK 的 HTTP 状态从 typed `APIError.code` 读取，504 等归入 provider 错误，不能误记为 schema 失败。
+
 路径优先级为显式参数、`LLM_CONFIG_FILE`、根 `.llmconfig.yml`。加载器不访问网络、不创建 client、不维护全局可变单例。公开摘要必须脱敏；`api_key` 不能打印。
 `adapter: google-genai` 使用官方 `langchain-google-genai` 的 `ChatGoogleGenerativeAI`，固定连接 Gemini Developer API。`base_url` 填 API 根地址，由 SDK 追加 `/v1beta/models/...`，不要填 OpenAI 兼容路径 `/v1`。凭据仍来自 profile；不从环境变量选择 Vertex AI。原生流自带 usage，不发送 OpenAI 的 `stream_usage` 参数。
 

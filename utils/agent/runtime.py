@@ -1422,17 +1422,31 @@ def _redact_exception_text(value: str) -> str:
     return _redact_text(value, redact_endpoints=True)
 
 
+def _provider_status_code(exc: BaseException) -> int | None:
+    status = getattr(exc, "status_code", None)
+    if isinstance(status, int):
+        return status
+    try:
+        from google.genai.errors import APIError
+    except ImportError:
+        return None
+    # The Google SDK and LangChain's Google wrappers expose HTTP status as code.
+    return exc.code if isinstance(exc, APIError) else None
+
+
 def _exception_details(exc: BaseException) -> dict[str, Any]:
     module = type(exc).__module__.lower()
     source = (
         "provider"
-        if getattr(exc, "status_code", None) is not None
+        if _provider_status_code(exc) is not None
         or "openai" in module
         or "anthropic" in module
         or "httpx" in module
         else "runtime"
     )
     details: dict[str, Any] = {"source": source, "type": type(exc).__name__}
+    if (status_code := _provider_status_code(exc)) is not None:
+        details["status_code"] = status_code
     if message := str(exc):
         details["message"] = _redact_exception_text(message)
     for attribute in ("status_code", "code", "request_id"):
@@ -1468,7 +1482,7 @@ def _retryable_transport_error(exc: BaseException) -> bool:
     """Classify only transient provider transport failures as replay-safe."""
 
     for item in _exception_chain(exc):
-        status_code = getattr(item, "status_code", None)
+        status_code = _provider_status_code(item)
         if status_code in _RETRYABLE_TRANSPORT_STATUS_CODES:
             return True
         if isinstance(item, AgentError):
