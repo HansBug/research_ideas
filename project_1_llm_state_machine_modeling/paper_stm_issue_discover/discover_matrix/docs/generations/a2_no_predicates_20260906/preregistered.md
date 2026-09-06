@@ -101,3 +101,9 @@ Judge 固定 `semantic-judge.two-stage.v3.11`，协议 hash=`d774d9bd3e4c4fe0473
 并发对 §4 作如下事前覆盖：A2 smoke workers=1，正式 workers=2，A2 judge workers=2；总活跃 method workers 不超过 6，judge 总数仍不超过 14。模型、prompt、输入、重试次数、输出预算和轮次不变。较低并发是根据已经发生的传输事故作出的保守安排，不声称已证明并发是唯一根因；若再次发生空流，保留同调用链尝试与诊断，不以增加重试或整格重采样替代调查。
 
 A1 的 recovery 书面登记晚于它自身启动，A1 已明确披露；A2 引用这份对照时同步披露该流程偏离。A2 本次补充在任何本臂真实调用之前提交推送，不能将两者的登记时序混写。
+
+## 8. A2 调用前追加：合法降级格的 judge 读取
+
+以共享 recovery 的真实 A1 `0033:r3` 复核发现，judge release adapter 原先只接收 `status=completed`，会错误拒绝 `eligible=true` 的 `completed_with_diagnostics`。该格保留 11 条最终报告，应按 §5 进入全量裁定。统一读取门修正为接收这两种完成状态且仍要求 eligible；failed、running 或 eligible=false 仍拒绝。两臂适用同一读取门，不改变报告字段、judge prompt、validity/closure 协议、内部发布门或方法运行产物。
+
+这项修正发生在 A2 零真实调用时。此前 provider-free adapter 检查只覆盖普通 completed，不能证明合法降级格可读取；补充回归验证两种完成状态的 CandidateReport 完全一致，且真实 `0033:r3` 的 11 条报告均能读取。原始诊断和状态照常保留，统计须分别核销 clean、diagnostic、failed，不把 diagnostic 改写为 clean。
