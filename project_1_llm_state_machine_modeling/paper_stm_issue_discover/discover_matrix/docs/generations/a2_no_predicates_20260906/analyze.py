@@ -308,6 +308,30 @@ def paired_uncertainty(current, reference):
                 interpretation="Nine paired NL clusters; descriptive uncertainty cannot remove version, provider-time, missingness, or Judge-time differences.")
 
 
+def provider_paired_sensitivity(current, reference):
+    segments = {}
+    for profile in sorted({c["model_profile"] for c in current["cells"]}):
+        keys = {(c["pair_id"], c["round"]) for c in current["cells"] if c["model_profile"] == profile}
+        compared = {}
+        for label, arm in (("a2", current), ("v61", reference)):
+            reports = [r for r in arm["reports"] if (r["pair_id"], r["round"]) in keys]
+            expected = [r for r in arm["expected"] if (r["pair_id"], r["round"]) in keys]
+            counts = Counter(KNI[r["validity"]] for r in reports)
+            compared[label] = dict(reports=len(reports), K=counts["K"], N=counts["N"], I=counts["I"],
+                                  precision=ratio(counts["K"] + counts["N"], len(reports)),
+                                  hit=ratio(sum(r["hit"] is True for r in expected), len(expected)),
+                                  observed_expected_rounds=sum(r["observed"] for r in expected))
+        assert compared["a2"]["hit"]["denominator"] == compared["v61"]["hit"]["denominator"]
+        complete = (all(c["eligible"] for c in current["cells"] if (c["pair_id"], c["round"]) in keys)
+                    and not keys.intersection(tuple(k) for k in current["coverage"]["missing_judge_cells"]))
+        segments[profile] = dict(cells=len(keys), complete=complete, **compared,
+            differences={name: compared["a2"][name]["rate"] - compared["v61"][name]["rate"]
+                         if complete and all(compared[arm][name]["rate"] is not None for arm in compared) else None
+                         for name in ("precision", "hit")})
+    return dict(segments=segments,
+                interpretation="Each provider segment is compared with the same v61 pair-round cells. Completion order assigned the provider; these are descriptive comparisons, not randomized provider effects.")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--v61-archive", type=Path, default=PAPER / "final_results/v61_source_divergence_vs_x1v2_baseline")
@@ -354,6 +378,7 @@ def main():
                                       for (p, r), cell in sorted(ac.items())]
         result["source_hashes"].update({**ah, **ajh, **selection_hashes})
         result["paired_uncertainty"] = paired_uncertainty(result["a2"], result["v61"]) if aj else None
+        result["provider_paired_sensitivity"] = provider_paired_sensitivity(result["a2"], result["v61"])
         full = {(r["ledger_id"], r["round"]): r for r in result["v61"]["expected"]}
         result["changes"] = [dict(**r, v61_hit=full[r["ledger_id"], r["round"]]["hit"],
                                   v61_full_report_ids=full[r["ledger_id"], r["round"]]["full_report_ids"],

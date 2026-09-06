@@ -91,6 +91,27 @@ def test_judge_loader_preserves_failures_and_rejects_protocol_drift(tmp_path):
         analysis.load_judges([root], cells, {}, {})
 
 
+def test_provider_sensitivity_pairs_the_same_cells_and_keeps_unknowns():
+    current = dict(cells=[dict(pair_id="0000", round=1, model_profile="old", eligible=True),
+                          dict(pair_id="0000", round=2, model_profile="new", eligible=True)],
+                   reports=[dict(pair_id="0000", round=1, validity="VALID_NOVEL")],
+                   expected=[dict(pair_id="0000", round=1, hit=False, observed=True),
+                             dict(pair_id="0000", round=2, hit=None, observed=False)],
+                   coverage=dict(missing_judge_cells=[["0000", 2]]))
+    reference = dict(reports=[dict(pair_id="0000", round=1, validity="INVALID"),
+                             dict(pair_id="0000", round=2, validity="VALID_KNOWN")],
+                     expected=[dict(pair_id="0000", round=1, hit=False, observed=True),
+                               dict(pair_id="0000", round=2, hit=True, observed=True)])
+    result = analysis.provider_paired_sensitivity(current, reference)["segments"]
+    assert result["old"]["differences"] == dict(precision=1, hit=0)
+    assert result["old"]["v61"]["reports"] == 1
+    assert result["new"]["a2"]["hit"] == analysis.ratio(0, 1)
+    assert result["new"]["v61"]["hit"] == analysis.ratio(1, 1)
+    assert result["new"]["differences"] == dict(precision=None, hit=None)
+    current["cells"][0]["eligible"] = False
+    assert not analysis.provider_paired_sensitivity(current, reference)["segments"]["old"]["complete"]
+
+
 def test_cell_selection_preserves_attempts_and_rejects_changed_reused_bytes(tmp_path):
     old, new = tmp_path / "old", tmp_path / "new"
     paths = []
