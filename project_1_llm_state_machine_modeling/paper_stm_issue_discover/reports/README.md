@@ -9,3 +9,5 @@
 R5/R5.7、Better STM、repair、旧 lifecycle 与 provider-health 材料同样属于 provenance 或历史复现；不应被用作当前方法的运行入口。保留这些文件不会改变最终归档，也不会使早期数字重新成为当前事实。
 
 [2026-09-06 模型调研与推理接入快照](./model_readiness_20260906/README.md) 保存商用/开放模型官方事实、近半年 14 篇文献样本、远程 H200 负载及最小 workflow 证据。该组是基础设施与研究选型资料，不是新的效果实验；全部 smoke 排除于正式结果。
+
+[全候选 benchmark 与任务选型](./model_readiness_20260906/2026-09-07-04-30-00-candidate-benchmarks.md) 保留未入选模型、公开推理档位、同版本 AA 矩阵、作者自报与严格结构化缺测；数字可由归档快照离线重建。

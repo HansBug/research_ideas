@@ -10,6 +10,7 @@
 
 ## 证据入口
 
+- [全候选公开 benchmark 与任务选型](./2026-09-07-04-30-00-candidate-benchmarks.md)：17 个已调查模型身份、20 个公开档位，AA v4.2 / LCR v1.1 与作者自报分表、结构化缺测、当前 low/default 与公开 max/xhigh 的差异。
 - [protocol.md](./protocol.md)：事前协议、context 0.9 边界、隐私和验收条件。
 - [09-07 最大输出与 stream 大格验收](./2026-09-07-03-36-18-stream-model-max-acceptance.md)：15 格、独立环境迁移负载、三层同请求、预算修复与商业替代建议。
 - [evidence/stream_20260907/manifest.json](./evidence/stream_20260907/manifest.json) 与 [verify_stream_evidence.py](./verify_stream_evidence.py)：新旧 stream/诊断制品的脱敏归档、逐调用 wire、阶段回执及离线核验。
