@@ -52,7 +52,44 @@ def quality(reports, items):
     )
 
 
-def load_cells(roots, *, historical=False):
+def load_selection(path):
+    plan = read(path)
+    assert plan["schema"] == "a2.transport-continuation.v1"
+    root = Path(plan["root"])
+    manifest = read(root / "run_manifest.json")
+    assert plan["run_id"] == manifest["run_id"] == root.name
+    assert plan["identity"]["source_provenance"] == manifest["source_provenance"]
+    assert plan["identity"]["run_contract_hash"] == manifest["run_contract_hash"]
+    assert manifest["ablation"] == "no-predicates" and manifest["rounds"] == 3
+    roots = [Path(p) for p in plan["source_roots"]] + [root]
+    assert len(set(p.resolve() for p in roots)) == len(roots)
+    frozen = ("ablation", "selected_pair_ids", "rounds", "model_config_hash", "prompt_schema_hash",
+              "input_data_hash", "pair_input_hashes", "registry_hash")
+    for source in roots:
+        other = read(source / "run_manifest.json")
+        assert all(other[name] == manifest[name] for name in frozen), ("continuation identity drift", source)
+    expected = {(p, r) for p in manifest["selected_pair_ids"] for r in (1, 2, 3)}
+    selection = {}
+    for row in plan["selection"]:
+        key = (row["pair_id"], row["round"])
+        assert key in expected and key not in selection
+        assert row["action"] in {"reuse", "recover"}
+        if row["old_path"]:
+            old = Path(row["old_path"])
+            assert old.parents[2].resolve() in {p.resolve() for p in roots[:-1]}
+            assert digest(old) == row["old_hash"], ("frozen predecessor changed", old)
+        if row["action"] == "reuse":
+            assert row["old_path"] and row["old_hash"]
+            selected, expected_hash = Path(row["old_path"]), row["old_hash"]
+        else:
+            selected, expected_hash = root / "method" / key[0] / f"round-{key[1]}.json", None
+        assert selected.parent.name == key[0] and selected.name == f"round-{key[1]}.json"
+        selection[key] = dict(path=selected.resolve(), expected_hash=expected_hash, action=row["action"])
+    assert set(selection) == expected and len(expected) == plan["planned_cells"] == 162
+    return roots, selection, {str(path): digest(path)}
+
+
+def load_cells(roots, *, historical=False, selection=None):
     cells, reports, quarantined, hashes, attempts = {}, {}, [], {}, []
     for root in roots:
         manifest = read(root / "run_manifest.json")
@@ -66,7 +103,6 @@ def load_cells(roots, *, historical=False):
                 assert key == ("0045", 1) and raw["status"] == "failed_with_receipt"
                 attempts.append(dict(pair_id=key[0], round=key[1], path=str(path), status=raw["status"], errors=raw.get("errors", [])))
                 continue
-            assert key not in cells, ("duplicate method cell", key)
             if not historical:
                 assert raw["ablation"] == manifest["ablation"] == "no-predicates"
                 assert raw["run_id"] == manifest["run_id"]
@@ -74,12 +110,21 @@ def load_cells(roots, *, historical=False):
                 assert raw["source_provenance"] == manifest["source_provenance"]
                 assert raw["pair_input_hash"] == manifest["pair_input_hashes"][key[0]]
                 assert raw["predicate_execution_receipts"] == []
+            if selection is not None:
+                assert not historical and key in selection
+                chosen = selection[key]
+                if path.resolve() != chosen["path"]:
+                    attempts.append(dict(pair_id=key[0], round=key[1], path=str(path), status=raw["status"],
+                                         errors=raw.get("errors", []), selection="preserved_predecessor_attempt"))
+                    continue
+                assert chosen["expected_hash"] is None or digest(path) == chosen["expected_hash"]
+            assert key not in cells, ("duplicate method cell", key)
             stage = raw.get("stage_outputs", {})
             execute = stage.get("execute_batch", {})
             divergence = {c["canonical_contract_id"] for c in execute.get("frontier_batch", {}).get("checks", []) if c.get("kind") == "source_divergence"}
             cells[key] = dict(pair_id=key[0], round=key[1], status=raw["status"], eligible=raw["eligible"],
                               source=str(path), reports=len(raw["report_issue_clusters"]), errors=raw.get("errors", []),
-                              input_hashes=raw["input_hashes"],
+                              input_hashes=raw.get("input_hashes", {}),
                               degraded=raw["status"] != "completed" or bool(raw.get("errors")),
                               publish=stage.get("publish"),
                               receipt_count=len(raw["predicate_execution_receipts"]))
@@ -237,6 +282,7 @@ def main():
     parser.add_argument("--ledger", type=Path, default=PAPER / "discover_matrix/ledger_v2/ledger.json")
     parser.add_argument("--report-root", type=Path, required=True)
     parser.add_argument("--a2-root", type=Path)
+    parser.add_argument("--a2-selection", type=Path)
     parser.add_argument("--a2-judge-root", type=Path, action="append", default=[])
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
@@ -257,16 +303,21 @@ def main():
     assert [m[k]["numerator"] for k in ("hit1", "hit3", "hitall")] == [323, 130, 82]
     assert m["strict"]["precision"]["numerator"] == 678 and m["strict"]["hit1"]["numerator"] == 294
     assert len(vseen) == 162 and len(vj) == 903
-    if args.a2_root:
-        ac, am, aq, ah, _ = load_cells([args.a2_root])
+    assert not (args.a2_root and args.a2_selection), "choose one A2 source mode"
+    if args.a2_root or args.a2_selection:
+        roots, selection, selection_hashes = load_selection(args.a2_selection) if args.a2_selection else ([args.a2_root], None, {})
+        ac, am, aq, ah, aa = load_cells(roots, selection=selection)
         aj, ae, aseen, ajh, af = load_judges(args.a2_judge_root, ac, am, items)
         result["a2"] = summarize("a2_no_predicates", ac, am, aj, ae, aseen, items, clusters)
         result["quarantined_reports"] = aq
         result["a2_judge_failures"] = af
+        result["a2_predecessor_attempts"] = aa
+        result["a2_source_selection"] = {"plan": str(args.a2_selection) if args.a2_selection else None,
+                                         "roots": [str(p) for p in roots]}
         result["input_comparison"] = [dict(pair_id=p, round=r, differences={name: dict(a2=value, v61=vc[p, r]["input_hashes"].get(name))
                                       for name, value in cell["input_hashes"].items() if value != vc[p, r]["input_hashes"].get(name)})
                                       for (p, r), cell in sorted(ac.items())]
-        result["source_hashes"].update({**ah, **ajh})
+        result["source_hashes"].update({**ah, **ajh, **selection_hashes})
         result["paired_uncertainty"] = paired_uncertainty(result["a2"], result["v61"]) if aj else None
         full = {(r["ledger_id"], r["round"]): r for r in result["v61"]["expected"]}
         result["changes"] = [dict(**r, v61_hit=full[r["ledger_id"], r["round"]]["hit"],

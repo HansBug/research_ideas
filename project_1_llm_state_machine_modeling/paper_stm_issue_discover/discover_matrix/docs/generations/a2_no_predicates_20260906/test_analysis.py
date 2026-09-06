@@ -75,3 +75,27 @@ def test_judge_loader_preserves_failures_and_rejects_protocol_drift(tmp_path):
     manifest_path.write_text(json.dumps(manifest))
     with pytest.raises(AssertionError):
         analysis.load_judges([root], cells, {}, {})
+
+
+def test_cell_selection_preserves_attempts_and_rejects_changed_reused_bytes(tmp_path):
+    old, new = tmp_path / "old", tmp_path / "new"
+    paths = []
+    for root, status in ((old, "failed_with_receipt"), (new, "completed")):
+        (root / "method/0000").mkdir(parents=True)
+        identity = dict(ablation="no-predicates", run_id=root.name, run_contract_hash="contract-" + root.name,
+                        source_provenance={"source_commit": root.name})
+        (root / "run_manifest.json").write_text(json.dumps(dict(**identity, pair_input_hashes={"0000": "input"})))
+        path = root / "method/0000/round-1.json"
+        path.write_text(json.dumps(dict(**identity, pair_id="0000", round=1, status=status, eligible=root == new,
+                                       pair_input_hash="input", predicate_execution_receipts=[], report_issue_clusters=[])))
+        paths.append(path)
+    with pytest.raises(AssertionError, match="duplicate method cell"):
+        analysis.load_cells([old, new])
+    selected = {("0000", 1): dict(path=paths[1].resolve(), expected_hash=analysis.digest(paths[1]), action="reuse")}
+    cells, reports, quarantined, hashes, attempts = analysis.load_cells([old, new], selection=selected)
+    assert cells["0000", 1]["source"] == str(paths[1]) and cells["0000", 1]["eligible"]
+    assert reports == {} and quarantined == [] and len(attempts) == 1
+    assert attempts[0]["path"] == str(paths[0]) and str(paths[0]) in hashes
+    paths[1].write_text(paths[1].read_text() + "\n")
+    with pytest.raises(AssertionError):
+        analysis.load_cells([old, new], selection=selected)
