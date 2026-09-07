@@ -690,7 +690,7 @@ def adapt_evidence_discovery_release(
     path = Path(method_path).expanduser().resolve()
     raw_bytes = path.read_bytes()
     record = json.loads(raw_bytes)
-    if record.get("status") != "completed" or not record.get("eligible"):
+    if record.get("status") not in {"completed", "completed_with_diagnostics"} or not record.get("eligible"):
         raise ValueError(
             f"evidence-discovery method record is not eligible completed: {path}"
         )

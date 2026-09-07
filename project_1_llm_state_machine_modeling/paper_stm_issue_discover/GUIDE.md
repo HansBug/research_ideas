@@ -5,6 +5,7 @@
 | 工作目标 | 权威入口 |
 | --- | --- |
 | 理解或修改当前方法实现 | [method/](./method/README.md)；prompt、schema、registry、backend 或输入闭包的变化需要独立实验授权 |
+| 设计、实现或审查 A1/A2 消融 | [消融设计与并行施工公约](./discover_matrix/docs/protocol/ablation_design_and_parallel_contract.md)；两路必须共同遵守关闭边界、共享接口、full 不变和合流验收要求 |
 | 理解人工裁定 | [judge/](./judge/README.md) 与冻结 issue #195 snapshot |
 | 复算结果或检查指标 | [evaluation/](./evaluation/README.md) 与 v61 归档的 `evaluate_rq3.py` / `evaluate_full.py`；默认只运行 provider-free 命令 |
 | 查询 current ledger/provenance | [discover_matrix/ledger_v2/](./discover_matrix/ledger_v2/README.md) |

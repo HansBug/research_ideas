@@ -34,9 +34,15 @@ from ..inputs.fcstm_native_projection import (
     transition_by_reference,
 )
 from ..inputs.models import PairInput
+from ..inputs.context import context_payload
+from ..semantics.ablation import (
+    DISABLED_INSPECTION_STEPS, INSPECTION_ROLES, NO_INSPECT_VERSION,
+    NoInspectInput, pair_system_prompt, system_prompt_for, without_inspection,
+)
 from ..semantics.author_source import build_author_index, enclosing_endpoint_carriers
 from ..registry import load_registry
 from utils.artifact_io import write_json, write_markdown_summary
+from utils.llm import load_llm_registry
 from ..semantics import (
     CONTRACT_SYSTEM_PROMPT,
     D_SYSTEM_PROMPT,
@@ -91,12 +97,14 @@ from ..semantics.predicate_routing import (
     route_primary_candidates,
 )
 from .contracts import (
+    AblationMode,
     MethodCellReceipt,
     PairRunStatus,
     RunManifest,
     RunSummaryReceipt,
     SelectionPreflightReference,
     SourceProvenance,
+    validate_ablation,
 )
 from .runtime import (
     DEFAULT_TRANSPORT_RETRIES,
@@ -130,9 +138,9 @@ REPRESENTATIVE_DIAGNOSTIC_PAIR_IDS = (
     "0054",
     "0056",
 )
-METHOD_CELL_SCHEMA = "evidence-discovery.method_cell.v9"
-SUMMARY_SCHEMA = "evidence-discovery.run_summary.v3"
-RUN_MANIFEST_SCHEMA = "evidence-discovery.run_manifest.v3"
+METHOD_CELL_SCHEMA = "evidence-discovery.method_cell.v10"
+SUMMARY_SCHEMA = "evidence-discovery.run_summary.v4"
+RUN_MANIFEST_SCHEMA = "evidence-discovery.run_manifest.v4"
 CODE_VERSION = "evidence-discovery-typed-flow.v60-soundness-s2"
 PROMPT_SCHEMA_VERSION = "evidence-discovery-prompts.v47-method-only"
 GROUNDING_EXACT_IDENTITY_CONTRACT_VERSION = (
@@ -338,19 +346,19 @@ class ExactGroundingResponse(GroundingResponse):
 
 METHOD_SYSTEM_PROMPT = """The method is staged. Its public generation surface is the NL contract-extraction stage followed by two complementary discovery-grounding lenses that share one response schema and compact cross-view context. Use only the complete context manifest supplied to each stage. Never read evaluation ground truth, scores, reviewer examples, or previously generated reports. Do not emit W, D, or L levels. Every structured object must contain non-empty reason and basis. Write every generated title, statement, summary, reason, basis, and audit explanation in English; preserve non-English text only inside exact quotations or identifiers copied from supplied artifacts."""
 
-def _prompt_schema_hash() -> str:
+def _prompt_schema_hash(ablation: AblationMode = "none") -> str:
     """Hash every method prompt contract and response schema used by a run."""
 
     return _hash_json(
         {
             "version": PROMPT_SCHEMA_VERSION,
             "system_prompts": {
-                "method_boundary": METHOD_SYSTEM_PROMPT,
-                "contract": CONTRACT_SYSTEM_PROMPT,
-                "contract_completion": CONTRACT_SYSTEM_PROMPT,
-                "discovery_grounding": DISCOVERY_GROUNDING_SYSTEM_PROMPT,
+                "method_boundary": system_prompt_for(METHOD_SYSTEM_PROMPT, ablation=ablation),
+                "contract": system_prompt_for(CONTRACT_SYSTEM_PROMPT, ablation=ablation),
+                "contract_completion": system_prompt_for(CONTRACT_SYSTEM_PROMPT, ablation=ablation),
+                "discovery_grounding": system_prompt_for(DISCOVERY_GROUNDING_SYSTEM_PROMPT, ablation=ablation),
                 "discovery_lenses": DISCOVERY_GROUNDING_AUDIT_LENSES,
-                "d_adjudication": D_SYSTEM_PROMPT,
+                "d_adjudication": system_prompt_for(D_SYSTEM_PROMPT, ablation=ablation),
             },
             "schemas": {
                 "nl_contract": NLContractResponse.model_json_schema(),
@@ -677,11 +685,15 @@ def _manifest_contract_payload(
     transport_retries: int,
     streaming: bool,
     selection_preflight: dict[str, Any] | None,
+    ablation: AblationMode = "none",
+    model_config_hash: str | None = None,
 ) -> dict[str, Any]:
     """Return the immutable identity projection shared by run artifacts."""
 
     return {
         "profile": profile,
+        "ablation": ablation,
+        "model_config_hash": model_config_hash,
         "source_commit": source_provenance["source_commit"],
         "source_branch": source_provenance["source_branch"],
         "registry_version": registry_version,
@@ -763,6 +775,8 @@ def _prepare_run_manifest(
     selection_preflight: dict[str, Any] | None,
     resume: bool,
     predecessor_snapshot: str | None,
+    ablation: AblationMode = "none",
+    model_config_hash: str | None = None,
 ) -> RunManifest:
     """Create or validate the run manifest before any model call starts."""
 
@@ -773,6 +787,8 @@ def _prepare_run_manifest(
     )
     contract = _manifest_contract_payload(
         profile=profile,
+        ablation=ablation,
+        model_config_hash=model_config_hash,
         source_provenance=source_provenance,
         registry_version=registry_version,
         registry_hash=registry_hash,
@@ -798,9 +814,11 @@ def _prepare_run_manifest(
         existing = RunManifest.model_validate_json(
             manifest_path.read_text(encoding="utf-8")
         )
+        if existing.schema != RUN_MANIFEST_SCHEMA or existing.ablation != ablation:
+            raise RuntimeError("resume contract mismatch: schema or ablation changed")
         if existing.run_contract_hash != contract_hash:
             raise RuntimeError(
-                "resume contract mismatch: profile, commit, registry, rounds, pairs, transport, or streaming changed"
+                "resume contract mismatch: model configuration, ablation, profile, commit, registry, rounds, pairs, transport, or streaming changed"
             )
         if existing.run_id != run_id:
             raise RuntimeError("resume run_id does not match the selected run directory")
@@ -823,6 +841,8 @@ def _prepare_run_manifest(
         run_contract_hash=contract_hash,
         status="running",
         profile=profile,
+        ablation=ablation,
+        model_config_hash=model_config_hash,
         source_provenance=SourceProvenance.model_validate(source_provenance),
         registry_version=registry_version,
         registry_hash=registry_hash,
@@ -867,6 +887,8 @@ def _stage_receipt(
 
     if pair.context_manifest is None:
         raise ValueError("stage receipt requires a complete context manifest")
+    if isinstance(pair, NoInspectInput):
+        artifact_roles = tuple(role for role in artifact_roles if role not in INSPECTION_ROLES)
     context_budget = (
         ContextBudgetReceipt.model_validate(
             outcome.context_budget.model_dump(mode="json")
@@ -2603,6 +2625,10 @@ def _prepare_candidate(
         "reason": "The candidate receipt carries the same input closure identity used by method and grounding.",
         "basis": "pair context manifest and deterministic fact model versions",
     }
+    if isinstance(pair, NoInspectInput):
+        for role in ("inspection_facts", "verify_facts", "smt_facts"):
+            attribution["roles"][role] = "disabled_by_ablation"
+        attribution["input_context"]["ablation"] = "no-inspect"
     return {
         "obligation_id": obligation_id,
         "candidate": candidate,
@@ -3887,6 +3913,7 @@ def _d_decision_consistency_errors(
         if (
             isinstance(candidate, CandidateIssue)
             and candidate.property == "deadlock_freedom"
+            and not isinstance(pair, NoInspectInput)
             and candidate.violation_direction == "dead_end"
             and binding is not None
         ):
@@ -4354,11 +4381,17 @@ def _method_cell(
         "run_contract_hash": "sha256:" + "0" * 64,
         "source_provenance": _source_provenance(),
     }
+    ablation = validate_ablation(run_identity.get("ablation", "none"))
     expected_input_hash = run_identity.get("pair_input_hashes", {}).get(pair.pair_id)
     if expected_input_hash is not None and expected_input_hash != pair.context_manifest.manifest_hash:
         raise RuntimeError(
             f"pair {pair.pair_id} input manifest changed after run identity was frozen"
         )
+    if ablation == "no-inspect":
+        audit = context_payload(pair)
+        audit["reason"] = "Original input closure is audit-only; method consumers receive the no-inspect projection."
+        write_json(output_root / "input_audits" / f"{pair.pair_id}.json", audit)
+        pair = without_inspection(pair)
     stage_receipts: list[dict[str, Any]] = []
     stage_outputs: dict[str, Any] = {}
     all_outcomes: list[StructuredCallOutcome[Any]] = []
@@ -4380,6 +4413,16 @@ def _method_cell(
         "reason": "The complete method input closure was prepared before contract extraction.",
         "basis": "context manifest, artifact hashes, and explicit source-role separation",
     }
+    if ablation == "no-inspect":
+        stage_outputs["ablation"] = {
+            "mode": ablation, "projection_version": NO_INSPECT_VERSION,
+            "disabled_roles": sorted(INSPECTION_ROLES),
+            "disabled_steps": [{"function": name, "status": "disabled_by_ablation"} for name in DISABLED_INSPECTION_STEPS],
+            "original_input_audit": f"input_audits/{pair.pair_id}.json",
+            "predicate_execution": "enabled",
+        }
+        for role in ("inspection_facts", "verify_facts", "smt_facts"):
+            prepare_output["source_roles"][role] = "disabled_by_ablation"
     stage_receipts.append(
         _stage_receipt(
             pair=pair,
@@ -4397,7 +4440,7 @@ def _method_cell(
     contract_outcome: StructuredCallOutcome[NLContractResponse] = runtime.call(
         kind="contract_extraction",
         schema=NLContractResponse,
-        system_prompt=CONTRACT_SYSTEM_PROMPT,
+        system_prompt=pair_system_prompt(pair, CONTRACT_SYSTEM_PROMPT),
         prompt=contract_prompt,
         artifact_id=f"method/{pair.pair_id}/round-{round_index}/contract-extraction",
     )
@@ -4471,7 +4514,7 @@ def _method_cell(
         contract_completion_outcome = runtime.call(
             kind="contract_completion",
             schema=ContractCompletionResponse,
-            system_prompt=CONTRACT_SYSTEM_PROMPT,
+            system_prompt=pair_system_prompt(pair, CONTRACT_SYSTEM_PROMPT),
             prompt=contract_completion_prompt,
             artifact_id=(
                 f"method/{pair.pair_id}/round-{round_index}/contract-completion"
@@ -4597,7 +4640,7 @@ def _method_cell(
         outcome: StructuredCallOutcome[GroundingResponse] = runtime.call(
             kind="discovery_grounding",
             schema=grounding_schema,
-            system_prompt=DISCOVERY_GROUNDING_SYSTEM_PROMPT,
+            system_prompt=pair_system_prompt(pair, DISCOVERY_GROUNDING_SYSTEM_PROMPT),
             prompt=prompt,
             artifact_id=(
                 f"method/{pair.pair_id}/round-{round_index}/"
@@ -4707,7 +4750,7 @@ def _method_cell(
         )
     )
     initial_candidates, root_wrapper_preflight_dispositions = (
-        _preflight_synthetic_root_wrapper_reachability(
+        (initial_candidates, []) if isinstance(pair, NoInspectInput) else _preflight_synthetic_root_wrapper_reachability(
             pair,
             initial_candidates,
         )
@@ -4761,7 +4804,7 @@ def _method_cell(
     )
     frontier_candidates.extend(frontier_unresolved_candidates)
     domain_invariant_contracts, domain_invariant_candidates, domain_invariant_dispositions = (
-        materialize_domain_invariant_contracts(
+        ([], [], []) if isinstance(pair, NoInspectInput) else materialize_domain_invariant_contracts(
             pair,
             existing_candidates=[*initial_candidates, *frontier_candidates],
         )
@@ -5064,7 +5107,7 @@ def _method_cell(
             d_outcome: StructuredCallOutcome[DAdjudicationResponse] = runtime.call(
                 kind="d_adjudication",
                 schema=DAdjudicationResponse,
-                system_prompt=D_SYSTEM_PROMPT,
+                system_prompt=pair_system_prompt(pair, D_SYSTEM_PROMPT),
                 prompt=batch.prompt,
                 artifact_id=batch_artifact,
             )
@@ -5222,7 +5265,7 @@ def _method_cell(
                 correction_outcome: StructuredCallOutcome[DAdjudicationResponse] = runtime.call(
                     kind="d_adjudication_correction",
                     schema=DAdjudicationResponse,
-                    system_prompt=D_SYSTEM_PROMPT,
+                    system_prompt=pair_system_prompt(pair, D_SYSTEM_PROMPT),
                     prompt=batch.prompt,
                     artifact_id=batch_artifact,
                 )
@@ -5517,6 +5560,7 @@ def _method_cell(
     )
     cell = {
         "schema": METHOD_CELL_SCHEMA,
+        "ablation": ablation,
         "run_id": run_identity["run_id"],
         "run_contract_hash": run_identity["run_contract_hash"],
         "source_provenance": run_identity["source_provenance"],
@@ -5825,6 +5869,7 @@ def _failure_method_cell(
 ) -> dict[str, Any]:
     payload = {
         "schema": METHOD_CELL_SCHEMA,
+        "ablation": run_identity.get("ablation", "none"),
         "run_id": run_identity["run_id"],
         "run_contract_hash": run_identity["run_contract_hash"],
         "source_provenance": run_identity["source_provenance"],
@@ -5880,7 +5925,8 @@ def _write_pair_status(
 ) -> dict[str, Any]:
     payload = PairRunStatus.model_validate(
         {
-            "schema": "evidence-discovery.pair_status.v3",
+            "schema": "evidence-discovery.pair_status.v4",
+            "ablation": status.get("ablation", "none"),
             "pair_id": pair_id,
             **status,
             "reason": status.get("reason", "Pair status was computed from terminal method receipts and W2 audits."),
@@ -5933,6 +5979,8 @@ def _read_compatible_method_cell(
         return None
     try:
         receipt = MethodCellReceipt.model_validate_json(path.read_text(encoding="utf-8"))
+        if receipt.schema != METHOD_CELL_SCHEMA or receipt.ablation != run_identity.get("ablation", "none"):
+            raise ValueError("schema or ablation mismatch")
         if receipt.run_id != run_identity["run_id"]:
             raise ValueError("run_id mismatch")
         if receipt.run_contract_hash != run_identity["run_contract_hash"]:
@@ -6103,6 +6151,7 @@ def _pair_status(
     return {
         "run_id": run_identity["run_id"],
         "run_contract_hash": run_identity["run_contract_hash"],
+        "ablation": run_identity.get("ablation", "none"),
         "status": status,
         "resume_action": resume_action,
         "started_at": started_at,
@@ -6163,6 +6212,7 @@ def _pair_started_at(
             if (
                 status.run_id != run_identity["run_id"]
                 or status.run_contract_hash != run_identity["run_contract_hash"]
+                or status.ablation != run_identity.get("ablation", "none")
             ):
                 raise ValueError("pair status identity mismatch")
             return status.started_at.isoformat()
@@ -6224,6 +6274,7 @@ def _run_pair_worker(task: dict[str, Any]) -> dict[str, Any]:
     output_root = Path(task["output_root"])
     report_root = Path(task["report_root"])
     run_identity = dict(task["run_identity"])
+    validate_ablation(run_identity.get("ablation", "none"))
     started_at = _pair_started_at(
         output_root=output_root,
         pair_id=pair_id,
@@ -6254,6 +6305,8 @@ def _run_pair_worker(task: dict[str, Any]) -> dict[str, Any]:
             return _write_pair_status(output_root, pair_id, status)
 
         pair = load_pair(report_root / "pairs" / pair_id)
+        if _model_config_hash(str(task["profile"])) != task.get("model_config_hash"):
+            raise RuntimeError("worker model configuration changed after run registration")
         if task["profile"] == "fixture":
             runtime = FixtureStructuredRuntime()
         else:
@@ -6303,11 +6356,19 @@ def _run_pair_worker(task: dict[str, Any]) -> dict[str, Any]:
             runtime.close()
 
 
+def _model_config_hash(profile: str) -> str | None:
+    if profile == "fixture":
+        return None
+    config = load_llm_registry().require(profile)
+    return _hash_json(config.model_dump(mode="json", exclude={"api_key", "pricing"}))
+
+
 def run_experiment(
     *,
     report_root: str | Path,
     output_dir: str | Path,
     profile: str = "gpt-5.6-luna",
+    ablation: AblationMode = "none",
     rounds: int = 3,
     resume: bool = False,
     allow_live: bool = False,
@@ -6322,6 +6383,7 @@ def run_experiment(
 ) -> dict[str, Any]:
     """Execute a contract-compatible diagnostic or frozen full provider run."""
 
+    ablation = validate_ablation(ablation)
     if rounds not in {1, 3}:
         raise ValueError("rounds must be 1 for a diagnostic run or 3 for the frozen protocol")
     if workers < 1:
@@ -6380,7 +6442,8 @@ def run_experiment(
         selected_pair_ids,
     )
     input_data_hash = _hash_json({"pair_input_hashes": pair_input_hashes})
-    prompt_schema_hash = _prompt_schema_hash()
+    prompt_schema_hash = _prompt_schema_hash(ablation)
+    model_config_hash = _model_config_hash(profile)
     selection_preflight_reference = _load_selection_preflight(
         selection_preflight,
         selected_pair_ids=selected_pair_ids,
@@ -6388,6 +6451,8 @@ def run_experiment(
     manifest = _prepare_run_manifest(
         output_root=output_root,
         profile=profile,
+        ablation=ablation,
+        model_config_hash=model_config_hash,
         run_id=selected_run_id,
         source_provenance=source_provenance,
         registry_version=registry.version,
@@ -6406,6 +6471,7 @@ def run_experiment(
     )
     run_identity = {
         "run_id": manifest.run_id,
+        "ablation": manifest.ablation,
         "run_contract_hash": manifest.run_contract_hash,
         "source_provenance": manifest.source_provenance.model_dump(mode="json"),
         "pair_input_hashes": dict(manifest.pair_input_hashes),
@@ -6418,6 +6484,7 @@ def run_experiment(
             "report_root": str(report_root_path),
             "run_identity": run_identity,
             "profile": profile,
+            "model_config_hash": manifest.model_config_hash,
             "transport_retries": transport_retries,
             "streaming": streaming,
         }
@@ -6482,6 +6549,7 @@ def run_experiment(
             if (
                 status.run_id != manifest.run_id
                 or status.run_contract_hash != manifest.run_contract_hash
+                or status.ablation != manifest.ablation
             ):
                 raise ValueError("pair status run identity mismatch")
             per_pair[pair_id] = status.model_dump(mode="json")
@@ -6533,6 +6601,7 @@ def run_experiment(
         run_started_at=manifest.started_at,
         run_completed_at=completed_at,
         profile=profile,
+        ablation=ablation,
         source_commit=source_provenance["source_commit"],
         source_branch=source_provenance["source_branch"],
         source_provenance=source_provenance,
@@ -6575,20 +6644,21 @@ def run_experiment(
         ],
         predecessor_snapshot=predecessor_snapshot,
         reason="Every selected pair has terminal method receipts and method-owned W2 audits under one strict run identity.",
-        basis="four-family-12-core.v1, v3 method-only run manifest, and exact input closure hashes",
+        basis="four-family-12-core.v1, v4 method-only run manifest, and exact input closure hashes",
     ).model_dump(mode="json")
     write_json(output_root / "summary.json", summary)
     write_markdown_summary(output_root / "SUMMARY.md", summary)
     write_json(
         output_root / "audit_index.json",
         {
-            "schema": "evidence-discovery.audit_index.v3",
+            "schema": "evidence-discovery.audit_index.v4",
             "run_id": manifest.run_id,
             "run_contract_hash": manifest.run_contract_hash,
+            "ablation": manifest.ablation,
             "pairs": per_pair,
             "method_cell_count": summary["method_cell_count"],
             "reason": "The index points only to artifacts validated under the active run identity.",
-            "basis": "v3 method-only pair-status and run-summary receipts",
+            "basis": "v4 condition-aware pair-status and run-summary receipts",
         },
     )
     final_manifest = manifest.model_copy(

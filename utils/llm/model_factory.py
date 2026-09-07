@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 from collections.abc import Mapping
-from functools import wraps
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -35,35 +34,11 @@ class LLMModelFactoryError(ValueError):
 
 
 def guard_responses_stream_errors(model: Any) -> None:
-    """Surface nested Responses failures before LangChain discards the event."""
+    """Install the common provider guard for all Responses stream failures."""
 
-    from openai import APIError
+    from .responses_stream import guard_responses_streams
 
-    for client in (model.root_client, model.root_async_client):
-        if client is None:
-            continue
-        original = client._process_response_data
-        if getattr(original, "_checks_responses_failure", False):
-            continue
-
-        # Both SDK stream implementations share this decoder; requests and all
-        # nonfailure events continue through the pinned SDK without mutation.
-        @wraps(original)
-        def checked(*, data: Any, response: Any, _original: Any = original, **kwargs: Any) -> Any:
-            if isinstance(data, Mapping) and data.get("type") == "response.failed":
-                failed = data.get("response")
-                error = failed.get("error") if isinstance(failed, Mapping) else None
-                error = dict(error) if isinstance(error, Mapping) else {}
-                error.update(type="response.failed", status_code=response.status_code)
-                raise APIError(
-                    error.get("message") or "Responses generation failed",
-                    request=response.request,
-                    body=error,
-                )
-            return _original(data=data, response=response, **kwargs)
-
-        checked._checks_responses_failure = True
-        client._process_response_data = checked
+    guard_responses_streams(model)
 
 
 def _apply_effort(

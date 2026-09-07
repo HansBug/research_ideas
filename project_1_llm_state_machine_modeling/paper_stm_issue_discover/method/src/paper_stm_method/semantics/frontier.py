@@ -5746,17 +5746,22 @@ def materialize_typed_frontier(
         builder, all_contracts, grounding_responses, llm_candidates
     )
     _materialize_initial_entries(builder, all_contracts, all_groups)
-    scopes = _materialize_root_reachability(builder, all_contracts, llm_candidates)
-    _materialize_dead_ends(builder, all_contracts, grounding_responses)
+    from .ablation import NoInspectInput
+
+    inspection_enabled = not isinstance(pair, NoInspectInput)
+    scopes = _materialize_root_reachability(builder, all_contracts, llm_candidates) if inspection_enabled else {}
+    if inspection_enabled:
+        _materialize_dead_ends(builder, all_contracts, grounding_responses)
     _materialize_termination(builder, all_contracts)
     _materialize_group_guards(builder, all_groups, all_contracts)
     _materialize_group_post_states(builder, all_groups, all_contracts)
     _materialize_group_collisions(builder, all_groups, all_contracts)
     _materialize_wrong_targets(builder, all_contracts, all_groups, grounding_responses)
     _materialize_aggregate_data_semantics(builder, all_contracts)
-    _materialize_cross_wrapper(builder, all_contracts)
-    _materialize_event_consumers(builder, all_contracts, scopes)
-    _materialize_inspection_diagnostics(builder, all_contracts, grounding_responses)
+    if inspection_enabled:
+        _materialize_cross_wrapper(builder, all_contracts)
+        _materialize_event_consumers(builder, all_contracts, scopes)
+        _materialize_inspection_diagnostics(builder, all_contracts, grounding_responses)
     _materialize_source_divergence(builder, all_contracts, all_groups)
     return FrontierBatch(
         obligations=tuple(builder.obligations),
