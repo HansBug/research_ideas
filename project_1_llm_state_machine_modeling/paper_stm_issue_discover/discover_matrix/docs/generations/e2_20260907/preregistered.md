@@ -126,3 +126,20 @@ venv/bin/python -m paper_stm_judge.cli \
 baseline裁定改为 `--source-format x1v2_record` 和对应source根；生成两臂顺序运行，不能每臂另开3workers叠加超额。所有输出隔离到 backbone/arm/round/pair/attempt；已有成功输出不覆盖。原始prompt/raw/SSE/失败及临时脚本仅留 ignored `runs/paper1/e2_20260907/`，另备份并检查hash；仓库只收紧凑冻结决定、来源hash、复算与中文Markdown。raw未入Git不等于可从fresh clone重放全部历史，需另行取得原件。
 
 最终按972唯一格核销所有生成与裁定，离线复算分母/数字/来源；必要测试、最终源CI和范围内C/I/冲突闭合，commit/push并交付报告/PR后结束。E2/#179合并留用户审阅，不自行启动O2、写作或其他实验。
+
+## 7. 2026-09-07 judge 渠道切换补充登记
+
+用户授权后续 Luna judge 从 aizzz 切到已验证的 sub2api。仅修改 E2 私有配置中 `gpt-5.6-luna` 的 `base_url/api_key`，其余22个 profile 及 Luna 其他字段逐项不变；不改 judge prompt、schema、validator、参数、裁定规则、定向修复和既有失败批次拆分机制。stream、单个总池最多16 workers、24K请求输出预算及§4超时继续沿用。
+
+| 身份 | 切换后值 |
+|---|---|
+| 新 judge model_config_hash | `sha256:d21e3770403489acb9dc5e3606cd30e73a5469696271869824eb2dac6591bcc8` |
+| E2 最终 profile fingerprint | `sha256:ae64fc72381bbc4852463cd7ad9233454f0f2cfc4a8943d45cb9628c622bd261` |
+| 连接来源 profile fingerprint | `sha256:a1f310ee2f6de4f4271e041f306e091ad8d469b27331716f7533a1756abf8696` |
+| endpoint SHA-256 | `sha256:171408a3ce671276ae0dd4734f1962919148efdb6cf05a3f56af4661a91da974` |
+
+来源 profile 的 context 为272,000，E2 为保持既有参数保留1,050,000，故两个完整 fingerprint 不相等；连接字段与精确 model/adapter 已比对一致。这不构成对新渠道1.05M容量的实测认证，不依靠该声明扩大裁定输入。私有旧配置独立留存且不进入公开归档或远端原始实验备份。
+
+切换前 Sonnet 首批 `0019/0029/0049` r1 两臂六格的60份报告已完成裁定：ours37、baseline23。六格均通过原生 `PairJudgeResult` 校验、生成源文件hash/匿名ID集合、完整两读、必要仲裁、最终密集关系矩阵与指标重算。ours0019的一次关系调用曾遇到HTTP200内 `stream_read_error`，既有拆分机制完成其全部报告；原失败回执保留。六格保留 aizzz provenance，不重裁、不因渠道变化删除；其余新调用记录 sub2api。渠道/日期差异随最终结果披露。
+
+新渠道此前16并发真实裁定payload探针16/16完成，输入约95,964至208,050 tokens，最长349.12秒；其中12份单次schema直接通过，另4份缺少 `NO_MATCH.basis/report_id`，探针未执行正式修复循环，不能把4份单次缺字段记为整格失败。冻结v61已有同类中间缺字段且最终162格完整，本轮保留完全相同修复机制。32并发仅有短输出证据，64并发128次中31次504，因此不提高16-worker上限。这些探针仅作渠道接入依据，不计入972格或正式效果。
