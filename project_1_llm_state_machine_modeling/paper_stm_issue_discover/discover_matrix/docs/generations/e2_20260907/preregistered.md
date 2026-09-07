@@ -143,3 +143,21 @@ baseline裁定改为 `--source-format x1v2_record` 和对应source根；生成�
 切换前 Sonnet 首批 `0019/0029/0049` r1 两臂六格的60份报告已完成裁定：ours37、baseline23。六格均通过原生 `PairJudgeResult` 校验、生成源文件hash/匿名ID集合、完整两读、必要仲裁、最终密集关系矩阵与指标重算。ours0019的一次关系调用曾遇到HTTP200内 `stream_read_error`，既有拆分机制完成其全部报告；原失败回执保留。六格保留 aizzz provenance，不重裁、不因渠道变化删除；其余新调用记录 sub2api。渠道/日期差异随最终结果披露。
 
 新渠道此前16并发真实裁定payload探针16/16完成，输入约95,964至208,050 tokens，最长349.12秒；其中12份单次schema直接通过，另4份缺少 `NO_MATCH.basis/report_id`，探针未执行正式修复循环，不能把4份单次缺字段记为整格失败。冻结v61已有同类中间缺字段且最终162格完整，本轮保留完全相同修复机制。32并发仅有短输出证据，64并发128次中31次504，因此不提高16-worker上限。这些探针仅作渠道接入依据，不计入972格或正式效果。
+
+## 8. 2026-09-07—08 并发与传输补充登记
+
+本节保留初始登记原文，记录用户随后批准的执行变更；不是将事后诊断改写为事前已知条件。对应授权与恢复记录见 [E2 合同](https://github.com/HansBug/research_ideas/pull/208)。
+
+用户要求余下轮次合并派发：Sonnet 的 round 2/3 同批推进；Qwen/Muse 首批六格通过后，剩余 round 1 与完整 round 2/3 一起生成。开放模型各臂的三个原生批次采用 6+5+5 workers，总生成并发不超过16，两臂顺序执行。三个轮次生成齐备后，未完成裁定进入同一个最多16-worker池；不为每轮或每臂另开16。首批成功格排除于后续派发，计划仍为每模型324格、新增共972格；轮次标签不表示共享随机种子。
+
+Qwen 的失败长请求揭示了§4未列出的客户端边界：安装版本 LangChain 的异步 `stream_chunk_timeout` 默认120秒，先于 HTTP read=300秒及 shared runtime 600秒 deadline 取消静默流。原始生成流审计的96次不完整取消均发生在最后chunk后120.0013—120.0055秒；这些是请求尝试数，含已恢复尝试和未选中的原始失败格，不是96个失败样本。相同 `0009/r3` contract 修复请求的业务payload SHA-256为 `96b826f61bd58c2eef2a98a6ac2dd2e92031ea65e6d9230d44c6ef0aee543c0e`：本机原生SSE 214.53秒、远端直连213.56秒、调整chunk等待后的factory 209.24秒均得到完整tool/usage/DONE；本机原生流最大chunk间隔142.56秒。该结果定位的是等待边界，不是模型不支持stream。
+
+仅后续开放模型**生成**进程采用安装版本已有的环境参数，研究代码、输入、prompt/schema、推理和输出预算不变：
+
+```bash
+LANGCHAIN_OPENAI_STREAM_CHUNK_TIMEOUT_S=300 venv/bin/python <原生生成入口及原参数>
+```
+
+HTTP read仍为300秒，shared runtime单请求deadline仍为600秒；judge不设置此环境override，保留原冻结参数与恢复机制。Qwen原主批及其自动衔接的baseline已经启动，未热改进程；隔离恢复使用300秒，后续Muse生成使用300秒。因此不能将所有Qwen原始请求标为300秒chunk配置，也不能宣称这次调整消除了所有潜在超时。
+
+原Qwen `0009/r3` 的失败回执与原始尝试完整保留，单独恢复后的有效格按原唯一键替代失败选择；成功格不重做，不按报告数量挑选。原生runner不支持跨run注入已恢复contract并复用封存失败格的后续grounding，因此该失败格的隔离恢复包含下游重执行，这一限制明确披露。批次CLI退出0不替代逐格验收：必须核对全部stage、errors/audit errors及eligibility，再建立选择索引和裁定输入。
