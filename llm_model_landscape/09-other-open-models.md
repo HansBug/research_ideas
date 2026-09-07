@@ -8,6 +8,9 @@
 
 | 发布时间/排序键 | 系列 | 代表/最新可获取线 | context 概况 | 价格口径 | 来源 |
 |---:|---|---|---:|---|---|
+| 2026-08-11 | NVIDIA Nemotron | Nemotron-3.5-Lightning-30B-A3B | up to 1M；H100 recipe 256K，B200 recipe 1M | 开放权重无统一 token 价；NIM/云托管另计 | [HF card](https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16) / [NVIDIA recipes](https://github.com/NVIDIA-NeMo/Gym/tree/main/nemotron_recipes/lightning-3.5) |
+| 2026-08 | Muse | Muse-Glimmer-30B | 131,072+ | 开放权重无统一 token 价 | [HF card](https://huggingface.co/meta-models/Muse-Glimmer-30B) / [methodology](https://research.meta.ai/static/muse-glimmer-methodology) |
+| 2026-04-02 | Gemma 4 | Gemma 4 31B-it | 256K；独立 max output 未统一列 | 开放权重无统一 token 价 | [announcement](https://blog.google/innovation-and-ai/technology/developers-tools/gemma-4/) / [HF card](https://huggingface.co/google/gemma-4-31B-it) / [license](https://ai.google.dev/gemma/docs/gemma_4_license) |
 | 2026 | OpenAI gpt-oss | gpt-oss-120b / gpt-oss-20b | 按模型卡；开放权重/开源权重线 | 开放权重无统一 token 价；第三方托管另计 | [HF 120B](https://huggingface.co/openai/gpt-oss-120b) |
 | 2026 | Kimi/Moonshot | Kimi-K2-Instruct / Kimi-K2-Thinking | 按模型卡/官方页 | 开放权重与 hosted API 需分开记录 | [Kimi K2](https://moonshotai.github.io/Kimi-K2/) / [HF K2 Instruct](https://huggingface.co/moonshotai/Kimi-K2-Instruct) / [HF K2 Thinking](https://huggingface.co/moonshotai/Kimi-K2-Thinking) |
 | 2026 | NVIDIA Nemotron | Nemotron-3 Nano/Super 等 | 4K-1M，按 checkpoint | NIM/云托管按当前页 | [Nemotron](https://developer.nvidia.com/nemotron) / [Build](https://build.nvidia.com/nvidia) |

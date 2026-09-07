@@ -6,6 +6,7 @@
 
 | 发布时间/排序键 | 模型/系列 | 状态 | context / max output | 输入 / cached / 输出价 | 来源 |
 |---:|---|---|---:|---:|---|
+| 2026-07-09 | `gpt-5.6-luna` | 高吞吐、低价 GPT-5.6；2026-09-06 核验 | 1,050,000 / 128,000；max input 922,000 | 0.20 / 0.02 / 1.20；cache write 0.25；输入 >272K：0.40 / 0.04 / 1.80，write 0.50 | [model](https://developers.openai.com/api/docs/models/gpt-5.6-luna) / [pricing](https://developers.openai.com/api/docs/pricing) / [changelog](https://developers.openai.com/api/docs/changelog) |
 | 2026-04-23 | `gpt-5.5` | 当前 GPT 强线 | 1,050K / 128K | 5 / 0.5 / 30；长上下文价另列 | [model](https://developers.openai.com/api/docs/models/gpt-5.5) / [pricing](https://developers.openai.com/api/docs/pricing) |
 | 2026-03-17 | `gpt-5.4-mini` | 低价 GPT-5.4 线 | 400K / 128K | 0.75 / 0.075 / 4.5 | [model](https://developers.openai.com/api/docs/models/gpt-5.4-mini) / [pricing](https://developers.openai.com/api/docs/pricing) |
 | 2026-03-05 | `gpt-5.4` | GPT-5.4 线 | 1,050K / 128K | 2.5 / 0.25 / 15；长上下文价另列 | [model](https://developers.openai.com/api/docs/models/gpt-5.4) / [pricing](https://developers.openai.com/api/docs/pricing) |

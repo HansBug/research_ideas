@@ -4,7 +4,7 @@
 
 ## 1. 默认阅读路径
 
-1. [2026-09-04 导师讨论：大纲收口、消融与基线、对外口径](./2026-09-04-导师-paper1大纲收口与消融基线口径.md)
+1. [2026-09-05 多模型对照与谓词降幻觉](./2026-09-05-导师-paper1多模型对照与谓词降幻觉.md)，再读 [2026-09-04 大纲收口、消融与基线、对外口径](./2026-09-04-导师-paper1大纲收口与消融基线口径.md)
 2. [v61 归档 README](../paper_stm_issue_discover/final_results/v61_source_divergence_vs_x1v2_baseline/README.md)
 3. [v61 现状分析与出路](../paper_stm_issue_discover/discover_matrix/docs/generations/v61/analysis_and_options.md)
 4. [145 条 ledger](../paper_stm_issue_discover/discover_matrix/ledger_v2/README.md)；它是 expected inventory，不是实验 headline
@@ -13,6 +13,7 @@
 
 | 文件 | 类型 | 状态 | 替代入口 |
 | --- | --- | --- | --- |
+| [2026-09-05 多模型对照与谓词降幻觉](./2026-09-05-导师-paper1多模型对照与谓词降幻觉.md) | 导师路线决策 | current route；同 backbone 的 2+2 比较，A1/A2 单模型 | 模型调研与独立新实验；v61 仍冻结 |
 | [2026-09-04 大纲收口、消融与基线、对外口径](./2026-09-04-导师-paper1大纲收口与消融基线口径.md) | 导师路线决策 | current route（v61 口径） | 大纲、待裁定表、v61 归档 |
 | [2026-08-31 最终 talk](./2026-08-31-paper1-v60-current与X1v2-baseline最终定性与PR收尾.md) | 实验结论/交班 | historical/superseded（v60 口径） | v61 归档 |
 | [2026-08-08 路线收窄](./2026-08-08-导师-paper1收窄为issue-discover.md) | 导师路线决策 | current route | 2026-09-04 talk、v61 归档 |
@@ -24,6 +25,7 @@
 
 | 日期 | 文件 | 状态 |
 | --- | --- | --- |
+| 2026-09-05 | [导师：Paper1 多模型对照与谓词降幻觉](./2026-09-05-导师-paper1多模型对照与谓词降幻觉.md) | current route decision，不是效果结论 |
 | 2026-09-04 | [导师：Paper1 大纲收口、消融与基线、对外口径](./2026-09-04-导师-paper1大纲收口与消融基线口径.md) | current route decision（v61 口径） |
 | 2026-08-31 | [Paper1 v60/current 与 X1v2 baseline 最终定性与 PR 收尾](./2026-08-31-paper1-v60-current与X1v2-baseline最终定性与PR收尾.md) | historical/superseded（v60 口径） |
 | 2026-08-08 | [导师：paper1 收窄为 issue-discover](./2026-08-08-导师-paper1收窄为issue-discover.md) | current route decision |

@@ -7,3 +7,15 @@
 `2026-08-19-luna-full-x3-v26*`、`2026-08-20-luna-full-x3-v27-stream/` 与 `2026-08-25-evidence-discovery-v51-final-54x3.md` 都是历史报告或重构前结果快照。它们的 Judge、发布边界、W、成本或指标定义不与 v60/current 静默聚合。需要理解版本演进时，从 [实验历史索引](../archive/experiment_history/README.md) 进入，并在同一行查看可比性条件。
 
 R5/R5.7、Better STM、repair、旧 lifecycle 与 provider-health 材料同样属于 provenance 或历史复现；不应被用作当前方法的运行入口。保留这些文件不会改变最终归档，也不会使早期数字重新成为当前事实。
+
+[2026-09-06 模型调研与推理接入快照](./model_readiness_20260906/README.md) 保存商用/开放模型官方事实、近半年 14 篇文献样本、远程 H200 负载及最小 workflow 证据。该组是基础设施与研究选型资料，不是新的效果实验；全部 smoke 排除于正式结果。
+
+[全候选 benchmark 与任务选型](./model_readiness_20260906/2026-09-07-04-30-00-candidate-benchmarks.md) 保留未入选模型、公开推理档位、同版本 AA 矩阵、作者自报与严格结构化缺测；逐值历史复算须另行取得本地来源快照。
+
+[E1 四模型总报告](./model_readiness_20260906/2026-09-07-06-12-00-four-model-handoff.md) 汇总配置、Muse serving 修复、Sonnet 正常 D 证据降级、九格 stream 与四款 baseline/ours、Luna 新连接及历史故障、容量和并发数字；旧失败和历史实验不覆盖。[复现附录](./model_readiness_20260906/2026-09-07-11-55-00-reproduction.md) 收录独立 conda/权重/启动/tunnel、请求与校验核心。
+
+2026-09-07 用户明确 E1 的原始审计和辅助脚本仅本地保留，Git 提供 Markdown 事实、生产代码和必要回归；fresh clone 不含逐条历史审计原件。此交付边界仅适用于 E1，不改变 A1/v61 正式结果或其他材料。
+
+[Luna 路由复核](./model_readiness_20260906/2026-09-07-06-55-00-luna-route-recheck.md) 单列最终 baseline 一次成功与随后普通生成/structured runtime 的四个 503，避免将单次成功写成全部路径恢复。
+
+[Luna 新连接与四模型接入交接](./model_readiness_20260906/2026-09-07-11-10-00-luna-connection-recovery.md) 更新最终连接：普通/structured/baseline 与完整 stream method 通过，补充 Responses 失败事件分类修复，保留旧渠道失败；四款已测配置及 E2 推理档位边界可复核。

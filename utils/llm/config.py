@@ -56,12 +56,14 @@ class LLMConfig(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    adapter: Literal["openai", "openai-responses", "anthropic", "deepseek"] = "openai"
+    adapter: Literal["openai", "openai-responses", "anthropic", "deepseek", "google-genai"] = "openai"
     base_url: str | None = None
     api_key: SecretStr | None = None
     model: str = Field(min_length=1)
     context_window_tokens: int | None = Field(default=None, gt=0)
     max_output_tokens: int | None = Field(default=None, gt=0)
+    output_budget_mode: Literal["profile", "remaining_context"] = "profile"
+    stream_usage: bool | None = None
     pricing: LLMPricing | None = None
 
     @field_validator("model", mode="before")
@@ -106,6 +108,11 @@ class LLMConfig(BaseModel):
 
     @model_validator(mode="after")
     def _check_token_bounds(self) -> LLMConfig:
+        if self.output_budget_mode == "remaining_context" and (
+            self.adapter != "openai" or self.context_window_tokens is None
+            or self.max_output_tokens != self.context_window_tokens
+        ):
+            raise ValueError("remaining_context requires a verified compatible API and output equal to its context window")
         if (
             self.context_window_tokens is not None
             and self.max_output_tokens is not None
@@ -136,7 +143,7 @@ class LLMConfig(BaseModel):
                 port = parsed.port
                 display_host = f"[{host}]" if ":" in host else host
                 endpoint_ref = f"{parsed.scheme}://{display_host}{f':{port}' if port is not None else ''}"
-        return {
+        result = {
             "adapter": self.adapter,
             "model": self.model,
             "base_url_ref": endpoint_ref,
@@ -147,6 +154,11 @@ class LLMConfig(BaseModel):
             if self.pricing is not None
             else None,
         }
+        if self.stream_usage is not None:
+            result["stream_usage"] = self.stream_usage
+        if self.output_budget_mode != "profile":
+            result["output_budget_mode"] = self.output_budget_mode
+        return result
 
     def fingerprint(self) -> str:
         payload = json.dumps(self.public_dict(), sort_keys=True, separators=(",", ":"))

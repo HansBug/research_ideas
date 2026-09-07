@@ -133,3 +133,172 @@ def test_from_config_installs_guard_only_for_responses():
         LLMConfig(model="gpt-5.6-luna", adapter="openai-responses", api_key="test-key"),
     )
     assert hasattr(app.model.root_async_client.responses._post, "__wrapped__")
+
+
+def production_model(entry):
+    from utils.llm import create_chat_model
+
+    config = LLMConfig(adapter="openai-responses", model="gpt-5.6-luna", api_key="offline-key",
+                       base_url="https://provider.invalid/v1", max_output_tokens=128000)
+    options = {"streaming": True, "max_retries": 0}
+    if entry == "factory":
+        model = create_chat_model(config, model_options=options)
+    else:
+        model = AgentApp.from_config(AgentSpec(name="stream", system_prompt="Answer."),
+                                     config, model_options=options).model
+    model.include_response_headers = True
+    # Each parametrized case owns its clients; LangChain caches default clients.
+    model.root_client._client = httpx.Client()
+    model.root_async_client._client = httpx.AsyncClient()
+    return model
+
+
+@pytest.mark.parametrize("entry", ["factory", "agent"])
+@pytest.mark.parametrize("asynchronous", [False, True])
+@pytest.mark.parametrize("events,reason,retryable", [
+    ([], "empty_stream", True),
+    (GOOD[:2], "eof_before_response_completed", True),
+    ([{"type": "response.failed", "response": response("failed", error={
+        "code": "server_error", "message": "overloaded"})}], "response.failed", True),
+    ([{"type": "error", "code": "invalid_api_key", "message": "service unavailable"}], "error", False),
+    ([{"type": "response.incomplete", "response": response("incomplete",
+        incomplete_details={"reason": "max_output_tokens"})}], "response.incomplete", False),
+])
+def test_both_construction_paths_preserve_provider_failure(monkeypatch, entry, asynchronous, events, reason, retryable):
+    from utils.llm.model_factory import guard_responses_stream_errors
+    from utils.llm.responses_stream import ResponsesStreamError
+
+    requests, responses = [], []
+
+    def handle(request):
+        requests.append(json.loads(request.content))
+        result = httpx.Response(200, content=sse(events), headers={
+            "content-type": "text/event-stream", "x-request-id": "req-test"})
+        responses.append(result)
+        return result
+
+    transport = httpx.MockTransport(handle)
+    monkeypatch.setattr(httpx.Client, "_transport_for_url", lambda *args: transport)
+    monkeypatch.setattr(httpx.AsyncClient, "_transport_for_url", lambda *args: transport)
+    model = production_model(entry)
+    posts = [client.responses._post for client in (model.root_client, model.root_async_client)]
+    guard_responses_stream_errors(model)
+    guard_responses_streams(model)
+    assert posts == [client.responses._post for client in (model.root_client, model.root_async_client)]
+    try:
+        with pytest.raises(ResponsesStreamError) as caught:
+            invoke(model, asynchronous)
+        error = caught.value
+        details = _exception_details(error)
+        assert details["reason"] == reason and details["status_code"] == 200
+        assert details["request_id"] == "req-test" and details["source"] == "provider"
+        assert error.body["type"] == reason and error.body["status_code"] == 200
+        assert _retryable_transport_error(error) is retryable
+        assert _provider_retry_allowed({"details": details}) is retryable
+        if reason in {"response.failed", "response.incomplete"}:
+            assert details["model"] == "gpt-5.6-luna" and details["response_id"] == "resp-test"
+            assert details["usage"]["total_tokens"] == 4
+            assert details["failure_event"] == events[0]
+        assert len(requests) == 1 and requests[0]["max_output_tokens"] == 128000
+        assert requests[0]["stream"] is True and all(r.is_closed for r in responses)
+    finally:
+        model.root_client.close()
+        asyncio.run(model.root_async_client.close())
+
+
+@pytest.mark.parametrize("entry", ["factory", "agent"])
+@pytest.mark.parametrize("asynchronous", [False, True])
+def test_production_guard_preserves_completed_stream(monkeypatch, entry, asynchronous):
+    transport = httpx.MockTransport(lambda request: httpx.Response(
+        200, content=sse(GOOD), headers={"content-type": "text/event-stream", "x-request-id": "req-test"}))
+    monkeypatch.setattr(httpx.Client, "_transport_for_url", lambda *args: transport)
+    monkeypatch.setattr(httpx.AsyncClient, "_transport_for_url", lambda *args: transport)
+    model = production_model(entry)
+    try:
+        old = invoke(model_for(GOOD, guarded=False, headers=True), asynchronous)
+        new = invoke(model, asynchronous)
+        assert old.model_dump() == new.model_dump()
+    finally:
+        model.root_client.close()
+        asyncio.run(model.root_async_client.close())
+
+
+@pytest.mark.parametrize("asynchronous", [False, True])
+def test_interrupted_stream_preserves_usage_and_closes_response(monkeypatch, asynchronous):
+    from utils.llm.responses_stream import ResponsesStreamError
+
+    class Interrupted(httpx.SyncByteStream, httpx.AsyncByteStream):
+        def __iter__(self):
+            yield sse(GOOD[:1])
+            raise httpx.ReadError("connection interrupted")
+
+        async def __aiter__(self):
+            yield sse(GOOD[:1])
+            raise httpx.ReadError("connection interrupted")
+
+    responses = []
+
+    def handle(request):
+        result = httpx.Response(200, stream=Interrupted(), headers={"content-type": "text/event-stream"})
+        responses.append(result)
+        return result
+
+    transport = httpx.MockTransport(handle)
+    monkeypatch.setattr(httpx.Client, "_transport_for_url", lambda *args: transport)
+    monkeypatch.setattr(httpx.AsyncClient, "_transport_for_url", lambda *args: transport)
+    model = production_model("factory")
+    try:
+        with pytest.raises(ResponsesStreamError) as caught:
+            invoke(model, asynchronous)
+        details = _exception_details(caught.value)
+        assert details["reason"] == "transport_interrupted" and details["retryable"] is True
+        assert details["raw_error"]["type"] == "ReadError" and details["usage"]["total_tokens"] == 4
+        assert all(r.is_closed for r in responses)
+    finally:
+        model.root_client.close()
+        asyncio.run(model.root_async_client.close())
+
+
+@pytest.mark.parametrize("provider_code,expected_attempts", [("invalid_api_key", 1), ("server_error", 2)])
+def test_current_structured_runtime_respects_retryability_and_failed_usage(tmp_path, monkeypatch, provider_code, expected_attempts):
+    from pydantic import BaseModel
+    from utils.llm import LLMRegistry
+    from utils.structured_runtime import PublicStructuredRuntime
+
+    requests = []
+    failed = {"type": "response.failed", "response": response("failed", error={
+        "code": provider_code, "message": "service unavailable"})}
+
+    def handle(request):
+        requests.append(json.loads(request.content))
+        return httpx.Response(200, content=sse([failed]), headers={"content-type": "text/event-stream"})
+
+    transport = httpx.MockTransport(handle)
+    monkeypatch.setattr(httpx.Client, "_transport_for_url", lambda *args: transport)
+    monkeypatch.setattr(httpx.AsyncClient, "_transport_for_url", lambda *args: transport)
+    config = LLMConfig(adapter="openai-responses", model="gpt-5.6-luna", api_key="offline-key", max_output_tokens=128000)
+    monkeypatch.setattr("utils.structured_runtime.load_llm_registry", lambda: LLMRegistry({"fixture": config}, "fixture"))
+
+    class Answer(BaseModel):
+        answer: str
+
+    runtime = PublicStructuredRuntime("fixture", tmp_path, transport_retries=0, streaming=True)
+    try:
+        result = runtime.call(kind="probe", schema=Answer, system_prompt="Use the tool.",
+                              prompt="same request", artifact_id="failed")
+    finally:
+        runtime.close()
+    assert not result.succeeded and len(result.attempts) == len(requests) == expected_attempts
+    assert all(request == requests[0] for request in requests)
+    assert not result.schema_validation_failures
+    assert all(attempt["provider_error"] for attempt in result.attempts)
+    assert len(result.usage) == expected_attempts
+    assert all(row["status"] == "failed" and row["total_tokens"] == 4 for row in result.usage)
+    assert result.attempts[-1]["error"]["details"]["failure_event"] == failed
+
+
+def test_explicit_nonretryable_wins_over_status_message_and_cause():
+    error = AgentError("provider_error", "service unavailable", details={
+        "source": "provider", "retryable": False, "status_code": 520})
+    error.__cause__ = httpx.ReadTimeout("read timed out")
+    assert _retryable_transport_error(error) is False

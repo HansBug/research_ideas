@@ -1,6 +1,6 @@
 # project_1 Paper1 talks 与交班材料
 
-> 当前默认入口是 [2026-09-04 导师讨论：Paper1 大纲收口、消融与基线、对外口径](./2026-09-04-导师-paper1大纲收口与消融基线口径.md)（导师路线）与 [v61 归档](../paper_stm_issue_discover/final_results/v61_source_divergence_vs_x1v2_baseline/README.md)（实验事实）。[2026-08-31 最终定性 talk](./2026-08-31-paper1-v60-current与X1v2-baseline最终定性与PR收尾.md) 的数字属 v60 口径，已被 v61 取代，只作历史参照。
+> 当前默认入口是 [2026-09-05 导师讨论：多模型对照与谓词降幻觉](./2026-09-05-导师-paper1多模型对照与谓词降幻觉.md)（最新实验路线）、[2026-09-04 导师讨论：Paper1 大纲收口、消融与基线、对外口径](./2026-09-04-导师-paper1大纲收口与消融基线口径.md)（其余论文口径）与 [v61 归档](../paper_stm_issue_discover/final_results/v61_source_divergence_vs_x1v2_baseline/README.md)（既有实验事实）。[2026-08-31 最终定性 talk](./2026-08-31-paper1-v60-current与X1v2-baseline最终定性与PR收尾.md) 的数字属 v60 口径，已被 v61 取代，只作历史参照。
 
 本目录保留导师讨论、实验/调研记录和最终交班材料。旧记录不删除、不覆盖；凡标为 historical、superseded 或 provenance 的文件都不能作为当前 Paper1 headline 的事实源。当前 Paper1 的 validity、relation、D/A、K/N/I 的定义来自人工裁定协议；当前执行口径与数字以 [v61 归档](../paper_stm_issue_discover/final_results/v61_source_divergence_vs_x1v2_baseline/README.md) 和大纲 §5.3 为准。
 
@@ -25,11 +25,11 @@
 
 ## 3. 当前入口和文件状态
 
-日期化文件共 13 篇：6 篇导师记录、3 篇实验记录、3 篇调研记录，以及 1 篇 v60 口径的 Paper1 定性/交班 talk（历史）。
+日期化文件共 14 篇：7 篇导师记录、3 篇实验记录、3 篇调研记录，以及 1 篇 v60 口径的 Paper1 定性/交班 talk（历史）。
 
 当前阅读路径：
 
-1. [2026-09-04 导师讨论：大纲收口、消融与基线、对外口径](./2026-09-04-导师-paper1大纲收口与消融基线口径.md)
+1. [2026-09-05 多模型对照与谓词降幻觉](./2026-09-05-导师-paper1多模型对照与谓词降幻觉.md)，再读 [2026-09-04 大纲收口、消融与基线、对外口径](./2026-09-04-导师-paper1大纲收口与消融基线口径.md)
 2. [v61 归档 README](../paper_stm_issue_discover/final_results/v61_source_divergence_vs_x1v2_baseline/README.md)
 3. [v61 现状分析与出路](../paper_stm_issue_discover/discover_matrix/docs/generations/v61/analysis_and_options.md)
 4. [2026-08-31 最终定性 talk](./2026-08-31-paper1-v60-current与X1v2-baseline最终定性与PR收尾.md)（v60 口径，历史参照）
@@ -38,6 +38,7 @@
 
 | 文件类别 | 文件 | 状态 | 替代入口 |
 | --- | --- | --- | --- |
+| 导师路线 | [2026-09-05 多模型对照与谓词降幻觉](./2026-09-05-导师-paper1多模型对照与谓词降幻觉.md) | current route decision，更新模型比较范围，不是新实验结果 | 模型调研、探测协议、后续独立实验 |
 | 导师路线 | [2026-09-04 大纲收口、消融与基线、对外口径](./2026-09-04-导师-paper1大纲收口与消融基线口径.md) | current route decision（v61 口径），不是实验结果 | 大纲、待裁定表、v61 归档 |
 | Paper1 定性/交班 | [2026-08-31 最终 talk](./2026-08-31-paper1-v60-current与X1v2-baseline最终定性与PR收尾.md) | historical/superseded（v60 口径） | v61 归档 |
 | 导师路线 | [2026-08-08 收窄为 issue-discover](./2026-08-08-导师-paper1收窄为issue-discover.md) | current route decision，不是实验结果 | 2026-09-04 talk、v61 归档 |
