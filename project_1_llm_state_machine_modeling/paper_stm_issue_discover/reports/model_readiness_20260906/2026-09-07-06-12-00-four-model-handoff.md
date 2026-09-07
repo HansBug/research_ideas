@@ -47,6 +47,8 @@ method 使用首字节/读取空闲 300s、单次调用总时限 600s；零 tran
 
 三款各运行预先指定的 0019/0029/0049、round 1、3 workers；无 candidate judge。下表括号是 cell errors，全部 audit errors 为 0。[clm-method]
 
+**四模型覆盖边界（2026-09-07 复核）**：下表三款不含 Luna。新 Luna 连接只补测了 `0001/r1`，8 个阶段完成、5/5 tool/usage、0 errors/audit errors/schema 修正；并未在该连接补测 `0019/0029/0049`。按四款各三格的统一矩阵，已有 9/12 格证据，另 3 格属于未补测，不能计成失败或成功。事前协议的 Model Maximum Output And Claude / Luna Connection Recovery amendments 明确采用这种不对称覆盖；满足该接入协议不等于四款都做过同样的大输入测试。历史 Luna/v61/A1 成功不能替代新连接同配置三格的证据。[clm-pair-coverage]
+
 | 模型 | 0019 | 0029 | 0049 | HTTP 正常响应/调用 | schema 修正 | 三格墙钟 |
 |---|---|---|---|---:|---:|---:|
 | Sonnet 5 | 完成 (0) | 证据降级 (1) | 完成 (0) | 24/24 | 7 | 617.72s |
@@ -74,6 +76,25 @@ method 使用首字节/读取空闲 300s、单次调用总时限 600s；零 tran
 原失败修订请求 SHA-256 `77976fceb097818c4b7b3ae8eafcf048045d8405aadd4d168c74d73cfbec9d5b` 实测通过：30 contracts 保留，21 个 endpoint contracts 的 source/target hints 齐全，经原 `NLContractResponse.model_validate` 通过，148.47s。远程原生 tokenizer/grammar/stream parser 定向测试通过。最终三格共 15 个 LLM stage 全 success，唯一 schema 修正是 0019 首次 extraction 的 5 个嵌套字段错误，一次修订后收敛；D 不再耗尽。[clm-muse-fix]
 
 旧 `cd647...` 的 D 耗尽、`c81cf6c526b24785816ac29313774b56` 的 0049 extraction 失败、v1/v2 反例和 dirty-tree 启动前拦截均保留。最终成功不覆盖这些失败，也不宣称任意 schema、auto tool 或 JSON response-format 全面健康。[clm-history]
+
+### Muse：官方与社区依据复核（2026-09-07）
+
+Meta 的官方模型卡声明 schema-based tool use，固定 revision 的 chat template 明确使用 ATEM：`<atem:function_calls>` / `<atem:invoke>` / `<atem:parameter>`；标量按原值输出，数组和对象使用 JSON，模板还明确说明该输出不要求是合法 XML。官方模板支持原生格式适配这一选择，但没有要求使用本仓库的语法补丁，也没有承诺任意 serving 引擎都能强制完整 schema。[src-muse-official] [clm-muse-upstream]
+
+| 来源层次 | 实际做法或已记录问题 | 与本地补丁的关系 |
+|---|---|---|
+| SGLang 上游 | 配方使用 `--tool-call-parser muse --reasoning-parser muse`；#34781 于 2026-08-14 合入，使 required/named tool 走原生 ATEM 解析；v0.5.19 的 Muse detector 声明 `supports_structural_tag=False`、`parses_required_natively=True` | 上游修正了格式路由，没有增加本地这套必填参数解码语法 |
+| vLLM 上游 | 配方使用 `muse_glimmer` tool/reasoning parser，并提醒不要把 JSON 工具调用语法强加给 ATEM | 说明原生解析路线有上游依据，不代表更换引擎即可解决全部严格 schema 问题 |
+| 待合入的引擎修复 | 核验当日 SGLang #34659、vLLM #52390 均未合入，处理推理频道与最终回答结构化约束的衔接 | 与本地 required-tool 参数问题有关联，但不是同一失败路径或本地补丁的上游实现 |
+| 社区使用报告 | HF discussion #56 的使用者报告 vLLM + XGrammar 在生产结构化任务中使用若干本地引擎补丁，并指出字段顺序、停止 token、语法启动边界等问题 | 支撑生态兼容问题确实被其他使用者报告；其性能、质量数字未由本项目复现 |
+
+以上来源逐项见 [src-muse-sglang]、[src-muse-vllm]、[src-muse-community]；未在这些来源中找到与本仓库“复用 MiniMax XML 编译器、转换 ATEM namespace、放宽嵌套结构”完全相同的官方推荐实现。[clm-muse-upstream]
+
+**替代方案与限制**：XGrammar #668 于 2026-06-23 合入 `any_order`；当前固定 v0.2.1 不含该能力，已核对的 v0.2.5.post1 API 具备该参数，上游实现也将其接入 XML 编译路径。它允许嵌套对象字段任意排序，同时保留键名及每个值的 schema；但官方文档明确说明不检查必填键是否实际出现、不禁止重复键，并作用于所有嵌套对象。因此它是应比较的上游能力，不是可以直接全局开启的等价替换；全局开启可能再次削弱顶层 `reason`/`basis` 的必填保证。新版在本项目完整 SGLang/Muse 环境中的兼容性和原失败请求尚未实测。[src-muse-xgrammar] [clm-muse-alternative]
+
+本地补丁有 §3 原失败请求与最终三格的实测依据，但“嵌套 JSON 全面放宽”是当前版本下的本地兼容选择，不能宣称唯一必要方案或官方最佳实践。完整 caller schema/validator 未变，不代表生成分布未变：解码时移除嵌套约束仍会改变可生成内容。社区 #851 另报告 permissive schema 与 compact-whitespace 设置共同导致质量退化；该实验使用 vLLM 的 JSON response-format，不能据此断言本项目 ATEM 配置已出现相同退化。[src-code] [src-muse-community] [clm-muse-alternative]
+
+复用当前已验通配置时，应固定并披露 serving 版本和约束方式，让同一 Muse backbone 的 baseline/ours 一致使用。后续收敛补丁应在独立 conda 环境比较原缺字段请求、合法字段顺序反例与正常请求，检查嵌套类型/枚举、必填/重复键、stream/parser、usage/finish 和原 validator；只有完成对照，才能把新版方案写成已验证替代。本次外部调查未修改运行中的服务、模型配置或历史结果。[clm-muse-alternative]
 
 ## 4. baseline、Luna 复用与渠道限制
 
@@ -196,6 +217,12 @@ E2 需冻结模型/profile/revision、实际推理与采样、两臂预算与超
 | [src-luna-recovery] | recovered_luna | [新连接报告](./2026-09-07-11-10-00-luna-connection-recovery.md)、本地 `luna_recovery_20260907/` | md/local | 连接差异、plain/runtime/baseline、失败 SSE 与完整 method；不包含私有配置副本 |
 | [src-merge] | merged_guard | [provider guard](../../../../utils/llm/responses_stream.py)、[两入口回归](../../../../tests/utils/test_responses_stream.py)、本地 `e1-conflict-20260907/` | source/local | `8b377e977`；测试记录、`failed-event-replays.json`、索引事实并集与上游目录对拍 |
 | [src-merged-live] | merged_luna_smoke | 本地 `e1-conflict-20260907/merged-live-verification.json` 及其指向的具体探针目录 | local | plain `merged-stream-guard-later`、runtime `final/runtime-tool`、baseline `baseline-merged-stream-guard-later`；两轮旧 503、原生对照和独立 harness failure |
+| [src-pair-protocol] | pair_protocol | [protocol.md](./protocol.md) | md | Model Maximum Output And Claude、Four-Model Ready、Luna Connection Recovery amendments；三大格与 Luna 0001 的不同验收范围 |
+| [src-muse-official] | muse_official | [Meta 模型卡](https://huggingface.co/meta-models/Muse-Glimmer-30B/blob/a4e59da52a7bc87ae7251dd5545c0dd437c44b68/README.md)、[固定 revision 模板](https://huggingface.co/meta-models/Muse-Glimmer-30B/blob/a4e59da52a7bc87ae7251dd5545c0dd437c44b68/chat_template.jinja) | official/source-code | `render_tool_defs`、ATEM 参数渲染和 schema-based tool use 声明；2026-09-07 核验 |
+| [src-muse-sglang] | muse_sglang | [Muse 配方](https://github.com/sgl-project/sglang/blob/main/docs/cookbook/autoregressive/Meta/MuseGlimmer.mdx)、[v0.5.19 detector](https://github.com/sgl-project/sglang/blob/v0.5.19/python/sglang/srt/function_call/muse_glimmer_detector.py)、[#34781](https://github.com/sgl-project/sglang/pull/34781)、[#34659](https://github.com/sgl-project/sglang/pull/34659) | upstream/source-code | 原生 parser、required 路由、无原生 structural tag、频道约束修复范围；PR 状态为 2026-09-07 快照 |
+| [src-muse-vllm] | muse_vllm | [固定 revision 配方](https://github.com/vllm-project/recipes/blob/023882d2b717e5695be4ddfb82315bde36bd579d/models/meta-models/Muse-Glimmer-30B.yaml)、[#52390](https://github.com/vllm-project/vllm/pull/52390) | upstream/source-code | 原生 ATEM parser 与 `to=user` structured output 修复范围；2026-09-07 核验 |
+| [src-muse-community] | muse_community | [HF discussion #56](https://huggingface.co/meta-models/Muse-Glimmer-30B/discussions/56)、[XGrammar #831](https://github.com/mlc-ai/xgrammar/issues/831)、[#851](https://github.com/mlc-ai/xgrammar/issues/851) | community-report | 用户报告的生产补丁、字段顺序问题及宽松 schema/whitespace 交互；非 Meta 官方结论，质量数字未独立复现 |
+| [src-muse-xgrammar] | muse_xgrammar | [#668](https://github.com/mlc-ai/xgrammar/pull/668)、[v0.2.1 API](https://github.com/mlc-ai/xgrammar/blob/v0.2.1/python/xgrammar/structural_tag.py)、[v0.2.5.post1 API](https://github.com/mlc-ai/xgrammar/blob/v0.2.5.post1/python/xgrammar/structural_tag.py) | upstream/source-code | `JSONSchemaFormat.any_order`、必填/重复键限制、XML 参数传递；源码能力核验，不是本项目新引擎实测 |
 
 ### A.3 Claim-evidence map
 
@@ -217,6 +244,9 @@ E2 需冻结模型/profile/revision、实际推理与采样、两臂预算与超
 | [clm-handoff] | E1-HANDOFF-E2 | 两臂配置与推理仍需协议冻结 | decision | [src-config]、[src-bench]、`protocol.md` | 人工核对 E2 事前登记 | high；本材料不授权全量实验 |
 | [clm-merge] | E1-MERGED-CONTRACT | 合流保留两入口防护和上游研究语义 | trace | [src-merge] 源码、321/65 回归与 8 回放 | [cmd-regression]；历史回放先取得原件 | high；远程 Muse skip 不以本地 fake 替代 |
 | [clm-merged-live] | E1-MERGED-LUNA | 合流版本三入口 stream 成功，间歇 503 如实保留 | trace/risk | [src-merged-live] 三请求/响应与旧失败目录；§7 参数与 usage 表 | 复现附录 §4/§5；原件取得后对拍 | high；身份仅渠道回报，未重跑完整 method |
+| [clm-pair-coverage] | E1-PAIR-COVERAGE | 三款三大格共 9 格；新 Luna 仅 0001，统一矩阵尚无 Luna 三格证据 | count/trace | [src-cells] 三 run 的 pairs、[src-luna-recovery] `method/probe.json` pairs/rounds、[src-pair-protocol] 对应 amendments | [cmd-pair-coverage] | high；只统计具名最终配置证据，不将历史 Luna 或 baseline 计入三大格 |
+| [clm-muse-upstream] | E1-MUSE-UPSTREAM | 原生 ATEM 有官方/上游依据；本地解码补丁不同于上游标准配方 | trace | [src-muse-official] 模板、[src-muse-sglang] detector/PR、[src-muse-vllm] 配方、[src-code] | [cmd-muse-upstream] | high；未找到相同推荐限于所列来源，社区报告不是官方保证 |
+| [clm-muse-alternative] | E1-MUSE-ALTERNATIVE | 当前方案有实测支持，any_order 值得对照但会放松必填/唯一性，新版尚未验通 | risk/decision | [src-muse-xgrammar] API docstring/PR、[src-code] 嵌套放宽、[src-muse-fix] 反例、[src-muse-community] #851 | [cmd-muse-upstream]；未来独立环境对照原失败请求 | high（源码行为）/ unknown（新版部署效果）；不得写为已验证替代或外推社区退化率 |
 
 ### A.4 复验命令
 
@@ -232,3 +262,17 @@ git diff 2971a8ada 0c49863f3 -- project_1_llm_state_machine_modeling/paper_stm_i
 ```
 
 上面的 `2971a8ada..0c49863f3` 只用于合流前历史边界，当时 utils 为 256 passed、1 skipped。本次合流后的 321 passed、1 skipped 及 65 项 A1 投影回归见 §7；与上游 `05cd98b0f` 的逐目录检查命令见[复现附录 §6](./2026-09-07-11-55-00-reproduction.md)。skip 是需要远程 Muse tokenizer/engine 的测试，已在对应独立 env 通过。远端复验用该 env 的 Python，设置 `E1_MUSE_TOKENIZER` 为缓存 snapshot、`E1_MUSE_ADAPTER` 为部署文件，运行同一测试；不能在本机安装 serving 引擎或下载 tokenizer/权重来消除 skip。
+
+[cmd-pair-coverage] 取得本地原件和原校验器后，分别执行 `verify_handoff_evidence.py` 与 `verify_luna_recovery_evidence.py`；不调用 provider。2026-09-07 再次离线通过：handoff 的 477 个成员及其依赖的 stream 归档、Luna recovery 的 160 个成员均按 manifest 校验；method 的 pairs、8 个 stage receipts、usage/finish、errors/audit errors、配置指纹与上述覆盖说明一致。fresh clone 不附带这些原件和校验器，不能据此声称可直接重放历史运行。
+
+[cmd-muse-upstream] 从仓库根检查本地补丁，并通过只读上游 API/源码核对。PR 状态是随时间变化的，文中日期保留为调查快照；不要把后续状态倒填为当时事实。
+
+```bash
+git show 7f1131afa:utils/llm/serving_muse.py
+gh api repos/sgl-project/sglang/pulls/34781 --jq '{state,merged_at,merge_commit_sha}'
+gh api repos/sgl-project/sglang/pulls/34659 --jq '{state,merged_at}'
+gh api repos/vllm-project/vllm/pulls/52390 --jq '{state,merged_at}'
+gh api repos/mlc-ai/xgrammar/pulls/668 --jq '{state,merged_at,body}'
+curl -fsSL https://raw.githubusercontent.com/mlc-ai/xgrammar/v0.2.1/python/xgrammar/structural_tag.py
+curl -fsSL https://raw.githubusercontent.com/mlc-ai/xgrammar/v0.2.5.post1/python/xgrammar/structural_tag.py
+```
