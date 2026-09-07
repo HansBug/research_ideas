@@ -1,5 +1,7 @@
 # E1：模型最大输出、stream 大输入与独立环境验收
 
+2026-09-07 交付边界更新：本文所引原始记录、ZIP/JSON 和历史专用校验器仅本地留存，不随 Git 提供；数字与来源链接保留，逐条历史重放须另行取得原件。通用操作见[复现附录](./2026-09-07-11-55-00-reproduction.md)。
+
 后续配置证据见[四模型交接报告](./2026-09-07-06-12-00-four-model-handoff.md)：Muse serving 结构/嵌套顺序修复后的新三格、最终 baseline 与 Luna 渠道复核另行归档。本报告原 15 格和旧 ZIP 保持原样。
 
 冻结时间：2026-09-07 03:36:18 CST。正文的 `[src-*]`、`[clm-*]`、`[cmd-*]` 引用文末审计附录。本报告是接入诊断快照，不是缺陷发现效果实验；不计算 hit、precision，也不进入 E2 主结果。15 格均为预先指定的 `0029 / 0019 / 0049`、round 1、stream、3 workers、0 transport retries，无候选 judge。[src-protocol] [clm-cells]
@@ -116,16 +118,16 @@ Qwen 旧 10K 轮 49 个响应中 43 次 length，三个大格不 eligible；本�
 
 ### A.2 上游事实源清单
 
-所有 ZIP member 路径相对 [stream-diagnostics.zip](./evidence/stream_20260907/stream-diagnostics.zip)，逐 member 原始/脱敏 hash 见 [manifest.json](./evidence/stream_20260907/manifest.json)。公开包共 2,558 个成员，对凭据、私有端点、地址、用户名、路径和 opaque provider state 脱敏；原件保留，内嵌原始 run hash 不重签。[独立隐私扫描](./evidence/stream_20260907/privacy-scan.json)检查当前及预算变更前后的私有配置值，剩余匹配为 0，JSON/JSONL 均可解析。
+所有 member 路径相对本地 `evidence/stream_20260907/stream-diagnostics.zip`，原始/脱敏 hash 由同目录本地 manifest 保留。当时导出包共 2,558 个成员，现仅本地保留；凭据、私有端点、地址、用户名、路径和 opaque provider state 已脱敏，内嵌原始 run hash 不重签。对应独立隐私检查匹配为 0，JSON/JSONL 均可解析；这不意味着 fresh clone 包含这些文件。
 
 | 引用键 | source_id | 事实源 | 类型 | 用途 / 关键锚点 |
 |---|---|---|---|---|
 | [src-protocol] | e1_protocol | [protocol.md](./protocol.md) | md | 最后两项用户 amendment、15 格、GPU/stream/语义边界 |
-| [src-cells] | large_cells | [ZIP](./evidence/stream_20260907/stream-diagnostics.zip) | zip/json/jsonl | `cells/*model-max*/probe.json`、`artifacts/<run>/method/<pair>/round-1.json`、`summary-audit.json`；选择本报告五个 run ID |
-| [src-wire] | raw_transport | [ZIP](./evidence/stream_20260907/stream-diagnostics.zip) | zip/body/json | `cells/<profile>-<variant>/call_metadata/wire/<call_id>/<request>/` 的 request/response、metadata、原始与 decoded SSE |
-| [src-budget] | output_budget | [ZIP](./evidence/stream_20260907/stream-diagnostics.zip) | zip/json/source-code | `model_max/profile-budget-audit.json`、`remaining-context-profiles.json`、`claude-model-metadata.json`、`serving-output-derivation.json`、`sources/` |
-| [src-serving] | isolated_serving | [ZIP](./evidence/stream_20260907/stream-diagnostics.zip) | zip/json/jsonl | `serving/{qwen38,muse}/model-max/*/{requests.jsonl,summary.json}`、`*remaining*/active-server-snapshot.json`、`scripts/e1-large-cells-start-server.sh`；原普通生成/控制另见 [09-06 环境报告](./2026-09-06-isolated-env-final-verification.md) |
-| [src-comparison] | same_request | [ZIP](./evidence/stream_20260907/stream-diagnostics.zip) | zip/json/body | `comparisons/{qwen38-failed-0001,muse-large-0029-model-max}/comparison.json` 与三层原始请求/响应 |
+| [src-cells] | large_cells | 本地 `evidence/stream_20260907/stream-diagnostics.zip`（ZIP） | zip/json/jsonl | `cells/*model-max*/probe.json`、`artifacts/<run>/method/<pair>/round-1.json`、`summary-audit.json`；选择本报告五个 run ID |
+| [src-wire] | raw_transport | 本地 `evidence/stream_20260907/stream-diagnostics.zip`（ZIP） | zip/body/json | `cells/<profile>-<variant>/call_metadata/wire/<call_id>/<request>/` 的 request/response、metadata、原始与 decoded SSE |
+| [src-budget] | output_budget | 本地 `evidence/stream_20260907/stream-diagnostics.zip`（ZIP） | zip/json/source-code | `model_max/profile-budget-audit.json`、`remaining-context-profiles.json`、`claude-model-metadata.json`、`serving-output-derivation.json`、`sources/` |
+| [src-serving] | isolated_serving | 本地 `evidence/stream_20260907/stream-diagnostics.zip`（ZIP） | zip/json/jsonl | `serving/{qwen38,muse}/model-max/*/{requests.jsonl,summary.json}`、`*remaining*/active-server-snapshot.json`、`scripts/e1-large-cells-start-server.sh`；原普通生成/控制另见 [09-06 环境报告](./2026-09-06-isolated-env-final-verification.md) |
+| [src-comparison] | same_request | 本地 `evidence/stream_20260907/stream-diagnostics.zip`（ZIP） | zip/json/body | `comparisons/{qwen38-failed-0001,muse-large-0029-model-max}/comparison.json` 与三层原始请求/响应 |
 | [src-source] | frozen_semantics | `3901b0561`、`75b590306`、`aee59710c` | git-commit | utils 参数/transport 修复；method 目录相对 `2971a8ada` 无 diff |
 | [src-prices] | commercial_survey | [09-06 商用报告](./2026-09-06-11-53-00-commercial-models.md) | md | 官方价格来源及版本口径，不采用其旧施工状态作为本轮结果 |
 
@@ -147,9 +149,6 @@ Qwen 旧 10K 轮 49 个响应中 43 次 length，三个大格不 eligible；本�
 
 [cmd-verify] 从仓库根运行，仅离线读归档，不调用 provider：
 
-```bash
-python project_1_llm_state_machine_modeling/paper_stm_issue_discover/reports/model_readiness_20260906/verify_stream_evidence.py
-git diff 2971a8ada aee59710c -- project_1_llm_state_machine_modeling/paper_stm_issue_discover/method
-```
+历史逐条复验须先取得对应的本地原件及校验器；通用校验与新运行操作见[复现附录](./2026-09-07-11-55-00-reproduction.md)。
 
-首条核验 member hash、15 格回执、请求输出参数、stage 无截断、provider finish 与 usage、三层首请求 hash，并从逐请求记录复算五组新预算负载。第二条应无输出。预算及 adapter 修复的 utils 回归为 256 passed；本报告与公开包验证不重跑真实 API。
+历史校验覆盖 member hash、15 格回执、输出参数、stage 截断状态、provider finish/usage、三层首请求 hash 和五组负载复算；对应预算修复时的 utils 为 256 passed。历史源码边界可用 `git diff 2971a8ada 0c49863f3 -- <method目录>` 检查，不能用合入 A1 后的 HEAD 伪称仍是同一版本。

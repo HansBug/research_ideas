@@ -1,5 +1,7 @@
 # Luna：baseline 单次成功与生成路由复核
 
+2026-09-07 交付边界更新：本文所引原始记录、ZIP/JSON 和历史专用校验器仅本地留存，不随 Git 提供；数字与来源链接保留，逐条历史重放须另行取得原件。通用操作见[复现附录](./2026-09-07-11-55-00-reproduction.md)。
+
 后续连接已更换，普通/structured/baseline 与完整 stream method 的验收见[11:10 新连接报告](./2026-09-07-11-10-00-luna-connection-recovery.md)。下文是旧路由 06:39 至 07:07 的历史事实，原制品不改写；当前连接判断以新报告为准。
 
 核验日期：2026-09-07 06:39 至 06:51 CST，07:07 追加同配置复查。此报告补充[四模型交接快照](./2026-09-07-06-12-00-four-model-handoff.md)中 Luna 的渠道状态。旧六次 baseline 503、旧 ZIP、v61/A1 和历史 method/judge 不覆盖。此次只有接入探针，没有新 method cell 或 judge cell，不进入效果统计。正文引用键对应文末审计附录。[clm-scope]
@@ -42,11 +44,11 @@ Sonnet/Qwen/Muse 的既有验收没有配置变化，本次不重跑它们、不
 
 | 引用键 | source_id | 事实源 | 类型 | 关键锚点与用途 |
 |---|---|---|---|---|
-| [src-route] | luna_routes | [luna-route-diagnostics.zip](./evidence/luna_route_20260907/luna-route-diagnostics.zip) | json/body/log | `baseline/{probe.json,artifacts/record.json,call_metadata/wire/}`、`checks/{plain-api,plain-api-recheck,native-same-plain,runtime-tool}/` |
-| [src-hash] | luna_manifest | [manifest.json](./evidence/luna_route_20260907/manifest.json) | json | 35 个成员，原始/脱敏 SHA-256、privacy policy；内嵌原 run hash 不重签 |
-| [src-privacy] | luna_privacy | [privacy-scan.json](./evidence/luna_route_20260907/privacy-scan.json) | json | 独立扫描 35 个成员，敏感值匹配 0；JSON/JSONL 可解析 |
-| [src-final-gate] | luna_final_recheck | [final-gate-recheck.json](./evidence/luna_route_20260907/final-gate-recheck.json) | json | 07:07 单请求的原始 request/response 文本、wire 时间、源码/profile、源文件 hash；当前及历史配置敏感值扫描 0 |
-| [src-scripts] | probes_and_audit | [ZIP](./evidence/luna_route_20260907/luna-route-diagnostics.zip) | source | `scripts/` 中的 baseline、普通生成、原生 HTTP、runtime 探针与修正后的离线审计器 |
+| [src-route] | luna_routes | 本地 `evidence/luna_route_20260907/luna-route-diagnostics.zip`（luna-route-diagnostics.zip） | json/body/log | `baseline/{probe.json,artifacts/record.json,call_metadata/wire/}`、`checks/{plain-api,plain-api-recheck,native-same-plain,runtime-tool}/` |
+| [src-hash] | luna_manifest | 本地 `evidence/luna_route_20260907/manifest.json`（manifest.json） | json | 35 个成员，原始/脱敏 SHA-256、privacy policy；内嵌原 run hash 不重签 |
+| [src-privacy] | luna_privacy | 本地 `evidence/luna_route_20260907/privacy-scan.json`（privacy-scan.json） | json | 独立扫描 35 个成员，敏感值匹配 0；JSON/JSONL 可解析 |
+| [src-final-gate] | luna_final_recheck | 本地 `evidence/luna_route_20260907/final-gate-recheck.json`（final-gate-recheck.json） | json | 07:07 单请求的原始 request/response 文本、wire 时间、源码/profile、源文件 hash；当前及历史配置敏感值扫描 0 |
+| [src-scripts] | probes_and_audit | 本地 `evidence/luna_route_20260907/luna-route-diagnostics.zip`（ZIP） | source | `scripts/` 中的 baseline、普通生成、原生 HTTP、runtime 探针与修正后的离线审计器 |
 | [src-prior] | prior_handoff | [交接报告](./2026-09-07-06-12-00-four-model-handoff.md) | md/zip | 四款完整配置、此前失败、历史 Luna method 复用与其他三款验收 |
 
 ### A.3 Claim-evidence map
@@ -62,8 +64,6 @@ Sonnet/Qwen/Muse 的既有验收没有配置变化，本次不重跑它们、不
 
 [cmd-route] 仓库根离线执行，不调用 provider：
 
-```bash
-venv/bin/python project_1_llm_state_machine_modeling/paper_stm_issue_discover/reports/model_readiness_20260906/verify_luna_route_evidence.py
-```
+历史逐条复验须先取得对应的本地原件及校验器；通用校验与新运行操作见[复现附录](./2026-09-07-11-55-00-reproduction.md)。
 
 该命令核对成员 hash、实际 wire cap/stream、baseline record 与原始 SSE usage/finish、四个 503、同 payload hash，以及 runtime 的 provider 错误归属和正常关闭；另核验 07:07 JSON 的请求一致性、profile、预算、原始错误与隐私扫描。原始五请求在脱敏 ZIP，追加请求在独立 JSON，敏感配置不入库。

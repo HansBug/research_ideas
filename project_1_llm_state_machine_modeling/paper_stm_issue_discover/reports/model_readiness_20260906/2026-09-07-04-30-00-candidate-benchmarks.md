@@ -1,5 +1,7 @@
 # E1 全候选公开 benchmark 与任务选型
 
+2026-09-07 交付边界更新：本文所引原始记录、ZIP/JSON 和历史专用校验器仅本地留存，不随 Git 提供；数字与来源链接保留，逐条历史重放须另行取得原件。通用操作见[复现附录](./2026-09-07-11-55-00-reproduction.md)。
+
 核验日期：2026-09-07。AA 数据冻结于 2026-09-06 约 23:30 CST，采用 **Intelligence Index v4.2 / AA-LCR v1.1**；这是公开能力背景，与 E1 接入 smoke、Paper1 正式效果实验分别记录。正文 `[src-*]` / `[clm-*]` 指向文末证据链。[src-aa]
 
 ## 1. 范围与选型
@@ -12,7 +14,7 @@
 
 ## 2. 独立评测矩阵
 
-所有数值由 [AA 原始 HTML/RSC 快照](./evidence/benchmarks_20260906.zip)中的精确 slug 提取，每个数字链接到对应公开模型页；完整精度、effort 元数据、快照来源和哈希保存在 [机器表](./evidence/benchmarks_20260906.json)。发布者/评测者为 **Artificial Analysis，独立评测**。页面标签没有提供不可变的 API revision/权重 commit，不能把 AA 型号与本地 checkpoint 视为已独立认证的同一 revision。[src-aa] [clm-aa]
+所有数值从本地保留的 AA 原始 HTML/RSC 快照按精确 slug 提取，每个数字链接到对应公开模型页；完整精度、effort 元数据、快照来源和哈希另存于本地机器表。本文的完整矩阵随 Git 提供，原快照与机器表须另行取得。发布者/评测者为 **Artificial Analysis，独立评测**。页面标签没有提供不可变的 API revision/权重 commit，不能把 AA 型号与本地 checkpoint 视为已独立认证的同一 revision。[src-aa] [clm-aa]
 
 除 Omni 外本表为百分制，越高越好；Omni 是 [-100,100] 净分，越高越好，保留四位小数。`未取得可核验结果` 表示本次快照缺测，不能记 0，也不能用相邻型号补齐。AA 的 GPQA 和 IFBench 在该快照中是独立列，**不属于 v4.2 Index 的组成项**。[src-methodology]
 
@@ -178,11 +180,11 @@ Index 为 AA v4.2 发布分数；Terminal-Bench 是 **v2.1**、独立 harness �
 
 | 编号 / 引用键 | source_id | 事实源 | 类型 | 用途 | 关键锚点 |
 |---|---|---|---|---|---|
-| [src-aa] | aa_snapshot | [ZIP](./evidence/benchmarks_20260906.zip)、[机器表](./evidence/benchmarks_20260906.json) | zip/json | 全候选独立分数 | `aa-qwen38.html` RSC model slug；`models[*]` 完整数值；逐 member hash |
-| [src-methodology] | aa_methodology | [ZIP](./evidence/benchmarks_20260906.zip) | zip | 版本、单位、采样、harness | `aa-methodology.html` Index v4.2 / LCR v1.1 / Sampling / GPQA / IFBench / HLE / SciCode；`aa-lcr.html` |
-| [src-omni] | aa_omniscience | [ZIP](./evidence/benchmarks_20260906.zip) | zip | 净分和分母限制 | `aa-omniscience.html` Index 与 hallucinationRate 定义 |
-| [src-vendor] | vendor_cards | [已有来源 ZIP](./evidence/sources.zip)、[manifest](./evidence/manifest.json) | zip/json | 作者矩阵和脚注 | `qwen38_27b_card.raw`、`qwen36_card.raw`、`muse30_card.raw`、`gemma4_31_card.raw`、`nemotron35_card.raw`、`glm47_flash_card.raw`、`glm53_flash_card.raw`、`sonnet5_system_pdf.*`、`*_benchmark_png.raw`、`gemini35_card.*`、`gemini38_product.*` |
-| [src-config] | accepted_profiles | [stream 验收](./2026-09-07-03-36-18-stream-model-max-acceptance.md)、[stream manifest](./evidence/stream_20260907/manifest.json) | md/json | 当前档位与公开档位区分 | `probe.json` profile 指纹、wire thinking/采样、server 默认模板 |
+| [src-aa] | aa_snapshot | 本地 `evidence/benchmarks_20260906.zip`（ZIP）、本地 `evidence/benchmarks_20260906.json`（机器表） | zip/json | 全候选独立分数 | `aa-qwen38.html` RSC model slug；`models[*]` 完整数值；逐 member hash |
+| [src-methodology] | aa_methodology | 本地 `evidence/benchmarks_20260906.zip`（ZIP） | zip | 版本、单位、采样、harness | `aa-methodology.html` Index v4.2 / LCR v1.1 / Sampling / GPQA / IFBench / HLE / SciCode；`aa-lcr.html` |
+| [src-omni] | aa_omniscience | 本地 `evidence/benchmarks_20260906.zip`（ZIP） | zip | 净分和分母限制 | `aa-omniscience.html` Index 与 hallucinationRate 定义 |
+| [src-vendor] | vendor_cards | 本地 `evidence/sources.zip`（已有来源 ZIP）、本地 `evidence/manifest.json`（manifest） | zip/json | 作者矩阵和脚注 | `qwen38_27b_card.raw`、`qwen36_card.raw`、`muse30_card.raw`、`gemma4_31_card.raw`、`nemotron35_card.raw`、`glm47_flash_card.raw`、`glm53_flash_card.raw`、`sonnet5_system_pdf.*`、`*_benchmark_png.raw`、`gemini35_card.*`、`gemini38_product.*` |
+| [src-config] | accepted_profiles | [stream 验收](./2026-09-07-03-36-18-stream-model-max-acceptance.md)、本地 `evidence/stream_20260907/manifest.json`（stream manifest） | md/json | 当前档位与公开档位区分 | `probe.json` profile 指纹、wire thinking/采样、server 默认模板 |
 | [src-luna-wire] | luna_inference_paths | [Luna 新连接 wire 核验](./2026-09-07-11-10-00-luna-connection-recovery.md)、[共用 adapter](../../../../utils/agent/runtime.py) | md/source | Luna 两入口参数差异的更正 | ZIP 中 baseline/request 无 reasoning，runtime/method request 为 effort none；`_resolve_inference_options` |
 
 ### A.3 Claim-evidence map
@@ -200,14 +202,10 @@ Index 为 AA v4.2 发布分数；Terminal-Bench 是 **v2.1**、独立 harness �
 
 ### A.4 复验命令
 
-[cmd-bench] 重解析归档 HTML，与原调查 `aa-models.json` 和 committed JSON 全精度对拍，再逐字检查三个生成矩阵；离线运行，不调用 provider：
+[cmd-bench] 取得本地原件后，重解析归档 HTML，与原调查 `aa-models.json` 和本地派生 JSON 全精度对拍，再逐字检查三个 Markdown 矩阵；离线运行，不调用 provider。公开页面按本报告的精确 slug、effort、核验时间和方法版本复核，后续网页分数变化不能回填本快照：
 
-```bash
-python project_1_llm_state_machine_modeling/paper_stm_issue_discover/reports/model_readiness_20260906/verify_benchmark_evidence.py
-```
+历史逐条复验须先取得对应的本地原件及校验器；通用校验与新运行操作见[复现附录](./2026-09-07-11-55-00-reproduction.md)。
 
 [cmd-vendor] 验证原始来源归档；作者表需按 member 中的精确型号列和脚注人工复核，不能用“数字字符串存在”代替判断：
 
-```bash
-python project_1_llm_state_machine_modeling/paper_stm_issue_discover/reports/model_readiness_20260906/verify_evidence.py
-```
+历史逐条复验须先取得对应的本地原件及校验器；通用校验与新运行操作见[复现附录](./2026-09-07-11-55-00-reproduction.md)。

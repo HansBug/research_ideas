@@ -10,20 +10,17 @@
 
 ## 证据入口
 
-- [Luna 新连接、Responses 错误修复与交接](./2026-09-07-11-10-00-luna-connection-recovery.md)：仅连接两字段变化，最终 stream method 通过，128K wire cap、完整阶段/usage、SDK 漏报修复及旧失败并存；[160 成员 manifest](./evidence/luna_recovery_20260907/manifest.json)与[离线核验](./verify_luna_recovery_evidence.py)。Luna baseline 省略 reasoning、method 显式 none，E2 需冻结两臂设置。
-- [Luna 旧路由复核](./2026-09-07-06-55-00-luna-route-recheck.md)：06:39 baseline 单次成功及后续 503，作为旧连接历史保留；[离线核验](./verify_luna_route_evidence.py)检查同 payload、wire 上限、provider 错误与终态，不代表新连接现状。
-- [四模型配置与交接证据](./2026-09-07-06-12-00-four-model-handoff.md)：最终 Muse 原生参数/字段顺序修复、九格逐阶段核对、四款 baseline 覆盖、Luna 渠道失败、Sonnet usage 更正、环境锁与启动/tunnel 步骤。
-- [handoff manifest](./evidence/handoff_20260907/manifest.json) 与 [verify_handoff_evidence.py](./verify_handoff_evidence.py)：补充归档及离线复算；旧 stream 包保持冻结。
+- [四模型总报告](./2026-09-07-06-12-00-four-model-handoff.md)：最终配置、baseline/ours 的样本与数字、容量/16-worker、主要故障与修复、正常降级和 E2 协议边界。
+- [复现附录](./2026-09-07-11-55-00-reproduction.md)：独立 conda、精确依赖与 revision、Qwen YaRN/Muse serving、共享缓存与 tunnel、真实入口和核心校验；历史原件另行提供的边界。
+- [Luna 新连接、Responses 错误修复与交接](./2026-09-07-11-10-00-luna-connection-recovery.md)：仅连接两字段变化，128K wire cap、完整阶段/usage、漏报修复及旧失败并存。Luna baseline 省略 reasoning、method 显式 none，E2 需冻结两臂设置。
+- [Luna 旧路由复核](./2026-09-07-06-55-00-luna-route-recheck.md)：06:39 baseline 单次成功及后续 503，保留同 payload、wire 上限、provider 错误与终态的历史事实。
 - [全候选公开 benchmark 与任务选型](./2026-09-07-04-30-00-candidate-benchmarks.md)：17 个已调查模型身份、20 个公开档位，AA v4.2 / LCR v1.1 与作者自报分表、结构化缺测、当前 low/default 与公开 max/xhigh 的差异。
 - [protocol.md](./protocol.md)：事前协议、context 0.9 边界、隐私和验收条件。
 - [09-07 最大输出与 stream 大格验收](./2026-09-07-03-36-18-stream-model-max-acceptance.md)：15 格、独立环境迁移负载、三层同请求、预算修复与商业替代建议。
-- [evidence/stream_20260907/manifest.json](./evidence/stream_20260907/manifest.json) 与 [verify_stream_evidence.py](./verify_stream_evidence.py)：新旧 stream/诊断制品的脱敏归档、逐调用 wire、阶段回执及离线核验。
 - [商用模型](./2026-09-06-11-53-00-commercial-models.md)：发布时间、价格、context/output、公开 benchmark 和可用性。
 - [开放模型](./2026-09-06-11-53-00-open-models.md)：100B 以下候选、官方启动方式、许可证、benchmark 和选型。
 - [近期 LLM4SE](./2026-09-06-11-53-00-llm4se-recent.md)：2026-03-06 至 2026-09-06 的 arXiv 样本和模型使用统计。
 - [部署与负载](./2026-09-06-11-53-00-serving-evidence.md)：tunnel、并发、长上下文和 thinking 结果、失败记录与交接缺口。
-- [evidence/manifest.json](./evidence/manifest.json)：脱敏归档的逐 member SHA-256 与 redaction 策略。
-- [verify_evidence.py](./verify_evidence.py)：离线验证哈希，并从原始逐请求记录复算全部负载结果；不会调用 provider。
 - [../../../talks/2026-09-05-导师-paper1多模型对照与谓词降幻觉.md](../../../talks/2026-09-05-导师-paper1多模型对照与谓词降幻觉.md)：导师讨论正式纪要。
 
 ## 选型原则
@@ -34,4 +31,6 @@ Muse 的推荐接入限定为 function/tool 路径；最终 required-tool servin
 
 ## 证据等级
 
-容量、API 和 workflow 分开判断：容量通过只表示对应负载成功；`completed_with_diagnostics` 不是无缺口完成；`failed_with_receipt` 不是成功；`untested` 不能写成已部署。所有 smoke 的 `formal_result_eligible=false`。原始 usage、stage receipts 和失败保留，公开包对 secret、端点、节点、用户名和私人路径脱敏；内嵌原始 run hash 不会因脱敏而伪造重签。`protocol.md` 是事前协议与后续用户约束记录，秒级命名报告分别保留对应配置的分析快照。
+容量、API 和 workflow 分开判断：容量通过只表示对应负载成功；`completed_with_diagnostics` 不是无缺口完成；`failed_with_receipt` 不是成功；`untested` 不能写成已部署。所有 smoke 的 `formal_result_eligible=false`。
+
+2026-09-07 用户调整交付边界：**原始 usage、stage receipts、失败、网页快照、审计 ZIP/JSON 及历史辅助脚本仅本地保留，不随 Git 提供**。关键数字和可点击公开来源完整落在 Markdown；生产 adapter 与必要回归继续跟踪。需要逐条重放历史结果时，须另行取得相应原件/manifest/当时校验器；fresh clone 不具备这些审计原件。导出 hash 与原始 hash 分开，不伪造重签；取消跟踪也未清除旧提交中的大 blob。详情见复现附录 §1，动态收尾状态仍以 #204/#179 为准。

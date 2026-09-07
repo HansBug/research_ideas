@@ -1,5 +1,7 @@
 # 远程部署与负载证据
 
+2026-09-07 交付边界更新：本文所引原始记录、ZIP/JSON 和历史专用校验器仅本地留存，不随 Git 提供；数字与来源链接保留，逐条历史重放须另行取得原件。通用操作见[复现附录](./2026-09-07-11-55-00-reproduction.md)。
+
 核验日期：2026-09-06。本轮仅在远程 H200 节点执行权重下载、环境安装和推理服务；本机运行 HTTP/profile 客户端并通过 SSH tunnel 访问 loopback。使用 GPU 0-3，保留 GPU 4-7 及既有工作区。结束盘点的远程共享存储约 5.2 TiB 可用、远程根盘约 667 GiB、本机约 81 GiB；本机没有下载模型权重。[clm-serving-environment]
 
 ## 已验证配置
@@ -154,11 +156,11 @@ profiles:
 
 | 编号 / 引用键 | source_id | 事实源 | 类型 | 用途 | 关键锚点 |
 |---|---|---|---|---|---|
-| [src-load-client] | load_client | [load_client.py](./load_client.py)、[protocol.md](./protocol.md) | source-code/md | 输入、输出与资格规则 | `SCHEMA`、`request_one`、`eligible`、Measurements |
-| [src-load] | load | [probes.zip](./evidence/probes.zip)、[load_summary.json](./evidence/load_summary.json) | zip/json | 容量、延迟、成功与失败 | `results/*/requests.jsonl`，filter `warmup=false`，按 concurrency 分组；Qwen `yarn900k/yarn909k/yarn-long16k-thinking`，Gemma `context90/long16k-thinking-final`，Muse `high-tool-*`；旧失败 member 全部保留 |
-| [src-workflows] | workflows | [probes.zip](./evidence/probes.zip) | zip | 当前接口和工作流状态 | `probes/*/*.json`、`workflows/*/{baseline*,method*}/probe.json`、`artifacts/*/summary.json`、stage `result.json` / `audit.jsonl` |
-| [src-infrastructure] | infrastructure | [probes.zip](./evidence/probes.zip) | zip | 版本、revision、启动和失败 | `infrastructure.json`、`servers/*-final-server.json`、`remote_logs/*`；下载 JSON 的 revision；startup 日志 |
-| [src-serving-recipes] | recipes | [sources.zip](./evidence/sources.zip) | zip | 官方配方与实际偏差 | `qwen38_27b_card.raw`、`qwen36_card.raw`、`gemma4_31_card.raw`、`gemma4_recipe_actual.raw`、`muse30_card.raw`、`muse30_recipe_actual.raw` |
+| [src-load-client] | load_client | [复现附录（原 load_client.py）](./2026-09-07-11-55-00-reproduction.md)、[protocol.md](./protocol.md) | source-code/md | 输入、输出与资格规则 | `SCHEMA`、`request_one`、`eligible`、Measurements |
+| [src-load] | load | 本地 `evidence/probes.zip`（probes.zip）、本地 `evidence/load_summary.json`（load_summary.json） | zip/json | 容量、延迟、成功与失败 | `results/*/requests.jsonl`，filter `warmup=false`，按 concurrency 分组；Qwen `yarn900k/yarn909k/yarn-long16k-thinking`，Gemma `context90/long16k-thinking-final`，Muse `high-tool-*`；旧失败 member 全部保留 |
+| [src-workflows] | workflows | 本地 `evidence/probes.zip`（probes.zip） | zip | 当前接口和工作流状态 | `probes/*/*.json`、`workflows/*/{baseline*,method*}/probe.json`、`artifacts/*/summary.json`、stage `result.json` / `audit.jsonl` |
+| [src-infrastructure] | infrastructure | 本地 `evidence/probes.zip`（probes.zip） | zip | 版本、revision、启动和失败 | `infrastructure.json`、`servers/*-final-server.json`、`remote_logs/*`；下载 JSON 的 revision；startup 日志 |
+| [src-serving-recipes] | recipes | 本地 `evidence/sources.zip`（sources.zip） | zip | 官方配方与实际偏差 | `qwen38_27b_card.raw`、`qwen36_card.raw`、`gemma4_31_card.raw`、`gemma4_recipe_actual.raw`、`muse30_card.raw`、`muse30_recipe_actual.raw` |
 
 ### A.3 Claim-evidence map
 
@@ -175,9 +177,7 @@ profiles:
 
 [cmd-serving-offline] 校验脱敏后所有 archive member 哈希，并从逐请求记录重算全部 sweep（含失败）。嵌入的原始 run hash 对应脱敏前字节，不能用它要求脱敏文件 byte-identical；这些导出仅为诊断证据，`formal_result_eligible=false`。
 
-```bash
-python project_1_llm_state_machine_modeling/paper_stm_issue_discover/reports/model_readiness_20260906/verify_evidence.py
-```
+历史逐条复验须先取得对应的本地原件及校验器；通用校验与新运行操作见[复现附录](./2026-09-07-11-55-00-reproduction.md)。
 
 [cmd-serving-workflow] `probes.zip` 的 `clients/run_workflow_probe.py` 记录命令构造；workflow 终态按 `per_pair/0001/status` 和 `metrics/method/eligible_method_cells` 核验。需重新调用时从干净、具名分支启动，以下是原 probe 的 method 命令形状；不得用于全量实验。
 

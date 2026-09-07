@@ -1,5 +1,7 @@
 # Luna 新连接、Responses 错误修复与四模型接入交接
 
+2026-09-07 交付边界更新：本文所引原始记录、ZIP/JSON 和历史专用校验器仅本地留存，不随 Git 提供；数字与来源链接保留，逐条历史重放须另行取得原件。通用操作见[复现附录](./2026-09-07-11-55-00-reproduction.md)。
+
 核验日期：2026-09-07；最终 method 于 11:04:32 至 11:09:59 CST 运行。正文引用键对应文末审计附录。本报告补充[四模型交接证据](./2026-09-07-06-12-00-four-model-handoff.md)，更新 Luna 当前连接的接入事实；[旧渠道 503](./2026-09-07-06-55-00-luna-route-recheck.md)、历史 method/baseline、v61/A1 和所有原始失败均保留。本次全部记录都是 E1 兼容性 smoke，`formal_result_eligible=false`，没有 judge 调用。[clm-scope]
 
 ## 1. 新连接与验收结论
@@ -70,7 +72,7 @@ E2 仍需冻结精确模型/profile/revision、实际推理与采样、配对预
 
 ### A.2 上游事实源清单
 
-新包为 [luna-recovery-diagnostics.zip](./evidence/luna_recovery_20260907/luna-recovery-diagnostics.zip)，共 160 个成员；[manifest](./evidence/luna_recovery_20260907/manifest.json)同时保留原始和脱敏 SHA-256，内嵌原始 run hash 不重签。[verification.json](./evidence/luna_recovery_20260907/verification.json)由[离线核验器](./verify_luna_recovery_evidence.py)重新解析生成；[独立隐私扫描](./evidence/luna_recovery_20260907/privacy-scan.json)检查当前/旧配置、账号标识、私有 SSH 信息与文档，敏感匹配为 0。仅允许具体探针子目录、公开配置比较与复现脚本，明确排除私有连接根目录、完整配置及备份。[clm-privacy]
+新包为 本地 `evidence/luna_recovery_20260907/luna-recovery-diagnostics.zip`（luna-recovery-diagnostics.zip），共 160 个成员；本地 `evidence/luna_recovery_20260907/manifest.json`（manifest）同时保留原始和脱敏 SHA-256，内嵌原始 run hash 不重签。本地 `evidence/luna_recovery_20260907/verification.json`（verification.json）由[复现附录（原 verify_luna_recovery_evidence.py）](./2026-09-07-11-55-00-reproduction.md)重新解析生成；本地 `evidence/luna_recovery_20260907/privacy-scan.json`（独立隐私扫描）检查当前/旧配置、账号标识、私有 SSH 信息与文档，敏感匹配为 0。仅允许具体探针子目录、公开配置比较与复现脚本，明确排除私有连接根目录、完整配置及备份。[clm-privacy]
 
 | 引用键 | source_id | 事实源 | 类型 | 关键锚点与用途 |
 |---|---|---|---|---|
@@ -100,23 +102,17 @@ E2 仍需冻结精确模型/profile/revision、实际推理与采样、配对预
 
 [cmd-recovery] 从仓库根离线运行；不会调用 provider：
 
-```bash
-venv/bin/python project_1_llm_state_machine_modeling/paper_stm_issue_discover/reports/model_readiness_20260906/verify_luna_recovery_evidence.py
-venv/bin/python -m utils.llm validate
-```
+历史逐条复验须先取得对应的本地原件及校验器；通用校验与新运行操作见[复现附录](./2026-09-07-11-55-00-reproduction.md)。
 
 [cmd-regression] 共用 adapter 及冻结边界：
 
 ```bash
 venv/bin/python -m pytest tests/utils -q
-git diff 2971a8ada -- project_1_llm_state_machine_modeling/paper_stm_issue_discover/method project_1_llm_state_machine_modeling/paper_stm_issue_discover/baseline_arm pyfcstm
+git diff 2971a8ada 0c49863f3 -- project_1_llm_state_machine_modeling/paper_stm_issue_discover/method project_1_llm_state_machine_modeling/paper_stm_issue_discover/baseline_arm pyfcstm
 ```
 
 [cmd-handoff] 未变化的三款证据及全部候选矩阵：
 
-```bash
-venv/bin/python project_1_llm_state_machine_modeling/paper_stm_issue_discover/reports/model_readiness_20260906/verify_handoff_evidence.py
-venv/bin/python project_1_llm_state_machine_modeling/paper_stm_issue_discover/reports/model_readiness_20260906/verify_benchmark_evidence.py
-```
+历史逐条复验须先取得对应的本地原件及校验器；通用校验与新运行操作见[复现附录](./2026-09-07-11-55-00-reproduction.md)。
 
 本轮真实命令的构造、observer 及 wire 脚本保存在新 ZIP 的 `scripts/`；私人路径以占位符导出，复现时映射到自己的仓库和新输出目录。运行仍须干净已推送 commit、明确 profile 与 `--allow-live --pair-id 0001 --rounds 1 --workers 1 --transport-retries 0`，不添加 `--no-stream` 或小额 output override；不能把这段复现说明当作新的全量运行授权。

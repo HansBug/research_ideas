@@ -1,5 +1,7 @@
 # 商用模型候选
 
+2026-09-07 交付边界更新：本文所引原始记录、ZIP/JSON 和历史专用校验器仅本地留存，不随 Git 提供；数字与来源链接保留，逐条历史重放须另行取得原件。通用操作见[复现附录](./2026-09-07-11-55-00-reproduction.md)。
+
 核验日期：2026-09-06。价格单位均为 USD / 1M tokens，按本轮访问到的官方页面记录；价格和 lifecycle 变化时，E2 run record 必须保存调用日期和精确 model ID。公开 benchmark 是能力背景，不是 Paper1 状态机缺陷发现结果。
 
 ## 比较表 [clm-commercial-table]
@@ -61,10 +63,10 @@ Luna 的 profile、baseline 和 method smoke 均通过；Sonnet 5 / Haiku 4.5 �
 
 | 编号 / 引用键 | source_id | 事实源 | 类型 | 用途 | 关键锚点 |
 |---|---|---|---|---|---|
-| [src-commercial-specs] | commercial_specs | [sources.zip](./evidence/sources.zip) | zip | 日期、规格、模型身份 | `luna_announcement.*`、`luna_specs.*`、`gemini35_announcement.*`、`gemini35_api.*`、`gemini38_card.*`、`sonnet5_specs.*`、`haiku45_specs.*`、`claude_*_news.*`；receipt 的 URL / retrieved_at / sha256 |
-| [src-commercial-prices] | commercial_prices | [sources.zip](./evidence/sources.zip) | zip | 价格与分档 | `openai_pricing.*`、`gemini_pricing.*`、`claude_pricing.*`、`gemini38_product.*`；精确型号的 pricing 行 |
-| [src-commercial-bench] | commercial_bench | [sources.zip](./evidence/sources.zip) | zip | benchmark、版本与 harness | `gemini35_card.*`、`gemini35_model.*`、`gemini38_product.*`、`sonnet5_system_pdf.*`、`sonnet5_benchmark_png.raw`、`haiku45_benchmark_png.raw`、`claude_haiku_news.*` |
-| [src-commercial-probes] | commercial_probes | [probes.zip](./evidence/probes.zip) | zip | 可调用性和 method 缺口 | `probes/{gpt-5.6-luna,claude-*,e1-gemini-*}/*.json`、`workflows/*/*/artifacts/*/summary.json`、`gateway_routes.json` |
+| [src-commercial-specs] | commercial_specs | 本地 `evidence/sources.zip`（sources.zip） | zip | 日期、规格、模型身份 | `luna_announcement.*`、`luna_specs.*`、`gemini35_announcement.*`、`gemini35_api.*`、`gemini38_card.*`、`sonnet5_specs.*`、`haiku45_specs.*`、`claude_*_news.*`；receipt 的 URL / retrieved_at / sha256 |
+| [src-commercial-prices] | commercial_prices | 本地 `evidence/sources.zip`（sources.zip） | zip | 价格与分档 | `openai_pricing.*`、`gemini_pricing.*`、`claude_pricing.*`、`gemini38_product.*`；精确型号的 pricing 行 |
+| [src-commercial-bench] | commercial_bench | 本地 `evidence/sources.zip`（sources.zip） | zip | benchmark、版本与 harness | `gemini35_card.*`、`gemini35_model.*`、`gemini38_product.*`、`sonnet5_system_pdf.*`、`sonnet5_benchmark_png.raw`、`haiku45_benchmark_png.raw`、`claude_haiku_news.*` |
+| [src-commercial-probes] | commercial_probes | 本地 `evidence/probes.zip`（probes.zip） | zip | 可调用性和 method 缺口 | `probes/{gpt-5.6-luna,claude-*,e1-gemini-*}/*.json`、`workflows/*/*/artifacts/*/summary.json`、`gateway_routes.json` |
 | [src-advisor] | advisor | [正式导师纪要](../../../talks/2026-09-05-导师-paper1多模型对照与谓词降幻觉.md) | md | 同 backbone 配对与研究边界 | 导师意见、用户决策、未验证推测分栏 |
 
 ### A.3 Claim-evidence map
@@ -79,25 +81,8 @@ Luna 的 profile、baseline 和 method smoke 均通过；Sonnet 5 / Haiku 4.5 �
 
 [cmd-commercial-sources] 校验来源归档哈希后，按上表 member 打开原文，复核日期、价格行、benchmark 图片列及脚注。在线来源可能变化，因此以本次 receipt 时间和原始响应为本报告依据。
 
-```bash
-python project_1_llm_state_machine_modeling/paper_stm_issue_discover/reports/model_readiness_20260906/verify_evidence.py
-```
+历史逐条复验须先取得对应的本地原件及校验器；通用校验与新运行操作见[复现附录](./2026-09-07-11-55-00-reproduction.md)。
 
 [cmd-commercial-probes] 在仓库根目录列出实测路径的完成/失败状态；method 需读 pair 状态，不能只看 CLI exit code。
 
-```bash
-python - <<'PY'
-import json, zipfile
-from pathlib import Path
-p = Path('project_1_llm_state_machine_modeling/paper_stm_issue_discover/reports/model_readiness_20260906/evidence/probes.zip')
-with zipfile.ZipFile(p) as z:
-    for name in sorted(z.namelist()):
-        if name.startswith('probes/') and name.endswith('.json'):
-            r = json.loads(z.read(name))
-            if 'status' in r:
-                print(name, r['status'], r.get('schema_valid'), r.get('usage_observed'))
-        if name.startswith('workflows/') and name.endswith('/summary.json'):
-            r = json.loads(z.read(name))
-            print(name, {k: v['status'] for k, v in r.get('per_pair', {}).items()})
-PY
-```
+历史逐条复验须先取得对应的本地原件及校验器；通用校验与新运行操作见[复现附录](./2026-09-07-11-55-00-reproduction.md)。
