@@ -207,6 +207,18 @@ def test_empty_issue_list_is_a_valid_answer(wired, tmp_path: Path) -> None:
     assert record["issue_count"] == 0
 
 
+def test_provider_timeout_is_forwarded_without_changing_budget(wired, tmp_path: Path) -> None:
+    model = wired([_ok_response(0)])
+    record = runner.run_cell(case="0000", profile="fake", report_root=_corpus_stub(tmp_path), timeout=300.0)
+    assert model.create_kwargs["model_options"] == {"timeout": 300.0}
+    assert record["provider_timeout_seconds"] == 300.0
+    assert record["max_output_tokens_override"] is None
+    assert record["profile_max_output_tokens"] == 65536
+    for invalid in (0, -1, float("inf"), float("nan")):
+        with pytest.raises(ValueError, match="timeout"):
+            runner.run_cell(case="0000", profile="fake", timeout=invalid)
+
+
 # --------------------------------------------------------------------------- 降级路径
 
 

@@ -88,6 +88,62 @@ def test_failure_receipt_keeps_disabled_condition(tmp_path):
     assert not cell["eligible"]
 
 
+def test_independent_round_keeps_identity_and_resumes_without_earlier_rounds(tmp_path, monkeypatch):
+    args = dict(report_root=REPORT, output_dir=tmp_path, profile="fixture", rounds=1,
+                round_index=2, workers=1, pair_ids=["0004"], run_id="b" * 32)
+    summary = runner.run_experiment(**args)
+    root = Path(summary["artifact_root"])
+    assert summary["round_index"] == 2
+    cell_path = root / "method/0004/round-2.json"
+    original = cell_path.read_bytes()
+    assert json.loads(original)["round"] == 2
+    assert not (root / "method/0004/round-1.json").exists()
+    assert json.loads((root / "run_manifest.json").read_text())["round_index"] == 2
+
+    def forbidden(**kwargs):
+        pytest.fail("compatible completed round must not run again")
+
+    monkeypatch.setattr(runner, "_method_cell", forbidden)
+    resumed = runner.run_experiment(**args, resume=True)
+    assert resumed["method_cell_count"] == 1
+    assert cell_path.read_bytes() == original
+    with pytest.raises(RuntimeError, match="resume contract mismatch"):
+        runner.run_experiment(**{**args, "round_index": 3}, resume=True)
+    with pytest.raises(ValueError, match="explicit round"):
+        runner.run_experiment(**{**args, "rounds": 3})
+
+
+def test_explicit_round_failure_terminalizes_exact_requested_round(tmp_path):
+    identity = {
+        "run_id": "b" * 32, "run_contract_hash": "sha256:" + "c" * 64,
+        "ablation": "none", "round_index": 3,
+        "source_provenance": {"source_commit": "0" * 40, "source_branch": "fixture",
+                              "source_dirty": False, "reason": "Test identity.", "basis": "fixture"},
+    }
+    runner._terminalize_pair_failure(
+        pair_id="0004", rounds=1, output_root=tmp_path, run_identity=identity,
+        started_at="2026-09-07T00:00:00+00:00", error=RuntimeError("provider unavailable"),
+    )
+    files = list((tmp_path / "method/0004").glob("round-*.json"))
+    assert [p.name for p in files] == ["round-3.json"]
+    assert json.loads(files[0].read_text())["eligible"] is False
+
+
+@pytest.mark.parametrize("pairs", [None, list(runner.FROZEN_PAIR_IDS)[:len(runner.REPRESENTATIVE_DIAGNOSTIC_PAIR_IDS) + 1]])
+def test_non_luna_full_and_batched_live_require_review_gate(tmp_path, monkeypatch, pairs):
+    args = dict(report_root=REPORT, output_dir=tmp_path, profile="claude-sonnet-5",
+                rounds=1, round_index=2, pair_ids=pairs, allow_live=True)
+    with pytest.raises(RuntimeError, match="allow_full_live"):
+        runner.run_experiment(**args)
+
+    def reached_provenance():
+        raise LookupError("passed explicit live gates")
+
+    monkeypatch.setattr(runner, "_source_provenance", reached_provenance)
+    with pytest.raises(LookupError, match="passed explicit live gates"):
+        runner.run_experiment(**args, allow_full_live=True)
+
+
 def test_packaged_no_inspect_prompt_and_input_contract():
     from paper_stm_method.semantics.ablation import NoInspectInput, system_prompt_for
     from paper_stm_method.semantics.workflow import DISCOVERY_GROUNDING_SYSTEM_PROMPT

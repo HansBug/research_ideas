@@ -32,7 +32,7 @@ from pathlib import Path
 ARM = Path(__file__).resolve().parents[1]
 REPO_ROOT = Path(__file__).resolve().parents[4]
 PAPER = Path(__file__).resolve().parents[2]
-MAIN_ARM_SRC = PAPER / "pipeline" / "feedback_loop" / "src"
+MAIN_ARM_SRC = PAPER / "archive" / "legacy" / "feedback_loop" / "src"
 
 sys.path.insert(0, str(ARM / "src"))
 
@@ -72,7 +72,8 @@ def _predicate_names() -> frozenset[str]:
     line = [ln for ln in result.stdout.splitlines() if ln.startswith("NAMES=")][-1]
     names = frozenset(n for n in line.removeprefix("NAMES=").split(",") if n)
     assert len(names) >= 19, f"expected at least 19 predicates, got {len(names)}"
-    return names
+    current = json.loads((PAPER / "method/src/paper_stm_method/resources/predicate_registry.json").read_text())
+    return names | frozenset(row["name"] for family in current["families"] for row in family["predicates"])
 
 
 #: ⛔ 方向一（放水）：这些一出现就是把「该找什么」告诉了对照臂。

@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import re
 import sys
 import time
@@ -257,10 +258,13 @@ def run_cell(
     round_index: int | None = None,
     arm_label: str | None = None,
     effort: str | None = None,
+    timeout: float | None = None,
 ) -> dict[str, Any]:
     """跑一格，返回自包含的 record。⛔ 本函数不抛异常给调用方；失败也返回 record。"""
 
     started = _utc_now()
+    if timeout is not None and (not math.isfinite(timeout) or timeout <= 0):
+        raise ValueError("timeout must be a positive finite number")
     start_ns = time.perf_counter_ns()
     inputs = load_pair(case, report_root=report_root)
     system, user = build_prompts(
@@ -279,7 +283,8 @@ def run_cell(
     # selection must not silently change the timeout behavior of a cell.
     effective_streaming = True if streaming is None else streaming
     model = create_chat_model(
-        config, streaming=effective_streaming, max_retries=0, effort=effort
+        config, streaming=effective_streaming, max_retries=0, effort=effort,
+        **({"model_options": {"timeout": timeout}} if timeout is not None else {}),
     )
 
     structured_options: dict[str, Any] = {"include_raw": True}
@@ -423,6 +428,7 @@ def run_cell(
         "arm_label": arm_label,
         "profile": profile,
         "requested_effort": effort,
+        "provider_timeout_seconds": timeout,
         "adapter": adapter,
         "provider": provider,
         "streaming": effective_streaming,
@@ -492,6 +498,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--report-root", default=None)
     parser.add_argument("--llm-config", default=None)
     parser.add_argument("--transport-retries", type=int, default=4)
+    parser.add_argument("--timeout", type=float, default=None,
+                        help="Finite provider connect/read/write/pool timeout in seconds.")
     stream_mode = parser.add_mutually_exclusive_group()
     stream_mode.add_argument(
         "--stream",
@@ -524,6 +532,7 @@ def main(argv: list[str] | None = None) -> int:
         round_index=args.round,
         arm_label=args.arm_label,
         effort=args.effort,
+        timeout=args.timeout,
     )
     path = write_record(record, Path(args.output_dir))
     print(
