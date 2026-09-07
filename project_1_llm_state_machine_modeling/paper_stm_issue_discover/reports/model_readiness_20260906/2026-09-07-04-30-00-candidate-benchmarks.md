@@ -183,7 +183,7 @@ Index 为 AA v4.2 发布分数；Terminal-Bench 是 **v2.1**、独立 harness �
 | [src-omni] | aa_omniscience | [ZIP](./evidence/benchmarks_20260906.zip) | zip | 净分和分母限制 | `aa-omniscience.html` Index 与 hallucinationRate 定义 |
 | [src-vendor] | vendor_cards | [已有来源 ZIP](./evidence/sources.zip)、[manifest](./evidence/manifest.json) | zip/json | 作者矩阵和脚注 | `qwen38_27b_card.raw`、`qwen36_card.raw`、`muse30_card.raw`、`gemma4_31_card.raw`、`nemotron35_card.raw`、`glm47_flash_card.raw`、`glm53_flash_card.raw`、`sonnet5_system_pdf.*`、`*_benchmark_png.raw`、`gemini35_card.*`、`gemini38_product.*` |
 | [src-config] | accepted_profiles | [stream 验收](./2026-09-07-03-36-18-stream-model-max-acceptance.md)、[stream manifest](./evidence/stream_20260907/manifest.json) | md/json | 当前档位与公开档位区分 | `probe.json` profile 指纹、wire thinking/采样、server 默认模板 |
-| [src-luna-wire] | luna_inference_paths | [Luna 路由复核](./2026-09-07-06-55-00-luna-route-recheck.md)、[共用 adapter](../../../../utils/agent/runtime.py) | md/source | Luna 两入口参数差异的更正 | ZIP 中 baseline/request 无 reasoning，runtime-tool/request 为 effort none；`_resolve_inference_options` |
+| [src-luna-wire] | luna_inference_paths | [Luna 新连接 wire 核验](./2026-09-07-11-10-00-luna-connection-recovery.md)、[共用 adapter](../../../../utils/agent/runtime.py) | md/source | Luna 两入口参数差异的更正 | ZIP 中 baseline/request 无 reasoning，runtime/method request 为 effort none；`_resolve_inference_options` |
 
 ### A.3 Claim-evidence map
 

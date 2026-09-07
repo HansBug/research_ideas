@@ -1,5 +1,7 @@
 # Luna：baseline 单次成功与生成路由复核
 
+后续连接已更换，普通/structured/baseline 与完整 stream method 的验收见[11:10 新连接报告](./2026-09-07-11-10-00-luna-connection-recovery.md)。下文是旧路由 06:39 至 07:07 的历史事实，原制品不改写；当前连接判断以新报告为准。
+
 核验日期：2026-09-07 06:39 至 06:51 CST，07:07 追加同配置复查。此报告补充[四模型交接快照](./2026-09-07-06-12-00-four-model-handoff.md)中 Luna 的渠道状态。旧六次 baseline 503、旧 ZIP、v61/A1 和历史 method/judge 不覆盖。此次只有接入探针，没有新 method cell 或 judge cell，不进入效果统计。正文引用键对应文末审计附录。[clm-scope]
 
 ## 1. 新证据
