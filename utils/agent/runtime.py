@@ -23,7 +23,7 @@ from urllib.parse import quote, urlsplit
 from pydantic import BaseModel
 
 from utils.llm import LLMConfig, LLMRegistry, prompt_cache_policy
-from utils.llm.model_factory import GOOGLE_THINKING_LEVELS, default_stream_usage, model_kwargs, output_token_options
+from utils.llm.model_factory import GOOGLE_THINKING_LEVELS, default_stream_usage, guard_responses_stream_errors, model_kwargs, output_token_options
 
 try:
     from langchain.agents import create_agent
@@ -3402,6 +3402,8 @@ class AgentApp:
         kwargs = model_kwargs(config, model_options=model_options)
         try:
             model = ChatModel(**kwargs)
+            if adapter == "openai-responses":
+                guard_responses_stream_errors(model)
         except Exception as exc:
             raise AgentError("config_error", "model construction failed", details=_exception_details(exc)) from exc
         return cls(spec, config, model, profile=profile)

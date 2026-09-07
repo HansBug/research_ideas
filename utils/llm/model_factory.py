@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Mapping
+from functools import wraps
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -31,6 +32,38 @@ GOOGLE_THINKING_LEVELS = frozenset({"minimal", "low", "medium", "high"})
 
 class LLMModelFactoryError(ValueError):
     """Raised when a neutral LLM model cannot be constructed from config."""
+
+
+def guard_responses_stream_errors(model: Any) -> None:
+    """Surface nested Responses failures before LangChain discards the event."""
+
+    from openai import APIError
+
+    for client in (model.root_client, model.root_async_client):
+        if client is None:
+            continue
+        original = client._process_response_data
+        if getattr(original, "_checks_responses_failure", False):
+            continue
+
+        # Both SDK stream implementations share this decoder; requests and all
+        # nonfailure events continue through the pinned SDK without mutation.
+        @wraps(original)
+        def checked(*, data: Any, response: Any, _original: Any = original, **kwargs: Any) -> Any:
+            if isinstance(data, Mapping) and data.get("type") == "response.failed":
+                failed = data.get("response")
+                error = failed.get("error") if isinstance(failed, Mapping) else None
+                error = dict(error) if isinstance(error, Mapping) else {}
+                error.update(type="response.failed", status_code=response.status_code)
+                raise APIError(
+                    error.get("message") or "Responses generation failed",
+                    request=response.request,
+                    body=error,
+                )
+            return _original(data=data, response=response, **kwargs)
+
+        checked._checks_responses_failure = True
+        client._process_response_data = checked
 
 
 def _apply_effort(
@@ -185,7 +218,7 @@ def create_chat_model(
         raise LLMModelFactoryError(f"{package} is required") from exc
 
     try:
-        return ChatModel(
+        model = ChatModel(
             **model_kwargs(
                 config,
                 streaming=streaming,
@@ -195,6 +228,9 @@ def create_chat_model(
                 effort=effort,
             )
         )
+        if adapter == "openai-responses":
+            guard_responses_stream_errors(model)
+        return model
     except LLMModelFactoryError:
         raise
     except Exception as exc:
