@@ -157,7 +157,7 @@ Index 为 AA v4.2 发布分数；Terminal-Bench 是 **v2.1**、独立 harness �
 
 | 优先模型 | 本轮实际接入 | 可引用的公开行 | E2 冻结前必须明确的差异 |
 |---|---|---|---|
-| Luna | profile `gpt-5.6-luna`；不传 reasoning/采样 override，provider default | AA max | 未指定不等于 max 或 think-off；不能把 max 成绩写成当前默认档实测能力 |
+| Luna | profile `gpt-5.6-luna`；ordinary/baseline 未指定 reasoning；method 共用 adapter 显式发送 `reasoning.effort=none`；两者均未指定采样 [src-luna-wire] | AA max | 两入口推理参数不同，E2 须冻结；未指定不等于 max，method 的 none 也不是 max；不能将公开 max 成绩当当前验收档能力 |
 | Sonnet 5 | `claude-sonnet-5`；stream ToolStrategy；不传 thinking/effort/采样 override | AA adaptive/max | 需在 E2 明确实际 thinking 与 effort；不能静默切到 max 后复用旧验收身份 |
 | Qwen3.8-27B | `e1-qwen38-27b`；服务模板 `reasoning_effort=low`，完整输入、remaining_context | AA low 与 xhigh 各一行 | 当前 low 的 LCR/GPQA/HLE 为 **77.3/84.5/14.0**；xhigh 的 82.0/90.5/33.9 仅是该公开档位背景，不是当前 low 的能力证据 |
 | Muse Glimmer-30B | `e1-muse30b`；官方模板默认 high、function/tool、remaining_context | AA high；作者 high | 名称同 high 仍有服务/约束解码/采样/预算/harness 差异，须冻结部署版本 |
@@ -183,6 +183,7 @@ Index 为 AA v4.2 发布分数；Terminal-Bench 是 **v2.1**、独立 harness �
 | [src-omni] | aa_omniscience | [ZIP](./evidence/benchmarks_20260906.zip) | zip | 净分和分母限制 | `aa-omniscience.html` Index 与 hallucinationRate 定义 |
 | [src-vendor] | vendor_cards | [已有来源 ZIP](./evidence/sources.zip)、[manifest](./evidence/manifest.json) | zip/json | 作者矩阵和脚注 | `qwen38_27b_card.raw`、`qwen36_card.raw`、`muse30_card.raw`、`gemma4_31_card.raw`、`nemotron35_card.raw`、`glm47_flash_card.raw`、`glm53_flash_card.raw`、`sonnet5_system_pdf.*`、`*_benchmark_png.raw`、`gemini35_card.*`、`gemini38_product.*` |
 | [src-config] | accepted_profiles | [stream 验收](./2026-09-07-03-36-18-stream-model-max-acceptance.md)、[stream manifest](./evidence/stream_20260907/manifest.json) | md/json | 当前档位与公开档位区分 | `probe.json` profile 指纹、wire thinking/采样、server 默认模板 |
+| [src-luna-wire] | luna_inference_paths | [Luna 路由复核](./2026-09-07-06-55-00-luna-route-recheck.md)、[共用 adapter](../../../../utils/agent/runtime.py) | md/source | Luna 两入口参数差异的更正 | ZIP 中 baseline/request 无 reasoning，runtime-tool/request 为 effort none；`_resolve_inference_options` |
 
 ### A.3 Claim-evidence map
 
