@@ -161,3 +161,9 @@ LANGCHAIN_OPENAI_STREAM_CHUNK_TIMEOUT_S=300 venv/bin/python <原生生成入口�
 HTTP read仍为300秒，shared runtime单请求deadline仍为600秒；judge不设置此环境override，保留原冻结参数与恢复机制。Qwen原主批及其自动衔接的baseline已经启动，未热改进程；隔离恢复使用300秒，后续Muse生成使用300秒。因此不能将所有Qwen原始请求标为300秒chunk配置，也不能宣称这次调整消除了所有潜在超时。
 
 原Qwen `0009/r3` 的失败回执与原始尝试完整保留，单独恢复后的有效格按原唯一键替代失败选择；成功格不重做，不按报告数量挑选。原生runner不支持跨run注入已恢复contract并复用封存失败格的后续grounding，因此该失败格的隔离恢复包含下游重执行，这一限制明确披露。批次CLI退出0不替代逐格验收：必须核对全部stage、errors/audit errors及eligibility，再建立选择索引和裁定输入。
+
+## 9. 2026-09-08 后续裁定并发调整
+
+用户要求当前生成批次结束后，后续 Luna judge 的单个总池降为 **8 workers**；method 仍保持三轮合计16 workers。此调整在 Muse 剩余318格裁定启动前登记，覆盖上文后续judge的16-worker安排；Sonnet、Qwen及Muse首批六格已经完成的16-worker裁定记录原样保留，不重裁。
+
+仅调整裁定任务池与共享runtime的worker数量，实际值写入启动回执。stream、24,000输出预算、推理设置、两读与必要仲裁、prompt/schema/validator及既有修复机制均不变；不叠加多个8-worker池。后续补缺也沿用单池最多8。生成仍按6+5+5分配，两臂顺序执行；不修改已经运行的进程或其参数。
