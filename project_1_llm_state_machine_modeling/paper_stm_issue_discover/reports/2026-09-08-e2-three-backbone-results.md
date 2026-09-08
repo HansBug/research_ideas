@@ -40,4 +40,6 @@
 
 `final_results/e2_20260907/{sonnet,qwen,muse}/` 分别提供 `cells.json`、`verification.json`、`statistics.json` 和 `evidence.json`；根目录提供输入快照、历史 Luna hash、来源/备份摘要和归档 manifest。原始 prompt、SSE、请求响应和大型备份没有进入 Git，仍在本地 ignored runs 及 `/nfs/paper1-e1-20260906/e2-backups/`，需要另行取得才能逐条重放；fresh clone 不能声称带有全部原始审计。
 
+逐格可查阅的生成与裁定 JSON 已随归档保存在 [`final_results/e2_20260907/raw/`](../final_results/e2_20260907/raw/)：三模型各 324 格的 `source` 与 `judge_source` 原件共 1944 个文件、1,666,325,086 bytes，manifest 提供逐文件 hash。该目录不含 wire/SSE、`call_metadata/llm` 或私有配置；因此 fresh clone 可审阅逐格结构化记录，但不能在没有本地受限原件和凭据的情况下重放每一次网络调用。
+
 本轮只完成 E2 三模型全量裁定与复算，不启动 O2，也不新增候选 judge。后续若冻结 E2 协议，应明确公开 benchmark 档位与当前生成/裁定档位的差异，并把历史 Luna、三款新增 backbone 的渠道 provenance 分开报告。

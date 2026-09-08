@@ -18,8 +18,11 @@
 | [input_snapshot.json](./input_snapshot.json) | 首次运行前的输入、依赖、配置与 prompt/schema 身份；不是后续渠道变更后的最终 profile 快照 |
 | [sources.json](./sources.json) | 后续 judge 渠道变更、未采用的失败来源、原始备份摘要与已知记录缺口 |
 | [archive_manifest.json](./archive_manifest.json) | 本目录所列紧凑 JSON 的字节数及 SHA-256 |
+| [raw/](./raw/) | 逐格生成与 Luna 裁定 JSON 原件；每模型 324 格、source/judge 各一份 |
 
 `source` 和 `judge_source` 是本地 ignored `runs/paper1/e2_20260907/` 下的相对路径，便于取得原件后定位；它们不是本目录附带的文件链接。原始记录另有私有远端备份，清单 hash 和数量见来源摘要。fresh clone 可以复算冻结判定的算术，不能据此声称已附带全部请求、独立语义重裁或 API 随机重现证据。
+
+`raw/` 提供上述 648 个 source/judge 引用在仓库内的 JSON 原件副本（共 1944 个文件、1,666,325,086 bytes），因此不需要本地 runs 即可查阅逐格阶段输出、报告、诊断、两读和仲裁。它不包含逐调用 wire/SSE 或私有凭据；这些仍按报告说明从本地 ignored runs 或受限备份取得。
 
 ## 复验
 
