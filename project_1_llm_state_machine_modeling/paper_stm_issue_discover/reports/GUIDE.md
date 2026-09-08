@@ -1,6 +1,6 @@
-# reports/GUIDE.md — 历史报告维护规范
+# reports/GUIDE.md：实验与历史报告维护规范
 
-本文件只约束 `paper_stm_issue_discover/reports/` 中保留的历史 Markdown report 及其 provenance。当前实验结果、publication manifest 与离线复算以 [final_results/v60_current_vs_x1v2_baseline/](../final_results/v60_current_vs_x1v2_baseline/README.md) 和 `paper_stm_evaluation.final_results_archive` 为准；不得将本目录或 `pipeline/` 的旧机器制品写成当前论文事实源。
+本文件约束 `paper_stm_issue_discover/reports/` 中按日期冻结的实验与历史 Markdown report 及其 provenance。现有论文 headline 以 [v61 归档](../final_results/v61_source_divergence_vs_x1v2_baseline/README.md) 为准，[v60 归档](../final_results/v60_current_vs_x1v2_baseline/README.md)保留为校准与历史参照。独立实验的机器结果、publication manifest 与离线复算分别由其 `final_results/` 归档承载；本目录负责解释和证据导航，不将旧机器制品或其他版本结果混作当前实验事实。
 
 ## 1. 事实源优先级
 

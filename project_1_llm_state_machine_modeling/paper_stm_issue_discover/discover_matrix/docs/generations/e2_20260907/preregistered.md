@@ -160,6 +160,8 @@ LANGCHAIN_OPENAI_STREAM_CHUNK_TIMEOUT_S=300 venv/bin/python <原生生成入口�
 
 HTTP read仍为300秒，shared runtime单请求deadline仍为600秒；judge不设置此环境override，保留原冻结参数与恢复机制。Qwen原主批及其自动衔接的baseline已经启动，未热改进程；隔离恢复使用300秒，后续Muse生成使用300秒。因此不能将所有Qwen原始请求标为300秒chunk配置，也不能宣称这次调整消除了所有潜在超时。
 
+2026-09-08源码复核补充：上述chunk参数在安装的 `langchain-openai==1.2.2` 中只作用于异步 `_astream/_astream_responses`；同步 `_stream/_stream_responses` 不使用它。ours与judge走异步runtime，而原baseline runner调用同步 `structured.invoke(messages)`，因此baseline实际只有SDK的300秒网络时限，没有独立120/300秒chunk计时器，也没有额外600秒整请求deadline。Muse baseline进程虽携带该环境变量，不能据此声称同步路径生效；Qwen隔离恢复与Muse ours的异步chunk界为300秒，judge仍为120秒。本条仅澄清已执行实现，不修改历史请求或运行设置。
+
 原Qwen `0009/r3` 的失败回执与原始尝试完整保留，单独恢复后的有效格按原唯一键替代失败选择；成功格不重做，不按报告数量挑选。原生runner不支持跨run注入已恢复contract并复用封存失败格的后续grounding，因此该失败格的隔离恢复包含下游重执行，这一限制明确披露。批次CLI退出0不替代逐格验收：必须核对全部stage、errors/audit errors及eligibility，再建立选择索引和裁定输入。
 
 ## 9. 2026-09-08 后续裁定并发调整
