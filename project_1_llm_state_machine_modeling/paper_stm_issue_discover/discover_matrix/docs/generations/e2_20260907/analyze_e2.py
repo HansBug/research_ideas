@@ -242,7 +242,9 @@ if __name__=='__main__':
     args=parser.parse_args()
     archive=args.archive
     manifest=json.loads((archive/'archive_manifest.json').read_text())['files']
-    actual_files={str(p.relative_to(archive)) for p in archive.rglob('*.json') if p!=archive/'archive_manifest.json'}
+    # The compact manifest covers the frozen summary files; raw/ has its own manifest.
+    actual_files={str(p.relative_to(archive)) for p in archive.rglob('*.json')
+                  if p!=archive/'archive_manifest.json' and 'raw' not in p.relative_to(archive).parts}
     assert set(manifest)==actual_files
     for name,receipt in manifest.items():
         relative=Path(name)

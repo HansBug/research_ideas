@@ -2,7 +2,7 @@
 
 本目录按 backbone 保存完整的双臂结果。每款模型必须包含 baseline/ours 各 54 pair × 3 round，即 **324 个唯一格**；只有完成两读、必要仲裁和全部报告核销的完整模型组才能归档。实验规则、模型角色、渠道变更及传输恢复见[事前登记与追加授权](../../discover_matrix/docs/generations/e2_20260907/preregistered.md)。
 
-结果解释、三模型配对指标、并发调整和已知限制见[中文 E2 总报告](../../reports/2026-09-08-e2-three-backbone-results.md)。
+结果解释、三模型配对指标、历史 `gpt-5.6-luna` main/baseline、两种 precision 定义、并发调整和已知限制统一见[E2 综合结果报告：Luna 历史主线与三款 backbone 双臂实验](../../reports/2026-09-08-e2-three-backbone-results.md)。本目录只承载按模型拆分的机器归档，不再维护第二份人类结果表。
 
 历史 Luna 只读引用 [canonical v61](../v61_source_divergence_vs_x1v2_baseline/README.md)，不属于本目录的新生成量。新三款采用 12 谓词，历史 Luna 保留原 19 谓词以及原运行日期、渠道和版本；同 backbone 的双臂差值与跨 backbone 的描述性比较必须区分。
 

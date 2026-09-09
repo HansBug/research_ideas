@@ -14,7 +14,7 @@ R5/R5.7、Better STM、repair、旧 lifecycle 与 provider-health 材料同样�
 
 [E1 四模型总报告](./model_readiness_20260906/2026-09-07-06-12-00-four-model-handoff.md) 汇总配置、Muse serving 修复、Sonnet 正常 D 证据降级、九格 stream 与四款 baseline/ours、Luna 新连接及历史故障、容量和并发数字；旧失败和历史实验不覆盖。[复现附录](./model_readiness_20260906/2026-09-07-11-55-00-reproduction.md) 收录独立 conda/权重/启动/tunnel、请求与校验核心。
 
-[E2 三模型双臂全量结果](./2026-09-08-e2-three-backbone-results.md) 汇总 Sonnet、Qwen3.8-27B、Muse Glimmer-30B 各 324 格的冻结裁定、配对统计、8-worker judge 调整、恢复与证据边界；逐格内容和无 API 复算见 [E2 紧凑归档](../final_results/e2_20260907/README.md)。
+[E2 综合结果报告：Luna 历史主线与三款 backbone 双臂实验](./2026-09-08-e2-three-backbone-results.md) 是本 PR 唯一的人类可读结果入口，汇总 Sonnet、Qwen3.8-27B、Muse Glimmer-30B 各 324 格的冻结裁定、历史 Luna main/baseline、配对统计、8-worker judge 调整、恢复与证据边界；逐格内容和无 API 复算见 [E2 紧凑归档](../final_results/e2_20260907/README.md)。
 
 2026-09-07 用户明确 E1 的原始审计和辅助脚本仅本地保留，Git 提供 Markdown 事实、生产代码和必要回归；fresh clone 不含逐条历史审计原件。此交付边界仅适用于 E1，不改变 A1/v61 正式结果或其他材料。
 
