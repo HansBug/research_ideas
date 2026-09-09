@@ -14,5 +14,7 @@
 | R5.7 Better STM 报告链 | 已归档的历史路线；从 [archive/](../archive/README.md) 进入 |
 | [2026-09-06 A2 `no-predicates` Luna smoke](./2026-09-06-11-40-04-a2-smoke.md) | 源码 `507f1bac2`；五格为 3 正常、1 降级、1 失败，31 eligible 报告、2 隔离报告；51 处实际上下文事实对拍通过，谓词零执行；空流未走现有 transport retry，保留运行风险；无独立 judge，不构成效果结论，raw 仅本地 |
 | [2026-09-06 A2 完整结果与原因审计](./2026-09-06-20-24-24-a2-no-predicates-v61-results-cn.md) | [独立归档](../final_results/a2_no_predicates_vs_v61_20260906/README.md)；162 格/942 报告全部裁定，FULL hit@1=328/435、precision=800/942；44 gained/39 lost 已逐项定位。未见预期精度下降，四项九簇区间跨零；主/严格口径、269 组相同核心文本分歧及双臂裁定反例均保留。历史版本/provider 对比，非单因素因果估计；人工确认 0。运行源码与创建提交见报告 A.1 |
+| [2026-09-09 Sonnet5 C2 15-pair A2 对照](./2026-09-09-03-14-14-c2-sonnet15-a2-comparison.md) | [独立归档](../final_results/c2_sonnet15_20260909/README.md)；15 pair round-1：full 114/94.74%/43，A2 `no-predicates` 126/86.51%/45，full-removal/broad 62/87.10%/33，baseline 89/79.78%/38；另记录 12-pair raw-inspect stress（full 78.79% vs raw 47.37%）。一次 Sonnet draw、定向集合、无新增人工确认；不能作总体或 predicate-only 因果结论。 |
+| [2026-09-09 Sonnet5 A2 全量事前登记](../discover_matrix/docs/generations/a2_sonnet5_full_20260909/preregistered.md) | 54 pair × 3 round；Sonnet method `no-predicates`，Luna v3.11 judge；用于确认 15-pair pilot 的 precision/coverage 信号，主张边界限定为整套 predicate-guided mechanism 的条件性净差异。 |
 
 任何新读者应先读工作区 [README.md](../README.md) 和 v61 归档，而不是从本目录选择一份旧报告作为默认入口。

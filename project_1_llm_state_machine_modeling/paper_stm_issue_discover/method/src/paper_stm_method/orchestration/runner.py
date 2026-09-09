@@ -153,6 +153,23 @@ D_ADJUDICATION_SYSTEM_SCHEMA_RESERVE_TOKENS = 4_000
 D_ADJUDICATION_PROMPT_CHARACTERS_PER_TOKEN = 4
 
 
+def _full_protocol_profile_allowed(
+    profile: str,
+    ablation: AblationMode,
+    rounds: int,
+) -> bool:
+    """Allow only the frozen Luna run and the preregistered Sonnet A2 run."""
+
+    return (
+        (profile == "gpt-5.6-luna" and rounds == 3)
+        or (
+            profile == "claude-sonnet-5"
+            and ablation == "no-predicates"
+            and rounds == 3
+        )
+    )
+
+
 def _d_prompt_character_budget(runtime: Any) -> int:
     """Derive a conservative per-call D budget before the agent compact trigger."""
 
@@ -6508,8 +6525,10 @@ def run_experiment(
                 raise RuntimeError(
                     "full-protocol provider execution requires explicit allow_full_live=True after bounded diagnostic review"
                 )
-            if profile != "gpt-5.6-luna" or rounds != 3:
-                raise RuntimeError("full live execution requires the frozen model profile and three rounds")
+            if not _full_protocol_profile_allowed(profile, ablation, rounds):
+                raise RuntimeError(
+                    "full live execution requires the frozen Luna profile or the preregistered Sonnet A2 profile and three rounds"
+                )
         else:
             if pair_ids is None:
                 raise RuntimeError("live diagnostic execution requires explicit pair_ids")

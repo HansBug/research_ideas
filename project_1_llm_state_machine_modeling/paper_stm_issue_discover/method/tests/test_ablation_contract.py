@@ -29,6 +29,21 @@ def test_cli_default_and_explicit_none(monkeypatch, tmp_path):
     assert calls[0]["ablation"] == "none"
 
 
+@pytest.mark.parametrize(
+    ("profile", "ablation", "rounds", "allowed"),
+    [
+        ("gpt-5.6-luna", "none", 3, True),
+        ("gpt-5.6-luna", "no-predicates", 3, True),
+        ("claude-sonnet-5", "no-predicates", 3, True),
+        ("claude-sonnet-5", "none", 3, False),
+        ("claude-sonnet-5", "no-predicates", 1, False),
+        ("gpt-5.6-sol", "no-predicates", 3, False),
+    ],
+)
+def test_full_protocol_profile_gate(profile, ablation, rounds, allowed):
+    assert runner._full_protocol_profile_allowed(profile, ablation, rounds) is allowed
+
+
 @pytest.mark.parametrize("ablation", ["unknown", "no-predicate"])
 def test_unimplemented_modes_fail_before_loading_or_provider(ablation, monkeypatch, tmp_path):
     def forbidden(*args, **kwargs):
