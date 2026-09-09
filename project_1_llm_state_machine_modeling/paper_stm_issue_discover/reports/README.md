@@ -16,6 +16,8 @@ R5/R5.7、Better STM、repair、旧 lifecycle 与 provider-health 材料同样�
 
 [E2 综合结果报告：Luna 历史主线与三款 backbone 双臂实验](./2026-09-08-e2-three-backbone-results.md) 是本 PR 唯一的人类可读结果入口，汇总 Sonnet、Qwen3.8-27B、Muse Glimmer-30B 各 324 格的冻结裁定、历史 Luna main/baseline、配对统计、8-worker judge 调整、恢复与证据边界；逐格内容和无 API 复算见 [E2 紧凑归档](../final_results/e2_20260907/README.md)。
 
+[E2 微观决策画像](./2026-09-09-e2-micro-decision-profiles.md) 在同一冻结归档上审计 Luna、Sonnet、Qwen 和 Muse 的逐候选 `reason/basis`、属性/方向、证据类型、阶段调用、同输入 Jaccard 和 round 转移；机器明细由报告脚本在本地生成并按报告中的 hash 核验，仅作可观测输出的描述性分析，不读取或推断 hidden chain-of-thought。
+
 2026-09-07 用户明确 E1 的原始审计和辅助脚本仅本地保留，Git 提供 Markdown 事实、生产代码和必要回归；fresh clone 不含逐条历史审计原件。此交付边界仅适用于 E1，不改变 A1/v61 正式结果或其他材料。
 
 [Luna 路由复核](./model_readiness_20260906/2026-09-07-06-55-00-luna-route-recheck.md) 单列最终 baseline 一次成功与随后普通生成/structured runtime 的四个 503，避免将单次成功写成全部路径恢复。
