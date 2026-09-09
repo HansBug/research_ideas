@@ -163,6 +163,10 @@ class RunManifest(AblationIdentity):
     rounds: Literal[1, 3] = Field(
         description="One diagnostic round or the frozen three-round protocol."
     )
+    round_index: Literal[1, 2, 3] | None = Field(
+        default=None,
+        description="Explicit independent round when rounds=1; absent preserves the legacy round sequence.",
+    )
     selected_pair_ids: tuple[str, ...] = Field(
         min_length=1,
         description="Exact ordered frozen pair IDs included in this run; resume requires equality.",
@@ -428,6 +432,10 @@ class RunSummaryReceipt(AblationIdentity):
     )
     rounds: Literal[1, 3] = Field(
         description="Diagnostic or frozen protocol round count."
+    )
+    round_index: Literal[1, 2, 3] | None = Field(
+        default=None,
+        description="Explicit independent round when rounds=1; absent preserves the legacy round sequence.",
     )
     workers: int = Field(
         ge=1,
