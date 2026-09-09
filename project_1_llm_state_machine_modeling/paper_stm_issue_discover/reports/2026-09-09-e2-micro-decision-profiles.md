@@ -275,7 +275,7 @@ Luna 的重复候选保留少，round 1→2 的 pair Jaccard 均值为 0.170。�
 
 ### 6.2 Claude Sonnet 5：候选入口适中，选择性对外部约束敏感
 
-Sonnet 的候选数最低（754），属性分布最分散，`initial_entry`、`transition_endpoints`、`event_consumer_coverage`、`reachability` 和 `guard_disjointness` 均有稳定占比。它的 `reason`/`basis` 平均长度最长，`deterministic`、`execution` 和 `alternative_reading` 词项出现率也最高。候选输出经常同时陈述 source inventory、可达性或执行结果，并明确写出一个有竞争力的替代解释。
+Sonnet 的候选数最低（754），属性分布最分散，`initial_entry`、`transition_endpoints`、`event_consumer_coverage`、`reachability` 和 `guard_disjointness` 均有稳定占比。Qwen 的 `reason`/`basis` 平均长度最长（Sonnet 次之），而 Sonnet 的 `deterministic`、`execution` 和 `alternative_reading` 词项出现率也最高。候选输出经常同时陈述 source inventory、可达性或执行结果，并明确写出一个有竞争力的替代解释。
 
 Sonnet 的 `d_adjudication_correction` 为 133，高于其他模型；结合宏观结果中 ordinary precision 从 68.67% 升至 87.36%、strict precision 从 53.43% 升至 78.98%，可把它描述为“候选入口变化有限，外部证据约束改变了报告选择性”。这与它在 E2 中最大的 precision headroom 相符。证据只支持当前配置的描述，不支持“Claude 天生更容易幻觉”的模型家族结论。
 
@@ -332,7 +332,7 @@ Muse 的重复候选保留最多，round 1→2 Jaccard 均值/中位数为 0.462
 | Qwen3.8-27B（low） | 5.8519 | 0.8203 | 0.4972 | 0.7775 | 82.1% | 35.1% |
 | Muse Glimmer-30B（high） | 5.8889 | 0.7564 | 0.6146 | 0.8000 | 97.4% | 36.7% |
 
-Qwen 和 Muse 的 `B_c` 最高，说明它们打开了更宽的候选入口。Qwen 的方向熵最低，`missing` 占 68.2%，入口扩张集中在状态动作和效果缺口。Muse 的属性熵最低，候选集中在迁移、动作和层级。Sonnet 的 `B_c` 最低但属性熵最高，候选较少却覆盖更多属性。source ref 从 Sonnet 的 39.8% 到 Muse 的 97.4% 变化很大，说明理由中的依据表述与结构化字段绑定是两个不同动作。
+Muse 的 raw candidate 总量最高（954；`B_c=5.8889`），Qwen 次之（948；`B_c=5.8519`）；这描述候选入口，不等于最终报告量增幅。Qwen 的方向熵最低，`missing` 占 68.2%，入口扩张集中在状态动作和效果缺口。Muse 的属性熵最低，候选集中在迁移、动作和层级。Sonnet 的 `B_c` 最低但属性熵最高，候选较少却覆盖更多属性。source ref 从 Sonnet 的 39.8% 到 Muse 的 97.4% 变化很大，说明理由中的依据表述与结构化字段绑定是两个不同动作。
 
 可见解释文本只能作表面补充：
 
@@ -362,7 +362,7 @@ Qwen 和 Muse 的 `B_c` 最高，说明它们打开了更宽的候选入口。Qw
 
 **Luna。** baseline ordinary precision 已为 83.40%，可提升空间较小。候选有 92.0% 带 source ref，方向熵为 0.8130；相邻 round 的 J 只有 0.170/0.000，候选主要在 `transition_endpoints` 和 `initial_entry` 间重组。结果是 precision 增加 0.65 pp，hit@1/@3/@all 增加 22.53/17.24/24.14 pp，S 从 44.76% 升至 63.08%。在 19-predicate v61 历史配置中，方法收益主要体现为多轮 coverage。
 
-**Sonnet。** baseline precision 为 68.67%，strict gap 为 15.24 pp。候选数最低、属性熵最高，source ref 只有 39.8%，D correction 达 133 次，reason/basis 也最长。方法使报告密度由 4.41 增至 5.08，有效产出由 3.03 增至 4.44；普通/strict precision 增加 18.69/25.55 pp，strict gap 收窄到 8.38 pp。可观测链条指向“外部证据约束主要改变筛选和定级”，不能推广成 Claude 家族的固定倾向。
+**Sonnet。** baseline precision 为 68.67%，strict gap 为 15.24 pp。候选数最低、属性熵最高，source ref 只有 39.8%，D correction 达 133 次；其 `reason`/`basis` 平均长度低于 Qwen、但高于 Muse。方法使报告密度由 4.41 增至 5.08，有效产出由 3.03 增至 4.44；普通/strict precision 增加 18.69/25.55 pp，strict gap 收窄到 8.38 pp。可观测链条指向“外部证据约束主要改变筛选和定级”，不能推广成 Claude 家族的固定倾向。
 
 **Qwen。** baseline 报告密度为 2.81，有效产出为 2.28。`B_c=5.8519`，方向熵为 0.4972，`missing` 占 68.2%，source ref 为 82.1%，D correction 为 104 次。方法把报告密度提高到 5.91，有效产出提高到 5.28，hit@1/@3/@all 增加 19.77/20.69/19.31 pp，普通 precision 达到 89.25%。这支持“类型化谓词和可执行证据把高探索量导向可裁定候选”的任务内假设；方向集中本身提供的是选择倾向，不能直接当作正确性证据。当前 serving 为 low，公开 AA xhigh 数字不能替代本轮结果。
 
@@ -419,7 +419,7 @@ baseline 的 `issue/reason/where` 能说明模型直接报告了什么，但缺�
 ### 可以写
 
 1. 在相同任务输入和冻结方法语义下，四个模型呈现不同的候选属性、违反方向、证据引用和重复稳定性组合。
-2. Qwen 的探索量最高，Sonnet 的 D correction 次数最多且 precision gap 收窄最大，Muse 的重复候选稳定性最高，Luna 的历史方法收益主要体现在 coverage；这些判断都有候选级和 cell 级统计支持。
+2. Muse 的 raw candidate 总量最高（954），Qwen 次之（948）；但 Qwen 的最终报告量和有效产出增幅最大。Sonnet 的 D correction 次数最多且 precision gap 收窄最大，Muse 的重复候选稳定性最高，Luna 的历史方法收益主要体现在 coverage；这些判断都有候选级和 cell 级统计支持。
 3. 三款新增模型的宏观 precision/hit 增益与微观候选扩张并存，说明方法改变了候选提出和筛选的组合，而非简单减少输出。
 
 ### 不能写
@@ -436,7 +436,7 @@ baseline 的 `issue/reason/where` 能说明模型直接报告了什么，但缺�
 
 ```bash
 python project_1_llm_state_machine_modeling/paper_stm_issue_discover/reports/2026-09-09-e2-micro-decision-profiles.py
-python -m json.tool project_1_llm_state_machine_modeling/paper_stm_issue_discover/final_results/e2_20260907/micro_decision_profiles.json >/dev/null
+python -m json.tool runs/paper1/e2_20260907/derived/micro_decision_profiles.json >/dev/null
 ```
 
 数据入口保留四类内容：

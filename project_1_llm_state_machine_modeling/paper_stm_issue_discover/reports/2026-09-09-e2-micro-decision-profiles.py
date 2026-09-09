@@ -66,7 +66,8 @@ RAW = RESULTS / "raw"
 LUNA_RESULTS = PAPER / "final_results" / "v61_source_divergence_vs_x1v2_baseline"
 LUNA_OURS = LUNA_RESULTS / "raw" / "v61_current" / "method" / "method"
 LUNA_BASELINE = PAPER / "final_results" / "v60_current_vs_x1v2_baseline" / "raw" / "x1v2_baseline" / "method"
-OUTPUT = RESULTS / "micro_decision_profiles.json"
+DERIVED = ROOT / "runs" / "paper1" / "e2_20260907" / "derived"
+OUTPUT = DERIVED / "micro_decision_profiles.json"
 
 
 def relative_source(path, root):
@@ -588,6 +589,7 @@ def main():
         "round_transitions": round_transitions(ours_cells),
         "cells": cells,
     }
+    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT.write_text(json.dumps(audit, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"wrote {OUTPUT} ({OUTPUT.stat().st_size} bytes)")
 
