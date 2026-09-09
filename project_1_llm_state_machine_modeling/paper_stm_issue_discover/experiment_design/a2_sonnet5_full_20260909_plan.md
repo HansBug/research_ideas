@@ -1,5 +1,7 @@
 # A2 Sonnet-5 全量复核计划（2026-09-09）
 
+2026-09-10 范围澄清：下文“配套引导”仅指当前 `no-predicates` 实际关闭的谓词词汇、路由、参数绑定和执行专属探针等；不包含仍保留的需求义务、普通 grounding、检查事实和语义评估。不是全部上游机制的消融。完整结果与可比性限制见[全量报告](../reports/2026-09-10-a2-sonnet5-full-results.md)。
+
 本轮固定评估整个谓词机制及其配套引导与 backend 的联合消融。method 使用 `claude-sonnet-5`、`no-predicates`、54 个冻结 pair、3 个 round 和 16 workers；输入、prompt、run contract、source commit 与 A2 protocol 保持同一正式 run。provider failure 只允许在原格内恢复，失败 receipt 必须保留并记录，不能从分母静默删除。
 
 method 的准入条件是 162 个 pair-round cell 全部具有真实、结构化且通过 schema 的 eligible receipt。达到该条件后，Judge 对同一 162 个 method cell 全量运行，不使用 15-pair 子集或单 round 代理结果。

@@ -4,6 +4,7 @@
 
 | 报告类型 | 使用方式 |
 | --- | --- |
+| [2026-09-10 Sonnet 5 A2 全量报告](./2026-09-10-a2-sonnet5-full-results.md) | 162 格全部裁定；A2/full precision 为 88.44%/87.36%，strict precision 为 77.64%/78.98%，FULL hit@1 为 294/435 和 291/435；普通 precision 差值九簇区间跨零，不能沿用 15-pair pilot 作为全量效果证据 |
 | v26、v27-stream、v51 及早期 Judge 对照 | historical experiment report；不可与 v60/current 指标直接相减或合并 |
 | PlantUML frontend、source trace、ledger contract | implementation/protocol provenance；不构成 current experiment result |
 | R5/R5.5 readiness、seed、negative evidence、scope handoff | historical corpus/conversion evidence；不构成当前方法或评测协议 |
