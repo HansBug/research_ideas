@@ -277,7 +277,7 @@ FULL 列是该 pair 的去重 expected-round 命中数；各 pair 的台账条�
 ## 来源与复核
 
 - Method：`runs/paper1/a2_sonnet5_full_20260909/method/a49ff430a0104f239528e2bd127e3c57`，`claude-sonnet-5`、16 workers；原 5 个 provider 失败全部恢复，失败原件与恢复 manifest 保留。
-- Judge：`gpt-5.6-luna`、v3.11、两读、必要仲裁、`relation_first`、full closure，三轮各 8 workers；保留 provider 520/超时、重试、拆分恢复的审计。
+- Judge：`gpt-5.6-luna`、v3.11、两读、必要仲裁、`relation_first`、full closure，最终补跑三轮各 8 workers；按用户要求复用历史成功结果，其中 `fullr2w16x`、`fullr3w16x` 各 1 格来自 16-worker 运行，其余 160 格来自 8-worker 运行。保留 provider 520/超时、重试、拆分恢复的审计。
 - 只从指定全量运行及缺格补跑选择最早完成且兼容的结果，核对模型、协议、ledger、来源和 method hash。重复结果只登记，不按指标择优；未复用 c2_correct/15-pair judge。
 - 最终 162 行 included manifest：同 run 根下 `judge/validated_reuse_manifest.json`，每行记录来源及 hash，0 excluded。
 - 参照：[E2 综合报告](./2026-09-08-e2-three-backbone-results.md)及 `final_results/e2_20260907/sonnet/{cells,statistics}.json`。复算两臂逐项等于冻结结果，三臂 pair 集合相同。
