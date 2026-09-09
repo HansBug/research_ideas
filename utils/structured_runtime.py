@@ -693,6 +693,10 @@ class PublicStructuredRuntime:
     async def _initialize_async_runtime(self):
         """Construct the model and unshared async transport inside its owner loop."""
 
+        timeout = float(_provider_timeout_seconds(self.streaming))
+        if self.config.adapter != "anthropic":
+            # OpenAI's unhashable timeout keeps its async client local to this loop.
+            timeout = httpx.Timeout(timeout)
         transport_spec = AgentSpec(
             name="evidence-discovery-persistent-transport",
             system_prompt="Persistent process-local transport holder; never invoked directly.",
@@ -705,13 +709,17 @@ class PublicStructuredRuntime:
             model_options={
                 "streaming": self.streaming,
                 "max_retries": 0,
-                # An unhashable timeout makes langchain-openai allocate an
-                # instance-owned async httpx client instead of its global cache.
-                "timeout": httpx.Timeout(
-                    float(_provider_timeout_seconds(self.streaming))
-                ),
+                "timeout": timeout,
             },
         )
+        if self.config.adapter == "anthropic":
+            import anthropic
+
+            # ChatAnthropic can reuse a client across event loops; keep this one local.
+            transport_app.model._async_client = anthropic.AsyncAnthropic(
+                **transport_app.model._client_params,
+                http_client=anthropic.DefaultAsyncHttpxClient(timeout=timeout),
+            )
         self._async_call_lock = asyncio.Lock()
         return transport_app.model
 
@@ -856,12 +864,14 @@ class PublicStructuredRuntime:
     ) -> StructuredCallOutcome[T]:
         use_streaming = self.streaming if streaming is None else streaming
         selected_max_output_tokens = (
-            MAX_STRUCTURED_OUTPUT_TOKENS
+            self.config.max_output_tokens
             if max_output_tokens is None
             else max_output_tokens
         )
-        if selected_max_output_tokens <= 0:
-            raise ValueError("max_output_tokens must be positive")
+        if selected_max_output_tokens is None or selected_max_output_tokens <= 0:
+            raise ValueError(
+                "configure the model's verified positive max_output_tokens in its profile"
+            )
         attempts: list[dict[str, Any]] = []
         all_usage: list[dict[str, Any]] = []
         all_schema_validation_failures: list[StructuredSchemaValidationFailure] = []
@@ -890,7 +900,11 @@ class PublicStructuredRuntime:
                         prompt,
                         renderer="quiet",
                         log_level="ERROR",
-                        model_call_options={"max_tokens": selected_max_output_tokens},
+                        model_call_options=(
+                            {"max_tokens": max_output_tokens}
+                            if max_output_tokens is not None
+                            else None
+                        ),
                         audit_out=audit_path,
                         result_out=result_path,
                     )
