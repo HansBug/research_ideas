@@ -20,8 +20,9 @@ T = TypeVar("T", bound=BaseModel)
 # bounded transport retries and explicit finalization grace. For non-streaming
 # calls there is no first byte to wait for, so the provider timeout itself is
 # set to the complete-call deadline.
-PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS = 30
-PROVIDER_CALL_DEADLINE_SECONDS = 300
+PROVIDER_FIRST_BYTE_TIMEOUT_SECONDS = 300
+PROVIDER_CALL_DEADLINE_SECONDS = 600
+# Legacy fixture budget only; live requests use the selected model profile.
 MAX_STRUCTURED_OUTPUT_TOKENS = 10_000
 DEFAULT_TRANSPORT_RETRIES = 8
 TRANSPORT_RETRY_DELAY_SCHEDULE_SECONDS = (5.0, 20.0, 60.0, 120.0, 240.0)
@@ -694,7 +695,7 @@ class PublicStructuredRuntime:
         """Construct the model and unshared async transport inside its owner loop."""
 
         timeout = float(_provider_timeout_seconds(self.streaming))
-        if self.config.adapter != "anthropic":
+        if self.config.adapter not in {"anthropic", "google-genai"}:
             # OpenAI's unhashable timeout keeps its async client local to this loop.
             timeout = httpx.Timeout(timeout)
         transport_spec = AgentSpec(
@@ -715,7 +716,7 @@ class PublicStructuredRuntime:
         if self.config.adapter == "anthropic":
             import anthropic
 
-            # ChatAnthropic can reuse a client across event loops; keep this one local.
+            # ChatAnthropic caches HTTP clients across loops, including closed ones.
             transport_app.model._async_client = anthropic.AsyncAnthropic(
                 **transport_app.model._client_params,
                 http_client=anthropic.DefaultAsyncHttpxClient(timeout=timeout),
@@ -726,6 +727,10 @@ class PublicStructuredRuntime:
     async def _aclose_transport_model(self) -> None:
         """Close process-local async and sync clients before stopping the loop."""
 
+        if self.config.adapter == "google-genai":
+            await self._transport_model.client.aio.aclose()
+            self._transport_model.client.close()
+            return
         async_client = getattr(self._transport_model, "root_async_client", None)
         if async_client is None:
             async_client = getattr(self._transport_model, "_async_client", None)

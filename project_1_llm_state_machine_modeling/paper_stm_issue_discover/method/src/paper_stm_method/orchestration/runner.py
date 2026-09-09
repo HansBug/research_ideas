@@ -153,23 +153,6 @@ D_ADJUDICATION_SYSTEM_SCHEMA_RESERVE_TOKENS = 4_000
 D_ADJUDICATION_PROMPT_CHARACTERS_PER_TOKEN = 4
 
 
-def _full_protocol_profile_allowed(
-    profile: str,
-    ablation: AblationMode,
-    rounds: int,
-) -> bool:
-    """Allow only the frozen Luna run and the preregistered Sonnet A2 run."""
-
-    return (
-        (profile == "gpt-5.6-luna" and rounds == 3)
-        or (
-            profile == "claude-sonnet-5"
-            and ablation == "no-predicates"
-            and rounds == 3
-        )
-    )
-
-
 def _d_prompt_character_budget(runtime: Any) -> int:
     """Derive a conservative per-call D budget before the agent compact trigger."""
 
@@ -708,6 +691,7 @@ def _manifest_contract_payload(
     selection_preflight: dict[str, Any] | None,
     ablation: AblationMode = "none",
     model_config_hash: str | None = None,
+    round_index: int | None = None,
 ) -> dict[str, Any]:
     """Return the immutable identity projection shared by run artifacts."""
 
@@ -725,6 +709,7 @@ def _manifest_contract_payload(
         "input_data_hash": input_data_hash,
         "pair_input_hashes": dict(pair_input_hashes),
         "rounds": rounds,
+        **({"round_index": round_index} if round_index is not None else {}),
         "selected_pair_ids": list(selected_pair_ids),
         "scope": scope,
         "workers": workers,
@@ -798,6 +783,7 @@ def _prepare_run_manifest(
     predecessor_snapshot: str | None,
     ablation: AblationMode = "none",
     model_config_hash: str | None = None,
+    round_index: int | None = None,
 ) -> RunManifest:
     """Create or validate the run manifest before any model call starts."""
 
@@ -817,6 +803,7 @@ def _prepare_run_manifest(
         input_data_hash=input_data_hash,
         pair_input_hashes=pair_input_hashes,
         rounds=rounds,
+        round_index=round_index,
         selected_pair_ids=selected_pair_ids,
         scope=scope,
         workers=workers,
@@ -873,6 +860,7 @@ def _prepare_run_manifest(
         input_data_hash=input_data_hash,
         pair_input_hashes=pair_input_hashes,
         rounds=rounds,  # type: ignore[arg-type]
+        round_index=round_index,
         selected_pair_ids=tuple(selected_pair_ids),
         scope=scope,  # type: ignore[arg-type]
         workers=workers,
@@ -6134,7 +6122,8 @@ def _load_pair_receipts(
 
     rounds_data: list[dict[str, Any]] = []
     missing_predecessor = False
-    for round_index in range(1, rounds + 1):
+    first_round = run_identity.get("round_index") or 1
+    for round_index in range(first_round, first_round + rounds):
         path = output_root / "method" / pair_id / f"round-{round_index}.json"
         if missing_predecessor:
             if path.exists():
@@ -6357,7 +6346,7 @@ def _terminalize_pair_failure(
         rounds_data.append(
             _failure_method_cell(
                 pair_id=pair_id,
-                round_index=len(rounds_data) + 1,
+                round_index=(run_identity.get("round_index") or 1) + len(rounds_data),
                 output_root=output_root,
                 error=error,
                 run_identity=run_identity,
@@ -6430,7 +6419,8 @@ def _run_pair_worker(task: dict[str, Any]) -> dict[str, Any]:
                 streaming=bool(task["streaming"]),
             )
         resumed_prefix = bool(rounds_data)
-        for round_index in range(len(rounds_data) + 1, rounds + 1):
+        first_round = run_identity.get("round_index") or 1
+        for round_index in range(first_round + len(rounds_data), first_round + rounds):
             cell = _method_cell(
                 pair=pair,
                 round_index=round_index,
@@ -6483,6 +6473,7 @@ def run_experiment(
     profile: str = "gpt-5.6-luna",
     ablation: AblationMode = "none",
     rounds: int = 3,
+    round_index: int | None = None,
     resume: bool = False,
     allow_live: bool = False,
     allow_full_live: bool = False,
@@ -6499,6 +6490,8 @@ def run_experiment(
     ablation = validate_ablation(ablation)
     if rounds not in {1, 3}:
         raise ValueError("rounds must be 1 for a diagnostic run or 3 for the frozen protocol")
+    if round_index is not None and (rounds != 1 or round_index not in {1, 2, 3}):
+        raise ValueError("an explicit round must be 1, 2, or 3 and requires rounds=1")
     if workers < 1:
         raise ValueError("workers must be at least 1")
     if transport_retries < 0:
@@ -6520,22 +6513,14 @@ def run_experiment(
         raise ValueError(f"pair IDs are outside the frozen 54-pair protocol: {unknown_pair_ids}")
     full_protocol = set(selected_pair_ids) == set(FROZEN_PAIR_IDS)
     if profile != "fixture":
-        if full_protocol:
+        if full_protocol or len(selected_pair_ids) > len(REPRESENTATIVE_DIAGNOSTIC_PAIR_IDS):
             if not allow_full_live:
                 raise RuntimeError(
                     "full-protocol provider execution requires explicit allow_full_live=True after bounded diagnostic review"
                 )
-            if not _full_protocol_profile_allowed(profile, ablation, rounds):
-                raise RuntimeError(
-                    "full live execution requires the frozen Luna profile or the preregistered Sonnet A2 profile and three rounds"
-                )
         else:
             if pair_ids is None:
                 raise RuntimeError("live diagnostic execution requires explicit pair_ids")
-            if len(selected_pair_ids) > len(REPRESENTATIVE_DIAGNOSTIC_PAIR_IDS):
-                raise RuntimeError(
-                    f"live diagnostic runs are capped at {len(REPRESENTATIVE_DIAGNOSTIC_PAIR_IDS)} explicit pair IDs"
-                )
 
     report_root_path = Path(report_root).expanduser().resolve()
     source_provenance = _source_provenance()
@@ -6576,6 +6561,7 @@ def run_experiment(
         input_data_hash=input_data_hash,
         pair_input_hashes=pair_input_hashes,
         rounds=rounds,
+        round_index=round_index,
         selected_pair_ids=selected_pair_ids,
         workers=workers,
         transport_retries=transport_retries,
@@ -6590,6 +6576,7 @@ def run_experiment(
         "run_contract_hash": manifest.run_contract_hash,
         "source_provenance": manifest.source_provenance.model_dump(mode="json"),
         "pair_input_hashes": dict(manifest.pair_input_hashes),
+        "round_index": manifest.round_index,
     }
     tasks = [
         {
@@ -6722,6 +6709,7 @@ def run_experiment(
         source_provenance=source_provenance,
         resume=resume,
         rounds=rounds,
+        round_index=round_index,
         workers=workers,
         transport_retries=transport_retries,
         streaming=streaming,

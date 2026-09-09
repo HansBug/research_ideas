@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from collections.abc import Mapping
 from typing import Any
 from urllib.parse import urlsplit
@@ -11,6 +12,7 @@ _ADAPTER_PACKAGES = {
     "openai-responses": "langchain-openai",
     "anthropic": "langchain-anthropic",
     "deepseek": "langchain-deepseek",
+    "google-genai": "langchain-google-genai",
 }
 
 _ADAPTER_NAMES = {
@@ -18,15 +20,25 @@ _ADAPTER_NAMES = {
     "openai-responses": "langchain-openai/responses",
     "anthropic": "langchain-anthropic/messages",
     "deepseek": "langchain-deepseek/chat-completions",
+    "google-genai": "langchain-google-genai/generate-content",
 }
 
 EFFORT_LEVELS = ("none", "low", "medium", "high", "xhigh", "max")
 _OPENAI_EFFORT_LEVELS = frozenset(EFFORT_LEVELS)
 _ANTHROPIC_EFFORT_LEVELS = frozenset(EFFORT_LEVELS[1:])
+GOOGLE_THINKING_LEVELS = frozenset({"minimal", "low", "medium", "high"})
 
 
 class LLMModelFactoryError(ValueError):
     """Raised when a neutral LLM model cannot be constructed from config."""
+
+
+def guard_responses_stream_errors(model: Any) -> None:
+    """Install the common provider guard for all Responses stream failures."""
+
+    from .responses_stream import guard_responses_streams
+
+    guard_responses_streams(model)
 
 
 def _apply_effort(
@@ -35,6 +47,11 @@ def _apply_effort(
     """Apply an explicit runtime effort using the selected adapter's wire shape."""
 
     if effort is None:
+        return
+    if config.adapter == "google-genai":
+        if effort not in GOOGLE_THINKING_LEVELS:
+            raise LLMModelFactoryError(f"unsupported effort {effort!r} for google-genai")
+        kwargs["thinking_level"] = effort
         return
     if config.adapter in {"openai", "openai-responses"}:
         if effort not in _OPENAI_EFFORT_LEVELS:
@@ -75,7 +92,9 @@ def adapter_name(adapter: str) -> str:
 def default_stream_usage(config: LLMConfig) -> bool:
     """Return a conservative stream-usage default for the configured adapter."""
 
-    if config.adapter == "anthropic":
+    if config.stream_usage is not None:
+        return config.stream_usage
+    if config.adapter in {"anthropic", "google-genai"}:
         return True
     if config.adapter == "deepseek":
         return False
@@ -83,6 +102,23 @@ def default_stream_usage(config: LLMConfig) -> bool:
         urlsplit(config.base_url or "https://api.openai.com").hostname or ""
     ).lower()
     return host == "api.openai.com"
+
+
+def output_token_options(config: LLMConfig, options: Mapping[str, Any] | None) -> dict[str, Any]:
+    """Map the public output budget before the SDK merges constructor defaults."""
+
+    kwargs = dict(options or {})
+    parameter = {
+        "openai": "max_completion_tokens",
+        "openai-responses": "max_completion_tokens",
+        "google-genai": "max_output_tokens",
+    }.get(config.adapter, "max_tokens")
+    if "max_tokens" in kwargs:
+        value = kwargs.pop("max_tokens")
+        if parameter in kwargs and kwargs[parameter] != value:
+            raise LLMModelFactoryError("conflicting output token budgets")
+        kwargs[parameter] = value
+    return kwargs
 
 
 def model_kwargs(
@@ -97,12 +133,8 @@ def model_kwargs(
     """Build provider constructor kwargs from ``LLMConfig`` without side imports."""
 
     kwargs = config.connection_kwargs()
-    if config.max_output_tokens is not None:
-        kwargs[
-            "max_completion_tokens"
-            if config.adapter in {"openai", "openai-responses"}
-            else "max_tokens"
-        ] = config.max_output_tokens
+    if config.max_output_tokens is not None and config.output_budget_mode == "profile":
+        kwargs.update(output_token_options(config, {"max_tokens": config.max_output_tokens}))
     if config.adapter in {"openai", "openai-responses"}:
         kwargs["use_responses_api"] = config.adapter == "openai-responses"
     kwargs["streaming"] = streaming
@@ -111,7 +143,14 @@ def model_kwargs(
     )
     if max_retries is not None:
         kwargs["max_retries"] = max_retries
-    kwargs.update(dict(model_options or {}))
+    kwargs.update(output_token_options(config, model_options))
+    if config.adapter == "google-genai":
+        # Native Gemini includes usage without OpenAI's stream_usage switch.
+        kwargs.pop("stream_usage", None)
+        kwargs["vertexai"] = False
+        # The pinned LangChain version does not forward False to the Google SDK.
+        if os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "").lower() in {"true", "1", "yes"}:
+            raise LLMModelFactoryError("google-genai requires GOOGLE_GENAI_USE_VERTEXAI to be unset or false")
     _apply_effort(kwargs, config, effort)
     return kwargs
 
@@ -143,6 +182,8 @@ def create_chat_model(
             from langchain_deepseek import ChatDeepSeek as ChatModel
         elif adapter == "anthropic":
             from langchain_anthropic import ChatAnthropic as ChatModel
+        elif adapter == "google-genai":
+            from langchain_google_genai import ChatGoogleGenerativeAI as ChatModel
         elif adapter in {"openai", "openai-responses"}:
             from langchain_openai import ChatOpenAI as ChatModel
         else:  # pragma: no cover - LLMConfig validates this today.
@@ -152,7 +193,7 @@ def create_chat_model(
         raise LLMModelFactoryError(f"{package} is required") from exc
 
     try:
-        return ChatModel(
+        model = ChatModel(
             **model_kwargs(
                 config,
                 streaming=streaming,
@@ -162,6 +203,9 @@ def create_chat_model(
                 effort=effort,
             )
         )
+        if adapter == "openai-responses":
+            guard_responses_stream_errors(model)
+        return model
     except LLMModelFactoryError:
         raise
     except Exception as exc:

@@ -38,6 +38,8 @@ python -c "from paper_stm_method.inputs import parse_fcstm; print(parse_fcstm('s
 
 ## 实验引用与边界
 
+原生 CLI 的 `--rounds 1 --round N` 可独立执行第1、2或3轮；省略 `--round` 保持从第1轮开始的既有行为。显式轮次进入 manifest/summary 与严格 resume hash，不需要伪造前轮回执。全54 pair 或超过代表性诊断子集上限的分批 live 运行另需 `--allow-full-live`；profile、轮次、输入集合与配置须由调用方在运行前登记，不再由入口硬编码为单一模型。每轮不读取此前轮次的发现。
+
 方法条件统一通过 `--ablation none|no-inspect|no-predicates` 传递，省略时为 `none`，保持完整方法行为。`no-inspect` 使用 method-local 受限视图：前置检查事实、诊断摘要及其派生候选/预检/D 校验关闭；保留作者源、FCSTM、转换追踪、源码分歧和当前 12 条谓词的候选专属执行。原输入在 `input_audits/` 保留，仅作审计，不传入发现流程。主动关闭记录为 `disabled_by_ablation`，不是检查通过。
 
 `no-predicates` 保留完整输入及检查事实、NL 契约与两路 grounding、普通语义绑定、源码分歧、内部 D 和发布归并。其实际 provider schema 不含谓词字段，首轮、补全和纠错不要求谓词计划或执行结果。候选路由、谓词参数绑定、执行专属探针（含运行时 post-state frontier）、编译、backend 和 true 回执过滤整体关闭；`predicate_execution_receipts=[]`，语义证据使用 `semantic_evidence_record.v1`、W0/W1 和空 plan/receipt，不伪造执行失败。原有 native 初始迁移领域不变量、缺边发现和 guard 归并继续使用普通契约/模型引用；没有执行回执本身不使 cell 无效。

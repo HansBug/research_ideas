@@ -15,6 +15,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--profile", default="gpt-5.6-luna")
     parser.add_argument("--ablation", choices=ABLATION_MODES, default="none", help="Method condition; unimplemented conditions fail before provider execution.")
     parser.add_argument("--rounds", type=int, default=3)
+    parser.add_argument("--round", type=int, choices=(1, 2, 3), default=None,
+                        help="Execute one independent protocol round; requires --rounds 1.")
     parser.add_argument(
         "--pair-id",
         dest="pair_ids",
@@ -34,7 +36,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--allow-full-live",
         action="store_true",
-        help="Second explicit gate for the frozen 54-pair three-round run after representative-pair review.",
+        help="Second explicit gate for full or larger batched runs after representative-pair review.",
     )
     parser.add_argument(
         "--workers",
@@ -68,6 +70,7 @@ def main(argv: list[str] | None = None) -> int:
         profile=args.profile,
         ablation=args.ablation,
         rounds=args.rounds,
+        round_index=args.round,
         resume=args.resume,
         allow_live=args.allow_live,
         allow_full_live=args.allow_full_live,

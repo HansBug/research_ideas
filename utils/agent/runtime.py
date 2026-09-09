@@ -23,6 +23,7 @@ from urllib.parse import quote, urlsplit
 from pydantic import BaseModel
 
 from utils.llm import LLMConfig, LLMRegistry, prompt_cache_policy
+from utils.llm.model_factory import GOOGLE_THINKING_LEVELS, default_stream_usage, guard_responses_stream_errors, model_kwargs, output_token_options
 
 try:
     from langchain.agents import create_agent
@@ -237,7 +238,7 @@ _USAGE_KEY = re.compile(
     re.I,
 )
 _NON_SECRET_FLAG_KEY = re.compile(r"(?:configured|present|enabled|set|available)$", re.I)
-_NON_SECRET_NUMERIC_KEY = re.compile(r"(?:^|_)(?:context|context_window|context_basis|max_output|safe_input|compact_threshold|threshold|window|max_input|input|output|total|prompt|completion|cached|reasoning)(?:_tokens)?$", re.I)
+_NON_SECRET_NUMERIC_KEY = re.compile(r"(?:^|_)(?:context|context_window|context_basis|max|max_completion|max_output|safe_input|compact_threshold|threshold|window|max_input|input|output|total|prompt|completion|cached|reasoning)(?:_tokens)?$", re.I)
 _ENDPOINT_KEY = re.compile(r"(?:base[_-]?url|api[_-]?url|endpoint)", re.I)
 _SECRET_MAPPING_CONTAINERS = frozenset({"headers", "default_headers"})
 _BEARER_VALUE = re.compile(
@@ -460,6 +461,14 @@ def _tool_name(tool: Any) -> str:
     return str(name)
 
 
+def _structured_tool_names(name: str | None) -> frozenset[str]:
+    """Accept the lower-camel spelling emitted by Harmony Responses."""
+
+    if not name:
+        return frozenset()
+    return frozenset({name, name[:1].lower() + name[1:]})
+
+
 def _tool_description(tool: Any) -> str:
     description = str(getattr(tool, "description", None) or inspect.getdoc(tool) or "").strip()
     return description or f"Invoke the registered tool '{_tool_name(tool)}'."
@@ -518,6 +527,8 @@ def _validate_model_call_options(options: Mapping[str, Any] | None) -> None:
 
 
 def _validate_adapter_call_options(config: LLMConfig, options: Mapping[str, Any] | None) -> None:
+    if config.adapter == "google-genai" and "verbosity" in (options or {}):
+        raise ValueError("model_call_options_not_supported: adapter=google-genai options=['verbosity']")
     if config.adapter != "anthropic":
         return
     unsupported = set(options or {}) & {"seed", "verbosity"}
@@ -534,12 +545,7 @@ def _is_deepseek_config(config: LLMConfig) -> bool:
 def _default_stream_usage(config: LLMConfig) -> bool:
     """Return the adapter transport's safe default for streamed usage metadata."""
 
-    if config.adapter == "anthropic":
-        return True
-    if config.adapter == "deepseek":
-        return False
-    host = (urlsplit(config.base_url or "https://api.openai.com").hostname or "").lower()
-    return host == "api.openai.com"
+    return default_stream_usage(config)
 
 
 def _prompt_cache_policy(config: LLMConfig) -> dict[str, Any]:
@@ -574,6 +580,12 @@ def _is_openai_reasoning_model(config: LLMConfig) -> bool:
     return config.adapter == "openai" and model.startswith(("gpt-5", "o1", "o3", "o4"))
 
 
+def _is_gpt_oss_harmony(config: LLMConfig) -> bool:
+    """gpt-oss/Harmony rejects the OpenAI ``none`` reasoning value."""
+
+    return config.adapter == "openai-responses" and config.model.lower().startswith("gpt-oss")
+
+
 def _resolve_inference_options(
     config: LLMConfig,
     *,
@@ -583,11 +595,23 @@ def _resolve_inference_options(
 ) -> tuple[dict[str, Any], bool | None]:
     if not isinstance(think_mode, bool):
         raise ValueError("think_mode must be a boolean")
+    # Harmony exposes only low/medium/high.  Leaving the option omitted makes
+    # the remote runtime choose an opaque default, which is unsuitable for a
+    # reproducible structured-output run.  Pin the adapter-owned default while
+    # preserving explicit caller controls and all other providers' behavior.
+    if (
+        _is_gpt_oss_harmony(config)
+        and not think_mode
+        and reasoning_effort is None
+        and not (model_call_options or {}).get("reasoning_effort")
+    ):
+        think_mode = True
+        reasoning_effort = "low"
     if reasoning_effort is not None and not isinstance(reasoning_effort, str):
         raise ValueError("reasoning_effort must be a string or None")
     if reasoning_effort is not None and not think_mode:
         raise ValueError("reasoning_effort requires think_mode=True")
-    options = dict(model_call_options or {})
+    options = output_token_options(config, model_call_options)
     if not think_mode and options.get("reasoning_effort") is not None:
         raise ValueError("reasoning_effort requires think_mode=True")
     if reasoning_effort is not None:
@@ -601,10 +625,20 @@ def _resolve_inference_options(
             "anthropic_thinking_not_supported: provider-neutral forced-tool semantics require think_mode=False"
         )
 
+    if config.adapter == "google-genai":
+        if reasoning_effort is not None and reasoning_effort not in GOOGLE_THINKING_LEVELS:
+            raise ValueError(f"unsupported effort {reasoning_effort!r} for google-genai")
+        # Gemini 3 cannot disable thinking. An omitted control is provider-default.
+        return options, True if think_mode else None
+
     deepseek = _is_deepseek_config(config)
     effective_think_mode = think_mode
+    if config.adapter == "openai" and not _is_openai_reasoning_model(config) and not think_mode:
+        # No control is sent for other compatible models; serving owns the default.
+        effective_think_mode = None
     if not think_mode and (
-        _is_openai_reasoning_model(config) or config.adapter == "openai-responses"
+        _is_openai_reasoning_model(config)
+        or (config.adapter == "openai-responses" and not _is_gpt_oss_harmony(config))
     ):
         # Pin the adapter's explicit think-off value instead of relying on a
         # provider default that would change the experiment semantics.
@@ -630,6 +664,8 @@ def _dependency_versions() -> dict[str, str | None]:
         "langchain-openai",
         "langchain-anthropic",
         "langchain-deepseek",
+        "langchain-google-genai",
+        "google-genai",
         "openai",
         "anthropic",
     )
@@ -1417,19 +1453,33 @@ def _redact_exception_text(value: str) -> str:
     return _redact_text(value, redact_endpoints=True)
 
 
+def _provider_status_code(exc: BaseException) -> int | None:
+    status = getattr(exc, "status_code", None)
+    if isinstance(status, int):
+        return status
+    try:
+        from google.genai.errors import APIError
+    except ImportError:
+        return None
+    # The Google SDK and LangChain's Google wrappers expose HTTP status as code.
+    return exc.code if isinstance(exc, APIError) else None
+
+
 def _exception_details(exc: BaseException) -> dict[str, Any]:
     if isinstance(exc, AgentError):
         return _redact({"type": type(exc).__name__, "code": exc.code, "message": exc.message, **exc.details})
     module = type(exc).__module__.lower()
     source = (
         "provider"
-        if getattr(exc, "status_code", None) is not None
+        if _provider_status_code(exc) is not None
         or "openai" in module
         or "anthropic" in module
         or "httpx" in module
         else "runtime"
     )
     details: dict[str, Any] = {"source": source, "type": type(exc).__name__}
+    if (status_code := _provider_status_code(exc)) is not None:
+        details["status_code"] = status_code
     if message := str(exc):
         details["message"] = _redact_exception_text(message)
     for attribute in ("status_code", "code", "request_id"):
@@ -1445,6 +1495,9 @@ def _exception_details(exc: BaseException) -> dict[str, Any]:
                 safe_body[key] = _redact_exception_text(value) if isinstance(value, str) else _redact(value, key=key)
         if safe_body:
             details["body"] = safe_body
+    provider_details = getattr(exc, "details", None)
+    if isinstance(provider_details, Mapping) and provider_details.get("source") == "provider":
+        details.update(_redact(dict(provider_details)))
     return details
 
 
@@ -1465,9 +1518,10 @@ def _retryable_transport_error(exc: BaseException) -> bool:
     """Classify only transient provider transport failures as replay-safe."""
 
     for item in _exception_chain(exc):
-        if isinstance(item, AgentError) and item.details.get("source") == "provider" and "retryable" in item.details:
-            return item.details["retryable"] is True
-        status_code = getattr(item, "status_code", None)
+        provider_details = getattr(item, "details", None)
+        if isinstance(provider_details, Mapping) and provider_details.get("source") == "provider" and "retryable" in provider_details:
+            return provider_details["retryable"] is True
+        status_code = _provider_status_code(item)
         if status_code in _RETRYABLE_TRANSPORT_STATUS_CODES:
             return True
         if isinstance(item, AgentError):
@@ -2049,7 +2103,7 @@ class _Renderer:
         lines = (
             f"run       id={event.run_id} · agent={cls._setting(cls._first(data.get('agent'), data.get('agent_name'), data.get('name')))} · profile={cls._setting(data.get('profile'), default='direct')} · model={cls._setting(data.get('model'))} · real={cls._setting(data.get('real_llm'))}",
             f"model     adapter={cls._setting(data.get('adapter'), default='unknown')} · config={config_fingerprint} · endpoint={endpoint_fingerprint} · stream={cls._setting(option('streaming'))} · usage={cls._setting(option('stream_usage'))}",
-            f"inference think={cls._setting(option('think_mode'), default='false')} · effort={cls._setting(option('reasoning_effort'), default='none')} · sampling={sampling_text} · sdk_retries={cls._setting(option('max_retries'), default='unknown')} · transport_retries={cls._setting(option('transport_retries'), default='unknown')} · timeout={cls._setting(option('timeout'), default='default')} · cache_policy={cls._setting(prompt_cache.get('mode'), default='provider-default')} · cache_ttl={cls._setting(prompt_cache.get('ttl'), default='provider-default')}",
+            f"inference think={cls._setting(option('think_mode'), default='provider-default')} · effort={cls._setting(option('reasoning_effort'), default='none')} · sampling={sampling_text} · sdk_retries={cls._setting(option('max_retries'), default='unknown')} · transport_retries={cls._setting(option('transport_retries'), default='unknown')} · timeout={cls._setting(option('timeout'), default='default')} · cache_policy={cls._setting(prompt_cache.get('mode'), default='provider-default')} · cache_ttl={cls._setting(prompt_cache.get('ttl'), default='provider-default')}",
             f"behavior  system={cls._fingerprint(data.get('system_prompt_hash'))} · tools={cls._fingerprint(data.get('tools_hash'))} · input={cls._fingerprint(data.get('input_hash'))} · context={cls._fingerprint(data.get('context_manifest_hash'))}",
             f"inputs    system_chars={cls._number(data.get('system_chars'))} · task_chars={cls._number(data.get('input_chars'))} · context_pages={cls._number(data.get('context_pages'))}",
             f"tools     count={cls._number(data.get('tool_count', len(tool_names.split(', ')) if tool_names != 'none' else 0))} · allowlist={tool_names} · required={cls._setting(cls._first(data.get('require_tool_call'), data.get('required_tool')), default='false')} · multiple=allowed",
@@ -2699,9 +2753,11 @@ class _AgentGuardMiddleware(AgentMiddleware):
             return
         calls = list(getattr(last, "tool_calls", None) or [])
         registered = set(self.spec.tool_names)
-        structured_names = set()
-        if self.spec.output_schema is not None:
-            structured_names.add(self.spec.output_schema.__name__)
+        structured_names = (
+            _structured_tool_names(self.spec.output_schema.__name__)
+            if self.spec.output_schema is not None
+            else frozenset()
+        )
         unknown = [call.get("name") for call in calls if call.get("name") not in registered | structured_names]
         if unknown:
             raise AgentError("tool_not_allowed", f"tool is not registered: {unknown[0]}")
@@ -2816,7 +2872,8 @@ def _balance_invalid_structured_tool_calls(
 ) -> tuple[list[Any], bool]:
     """Add protocol replies for malformed synthetic structured-output calls."""
 
-    if not structured_output_name:
+    structured_names = _structured_tool_names(structured_output_name)
+    if not structured_names:
         return list(messages), False
     balanced: list[Any] = []
     changed = False
@@ -2828,7 +2885,7 @@ def _balance_invalid_structured_tool_calls(
             call
             for call in _message_protocol_tool_calls(message)
             if not call.get("valid")
-            and call.get("name") == structured_output_name
+            and call.get("name") in structured_names
             and call.get("tool_call_id")
         ]
         if not invalid_calls:
@@ -3349,6 +3406,7 @@ class AgentApp:
                 "openai-responses": "langchain-openai/responses",
                 "anthropic": "langchain-anthropic/messages",
                 "deepseek": "langchain-deepseek/chat-completions",
+                "google-genai": "langchain-google-genai/generate-content",
             }[config.adapter]
         )
 
@@ -3368,6 +3426,8 @@ class AgentApp:
                 from langchain_deepseek import ChatDeepSeek as ChatModel
             elif adapter == "anthropic":
                 from langchain_anthropic import ChatAnthropic as ChatModel
+            elif adapter == "google-genai":
+                from langchain_google_genai import ChatGoogleGenerativeAI as ChatModel
             else:
                 from langchain_openai import ChatOpenAI as ChatModel
         except ImportError as exc:  # pragma: no cover
@@ -3376,31 +3436,14 @@ class AgentApp:
                 "openai-responses": "langchain-openai",
                 "anthropic": "langchain-anthropic",
                 "deepseek": "langchain-deepseek",
+                "google-genai": "langchain-google-genai",
             }[adapter]
             raise AgentError("config_error", f"{package} is required") from exc
-        kwargs = config.connection_kwargs()
-        if config.max_output_tokens is not None:
-            kwargs[
-                "max_completion_tokens"
-                if adapter in {"openai", "openai-responses"}
-                else "max_tokens"
-            ] = config.max_output_tokens
-        if adapter in {"openai", "openai-responses"}:
-            kwargs["use_responses_api"] = adapter == "openai-responses"
-        kwargs.update(
-            {
-                "streaming": True,
-                "stream_usage": _default_stream_usage(config),
-                "max_retries": 0,
-            }
-        )
-        kwargs.update(dict(model_options or {}))
+        kwargs = model_kwargs(config, model_options=model_options)
         try:
             model = ChatModel(**kwargs)
             if adapter == "openai-responses":
-                from .responses_stream import guard_responses_streams
-
-                guard_responses_streams(model)
+                guard_responses_stream_errors(model)
         except Exception as exc:
             raise AgentError("config_error", "model construction failed", details=_exception_details(exc)) from exc
         return cls(spec, config, model, profile=profile)
@@ -3478,6 +3521,16 @@ class AgentApp:
             self.config,
             max_output_override=max_output_override if isinstance(max_output_override, int) else None,
         )
+        inference_summary["output_budget"] = {
+            "profile_max_output_tokens": self.config.max_output_tokens,
+            "call_max_output_tokens": max_output_override,
+            "request_max_output_tokens": max_output_override if max_output_override is not None else getattr(
+                self.model, "max_output_tokens", getattr(self.model, "max_tokens", None)
+            ),
+            "source": "run_override" if max_output_override is not None else (
+                "provider_remaining_context" if self.config.output_budget_mode == "remaining_context" else "profile"
+            ),
+        }
         compact_threshold = (
             math.floor(context_window_tokens * compact_trigger_ratio)
             if context_window_tokens is not None and compact_trigger_ratio is not None
@@ -3963,6 +4016,7 @@ class AgentApp:
             observed_usages: Sequence[Mapping[str, Any]] | None = None,
             usage_conflict: bool = False,
             response_id: str | None = None,
+            provider_response: Mapping[str, Any] | None = None,
         ) -> None:
             item = _normalize_usage(
                 raw_usage,
@@ -3975,6 +4029,8 @@ class AgentApp:
                 response_id=response_id,
             )
             item["model_call_id"] = call_id
+            item["output_budget"] = dict(inference_summary["output_budget"])
+            item["provider_response"] = dict(provider_response or {})
             if call_id:
                 item.update(public_model_timing(call_id))
             usage.append(item)
@@ -4010,12 +4066,13 @@ class AgentApp:
                 )
             _mark_message_shown(ai, shown_message_keys)
             structured_name = self.spec.output_schema.__name__ if self.spec.output_schema is not None else None
+            structured_names = _structured_tool_names(structured_name)
             requests = [
                 _tool_request(
                     call,
                     attempt_id,
                     call_turn,
-                    kind="structured" if call.get("name") == structured_name else "business",
+                    kind="structured" if call.get("name") in structured_names else "business",
                 )
                 for call in calls
             ]
@@ -4081,7 +4138,7 @@ class AgentApp:
             unknown_requests = [
                 item
                 for item in requests
-                if item["name"] not in self.spec.tool_names and item["name"] != structured_name
+                if item["name"] not in self.spec.tool_names and item["name"] not in structured_names
             ]
             business_requests = [item for item in requests if item["name"] in self.spec.tool_names]
             for request in unknown_requests:
@@ -4090,7 +4147,7 @@ class AgentApp:
                 with contextlib.suppress(ValueError):
                     ids.remove(str(request["tool_call_id"]))
                 audit_tool_action(request, turn_value=call_turn)
-            if structured_name and business_requests and any(item["name"] == structured_name for item in requests):
+            if structured_name and business_requests and any(item["name"] in structured_names for item in requests):
                 for request in business_requests:
                     request.update({
                         "status": "rejected",
@@ -4235,6 +4292,12 @@ class AgentApp:
                 ),
                 None,
             )
+            provider_response = {}
+            for message in _model_output_messages(response):
+                response_metadata = getattr(message, "response_metadata", {}) or {}
+                for key in ("finish_reason", "stop_reason", "status", "incomplete_details"):
+                    if key in response_metadata:
+                        provider_response[key] = response_metadata[key]
             record_transport_usage(
                 raw_usage,
                 call_id,
@@ -4243,6 +4306,7 @@ class AgentApp:
                 observed_usages=observed_usages,
                 usage_conflict=usage_conflict,
                 response_id=response_id if isinstance(response_id, str) else None,
+                provider_response=provider_response,
             )
             if call_kind == "primary" and compact_tracker is not None:
                 compact_tracker.primary_completed()
@@ -5086,8 +5150,8 @@ class AgentApp:
                     business_names=self.spec.tool_names,
                 )
                 for rejected_call in rejected_calls:
-                    is_structured = (
-                        rejected_call.get("name") == self.spec.output_schema.__name__
+                    is_structured = rejected_call.get("name") in _structured_tool_names(
+                        self.spec.output_schema.__name__
                     )
                     rejected_record = {
                         "kind": "structured" if is_structured else "business",
@@ -5575,7 +5639,8 @@ def _prepare_recovery_history(
     """
 
     history = list(messages)
-    recoverable_names = {structured_name, *business_names}
+    structured_names = _structured_tool_names(structured_name)
+    recoverable_names = {*structured_names, *business_names}
     pending: dict[str, dict[str, Any]] = {}
     pending_index: int | None = None
     for index, message in enumerate(history):
