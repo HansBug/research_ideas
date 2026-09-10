@@ -204,7 +204,17 @@ def analyze(root):
     for path in (root / "cells").glob("*/round-*/attempts/*/provider/**/audit.jsonl"):
         with path.open() as stream:
             transport_retries += sum(json.loads(line).get("record_type") == "transport_retry" for line in stream)
-    judge_calls = sum(len(json.loads(p.read_text())["call_receipts"]) for p in (root / "judge").glob("*/pairs/*.json"))
+    judge_receipts = []
+    for path in sorted((root / "judge").glob("*/*/*.json")):
+        if path.parent.name not in {"pairs", "failures"}:
+            continue
+        record = json.loads(path.read_text())
+        for call in record["call_receipts"]:
+            assert 1 <= len(call["report_ids"]) <= 8
+            judge_receipts.append({"source": str(path.relative_to(root)), "pair": record["pair_id"],
+                                   "round": record["round"], "parent_status": path.parent.name,
+                                   **{k: call[k] for k in ("call_id", "batch_id", "report_ids", "phase", "status", "prompt_hash")}})
+    judge_calls = sum(r["parent_status"] == "pairs" for r in judge_receipts)
     return {"schema": "paper1.a4.analysis.v1", "model": manifest["identity"]["model"],
             "identity": manifest["identity"], "namespace": manifest["namespace"], "source_hashes": source_hashes,
             "metrics": metrics, "rounds": rounds, "routes": dict(routes), "transitions": dict(transitions),
@@ -218,6 +228,7 @@ def analyze(root):
                       "schema_failures_final_layout": schema_failures, "residual_judge_completed_receipts": judge_calls},
             "errors": errors, "cells": cells, "candidates": candidates, "publications": publications,
             "examples": examples, "usage": list(usage.values()),
+            "judge_batches": judge_receipts,
             "hit_changes": hit_changes, "precision_decomposition": decomposition,
             "paired_by_pair": pair_deltas,
             "scope": "Conditional terminal intervention; paired by pair across all three rounds. No significance interval or population-independence claim."}
