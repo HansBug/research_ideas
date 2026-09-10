@@ -47,6 +47,10 @@ python -m paper_stm_evaluation.a4_run verify --paper-root "$P" --output "$OUT"
 
 `verify` 不调用 provider；它重新核验来源并从最终报告重建三路核销。完整退出还需全部残余裁定与结果分析，不以脚本退出码代替逐格检查。provider/schema 失败必须处理；语义 unresolved 和原校验机制的正常降级保留，不通过改语义规则制造发布。
 
+四模型 CLI 使用同一入口：Luna 为 `--model luna --profile gpt-5.6-luna`，Qwen 为 `--model qwen --profile e1-qwen38-27b`，Muse 为 `--model muse --profile e1-muse30b`。各模型使用独立 `OUT`。开放模型的独立 conda、固定权重 revision、YaRN/Muse 启动参数和 tunnel 见 [E1 复现附录](../../../../reports/model_readiness_20260906/2026-09-07-11-55-00-reproduction.md)。共用服务端口时，先核验 `/v1/models` 与目标 profile 一致，不能同时向两个模型 profile 发请求。
+
+2026-09-10 四模型实测共同执行文件 hash 为 `sha256:102adc2981f0a74cf8ee0359911f64062698759300fea1b9f6d57849d0ffe85f`。开放模型在既有商业模型任务运行期间通过同一 `freeze/execute_cell/verify` 函数的本地启动器运行，避免修改在途代码指纹；全部 648 格结束后，正式 CLI 仅扩展模型枚举，不变更重放逻辑。原运行 manifest 保留实测 commit 和文件 hash；新 clone 的新运行使用新 namespace，不把不同代码版本混作同一次恢复。
+
 ## 分析口径
 
 主比较使用 Full 与 A4 双方全部三轮，而非挑选单轮。K、N、I 是最终唯一报告数：pooled precision = (K+N)/(K+N+I)；I/完成格衡量每格无效报告负担；K+N 衡量有效产出量。逐轮各 54 格单列同样指标，逐轮 precision 的均值与 pooled precision 区分。hit/expected coverage 从最终有效报告关系重新计算。

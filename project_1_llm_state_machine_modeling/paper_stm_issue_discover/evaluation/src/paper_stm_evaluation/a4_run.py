@@ -21,7 +21,7 @@ from paper_stm_method.orchestration.runner import _source_provenance
 
 from .a4_accounting import account_cell
 from .a4_replay import TREATMENT, digest, mask_prepared, replay_tail, restore_pair
-from .a4_sources import checked_json, source_manifest
+from .a4_sources import REFERENCE, checked_json, source_manifest
 
 
 def code_identity(paper: Path) -> dict:
@@ -153,7 +153,7 @@ def main() -> None:
     parser.add_argument("--paper-root", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--input-root", type=Path)
-    parser.add_argument("--model", choices=("sonnet", "luna"))
+    parser.add_argument("--model", choices=tuple(REFERENCE))
     parser.add_argument("--profile")
     parser.add_argument("--workers", type=int, default=16)
     parser.add_argument("--limit", type=int, help="Preselected prefix smoke; successful cells remain in the same population")
