@@ -8,6 +8,11 @@ from analyze_a3 import arithmetic, content_breakdown, normalized_reports, per_ro
 from verify_sources import PAPER, digest, read
 
 
+def verify_relation_coverage(relations, anonymous, expected_ids):
+    observed = {r["report_id"] for r in relations["responses"]} | set(relations["backend_invalid_report_ids"])
+    assert observed == (anonymous if expected_ids else set())
+
+
 def analyze(root, allow_partial=False):
     math = arithmetic()
     items = read(PAPER / "discover_matrix/ledger_v2/ledger.json")["items"]
@@ -63,13 +68,14 @@ def analyze(root, allow_partial=False):
                 assert judge["adapter_audit"]["source_hash"] == digest(path)
                 assert {r["original_report_id"] for r in judge["report_outcomes"]} == {r["issue_id"] for r in method["report_issue_clusters"]}
                 anonymous = {r["anonymous_id"] for r in judge["adapter_audit"]["report_id_map"]}
+                expected_ids = {e for e, item in items.items() if item["pair"] == key[0]}
                 for reading in (1, 2):
                     certificates = judge[f"validity_reading_{reading}"]["certificates"]
                     assert len(certificates) == len(anonymous)
                     assert {c["report_id"] for c in certificates} == anonymous
                     relations = judge[f"relation_reading_{reading}"]
-                    assert {r["report_id"] for r in relations["responses"]} | set(relations["backend_invalid_report_ids"]) == anonymous
-                assert {e["ledger_id"] for e in judge["expected_outcomes"]} == {e for e, item in items.items() if item["pair"] == key[0]}
+                    verify_relation_coverage(relations, anonymous, expected_ids)
+                assert {e["ledger_id"] for e in judge["expected_outcomes"]} == expected_ids
                 for expected_row in judge["expected_outcomes"]:
                     eid = expected_row["ledger_id"]
                     valid = [r for r in judge["report_outcomes"] if r["validity"] == "VALID_KNOWN"]
