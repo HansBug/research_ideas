@@ -182,3 +182,30 @@ def test_exact_state_refs_execute_in_native_graph_backend():
     prepared = runner._prepare_candidate(pair, adapted, 1, 0, infer_missing_subject=False)
     assert prepared["receipt"].terminal_state == "completed"
     assert prepared["receipt"].verdict in ("true", "false")
+
+
+def test_audit_write_failure_does_not_claim_publication(monkeypatch, tmp_path):
+    from paper_stm_method.orchestration import direct_report
+
+    pair = load_pair(REPORT / "pairs/0000")
+    write = direct_report.write_json
+
+    def fail_audit(path, value):
+        if "audit_bundles" in path.parts:
+            raise OSError("fixture audit write failure")
+        return write(path, value)
+
+    monkeypatch.setattr(direct_report, "write_json", fail_audit)
+    cell = runner._method_cell(
+        pair=pair, round_index=1, runtime=Runtime([reports(pair)[1]]), output_root=tmp_path,
+        run_identity={"ablation": "direct-report", "run_id": "a" * 32,
+                      "run_contract_hash": "sha256:" + "b" * 64,
+                      "source_provenance": runner._source_provenance()},
+    )
+    assert cell["eligible"] and cell["status"] == "completed_with_diagnostics"
+    assert not cell["report_issue_clusters"]
+    record = cell["evidence_records"][0]
+    assert record["receipt"]["verdict"] == "false"
+    assert not record["issue_emitted"] and record["final_report_id"] is None
+    assert record["publication_status"] == "coverage_gap" and record["witness_level"] == "W0"
+    assert record["diagnostic"]["error_type"] == "OSError"

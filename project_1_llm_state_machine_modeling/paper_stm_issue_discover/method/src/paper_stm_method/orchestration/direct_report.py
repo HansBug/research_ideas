@@ -276,6 +276,8 @@ def direct_report_cell(*, pair, round_index, runtime, output_root, run_identity)
                            "message": str(exc), "reason": "Instance execution/publication degraded; original claim retained.",
                            "basis": "A3 candidate-local diagnostic"})
             record["diagnostic"] = errors[-1]
+            record.update(issue_emitted=False, publication_status="coverage_gap",
+                          final_report_id=None, witness_level="W0", coverage_class="coverage_gap")
         records.append(record)
 
     release = list(release_by_key.values())
