@@ -30,11 +30,13 @@ def predicate_view(data):
                              "current_predicate_id": mapping.current_predicate_id(version, predicate),
                              **{label: counts[predicate, validity] for label, validity in
                                 (("K", "VALID_KNOWN"), ("N", "VALID_NOVEL"), ("I", "INVALID"))}})
-    return {"schema": "a3.predicate-report-view.v1", "mapping_sha256": digest(path), "rows": rows,
-            "scope": "Labels on frozen published reports only. Preserve original IDs; no execution or judgement changes. Luna Full is pre-P1; Sonnet Full and both A3 runs use P1."}
+    scope = "Labels on frozen published reports only. Preserve original IDs; no execution or judgement changes. Luna Full is pre-P1; Sonnet Full and both A3 runs use P1."
+    if set(data["models"]) == {"qwen", "muse"}:
+        scope = "Labels on frozen Qwen/Muse published reports only; Full and A3 use P1. Preserve original IDs; no execution or judgement changes."
+    return {"schema": "a3.predicate-report-view.v1", "mapping_sha256": digest(path), "rows": rows, "scope": scope}
 
 
-def verify(archive):
+def verify(archive, models=("sonnet", "luna")):
     manifest = read(archive / "archive_manifest.json")
     for name, expected_hash in manifest["files"].items():
         assert digest(archive / name) == expected_hash, name
@@ -43,7 +45,7 @@ def verify(archive):
     items = read(ledger)["items"]
     data, math = read(archive / "results.json"), arithmetic()
     assert predicate_view(data) == read(archive / "predicate_view.json")
-    assert data["complete"] and set(data["models"]) == {"sonnet", "luna"}
+    assert data["complete"] and set(data["models"]) == set(models)
     assert len(items) == data["ledger_items"] == 145
     assert data["expected_round_units"] == 435
     for model, arms in data["models"].items():
@@ -86,8 +88,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--archive", type=Path, default=PAPER / "final_results/a3_20260910")
     parser.add_argument("--raw-root", type=Path)
+    parser.add_argument("--model", action="append", choices=("sonnet", "luna", "qwen", "muse"), help="Expected model group; defaults to the original Sonnet/Luna archive.")
     args = parser.parse_args()
-    result = verify(args.archive)
+    result = verify(args.archive, args.model or ("sonnet", "luna"))
     if args.raw_root:
         inventory = read(args.archive / "raw_index.json")["files"]
         for name, record in inventory.items():
