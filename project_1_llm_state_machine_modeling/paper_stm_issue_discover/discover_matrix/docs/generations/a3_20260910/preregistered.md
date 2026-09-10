@@ -74,6 +74,8 @@ Sonnet 0046/r3 的首次回复已包含九条完整报告，但 JSON 被包在�
 
 ## 5. 调度与裁定
 
+**2026-09-10 开放模型 judge 阶段（后续明确授权）：** 用户在 Qwen/Muse method 独立归档完成后，授权以总计 24 workers 完整裁定两模型的 324 格、853 条最终报告，并汇总四模型结果。运行前已确认 page9 右侧 A4 完成且无活跃 Luna worker。采用三组 round 队列、每组 8 workers，每组依次处理 Qwen 和 Muse，不叠加额外池。沿用 Sonnet/Luna 的同一 Luna 配置、stream、24000 输出上限、两读、arbitration、trigger=any、relation_first、closure_profile=full；盲投影与原生批处理不变。Qwen `0002/r2` 只使用已核验的结构恢复发布结果，原始失败只作审计。冻结 method-only 与 Sonnet/Luna 归档不回写，新增 judge 和四模型汇总独立存放。成功阶段不重判，provider/schema 异常按原规则保留证据并定向恢复，不以标签或效果为重采样依据；不自动合并、不放行 O2。
+
 **2026-09-10 开放模型 method-only 阶段（用户明确授权）：** 依次完成 Qwen、Muse，各冻结 54 pair × 3 round = 162 格；本阶段不启动任何外部 judge，裁定须等用户后续指令。复用远端 GPU 4-7 的现有权重与独立 conda，优先复用驻留 Qwen；method 总并发最多 16。Qwen 使用 `e1-qwen38-27b`（low、1,000,000 YaRN），Muse 使用 `e1-muse30b`（high、131,072），两者沿用 E1/E2 的 stream、remaining_context、TP4 和固定权重，启动参数见 [E1 复现附录](../../../../reports/model_readiness_20260906/2026-09-07-11-55-00-reproduction.md)。共享配置已不含这两个 profile，因此按既有 A4 manifest 的全部公开字段在仓库外重建权限 600 的专用配置，使用同一无鉴权 loopback 服务；不修改共享配置。原冻结 A3 prompt/schema、输入与执行发布规则不变，正常结果不重采样。方法产物独立归档，judge 状态明确为未运行，不生成 K/N/I 或 precision。
 
 Qwen `0002/r2` 的首次工具参数把四条完整报告各拆成相邻两个对象，前块恰为 title/requirement_quote/source_quote/source_refs，后块恰为原 schema 的全部其余字段。六次原位纠正未通过，后五次还产生了无效 JSON 字符串。[recover_tool_envelope.py](recover_tool_envelope.py) 仅在上述精确字段分区、顺序、非空偶数长度成立时合回首次回复，缺失/重复/冲突/逆序均拒绝，随后用原 schema 校验。此为事后结构接口修复，保留全部失败、原件和 usage，独立派生执行发布结果；无新 LLM 调用、无字段值改写、不修改冻结生成 prompt/schema，不将异常恢复伪装成正常一次成功。
