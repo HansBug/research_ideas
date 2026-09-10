@@ -142,18 +142,43 @@ def build_prompt(pair) -> str:
 def execution_candidate(candidate, pair):
     # The prompt's exact projection refs and native paths identify the same state.
     paths = {state.ref: state.canonical_path for state in pair.model.states}
+    event_paths = {event.ref: event.canonical_path for event in pair.model.events}
+    event_names = {key: event.name for event in pair.model.events for key in (event.ref, event.canonical_path)}
 
-    def native(value):
+    def native(value, identities):
         if isinstance(value, str):
-            return paths.get(value, value)
-        if isinstance(value, list):
-            return [native(item) for item in value]
+            return identities.get(value, value)
+        if isinstance(value, (list, tuple)):
+            return [native(item, identities) for item in value]
         return value
 
     inputs = dict(candidate.predicate_inputs)
-    for key in ("source", "target", "scope", "initial_scope"):
+    for key in ("source", "target", "scope", "initial_scope", "state", "roots", "marked"):
         if key in inputs:
-            inputs[key] = native(inputs[key])
+            inputs[key] = native(inputs[key], paths)
+    if candidate.predicate_id == "S1" and "element" in inputs:
+        identities = paths if inputs.get("kind") == "state" else event_paths if inputs.get("kind") == "event" else {}
+        inputs["element"] = native(inputs["element"], identities)
+    for key in ("triggers", "event"):
+        if key in inputs:
+            inputs[key] = native(inputs[key], event_names)
+    if "stimulus" in inputs:
+        inputs["stimulus"] = native(inputs["stimulus"], event_paths)
+    if isinstance(inputs.get("scenario"), dict):
+        scenario = dict(inputs["scenario"])
+        for key in ("root_state", "expected_active_before", "expected_active_after"):
+            if key in scenario:
+                scenario[key] = native(scenario[key], paths)
+        for key in ("event_queue", "selected_event_path"):
+            if key in scenario:
+                scenario[key] = native(scenario[key], event_paths)
+        if isinstance(scenario.get("schedule"), list):
+            scenario["schedule"] = [
+                {**step, "event_paths": native(step["event_paths"], event_paths)}
+                if isinstance(step, dict) and "event_paths" in step else step
+                for step in scenario["schedule"]
+            ]
+        inputs["scenario"] = scenario
     return candidate.model_copy(update={"predicate_inputs": inputs})
 
 
