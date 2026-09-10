@@ -31,6 +31,7 @@
 5. [story/](./story/README.md) 给出论文叙事、claim 与术语；[archive/experiment_history/](./archive/experiment_history/README.md) 给出重要历史代次的可比性边界。
 6. [scripts/](./scripts/README.md) 列出所有薄命令行入口；[pipeline/](./pipeline/README.md) 仅保留输入准备和基础设施导航。
 7. [E2 三模型双臂事前登记](./discover_matrix/docs/generations/e2_20260907/preregistered.md) 定义972个新增格、历史Luna只读引用、固定Luna裁定及配对分析；执行进度见其合同PR，事前计划不作为效果结果。
+8. A3 的 [Sonnet/Luna 完整归档](./final_results/a3_20260910/README.md) 与 [Qwen/Muse method-only 归档](./final_results/a3_open_method_20260910/README.md) 分开保存；后者只包含生成、执行和发布结果，没有外部 judge 指标。
 
 从仓库根可用下列 provider-free 命令从 v61 归档复算论文口径的全部数字：
 
