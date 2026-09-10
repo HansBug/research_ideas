@@ -1,5 +1,7 @@
 # Paper1 实验与历史报告
 
+[A4 谓词执行反馈消融](./2026-09-10-17-01-11-a4-frozen-full-tail-results.md) 记录全员 unknown 干预、四款模型全部 648 格/3675 份报告核销后的两种 precision、逐轮分母、候选筛选与源案例。随附小型核算 JSON 可独立复算已归档计数，Qwen 旧失败与后续成功裁定均保留；逐调用原始记录仅本地保存。配套[学术 talk](../../talks/2026-09-10-实验-A4谓词执行反馈消融与论文叙事.md)解释四模型差异、误报抑制与 C-2。
+
 本目录保存按日期冻结的实验解释、过程报告、早期 Judge 结果、转换说明和运行健康记录。报告说明对应版本的结论与限制；逐格判定、分母和离线复算以各报告指向的 `final_results/` 归档为准。
 
 现有论文 headline 仍见 [v61 与 X1v2 baseline 冻结归档](../final_results/v61_source_divergence_vs_x1v2_baseline/README.md)。[v60 人工裁定归档](../final_results/v60_current_vs_x1v2_baseline/README.md)及其 [v4 中文报告](../final_results/v60_current_vs_x1v2_baseline/report/v60_current_vs_x1v2_baseline_v4_cn.md)作为校准与历史参照保留；后续独立实验保留自己的版本、配置、裁定和可比性说明，不静默替换或混合历史结果。

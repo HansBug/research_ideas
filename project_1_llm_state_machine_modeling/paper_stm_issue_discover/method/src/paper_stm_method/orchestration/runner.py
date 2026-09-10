@@ -4377,6 +4377,545 @@ def _deduplicate_release_issues(
     return result
 
 
+def _adjudicate_and_publish(
+    *,
+    pair: PairInput,
+    round_index: int,
+    runtime: PublicStructuredRuntime,
+    output_root: Path,
+    run_identity: dict[str, Any],
+    finding_candidates: list[dict[str, Any]],
+    stage_outputs: dict[str, Any],
+    stage_receipts: list[dict[str, Any]],
+    all_outcomes: list[StructuredCallOutcome[Any]],
+    errors: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[str], list[str]]:
+    """Run the existing semantic tail on prepared candidates, without execution."""
+
+    records: list[dict[str, Any]] = []
+    release: list[dict[str, Any]] = []
+    d_prompts: list[str] = []
+    d_correction_prompts: list[str] = []
+    d_stage_outcome: StructuredCallOutcome[DAdjudicationResponse] | None = None
+    d_stage_succeeded = True
+    d_prompt_budget = _d_prompt_character_budget(runtime)
+    d_batch_audit: list[dict[str, Any]] = []
+    d_correction_batch_audit: list[dict[str, Any]] = []
+    expected_ids = [item["obligation_id"] for item in finding_candidates]
+    d_response = DAdjudicationResponse(
+        decisions=[],
+        reason="No executed candidate required semantic D adjudication.",
+        basis="the exact execute-batch candidate set is empty",
+    )
+    decisions: dict[str, SemanticAdjudication] = {}
+    validation_output: dict[str, Any] = {
+        "expected_obligation_ids": expected_ids,
+        "initial_missing_ids": [],
+        "initial_extra_ids": [],
+        "initial_duplicate_ids": [],
+        "initial_invalid_decisions": {},
+        "repair_attempted": False,
+        "repair_missing_ids": [],
+        "repair_extra_ids": [],
+        "repair_duplicate_ids": [],
+        "repair_invalid_decisions": {},
+        "final_unresolved_ids": [],
+        "deterministic_shape_normalizations": [],
+        "prompt_character_budget": d_prompt_budget,
+        "initial_batches": d_batch_audit,
+        "repair_batches": d_correction_batch_audit,
+        "reason": "D validation checked exact obligation coverage, uniqueness, closed enums, and decidable typed-fact contradictions.",
+        "basis": "obligation IDs, typed SemanticAdjudication fields, and exact closed-model outgoing-transition inventory",
+    }
+    d_shape_normalizations: list[dict[str, Any]] = []
+    if finding_candidates:
+        dossiers = [
+            {
+                "obligation_id": item["obligation_id"],
+                "candidate": item["candidate"].model_dump(mode="json"),
+                "binding": item["binding"].model_dump(mode="json"),
+                "plan": item["plan"].to_dict(),
+                "receipt": item["receipt"].to_dict(),
+                "source_attribution": item["source_attribution"],
+                "defeater_evidence_reference_catalog": list(
+                    _d_defeater_evidence_reference_catalog(item)
+                ),
+                "reason": "The dossier contains exact method outputs and formal execution facts for semantic adjudication.",
+                "basis": "prepared candidate, exact binding, frozen predicate plan, and backend receipt",
+            }
+            for item in finding_candidates
+        ]
+        d_batches = build_d_adjudication_batches(
+            pair,
+            dossiers,
+            character_budget=d_prompt_budget,
+        )
+        initial_decisions: list[SemanticAdjudication] = []
+        for batch in d_batches:
+            d_prompts.append(batch.prompt)
+            batch_artifact = (
+                f"method/{pair.pair_id}/round-{round_index}/d-adjudication"
+                if len(d_batches) == 1
+                else (
+                    f"method/{pair.pair_id}/round-{round_index}/"
+                    f"d-adjudication/batch-{batch.batch_index:03d}"
+                )
+            )
+            batch_audit: dict[str, Any] = {
+                "batch_index": batch.batch_index,
+                "obligation_ids": list(batch.obligation_ids),
+                "prompt_characters": batch.prompt_characters,
+                "character_budget": batch.character_budget,
+                "exceeds_budget": batch.exceeds_budget,
+                "artifact_id": batch_artifact,
+                "status": "pending",
+                "reason": batch.reason,
+                "basis": batch.basis,
+            }
+            if batch.exceeds_budget:
+                d_stage_succeeded = False
+                batch_audit["status"] = "failed_with_receipt"
+                batch_audit["failure_kind"] = "context_budget_exceeded"
+                initial_decisions.extend(
+                    fallback_d_adjudication(
+                        list(batch.obligation_ids),
+                        "One complete D dossier exceeds the pre-provider context budget",
+                    ).decisions
+                )
+                errors.append(
+                    {
+                        "stage": "d_adjudication",
+                        "batch_index": batch.batch_index,
+                        "obligation_ids": list(batch.obligation_ids),
+                        "error": "context_budget_exceeded",
+                        "reason": "The indivisible semantic dossier exceeded the bounded D prompt budget and was downgraded without a provider call.",
+                        "basis": batch.basis,
+                    }
+                )
+                d_batch_audit.append(batch_audit)
+                continue
+            d_outcome: StructuredCallOutcome[DAdjudicationResponse] = runtime.call(
+                kind="d_adjudication",
+                schema=DAdjudicationResponse,
+                system_prompt=pair_system_prompt(pair, D_SYSTEM_PROMPT),
+                prompt=batch.prompt,
+                artifact_id=batch_artifact,
+            )
+            all_outcomes.append(d_outcome)
+            d_stage_outcome = d_outcome
+            batch_audit["status"] = (
+                "completed" if d_outcome.succeeded else "failed_with_receipt"
+            )
+            batch_audit["context_budget"] = d_outcome.context_budget.model_dump(
+                mode="json"
+            )
+            batch_audit["call_id"] = d_outcome.result.get("call_id")
+            if d_outcome.succeeded:
+                initial_decisions.extend(d_outcome.response.decisions)
+            else:
+                d_stage_succeeded = False
+                batch_error = d_outcome.result.get(
+                    "error", "D adjudication output unavailable"
+                )
+                batch_audit["failure_kind"] = batch_error
+                initial_decisions.extend(
+                    fallback_d_adjudication(
+                        list(batch.obligation_ids),
+                        str(batch_error),
+                    ).decisions
+                )
+                errors.append(
+                    {
+                        "stage": "d_adjudication",
+                        "batch_index": batch.batch_index,
+                        "obligation_ids": list(batch.obligation_ids),
+                        "error": batch_error,
+                        "reason": "One typed semantic D batch failed and only that batch was downgraded to explicit unresolved decisions.",
+                        "basis": "public structured runtime outcome, stable obligation-ID batching, and no-silent-drop D fallback",
+                    }
+                )
+            d_batch_audit.append(batch_audit)
+        d_response = DAdjudicationResponse(
+            decisions=initial_decisions,
+            reason="Stable bounded D batches adjudicated every finding dossier or retained an explicit unresolved fallback.",
+            basis="dossier-prompt-projection.v4, exact obligation-ID partitioning, and public structured runtime receipts",
+        )
+        expected_id_set = set(expected_ids)
+
+        def coverage(
+            response: DAdjudicationResponse,
+        ) -> tuple[list[SemanticAdjudication], list[str], list[str], list[str]]:
+            supplied_decisions = [
+                _normalize_d_decision_shape(
+                    decision,
+                    stage="initial",
+                    normalization_log=d_shape_normalizations,
+                )
+                for decision in response.decisions
+                if decision.obligation_id in expected_id_set
+            ]
+            unique: list[SemanticAdjudication] = []
+            duplicate: list[str] = []
+            for decision in supplied_decisions:
+                if any(item.obligation_id == decision.obligation_id for item in unique):
+                    duplicate.append(decision.obligation_id)
+                    continue
+                unique.append(decision)
+            supplied_by_id = {decision.obligation_id: decision for decision in unique}
+            missing = [
+                obligation_id
+                for obligation_id in expected_ids
+                if obligation_id not in supplied_by_id
+            ]
+            extra = [
+                decision.obligation_id
+                for decision in response.decisions
+                if decision.obligation_id not in expected_id_set
+            ]
+            return unique, missing, extra, duplicate
+
+        unique_supplied, missing_ids, extra_ids, duplicate_ids = coverage(d_response)
+        prepared_by_id = {
+            item["obligation_id"]: item for item in finding_candidates
+        }
+        invalid_decisions = {
+            decision.obligation_id: decision_errors
+            for decision in unique_supplied
+            if (
+                decision_errors := _d_decision_consistency_errors(
+                    decision,
+                    prepared=prepared_by_id.get(decision.obligation_id),
+                    pair=pair,
+                )
+            )
+        }
+        validation_output.update(
+            {
+                "initial_missing_ids": missing_ids,
+                "initial_extra_ids": extra_ids,
+                "initial_duplicate_ids": duplicate_ids,
+                "initial_invalid_decisions": invalid_decisions,
+            }
+        )
+        repair_ids = set(missing_ids) | set(duplicate_ids) | set(invalid_decisions)
+        frozen_decisions = [
+            decision
+            for decision in unique_supplied
+            if decision.obligation_id not in repair_ids
+        ]
+        if repair_ids:
+            validation_output["repair_attempted"] = True
+            correction_batches = build_d_correction_batches(
+                pair,
+                dossiers,
+                missing_ids=missing_ids,
+                duplicate_ids=duplicate_ids,
+                extra_ids=extra_ids,
+                invalid_decisions=invalid_decisions,
+                character_budget=d_prompt_budget,
+            )
+            correction_rows: list[SemanticAdjudication] = []
+            for batch in correction_batches:
+                d_correction_prompts.append(batch.prompt)
+                batch_artifact = (
+                    f"method/{pair.pair_id}/round-{round_index}/d-adjudication-correction"
+                    if len(correction_batches) == 1
+                    else (
+                        f"method/{pair.pair_id}/round-{round_index}/"
+                        f"d-adjudication-correction/batch-{batch.batch_index:03d}"
+                    )
+                )
+                batch_audit = {
+                    "batch_index": batch.batch_index,
+                    "obligation_ids": list(batch.obligation_ids),
+                    "prompt_characters": batch.prompt_characters,
+                    "character_budget": batch.character_budget,
+                    "exceeds_budget": batch.exceeds_budget,
+                    "artifact_id": batch_artifact,
+                    "status": "pending",
+                    "reason": batch.reason,
+                    "basis": batch.basis,
+                }
+                if batch.exceeds_budget:
+                    d_stage_succeeded = False
+                    batch_audit["status"] = "failed_with_receipt"
+                    batch_audit["failure_kind"] = "context_budget_exceeded"
+                    errors.append(
+                        {
+                            "stage": "d_adjudication_correction",
+                            "batch_index": batch.batch_index,
+                            "obligation_ids": list(batch.obligation_ids),
+                            "error": "context_budget_exceeded",
+                            "reason": "The indivisible correction dossier exceeded the bounded prompt budget and remained unresolved without a provider call.",
+                            "basis": batch.basis,
+                        }
+                    )
+                    d_correction_batch_audit.append(batch_audit)
+                    continue
+                correction_outcome: StructuredCallOutcome[DAdjudicationResponse] = runtime.call(
+                    kind="d_adjudication_correction",
+                    schema=DAdjudicationResponse,
+                    system_prompt=pair_system_prompt(pair, D_SYSTEM_PROMPT),
+                    prompt=batch.prompt,
+                    artifact_id=batch_artifact,
+                )
+                all_outcomes.append(correction_outcome)
+                d_stage_outcome = correction_outcome
+                batch_audit["status"] = (
+                    "completed"
+                    if correction_outcome.succeeded
+                    else "failed_with_receipt"
+                )
+                batch_audit["context_budget"] = (
+                    correction_outcome.context_budget.model_dump(mode="json")
+                )
+                batch_audit["call_id"] = correction_outcome.result.get("call_id")
+                if correction_outcome.succeeded:
+                    correction_rows.extend(
+                        _normalize_d_decision_shape(
+                            decision,
+                            stage="correction",
+                            normalization_log=d_shape_normalizations,
+                        )
+                        for decision in correction_outcome.response.decisions
+                    )
+                else:
+                    d_stage_succeeded = False
+                    batch_error = correction_outcome.result.get(
+                        "error", "D correction output unavailable"
+                    )
+                    batch_audit["failure_kind"] = batch_error
+                    errors.append(
+                        {
+                            "stage": "d_adjudication_correction",
+                            "batch_index": batch.batch_index,
+                            "obligation_ids": list(batch.obligation_ids),
+                            "error": batch_error,
+                            "reason": "One D correction batch failed; only its obligation IDs remain unresolved.",
+                            "basis": "bounded in-node correction and public runtime outcome",
+                        }
+                    )
+                d_correction_batch_audit.append(batch_audit)
+            correction_extra = [
+                decision.obligation_id
+                for decision in correction_rows
+                if decision.obligation_id not in repair_ids
+            ]
+            repair_groups: dict[str, list[SemanticAdjudication]] = {}
+            for decision in correction_rows:
+                if decision.obligation_id in repair_ids:
+                    repair_groups.setdefault(decision.obligation_id, []).append(decision)
+            correction_duplicate = [
+                obligation_id
+                for obligation_id, rows in repair_groups.items()
+                if len(rows) > 1
+            ]
+            correction_missing = [
+                obligation_id
+                for obligation_id in expected_ids
+                if obligation_id in repair_ids
+                and len(repair_groups.get(obligation_id, [])) != 1
+            ]
+            correction_invalid = {
+                obligation_id: decision_errors
+                for obligation_id, rows in repair_groups.items()
+                if len(rows) == 1
+                and (
+                    decision_errors := _d_decision_consistency_errors(
+                        rows[0],
+                        prepared=prepared_by_id.get(obligation_id),
+                        pair=pair,
+                    )
+                )
+            }
+            repaired = [
+                rows[0]
+                for obligation_id, rows in repair_groups.items()
+                if len(rows) == 1 and obligation_id not in correction_invalid
+            ]
+            unique_supplied = [*frozen_decisions, *repaired]
+            validation_output.update(
+                {
+                    "repair_missing_ids": correction_missing,
+                    "repair_extra_ids": correction_extra,
+                    "repair_duplicate_ids": correction_duplicate,
+                    "repair_invalid_decisions": correction_invalid,
+                }
+            )
+        else:
+            unique_supplied = frozen_decisions
+
+        final_by_id = {
+            decision.obligation_id: decision for decision in unique_supplied
+        }
+        final_unresolved_ids = [
+            obligation_id
+            for obligation_id in expected_ids
+            if obligation_id not in final_by_id
+        ]
+        validation_output["final_unresolved_ids"] = final_unresolved_ids
+        if final_unresolved_ids:
+            d_stage_succeeded = False
+            diagnostics: list[str] = []
+            if missing_ids:
+                diagnostics.append(f"missing={missing_ids}")
+            if extra_ids:
+                diagnostics.append(f"extra={extra_ids}")
+            if duplicate_ids:
+                diagnostics.append(f"duplicate={duplicate_ids}")
+            if invalid_decisions:
+                diagnostics.append(f"invalid={invalid_decisions}")
+            if validation_output["repair_missing_ids"]:
+                diagnostics.append(
+                    f"repair_missing={validation_output['repair_missing_ids']}"
+                )
+            if validation_output["repair_extra_ids"]:
+                diagnostics.append(
+                    f"repair_extra={validation_output['repair_extra_ids']}"
+                )
+            if validation_output["repair_duplicate_ids"]:
+                diagnostics.append(
+                    f"repair_duplicate={validation_output['repair_duplicate_ids']}"
+                )
+            if validation_output["repair_invalid_decisions"]:
+                diagnostics.append(
+                    f"repair_invalid={validation_output['repair_invalid_decisions']}"
+                )
+            errors.append(
+                {
+                    "stage": "d_adjudication",
+                    "error": "; ".join(diagnostics),
+                    "reason": "D structured output and its one targeted repair did not close every obligation; remaining units were retained as unresolved.",
+                    "basis": "deterministic obligation-ID coverage and uniqueness check",
+                }
+            )
+        if final_unresolved_ids:
+            missing_response = fallback_d_adjudication(
+                final_unresolved_ids,
+                "D structured output validation or targeted repair did not close",
+            )
+            final_by_id.update(
+                (decision.obligation_id, decision)
+                for decision in missing_response.decisions
+            )
+        ordered_decisions = [final_by_id[obligation_id] for obligation_id in expected_ids]
+        d_response = d_response.model_copy(update={"decisions": ordered_decisions})
+        decisions = {
+            decision.obligation_id: decision for decision in ordered_decisions
+        }
+        validation_output["deterministic_shape_normalizations"] = d_shape_normalizations
+
+    stage_outputs["d_adjudication"] = d_response.model_dump(mode="json")
+    stage_receipts.append(
+        _stage_receipt(
+            pair=pair,
+            stage_id=f"{pair.pair_id}:r{round_index}:d-adjudication",
+            stage_name="d_adjudication",
+            status=(
+                "completed"
+                if not finding_candidates or d_stage_succeeded
+                else "completed_with_diagnostics"
+            ),
+            artifact_roles=("natural_language", "plantuml_source", "canonical_source_ir", "source_inventory", "fcstm_model", "working_contract", "source_trace", "predicate_registry"),
+            output=d_response,
+            outcome=d_stage_outcome,
+            diagnostics=(*d_batch_audit, *d_correction_batch_audit),
+            projection_version=(
+                "dossier-prompt-projection.v4-batched"
+                if finding_candidates
+                else None
+            ),
+            reason=d_response.reason,
+            basis=d_response.basis,
+        )
+    )
+    stage_outputs["validate_d"] = validation_output
+    stage_receipts.append(
+        _stage_receipt(
+            pair=pair,
+            stage_id=f"{pair.pair_id}:r{round_index}:validate-d",
+            stage_name="validate_d",
+            status=(
+                "completed"
+                if not validation_output["final_unresolved_ids"]
+                else "completed_with_diagnostics"
+            ),
+            artifact_roles=("natural_language", "fcstm_model", "predicate_registry"),
+            output=validation_output,
+            reason=validation_output["reason"],
+            basis=validation_output["basis"],
+        )
+    )
+    retry_records = [
+        {"stage": outcome.kind, **attempt}
+        for outcome in all_outcomes
+        for attempt in outcome.attempts
+    ]
+    for index, prepared in enumerate(finding_candidates):
+        try:
+            record, emitted = _deterministic_candidate(
+                pair,
+                prepared["candidate"],
+                round_index,
+                index,
+                retry_records,
+                semantic_adjudication=decisions.get(prepared["obligation_id"]),
+                prepared=prepared,
+                run_id=run_identity["run_id"],
+            )
+            records.append(record)
+            if emitted is not None:
+                release.append(emitted)
+            if record.get("audit_bundle") is not None:
+                audit_path = output_root / "audit_bundles" / f"{record['issue_id']}.json"
+                write_json(audit_path, record["audit_bundle"])
+                record["audit_bundle_path"] = str(audit_path)
+        except Exception as exc:  # noqa: BLE001 - preserve publication diagnostics
+            errors.append({"candidate_index": index, "error_type": type(exc).__name__, "message": str(exc), "reason": "Candidate publication failed; the cell remains readable.", "basis": "Candidate-level diagnostic preservation."})
+    release = _deduplicate_release_issues(release)
+    release, folded_issues = _fold_consequence_issues(release, pair)
+    release, aggregated_issues = _aggregate_guard_modality_issues(pair, release)
+    _annotate_author_anchors(pair, release)
+    publish_output = {
+        "evidence_record_count": len(records),
+        "pre_dedup_release_count": sum(
+            bool(record.get("issue_emitted")) for record in records
+        ),
+        "folded_issue_count": len(folded_issues),
+        "folded_issues": folded_issues,
+        "guard_modality_aggregated_count": len(aggregated_issues),
+        "guard_modality_aggregated_issues": aggregated_issues,
+        "report_issue_count": len(release),
+        "report_issue_ids": [item["issue_id"] for item in release],
+        "w_distribution": dict(
+            Counter(str(record.get("witness_level")) for record in records)
+        ),
+        "d_distribution": dict(
+            Counter(str(record.get("d_level")) for record in records)
+        ),
+        "reason": "Deterministic W publication retained only D1/D2 violations and collapsed exact typed duplicate defects.",
+        "basis": "binding completeness, frozen predicate support, backend terminal verdict, method-owned D, and exact-typed-defect-key.v1",
+    }
+    stage_outputs["publish"] = publish_output
+    stage_receipts.append(
+        _stage_receipt(
+            pair=pair,
+            stage_id=f"{pair.pair_id}:r{round_index}:publish",
+            stage_name="publish",
+            status=(
+                "completed"
+                if len(records) == len(finding_candidates)
+                else "completed_with_diagnostics"
+            ),
+            artifact_roles=("fcstm_model", "predicate_registry", "verify_facts"),
+            output=publish_output,
+            reason=publish_output["reason"],
+            basis=publish_output["basis"],
+        )
+    )
+    return records, release, d_prompts, d_correction_prompts
+
+
 def _method_cell(
     *,
     pair: PairInput,
@@ -5022,525 +5561,19 @@ def _method_cell(
         )
     )
 
-    d_prompts: list[str] = []
-    d_correction_prompts: list[str] = []
-    d_stage_outcome: StructuredCallOutcome[DAdjudicationResponse] | None = None
-    d_stage_succeeded = True
-    d_prompt_budget = _d_prompt_character_budget(runtime)
-    d_batch_audit: list[dict[str, Any]] = []
-    d_correction_batch_audit: list[dict[str, Any]] = []
-    expected_ids = [item["obligation_id"] for item in finding_candidates]
-    d_response = DAdjudicationResponse(
-        decisions=[],
-        reason="No executed candidate required semantic D adjudication.",
-        basis="the exact execute-batch candidate set is empty",
+    records, release, d_prompts, d_correction_prompts = _adjudicate_and_publish(
+        pair=pair,
+        round_index=round_index,
+        runtime=runtime,
+        output_root=output_root,
+        run_identity=run_identity,
+        finding_candidates=finding_candidates,
+        stage_outputs=stage_outputs,
+        stage_receipts=stage_receipts,
+        all_outcomes=all_outcomes,
+        errors=errors,
     )
-    decisions: dict[str, SemanticAdjudication] = {}
-    validation_output: dict[str, Any] = {
-        "expected_obligation_ids": expected_ids,
-        "initial_missing_ids": [],
-        "initial_extra_ids": [],
-        "initial_duplicate_ids": [],
-        "initial_invalid_decisions": {},
-        "repair_attempted": False,
-        "repair_missing_ids": [],
-        "repair_extra_ids": [],
-        "repair_duplicate_ids": [],
-        "repair_invalid_decisions": {},
-        "final_unresolved_ids": [],
-        "deterministic_shape_normalizations": [],
-        "prompt_character_budget": d_prompt_budget,
-        "initial_batches": d_batch_audit,
-        "repair_batches": d_correction_batch_audit,
-        "reason": "D validation checked exact obligation coverage, uniqueness, closed enums, and decidable typed-fact contradictions.",
-        "basis": "obligation IDs, typed SemanticAdjudication fields, and exact closed-model outgoing-transition inventory",
-    }
-    d_shape_normalizations: list[dict[str, Any]] = []
-    if finding_candidates:
-        dossiers = [
-            {
-                "obligation_id": item["obligation_id"],
-                "candidate": item["candidate"].model_dump(mode="json"),
-                "binding": item["binding"].model_dump(mode="json"),
-                "plan": item["plan"].to_dict(),
-                "receipt": item["receipt"].to_dict(),
-                "source_attribution": item["source_attribution"],
-                "defeater_evidence_reference_catalog": list(
-                    _d_defeater_evidence_reference_catalog(item)
-                ),
-                "reason": "The dossier contains exact method outputs and formal execution facts for semantic adjudication.",
-                "basis": "prepared candidate, exact binding, frozen predicate plan, and backend receipt",
-            }
-            for item in finding_candidates
-        ]
-        d_batches = build_d_adjudication_batches(
-            pair,
-            dossiers,
-            character_budget=d_prompt_budget,
-        )
-        initial_decisions: list[SemanticAdjudication] = []
-        for batch in d_batches:
-            d_prompts.append(batch.prompt)
-            batch_artifact = (
-                f"method/{pair.pair_id}/round-{round_index}/d-adjudication"
-                if len(d_batches) == 1
-                else (
-                    f"method/{pair.pair_id}/round-{round_index}/"
-                    f"d-adjudication/batch-{batch.batch_index:03d}"
-                )
-            )
-            batch_audit: dict[str, Any] = {
-                "batch_index": batch.batch_index,
-                "obligation_ids": list(batch.obligation_ids),
-                "prompt_characters": batch.prompt_characters,
-                "character_budget": batch.character_budget,
-                "exceeds_budget": batch.exceeds_budget,
-                "artifact_id": batch_artifact,
-                "status": "pending",
-                "reason": batch.reason,
-                "basis": batch.basis,
-            }
-            if batch.exceeds_budget:
-                d_stage_succeeded = False
-                batch_audit["status"] = "failed_with_receipt"
-                batch_audit["failure_kind"] = "context_budget_exceeded"
-                initial_decisions.extend(
-                    fallback_d_adjudication(
-                        list(batch.obligation_ids),
-                        "One complete D dossier exceeds the pre-provider context budget",
-                    ).decisions
-                )
-                errors.append(
-                    {
-                        "stage": "d_adjudication",
-                        "batch_index": batch.batch_index,
-                        "obligation_ids": list(batch.obligation_ids),
-                        "error": "context_budget_exceeded",
-                        "reason": "The indivisible semantic dossier exceeded the bounded D prompt budget and was downgraded without a provider call.",
-                        "basis": batch.basis,
-                    }
-                )
-                d_batch_audit.append(batch_audit)
-                continue
-            d_outcome: StructuredCallOutcome[DAdjudicationResponse] = runtime.call(
-                kind="d_adjudication",
-                schema=DAdjudicationResponse,
-                system_prompt=pair_system_prompt(pair, D_SYSTEM_PROMPT),
-                prompt=batch.prompt,
-                artifact_id=batch_artifact,
-            )
-            all_outcomes.append(d_outcome)
-            d_stage_outcome = d_outcome
-            batch_audit["status"] = (
-                "completed" if d_outcome.succeeded else "failed_with_receipt"
-            )
-            batch_audit["context_budget"] = d_outcome.context_budget.model_dump(
-                mode="json"
-            )
-            batch_audit["call_id"] = d_outcome.result.get("call_id")
-            if d_outcome.succeeded:
-                initial_decisions.extend(d_outcome.response.decisions)
-            else:
-                d_stage_succeeded = False
-                batch_error = d_outcome.result.get(
-                    "error", "D adjudication output unavailable"
-                )
-                batch_audit["failure_kind"] = batch_error
-                initial_decisions.extend(
-                    fallback_d_adjudication(
-                        list(batch.obligation_ids),
-                        str(batch_error),
-                    ).decisions
-                )
-                errors.append(
-                    {
-                        "stage": "d_adjudication",
-                        "batch_index": batch.batch_index,
-                        "obligation_ids": list(batch.obligation_ids),
-                        "error": batch_error,
-                        "reason": "One typed semantic D batch failed and only that batch was downgraded to explicit unresolved decisions.",
-                        "basis": "public structured runtime outcome, stable obligation-ID batching, and no-silent-drop D fallback",
-                    }
-                )
-            d_batch_audit.append(batch_audit)
-        d_response = DAdjudicationResponse(
-            decisions=initial_decisions,
-            reason="Stable bounded D batches adjudicated every finding dossier or retained an explicit unresolved fallback.",
-            basis="dossier-prompt-projection.v4, exact obligation-ID partitioning, and public structured runtime receipts",
-        )
-        expected_id_set = set(expected_ids)
 
-        def coverage(
-            response: DAdjudicationResponse,
-        ) -> tuple[list[SemanticAdjudication], list[str], list[str], list[str]]:
-            supplied_decisions = [
-                _normalize_d_decision_shape(
-                    decision,
-                    stage="initial",
-                    normalization_log=d_shape_normalizations,
-                )
-                for decision in response.decisions
-                if decision.obligation_id in expected_id_set
-            ]
-            unique: list[SemanticAdjudication] = []
-            duplicate: list[str] = []
-            for decision in supplied_decisions:
-                if any(item.obligation_id == decision.obligation_id for item in unique):
-                    duplicate.append(decision.obligation_id)
-                    continue
-                unique.append(decision)
-            supplied_by_id = {decision.obligation_id: decision for decision in unique}
-            missing = [
-                obligation_id
-                for obligation_id in expected_ids
-                if obligation_id not in supplied_by_id
-            ]
-            extra = [
-                decision.obligation_id
-                for decision in response.decisions
-                if decision.obligation_id not in expected_id_set
-            ]
-            return unique, missing, extra, duplicate
-
-        unique_supplied, missing_ids, extra_ids, duplicate_ids = coverage(d_response)
-        prepared_by_id = {
-            item["obligation_id"]: item for item in finding_candidates
-        }
-        invalid_decisions = {
-            decision.obligation_id: decision_errors
-            for decision in unique_supplied
-            if (
-                decision_errors := _d_decision_consistency_errors(
-                    decision,
-                    prepared=prepared_by_id.get(decision.obligation_id),
-                    pair=pair,
-                )
-            )
-        }
-        validation_output.update(
-            {
-                "initial_missing_ids": missing_ids,
-                "initial_extra_ids": extra_ids,
-                "initial_duplicate_ids": duplicate_ids,
-                "initial_invalid_decisions": invalid_decisions,
-            }
-        )
-        repair_ids = set(missing_ids) | set(duplicate_ids) | set(invalid_decisions)
-        frozen_decisions = [
-            decision
-            for decision in unique_supplied
-            if decision.obligation_id not in repair_ids
-        ]
-        if repair_ids:
-            validation_output["repair_attempted"] = True
-            correction_batches = build_d_correction_batches(
-                pair,
-                dossiers,
-                missing_ids=missing_ids,
-                duplicate_ids=duplicate_ids,
-                extra_ids=extra_ids,
-                invalid_decisions=invalid_decisions,
-                character_budget=d_prompt_budget,
-            )
-            correction_rows: list[SemanticAdjudication] = []
-            for batch in correction_batches:
-                d_correction_prompts.append(batch.prompt)
-                batch_artifact = (
-                    f"method/{pair.pair_id}/round-{round_index}/d-adjudication-correction"
-                    if len(correction_batches) == 1
-                    else (
-                        f"method/{pair.pair_id}/round-{round_index}/"
-                        f"d-adjudication-correction/batch-{batch.batch_index:03d}"
-                    )
-                )
-                batch_audit = {
-                    "batch_index": batch.batch_index,
-                    "obligation_ids": list(batch.obligation_ids),
-                    "prompt_characters": batch.prompt_characters,
-                    "character_budget": batch.character_budget,
-                    "exceeds_budget": batch.exceeds_budget,
-                    "artifact_id": batch_artifact,
-                    "status": "pending",
-                    "reason": batch.reason,
-                    "basis": batch.basis,
-                }
-                if batch.exceeds_budget:
-                    d_stage_succeeded = False
-                    batch_audit["status"] = "failed_with_receipt"
-                    batch_audit["failure_kind"] = "context_budget_exceeded"
-                    errors.append(
-                        {
-                            "stage": "d_adjudication_correction",
-                            "batch_index": batch.batch_index,
-                            "obligation_ids": list(batch.obligation_ids),
-                            "error": "context_budget_exceeded",
-                            "reason": "The indivisible correction dossier exceeded the bounded prompt budget and remained unresolved without a provider call.",
-                            "basis": batch.basis,
-                        }
-                    )
-                    d_correction_batch_audit.append(batch_audit)
-                    continue
-                correction_outcome: StructuredCallOutcome[DAdjudicationResponse] = runtime.call(
-                    kind="d_adjudication_correction",
-                    schema=DAdjudicationResponse,
-                    system_prompt=pair_system_prompt(pair, D_SYSTEM_PROMPT),
-                    prompt=batch.prompt,
-                    artifact_id=batch_artifact,
-                )
-                all_outcomes.append(correction_outcome)
-                d_stage_outcome = correction_outcome
-                batch_audit["status"] = (
-                    "completed"
-                    if correction_outcome.succeeded
-                    else "failed_with_receipt"
-                )
-                batch_audit["context_budget"] = (
-                    correction_outcome.context_budget.model_dump(mode="json")
-                )
-                batch_audit["call_id"] = correction_outcome.result.get("call_id")
-                if correction_outcome.succeeded:
-                    correction_rows.extend(
-                        _normalize_d_decision_shape(
-                            decision,
-                            stage="correction",
-                            normalization_log=d_shape_normalizations,
-                        )
-                        for decision in correction_outcome.response.decisions
-                    )
-                else:
-                    d_stage_succeeded = False
-                    batch_error = correction_outcome.result.get(
-                        "error", "D correction output unavailable"
-                    )
-                    batch_audit["failure_kind"] = batch_error
-                    errors.append(
-                        {
-                            "stage": "d_adjudication_correction",
-                            "batch_index": batch.batch_index,
-                            "obligation_ids": list(batch.obligation_ids),
-                            "error": batch_error,
-                            "reason": "One D correction batch failed; only its obligation IDs remain unresolved.",
-                            "basis": "bounded in-node correction and public runtime outcome",
-                        }
-                    )
-                d_correction_batch_audit.append(batch_audit)
-            correction_extra = [
-                decision.obligation_id
-                for decision in correction_rows
-                if decision.obligation_id not in repair_ids
-            ]
-            repair_groups: dict[str, list[SemanticAdjudication]] = {}
-            for decision in correction_rows:
-                if decision.obligation_id in repair_ids:
-                    repair_groups.setdefault(decision.obligation_id, []).append(decision)
-            correction_duplicate = [
-                obligation_id
-                for obligation_id, rows in repair_groups.items()
-                if len(rows) > 1
-            ]
-            correction_missing = [
-                obligation_id
-                for obligation_id in expected_ids
-                if obligation_id in repair_ids
-                and len(repair_groups.get(obligation_id, [])) != 1
-            ]
-            correction_invalid = {
-                obligation_id: decision_errors
-                for obligation_id, rows in repair_groups.items()
-                if len(rows) == 1
-                and (
-                    decision_errors := _d_decision_consistency_errors(
-                        rows[0],
-                        prepared=prepared_by_id.get(obligation_id),
-                        pair=pair,
-                    )
-                )
-            }
-            repaired = [
-                rows[0]
-                for obligation_id, rows in repair_groups.items()
-                if len(rows) == 1 and obligation_id not in correction_invalid
-            ]
-            unique_supplied = [*frozen_decisions, *repaired]
-            validation_output.update(
-                {
-                    "repair_missing_ids": correction_missing,
-                    "repair_extra_ids": correction_extra,
-                    "repair_duplicate_ids": correction_duplicate,
-                    "repair_invalid_decisions": correction_invalid,
-                }
-            )
-        else:
-            unique_supplied = frozen_decisions
-
-        final_by_id = {
-            decision.obligation_id: decision for decision in unique_supplied
-        }
-        final_unresolved_ids = [
-            obligation_id
-            for obligation_id in expected_ids
-            if obligation_id not in final_by_id
-        ]
-        validation_output["final_unresolved_ids"] = final_unresolved_ids
-        if final_unresolved_ids:
-            d_stage_succeeded = False
-            diagnostics: list[str] = []
-            if missing_ids:
-                diagnostics.append(f"missing={missing_ids}")
-            if extra_ids:
-                diagnostics.append(f"extra={extra_ids}")
-            if duplicate_ids:
-                diagnostics.append(f"duplicate={duplicate_ids}")
-            if invalid_decisions:
-                diagnostics.append(f"invalid={invalid_decisions}")
-            if validation_output["repair_missing_ids"]:
-                diagnostics.append(
-                    f"repair_missing={validation_output['repair_missing_ids']}"
-                )
-            if validation_output["repair_extra_ids"]:
-                diagnostics.append(
-                    f"repair_extra={validation_output['repair_extra_ids']}"
-                )
-            if validation_output["repair_duplicate_ids"]:
-                diagnostics.append(
-                    f"repair_duplicate={validation_output['repair_duplicate_ids']}"
-                )
-            if validation_output["repair_invalid_decisions"]:
-                diagnostics.append(
-                    f"repair_invalid={validation_output['repair_invalid_decisions']}"
-                )
-            errors.append(
-                {
-                    "stage": "d_adjudication",
-                    "error": "; ".join(diagnostics),
-                    "reason": "D structured output and its one targeted repair did not close every obligation; remaining units were retained as unresolved.",
-                    "basis": "deterministic obligation-ID coverage and uniqueness check",
-                }
-            )
-        if final_unresolved_ids:
-            missing_response = fallback_d_adjudication(
-                final_unresolved_ids,
-                "D structured output validation or targeted repair did not close",
-            )
-            final_by_id.update(
-                (decision.obligation_id, decision)
-                for decision in missing_response.decisions
-            )
-        ordered_decisions = [final_by_id[obligation_id] for obligation_id in expected_ids]
-        d_response = d_response.model_copy(update={"decisions": ordered_decisions})
-        decisions = {
-            decision.obligation_id: decision for decision in ordered_decisions
-        }
-        validation_output["deterministic_shape_normalizations"] = d_shape_normalizations
-
-    stage_outputs["d_adjudication"] = d_response.model_dump(mode="json")
-    stage_receipts.append(
-        _stage_receipt(
-            pair=pair,
-            stage_id=f"{pair.pair_id}:r{round_index}:d-adjudication",
-            stage_name="d_adjudication",
-            status=(
-                "completed"
-                if not finding_candidates or d_stage_succeeded
-                else "completed_with_diagnostics"
-            ),
-            artifact_roles=("natural_language", "plantuml_source", "canonical_source_ir", "source_inventory", "fcstm_model", "working_contract", "source_trace", "predicate_registry"),
-            output=d_response,
-            outcome=d_stage_outcome,
-            diagnostics=(*d_batch_audit, *d_correction_batch_audit),
-            projection_version=(
-                "dossier-prompt-projection.v4-batched"
-                if finding_candidates
-                else None
-            ),
-            reason=d_response.reason,
-            basis=d_response.basis,
-        )
-    )
-    stage_outputs["validate_d"] = validation_output
-    stage_receipts.append(
-        _stage_receipt(
-            pair=pair,
-            stage_id=f"{pair.pair_id}:r{round_index}:validate-d",
-            stage_name="validate_d",
-            status=(
-                "completed"
-                if not validation_output["final_unresolved_ids"]
-                else "completed_with_diagnostics"
-            ),
-            artifact_roles=("natural_language", "fcstm_model", "predicate_registry"),
-            output=validation_output,
-            reason=validation_output["reason"],
-            basis=validation_output["basis"],
-        )
-    )
-    retry_records = [
-        {"stage": outcome.kind, **attempt}
-        for outcome in all_outcomes
-        for attempt in outcome.attempts
-    ]
-    for index, prepared in enumerate(finding_candidates):
-        try:
-            record, emitted = _deterministic_candidate(
-                pair,
-                prepared["candidate"],
-                round_index,
-                index,
-                retry_records,
-                semantic_adjudication=decisions.get(prepared["obligation_id"]),
-                prepared=prepared,
-                run_id=run_identity["run_id"],
-            )
-            records.append(record)
-            if emitted is not None:
-                release.append(emitted)
-            if record.get("audit_bundle") is not None:
-                audit_path = output_root / "audit_bundles" / f"{record['issue_id']}.json"
-                write_json(audit_path, record["audit_bundle"])
-                record["audit_bundle_path"] = str(audit_path)
-        except Exception as exc:  # noqa: BLE001 - preserve publication diagnostics
-            errors.append({"candidate_index": index, "error_type": type(exc).__name__, "message": str(exc), "reason": "Candidate publication failed; the cell remains readable.", "basis": "Candidate-level diagnostic preservation."})
-    release = _deduplicate_release_issues(release)
-    release, folded_issues = _fold_consequence_issues(release, pair)
-    release, aggregated_issues = _aggregate_guard_modality_issues(pair, release)
-    _annotate_author_anchors(pair, release)
-    publish_output = {
-        "evidence_record_count": len(records),
-        "pre_dedup_release_count": sum(
-            bool(record.get("issue_emitted")) for record in records
-        ),
-        "folded_issue_count": len(folded_issues),
-        "folded_issues": folded_issues,
-        "guard_modality_aggregated_count": len(aggregated_issues),
-        "guard_modality_aggregated_issues": aggregated_issues,
-        "report_issue_count": len(release),
-        "report_issue_ids": [item["issue_id"] for item in release],
-        "w_distribution": dict(
-            Counter(str(record.get("witness_level")) for record in records)
-        ),
-        "d_distribution": dict(
-            Counter(str(record.get("d_level")) for record in records)
-        ),
-        "reason": "Deterministic W publication retained only D1/D2 violations and collapsed exact typed duplicate defects.",
-        "basis": "binding completeness, frozen predicate support, backend terminal verdict, method-owned D, and exact-typed-defect-key.v1",
-    }
-    stage_outputs["publish"] = publish_output
-    stage_receipts.append(
-        _stage_receipt(
-            pair=pair,
-            stage_id=f"{pair.pair_id}:r{round_index}:publish",
-            stage_name="publish",
-            status=(
-                "completed"
-                if len(records) == len(finding_candidates)
-                else "completed_with_diagnostics"
-            ),
-            artifact_roles=("fcstm_model", "predicate_registry", "verify_facts"),
-            output=publish_output,
-            reason=publish_output["reason"],
-            basis=publish_output["basis"],
-        )
-    )
     prompt_hash = _hash_json(
         {
             "contract_extraction": contract_prompt,
