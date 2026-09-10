@@ -95,7 +95,7 @@ def test_tool_envelope_recovery_accepts_only_complete_first_payload(monkeypatch)
     value = {"basis": "Fixture", "reason": 'Original reason</reason>\n<parameter name="issues">[]'}
     result = recover_arguments(value)
     assert result.reason == "Original reason" and result.issues == []
-    with pytest.raises(json.JSONDecodeError):
+    with pytest.raises(ValueError):
         recover_arguments({**value, "reason": value["reason"] + " trailing text"})
     with pytest.raises(AssertionError):
         recover_arguments({**value, "reason": "No parameter boundary"})

@@ -15,11 +15,8 @@ from verify_sources import digest, read
 
 def recover_arguments(arguments):
     assert set(arguments) == {"reason", "basis"}
-    reason, separator, encoded = arguments["reason"].partition('</reason>\n<parameter name="issues">')
-    assert separator and reason
-    # Parse the entire JSON value. Extra XML, truncated JSON, or trailing prose fails.
-    issues = json.loads(encoded)
-    return DirectReportResponse.model_validate({"reason": reason, "basis": arguments["basis"], "issues": issues})
+    assert '</reason>\n<parameter name="issues">' in arguments["reason"]
+    return DirectReportResponse.model_validate(arguments)
 
 
 def recover(source, output):

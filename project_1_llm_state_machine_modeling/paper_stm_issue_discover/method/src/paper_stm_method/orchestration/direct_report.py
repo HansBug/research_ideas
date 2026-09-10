@@ -6,7 +6,7 @@ import json
 from collections import Counter
 from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from ..backends.trajectory import FCSTMRuntimeScenario
 from ..compiler.inputs import predicate_input_schema
@@ -105,6 +105,17 @@ class DirectReportResponse(BaseModel):
     issues: list[DirectReport]
     reason: Text
     basis: Text
+
+    @model_validator(mode="before")
+    @classmethod
+    def decode_complete_tool_parameter(cls, value):
+        # Some tool responses embed the complete issues JSON in the reason slot.
+        # Decode only this exact envelope; the ordinary schema still checks every field.
+        if isinstance(value, dict) and set(value) == {"reason", "basis"} and isinstance(value["reason"], str):
+            reason, marker, encoded = value["reason"].partition('</reason>\n<parameter name="issues">')
+            if marker:
+                return {"reason": reason, "basis": value["basis"], "issues": json.loads(encoded)}
+        return value
 
 
 def predicate_catalog() -> list[dict[str, Any]]:
