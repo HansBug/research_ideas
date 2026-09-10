@@ -99,6 +99,8 @@ def run(root, smoke_judge):
                 judges[rnd] = None
             if judges[rnd] is not None:
                 continue
+            if rnd == 1 and any(("sonnet", p, 1) not in completed for p in smoke):
+                continue
             for model, source in sources:
                 ready = []
                 for path in sorted(source.glob(f"method/*/round-{rnd}.json")):
