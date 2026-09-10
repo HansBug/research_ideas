@@ -58,7 +58,7 @@ def analyze(root):
     flows, transitions, routes, diagnostics = Counter(), Counter(), Counter(), Counter()
     d_changes, true_origins, errors = Counter(), Counter(), []
     calls, attempts, schema_failures, reused_calls, wording_changed, semantic_changed = 0, 0, 0, 0, 0, 0
-    source_hashes = {}
+    source_hashes, examples, usage = {}, {}, {}
     for row in manifest["sources"]["cells"]:
         pair, rnd = row["pair"], row["round"]
         source, source_hash = checked_json(PAPER / row["source"], row["sha256"])
@@ -111,6 +111,13 @@ def analyze(root):
                                "origin": origin, "old_d": old_d, "new_d": e["d_level"], "publication": state,
                                "final_report_ids": members[oid], "claim_hash": digest(c["candidate"]),
                                "source": row["source"], "tail": str((cell_root / "tail.json").relative_to(root))})
+            example_key = f"{flow[0]}/{state}"
+            examples.setdefault(example_key, {
+                **candidates[-1], "title": c["candidate"]["title"],
+                "expected": c["candidate"]["expected"], "observed": c["candidate"]["observed"],
+                "full_semantic": old_evidence.get(oid, {}).get("semantic_adjudication"),
+                "a4_semantic": e["semantic_adjudication"],
+            })
         equivalents = set()
         for r in new:
             assert r["route"] in {"oracle_true_I", "reused_full", "newly_judged"}
@@ -131,6 +138,10 @@ def analyze(root):
                                  "oracle_true_obligation_ids": r["oracle_true_obligation_ids"],
                                  "projection_hash": digest(r["projection"]), "outcome": r["outcome"],
                                  "judge_provenance": {k: v for k, v in r.get("judge_provenance", {}).items() if k != "outcome"}})
+            if r["route"] == "oracle_true_I":
+                member_ids = [oid for oid, ids in members.items() if r["report_id"] in ids]
+                if len(member_ids) > len(r["oracle_true_obligation_ids"]):
+                    examples.setdefault("mixed_oracle_report", {**publications[-1], "member_obligation_ids": member_ids})
         for rid in set(old) - equivalents:
             transitions[f"{LABELS[old[rid]['validity']]}->absent_or_changed"] += 1
         for receipt in tail["stage_receipts"]:
@@ -141,6 +152,17 @@ def analyze(root):
         reused_calls += sum(c["reused"] for c in tail["call_audit"])
         attempts += sum(len(c["attempts"]) for c in tail["llm_calls"])
         schema_failures += sum(len(c["schema_validation_failures"]) for c in tail["llm_calls"])
+        for call in tail["llm_calls"]:
+            for u in call["usage"]:
+                key = u["model_call_id"]
+                public = {k: u.get(k) for k in (
+                    "model_call_id", "model", "input_tokens", "output_tokens", "reasoning_tokens",
+                    "started_at_utc", "ended_at_utc", "duration_seconds", "time_to_first_chunk_seconds",
+                    "status", "output_budget", "provider_response",
+                )}
+                if key in usage:
+                    assert usage[key] == public, "Conflicting repeated usage receipt"
+                usage[key] = public
         errors.extend({"pair": pair, "round": rnd, **e} for e in tail["errors"])
         cells.append({"pair": pair, "round": rnd, "source_hash": source_hash, "judge_hash": judge_hash,
                       "tail_hash": tail_hash, "full": tally(before, 1, len(expected_ids)),
@@ -166,6 +188,7 @@ def analyze(root):
             "calls": {"terminal": calls, "cached_terminal": reused_calls, "provider_attempts": attempts,
                       "schema_failures": schema_failures, "residual_judge": judge_calls},
             "errors": errors, "cells": cells, "candidates": candidates, "publications": publications,
+            "examples": examples, "usage": list(usage.values()),
             "paired_by_pair": pair_deltas,
             "scope": "Conditional terminal intervention; paired by pair across all three rounds. No significance interval or population-independence claim."}
 
