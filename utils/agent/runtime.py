@@ -3462,6 +3462,7 @@ class AgentApp:
         input_text: str,
         *,
         context: Sequence[str | Mapping[str, Any]] | None = None,
+        resume_messages: Sequence[BaseMessage] | None = None,
         renderer: str = "auto",
         log_level: str = "INFO",
         think_mode: bool = False,
@@ -3474,6 +3475,15 @@ class AgentApp:
         tool_choice_resolver: Callable[[], Any | None] | None = None,
         tool_choice_policy_name: str | None = None,
     ) -> AgentRunResult:
+        if resume_messages is not None:
+            resume_messages = tuple(resume_messages)
+            if context or not resume_messages or not all(isinstance(m, BaseMessage) for m in resume_messages):
+                raise ValueError("resume_messages requires typed messages and no additional context")
+            if not isinstance(resume_messages[0], HumanMessage) or resume_messages[0].content != input_text:
+                raise ValueError("resume_messages must start with the unchanged input_text")
+            if any(isinstance(m, SystemMessage) for m in resume_messages):
+                raise ValueError("resume_messages must not override the system prompt")
+            resume_messages = tuple(m.model_copy(deep=True) for m in resume_messages)
         if (tool_choice_resolver is None) != (tool_choice_policy_name is None):
             raise ValueError(
                 "tool_choice_resolver and tool_choice_policy_name must be supplied together"
@@ -4966,6 +4976,7 @@ class AgentApp:
                     "endpoint_fingerprint": endpoint_fingerprint,
                     "dependency_versions": _dependency_versions(),
                     "input_text": input_text,
+                    "resume_messages": [m.model_dump(mode="json") for m in resume_messages] if resume_messages is not None else None,
                     "system_prompt": self.spec.system_prompt,
                     "agent_name": self.spec.name,
                     "started_at_utc": started_at_utc.isoformat(),
@@ -5102,13 +5113,13 @@ class AgentApp:
             )
             terminal_state: dict[str, Any] | None
             if seconds is None:
-                terminal_state = await consume(graph)
+                terminal_state = await consume(graph, resume_messages)
             else:
                 remaining = float(seconds) - (_monotonic() - started)
                 if remaining <= 0:
                     raise AgentError("limit_exceeded", "seconds limit exceeded")
                 terminal_state = await asyncio.wait_for(
-                    consume(graph), timeout=remaining
+                    consume(graph, resume_messages), timeout=remaining
                 )
             if (
                 output is None
