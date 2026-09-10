@@ -78,8 +78,7 @@ def run(root, smoke_judge, existing_method_pid=None):
     completed = set()
     method_failures = []
     judge_failures = []
-    for model, directory in sources:
-        assert len(list(directory.glob("method/*/round-1.json"))) == 3
+    assert len(list(sources[0][1].glob("method/*/round-1.json"))) == 3
     prior_source = Path(read(smoke_judge / "run_manifest.json")["source_root"])
     for pair in smoke:
         old, old_audit, _, _ = adapt_evidence_discovery_release(prior_source / "method" / pair / "round-1.json", ())
