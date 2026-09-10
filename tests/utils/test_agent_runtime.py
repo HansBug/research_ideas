@@ -690,6 +690,27 @@ def test_schema_retry_does_not_leave_an_incomplete_structured_tool(tmp_path: Pat
     assert structured[1]["result"] == {"answer": "ok"}
 
 
+def test_resume_preserves_history_without_rebilling_old_calls(tmp_path: Path) -> None:
+    model = _MalformedThenValidStructuredModel(calls=1)
+    app = AgentApp._for_test(
+        AgentSpec(name="resume", system_prompt="Return the structured answer.", output_schema=_RetryAnswer),
+        LLMConfig(model="gpt-5.5"), model,
+    )
+    history = [HumanMessage(content="answer"),
+               AIMessage(content="", tool_calls=[{"name": "_RetryAnswer", "args": {}, "id": "old"}]),
+               ToolMessage(content="Field answer required", tool_call_id="old")]
+    result = app.run("answer", resume_messages=history, renderer="quiet", audit_out=tmp_path / "resume.jsonl")
+    assert result.status == "success"
+    assert [m.content for m in model.observed_requests[0][-3:]] == [m.content for m in history]
+    assert result.model_calls_used == 1
+    assert len(result.tool_calls) == 1
+    context = next(json.loads(line) for line in (tmp_path / "resume.jsonl").read_text().splitlines()
+                   if 'resume_messages' in json.loads(line))
+    assert context['resume_messages'] == [m.model_dump(mode="json") for m in history]
+    with pytest.raises(ValueError, match="unchanged input_text"):
+        app.run("different", resume_messages=history)
+
+
 def test_malformed_structured_retry_balances_tool_call_before_next_request(
     tmp_path: Path,
 ) -> None:
