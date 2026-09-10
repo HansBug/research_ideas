@@ -4,7 +4,7 @@
 
 | 报告类型 | 使用方式 |
 | --- | --- |
-| [2026-09-10 A4 冻结 Full 末端重放](./2026-09-10-a4-frozen-full-tail-results.md) | 冻结候选并隐藏执行结果；Sonnet/Luna/Muse 全部报告已核销的条件比较、普通/strict precision、逐轮分母与源案例；Qwen 统计缺口明确保留，不代表四模型完整验收。原始 A4 记录仅本地留存，分析器从对应目录离线复算 |
+| [2026-09-10 A4 冻结 Full 末端重放](./2026-09-10-a4-frozen-full-tail-results.md) | 三款闭合模型的普通/strict precision、逐轮分母、候选筛选与源案例；Qwen 四条缺失标签的上下界与续接失败保留。小型核算 JSON 支持离线计数复算，原始对话仅本地留存；不代表四模型完整验收 |
 | v26、v27-stream、v51 及早期 Judge 对照 | historical experiment report；不可与 v60/current 指标直接相减或合并 |
 | PlantUML frontend、source trace、ledger contract | implementation/protocol provenance；不构成 current experiment result |
 | R5/R5.5 readiness、seed、negative evidence、scope handoff | historical corpus/conversion evidence；不构成当前方法或评测协议 |
