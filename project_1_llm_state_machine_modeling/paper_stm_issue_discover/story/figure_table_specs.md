@@ -1,43 +1,49 @@
-# 主文图表规格
+# 论文图表与来源
 
-图表预算已包含在 [十页分配](./README.md) 内。这里只规定可执行的绘制内容与来源，不声称已有排版 PDF。题注以 [大纲](./paper_outline.md) 的图表说明为准，英文正文阶段压缩翻译。
+所有图内文字、图例与 Figure 题注为英文。示意图以可编辑飞书画板协作，仓库保留从飞书导出的 SVG 及原生节点；数据图由 matplotlib 从冻结 JSON 生成。SVG 用于论文矢量排版，PNG 用于预览。源数据以 S0–S6 为准，不手工调整图中数字。
 
-| 对象 | 位置 / 预算 | 内容与版式 | 来源及验收 |
-| --- | --- | --- | --- |
-| 图 1 | §4.1 / 0.40 页 | 双栏宽方法图；上半为输入→投影与事实→中间引导→谓词执行→报告，反馈回到语义复核；下半为简化示例 | S6；区分 LLM 与确定性节点，C-1/2/3 标签对应，源映射贯穿；示例明确不计入实验 |
-| 图 2 | §6.1 / 0.30 页 | 双栏宽，四个紧凑模型面板；横轴统一 0–100%，纵列 L0/L1/L2，每行基线与 Full 两点相连 | S1；从未舍入比例绘制；刻度与颜色共享，不截断横轴；模型不是能力排名 |
-| 表 1 | §5.3 / 0.22 页 | 双栏条件矩阵，五行；描述共享输入、差异、执行、最终复核 | 各干预协议；明确 A4 冻结上游并撤去关联自动拦截，A3 联合移除 |
-| 表 2 | §6.1 / 0.32 页 | 双栏八行，同模型两行成组；R、K/N/I、三覆盖、两精确率 | S1/S5；分母与历史身份在题注，全部数字逐字段对拍 |
-| 表 3 | §6.2–6.4 / 0.40 页 | 双栏九行，按干预分组；覆盖、V、I、两精确率；Full 回指表 2 | S2/S3/S4；A4 标签政策、A1 历史差异与 Qwen 反向结果不得靠删列隐藏 |
+| 对象 | 正文位置 | 文件 / 来源 | 版面预算 |
+| --- | --- | --- | ---: |
+| Figure 1：方法与说明性案例 | §4.1 | [method.svg](./figures/method.svg)；S6 | 0.50 页 |
+| Figure 2：冻结 K/N/I 与 A4 核算路径 | §5.4 | [adjudication.svg](./figures/adjudication.svg)；S4/S7 | 0.60 页 |
+| Figure 3：四模型分层覆盖 | §6.1–6.2 | [coverage.svg](./figures/coverage.svg)、[PNG](./figures/coverage.png)、[PDF](./figures/coverage.pdf)；S1 | 0.45 页 |
+| 表 1：语料与参考问题 | §5.2 | S0；54 行结构统计，145 条台账 | 0.25 页 |
+| 表 2：基线与消融条件 | §5.3 | S1–S4 的真实干预合同 | 0.22 页 |
+| 表 3：完整方法与基线 | §6.2 | S1/S5；8 行，三覆盖、两精确率 | 0.35 页 |
+| 表 4：三项消融 | §6.3–6.5 | S2/S3/S4；9 行 | 0.40 页 |
 
-合计 1.64 页。图表若无法在该预算内保持可读性，先压缩题注和重复文字，再将主表的 hit@3/hit@all 完整值外移；主文仍保留稳定性结论、全部模型的精确率与消融边界，任何变动同步大纲。
+总浮动体预算 2.77 页，包含在 [正文十页预算](./README.md) 内。实际英文模板排版仍需验证，不将 SVG 尺寸换算成已实现的页数。
 
-## 图 1 的示例约束
+Figure 1 的 Idle→Running→Halt 为说明性案例，不计入实验。Start/Stop 是迁移事件；Halt 无出口，描述要求 Stop 后返回 Idle。`may_reach(Halt, {Idle})` 与 `transition_exists(Running, Stop, Halt)` 是论文层面的查询简写，后者 true 只反驳完全对应的缺边主张。
 
-构造三个状态 Idle、Running、Halt；初始为 Idle，Start 使其进入 Running，Stop 使 Running 进入 Halt，Halt 无出边。描述要求 Stop 后返回 Idle。该例不含守卫或变量，避免把拓扑路径解释成守卫可行性。
+Figure 2 使用冻结 relation-first policy：非 A0 且 FULL/PARTIAL 可以计 K，包括 D0；严格分子限 K/N 且 D1/D2。右侧先处理原 true 同主张指定 I，再内容等价复用，最后新增评价，不能交换顺序。
 
-- 正确候选：“停止后不能返回 Idle”。事实为 Halt 无出口；拓扑查询 `may_reach(Halt, {Idle})` 返回 false，给出模型侧依据，报告同时引用描述义务。
-- 错误候选：“模型缺少 Running 经 Stop 到 Halt 的迁移”。精确 `transition_exists` 检查返回 true，反驳这一相同主张。该例刻意使完整主张与绑定命题等价，不能推广为所有 true 都反证完整自然语言问题。
-- 两个查询采用论文层面的简写，正式图注注明参数含义；实现字段以 S6 的类型化接口为准。
-- 方法总览保留 unknown/unsupported 的诊断去向，不画成一律拒绝报告；满足定位而无合格执行证据的报告可为 W1。
+## 数据图复现
 
-## 图 2 的源值
+```bash
+python project_1_llm_state_machine_modeling/paper_stm_issue_discover/story/figures/plot_coverage.py
+```
 
-下表是绘图视图，权威数据为 S1 的 JSON；百分点先相减再四舍五入。分层分母分别为 71、35、39 个问题乘三轮。
+命令核验 24 组原始比例及分母，生成 SVG/PNG/PDF，不调用模型。四面板共用 0–100% 横轴，右侧为 Full−Baseline 百分点差；线段表示条件配对。误差区间按九描述簇计算并在正文说明，不以报告级误差条替代。
 
-| 模型 | 层级 | 基线命中 | Full 命中 | 差值 pp |
+| 模型 | 层级 | 基线 | Full | 差值 pp |
 | --- | --- | ---: | ---: | ---: |
-| Luna | L0 | 108/213 | 153/213 | +21.13 |
-| Luna | L1 | 72/105 | 73/105 | +0.95 |
-| Luna | L2 | 45/117 | 97/117 | +44.44 |
-| Sonnet | L0 | 111/213 | 133/213 | +10.33 |
-| Sonnet | L1 | 74/105 | 65/105 | -8.57 |
-| Sonnet | L2 | 56/117 | 93/117 | +31.62 |
-| Qwen | L0 | 110/213 | 165/213 | +25.82 |
-| Qwen | L1 | 66/105 | 68/105 | +1.90 |
-| Qwen | L2 | 49/117 | 78/117 | +24.79 |
-| Muse | L0 | 131/213 | 165/213 | +15.96 |
-| Muse | L1 | 77/105 | 79/105 | +1.90 |
-| Muse | L2 | 39/117 | 78/117 | +33.33 |
+| gpt-5.6-luna | L0 | 108/213 | 153/213 | +21.13 |
+| gpt-5.6-luna | L1 | 72/105 | 73/105 | +0.95 |
+| gpt-5.6-luna | L2 | 45/117 | 97/117 | +44.44 |
+| claude-sonnet-5 | L0 | 111/213 | 133/213 | +10.33 |
+| claude-sonnet-5 | L1 | 74/105 | 65/105 | -8.57 |
+| claude-sonnet-5 | L2 | 56/117 | 93/117 | +31.62 |
+| qwen3.8-27b | L0 | 110/213 | 165/213 | +25.82 |
+| qwen3.8-27b | L1 | 66/105 | 68/105 | +1.90 |
+| qwen3.8-27b | L2 | 49/117 | 78/117 | +24.79 |
+| muse-glimmer-30b | L0 | 131/213 | 165/213 | +15.96 |
+| muse-glimmer-30b | L1 | 77/105 | 79/105 | +1.90 |
+| muse-glimmer-30b | L2 | 39/117 | 78/117 | +33.33 |
 
-图 2 不加以报告为单位的误差条。九簇重采样区间与逐簇敏感性在正文说明或补充表保留，不能由连接点暗示统计显著。
+## 画板位置与导出
+
+- 方法图：[飞书原生画板](https://scngnprmusv9.feishu.cn/docx/EGHDdqeV4om9mKxTiyxcBYU8nAh#doxcnlUgnwrSIS2RzQL8A94PZCd)，token `BnXpw4gl0hntpZbDALXckLJynhe`，原生源为 [method.whiteboard.json](./figures/method.whiteboard.json)。
+- 判定图：[飞书原生画板](https://scngnprmusv9.feishu.cn/docx/EGHDdqeV4om9mKxTiyxcBYU8nAh#doxcn7eaqxUoaprxyfVtTfLG9gg)，token `TTlFwM8DlhOYqjbZoXbcliGUnCd`，原生源为 [adjudication.whiteboard.json](./figures/adjudication.whiteboard.json)。
+
+后续修改同一画板后，用 `lark-cli --profile hansbug whiteboard +export --as user --whiteboard-token TOKEN --output-type svg --output ./PATH.svg --overwrite` 导出，并以 `--output-type raw` 保存原生节点；勿新建重复画板。导出后核验文本完整性、箭头、图例和裁切。本文两图 SVG 均含可选取的文本与矢量形状，可直接用于矢量排版。

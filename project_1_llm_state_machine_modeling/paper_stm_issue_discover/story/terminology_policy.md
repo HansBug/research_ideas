@@ -1,37 +1,119 @@
-# 论文术语与实验名称
+# 论文术语规范
 
-正文使用描述性名称，内部代号只出现在来源、实现和写作材料中。首次定义的位置按当前大纲节号定位；英文全文采用相同含义。
+正文首次引入研究术语写作“中文（English）”；缩写在同一处定义，此后用固定中文或缩写。题名与章节标题可保持简洁，定义落在首次正文使用处。所有图内文本、图例和 Figure 题注均用英文。模型名始终采用冻结请求 ID：`gpt-5.6-luna`、`claude-sonnet-5`、`qwen3.8-27b`、`muse-glimmer-30b`。原始代码、路径与历史文献中的名字不改写。
 
-| 概念 | 正文用语 / English | 定义位置与边界 |
+| 中文术语 | 固定英文 / 缩写 |
+| --- | --- |
+| 状态机 | state machine |
+| 迁移 | transition |
+| 事件响应 | event response |
+| 自然语言描述 | natural-language description |
+| 大语言模型 | large language model，LLM |
+| 模型检查事实 | model inspection facts |
+| 结构化中间引导 | structured intermediate guidance |
+| 执行反馈 | execution feedback |
+| 义务 | obligation |
+| 候选问题 | candidate issue |
+| 类型化谓词 | typed predicate |
+| 后端 | backend |
+| 参考问题 | reference issue |
+| 完整方法 | full method，Full |
+| 直接发现基线 | direct-discovery baseline |
+| 平均覆盖率 | mean coverage |
+| 消融实验 | ablation study |
+| 报告精确率 | precision |
+| 状态 | state |
+| 事件 | event |
+| 守卫 | guard |
+| 可达性 | reachability |
+| 变量 | variable |
+| 一致性检查 | consistency checking |
+| 行为模型正确性评价方法 | Behavioral Model Correctness Evaluation，MCeT |
+| 模型检查 | model checking |
+| 源制品 | source artifact |
+| 来源映射 | source mapping |
+| 拓扑 | topology |
+| 语义复核 | internal semantic assessment |
+| 问题层级 | problem level |
+| 点状或表面对齐问题 | surface-alignment issue，L0 |
+| 结构或局部状态问题 | structural or local-state issue，L1 |
+| 行为或全局问题 | behavioral or global issue，L2 |
+| 终止 | termination |
+| 统一建模语言 | Unified Modeling Language，UML |
+| 证据强度 | witness strength |
+| 可执行证据 | executable evidence |
+| 需求异味 | requirements smell |
+| 反例 | counterexample |
+| 追踪关系恢复 | traceability link recovery |
+| 形式化方法 | formal methods |
+| 完整性 | completeness |
+| 性质模式 | property pattern |
+| 形式化需求获取工具 | Formal Requirements Elicitation Tool，FRET |
+| 测试预言问题 | oracle problem |
+| 有限控制状态机 | finite control state machine，FCSTM |
+| 单区层次片段 | single-region hierarchical fragment |
+| 复合状态 | composite state |
+| 动作 | action |
+| 运行配置 | configuration |
+| 宏步 | macro-step |
+| 有限轨迹 | finite trace |
+| 有界验证 | bounded verification |
+| 时钟 | clock |
+| 时间事件 | time event |
+| 正交区域 | orthogonal region |
+| 历史伪状态 | history pseudostate |
+| 分叉/汇合 | fork/join |
+| 分析诊断 | analysis diagnostic |
+| 候选身份 | candidate identity |
+| 有界运行前沿 | bounded execution frontier |
+| 仿真 | simulation |
+| 可满足性模理论 | satisfiability modulo theories，SMT |
+| 状态图可扩展标记语言 | State Chart XML，SCXML |
+| 领域不变量 | domain invariant |
+| 受限修订 | bounded revision |
+| 结构检查 | structural check |
+| 拓扑检查 | topological check |
+| 轨迹检查 | trace check |
+| 元模型 | metamodel |
+| 执行返回值 | verdict |
+| 执行回执 | execution receipt |
+| 根报告 | root report |
+| 子主张 | subclaim |
+| 外部评价 | external evaluation |
+| 研究问题 | research question，RQ |
+| 描述簇 | description cluster |
+| 输入对 | input pair |
+| 提示 | prompt |
+| 末端重放 | terminal replay |
+| 缺陷状态 | defect status |
+| 充分匹配 | full match，FULL |
+| 部分匹配 | partial match，PARTIAL |
+| 无匹配 | no match，NO |
+| 静态分析工具评测 | Static Analysis Tool Exposition，SATE |
+| 参考真值 | ground truth |
+| 已知有效报告 | valid known report，K |
+| 集合外有效报告 | valid novel report，N |
+| 无效报告 | invalid report，I |
+| 关系优先规则 | relation-first policy |
+| 外部评价器 | external evaluator |
+| 内容等价 | content equivalent |
+| 三轮并集覆盖率 | union coverage |
+| 三轮稳定覆盖率 | stable coverage |
+| 严格报告精确率 | strict precision |
+| 配对簇重采样 | paired cluster bootstrap |
+| 用户研究 | user study |
+
+图内受版面限制可将 model inspection facts、structured intermediate guidance 缩为 inspection facts、intermediate guidance；候选复核（candidate review and correction）为内部语义复核节点的图示说明。统一采用 relation-first policy，不混用 validity-first。K/N/I 的有效性按冻结归属规则定义，普通精确率与严格精确率并列。
+
+| 内部条件 | 正文名称 | 对应 RQ |
 | --- | --- | --- |
-| 分析输入 | 自然语言描述 / natural-language description；既有源状态机 / existing source state machine | §1、§3；分析期间固定，当前制品来自上游 LLM 输出 |
-| 方法主体 | 大语言模型 / large language model (LLM) | 摘要；全文首次用缩写前展开 |
-| 分析表示 | 有限控制状态机 / finite control state machine (FCSTM) | §3.2；工程工作表示，不是独立算法创新 |
-| C-1 | 模型事实支持的发现 / discovery supported by model inspection facts | §1、§4.2；事实不自行产生义务 |
-| C-2 | 结构化中间引导 / structured intermediate guidance | §1、§4.3；包含义务、发现、扩充、探测及内部语义复核的整组机制 |
-| C-3 | 执行反馈约束报告 / execution feedback for report decisions | §1、§4.4；类型化谓词、后端求值及结果解释，不声称整个谓词系统已被单独消融 |
-| C-4 | 多模型实证与可复核材料 / multi-model evaluation and auditable materials | §1、§5；不暗示公开匿名制品已完成 |
-| L | 问题层级 / problem level | §2.1；L0 点状，L1 结构或局部，L2 跨迁移行为；独立于算法与 W |
-| W | 证据强度 / witness strength | §2.1；W0 无精确定位，W1 有定位，W2 有合格执行证据；不代表完整缺陷已证明 |
-| D | 缺陷状态 / defect status | §5.4；D2、D1、D0 与 A0 遵循冻结评价协议 |
-| 内部评估 | 语义复核 / internal semantic assessment | §4.3；服务于发布决定，与外部评价的调用和材料分开 |
-| 外部评价 | 外部评价器 / external evaluator | §5.4；固定 Luna 双读及分歧仲裁，不能写成全量人工裁定或独立模型委员会 |
-| K/N/I | 参考集合相关有效 / 集合外有效 / 无效报告 | §5.4；关系优先规则可将部分 D0 计 K，故并列 strict precision |
-| P / P_strict | 普通 / 严格报告精确率 | §5.5；分母均为全部发布报告，严格分子只计有效 D1/D2 |
-| hit@1 / hit@3 / hit@all | 三轮平均 / 三轮至少一次 / 三轮全命中覆盖 | §5.5；分母分别 435/145/145，PARTIAL 不计主命中 |
-| 来源映射 | source mapping / provenance | §3.2；区分源制品和内部表示，不将编译器产物归给源作者 |
+| X1v2 baseline | 直接发现基线 / direct-discovery baseline | RQ1、RQ2 |
+| v61 / E2 ours | 完整方法 / full method (Full) | 共同对照 |
+| A1 | 无检查事实 / no inspection facts | RQ3 |
+| A3 | 无中间引导 / no intermediate guidance | RQ4 |
+| A4 | 无执行反馈 / no execution feedback | RQ5 |
+| A2 | 不进入本文叙事 | 无 |
 
-| 内部条件 | 正文名称 | RQ |
-| --- | --- | --- |
-| X1v2 baseline | 同模型直接发现基线 | RQ1 |
-| v61 / E2 ours | Full / 完整方法；历史 Luna 身份另注 | 共同对照 |
-| A1 | 无检查事实 | RQ2 |
-| A3 | 无中间引导 | RQ3 |
-| A4 | 无执行反馈 | RQ4 |
-| A2 | 不进入正文 | 无 |
+C-4 固定为人工标注数据集 / manually annotated dataset；不再称多模型实证贡献。谓词是有类型、可执行的检查模板，不指自由逻辑中的完备证明系统。当前 12 项与历史 19 项注册身份分别追溯，不写成历史重跑。
 
-谓词编号采用当前 `S1–S5 / G1–G3 / R1–R3 / V1`，共 12 项定义。历史运行保留原注册表、编号及哈希；不能把当前编号映射写成历史重跑。论文中“谓词”是有类型、可执行的检查模板，不能暗示自由形式逻辑中的完备证明系统。
-
-不用“显著提高”代替点估计；写“在四种固定配置上提高”，并明确指标与条件。少报导致的精确率提高需与有效产出和覆盖一起解释。“降低幻觉”如用作动机，结果中落实为既定评价下的无效报告比例，不能等同于全部误报已由独立真值反证。
-
-文献题名、代码、URL、正式模型名称、公式和冻结字段为保护区，语言润色不得改变。引用文献中的 requirements 可译为“需求”；本文输入仍统一称“自然语言描述”。历史导师纪要保留原话，其旧评价口径不覆盖新增实验的真实来源。
+语言修改保护数值、公式、模型 ID、文献题名、来源和条件。点估计写明幅度与适用范围，不用“显著”替代统计证据；A3 的整组干预与 A4 的固定候选及标签政策保留。
