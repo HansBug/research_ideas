@@ -349,6 +349,10 @@ METHOD_SYSTEM_PROMPT = """The method is staged. Its public generation surface is
 def _prompt_schema_hash(ablation: AblationMode = "none") -> str:
     """Hash every method prompt contract and response schema used by a run."""
 
+    if ablation == "direct-report":
+        from .direct_report import prompt_schema_contract
+
+        return _hash_json(prompt_schema_contract())
     return _hash_json(
         {
             "version": PROMPT_SCHEMA_VERSION,
@@ -1047,7 +1051,7 @@ def _apply_typed_predicate_boundary(
     )
 
 
-def _enrich_candidate(candidate: CandidateIssue, binding: Any, pair: PairInput) -> CandidateIssue:
+def _enrich_candidate(candidate: CandidateIssue, binding: Any, pair: PairInput, *, infer_missing_subject: bool = True) -> CandidateIssue:
     if candidate.predicate_id is None:
         return candidate.model_copy(update={"predicate_inputs": {}})
     inputs = dict(candidate.predicate_inputs)
@@ -1083,7 +1087,7 @@ def _enrich_candidate(candidate: CandidateIssue, binding: Any, pair: PairInput) 
             inputs["transition_ref"] = transition.ref
             inputs["source"] = transition.source
             inputs["target"] = transition.target
-    if candidate.predicate_id == "S1" and "element" not in inputs and binding.element_refs:
+    if infer_missing_subject and candidate.predicate_id == "S1" and "element" not in inputs and binding.element_refs:
         ref = binding.element_refs[0]
         state = next((item for item in pair.model.states if item.ref == ref), None)
         event = next((item for item in pair.model.events if item.ref == ref), None)
@@ -2539,6 +2543,8 @@ def _prepare_candidate(
     index: int,
     contracts_by_id: Mapping[str, NLContract] | None = None,
     domain_invariants_by_id: Mapping[str, DomainInvariantContract] | None = None,
+    *,
+    infer_missing_subject: bool = True,
 ) -> dict[str, Any]:
     """Bind, compile, and execute once before the separate semantic D call."""
 
@@ -2578,7 +2584,7 @@ def _prepare_candidate(
                     + "; W0 and D_UNRESOLVED are required",
                 }
             )
-    candidate = _enrich_candidate(candidate, binding, pair)
+    candidate = _enrich_candidate(candidate, binding, pair, infer_missing_subject=infer_missing_subject)
     plan = compile_plan(
         candidate,
         binding,
@@ -4391,6 +4397,13 @@ def _method_cell(
     if expected_input_hash is not None and expected_input_hash != pair.context_manifest.manifest_hash:
         raise RuntimeError(
             f"pair {pair.pair_id} input manifest changed after run identity was frozen"
+        )
+    if ablation == "direct-report":
+        from .direct_report import direct_report_cell
+
+        return direct_report_cell(
+            pair=pair, round_index=round_index, runtime=runtime,
+            output_root=output_root, run_identity=run_identity,
         )
     if ablation == "no-inspect":
         audit = context_payload(pair)

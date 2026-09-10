@@ -1242,6 +1242,12 @@ class FixtureStructuredRuntime:
                 "reason": "Fixture D output is intentionally unresolved.",
                 "basis": "provider-free fixture runtime",
             }
+        elif schema.__name__ == "DirectReportResponse":
+            payload = {
+                "issues": [],
+                "reason": "Provider-free fixture produces no claims.",
+                "basis": "fixture, never eligible as a live result",
+            }
         else:
             raise TypeError(
                 f"FixtureStructuredRuntime does not support method schema {schema.__name__}"

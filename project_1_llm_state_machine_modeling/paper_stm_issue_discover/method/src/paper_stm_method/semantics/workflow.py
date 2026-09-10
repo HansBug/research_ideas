@@ -935,6 +935,7 @@ class StageReceipt(BaseModel):
     stage_id: str = Field(min_length=1, description="Stable stage identifier within one method cell.")
     stage_name: Literal[
         "prepare",
+        "direct_report",
         "contract_extraction",
         "contract_completion",
         "discovery_grounding",

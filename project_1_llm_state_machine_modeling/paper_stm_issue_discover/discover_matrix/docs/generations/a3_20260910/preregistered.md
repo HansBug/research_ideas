@@ -41,7 +41,7 @@ flowchart LR
 
 一次结构化输出无候选数人为上限。每条含标题、requirement quote/依据、作者源引用与位置、locus kind/names、property、violation_direction、expected/observed、reason/basis、predicate ID、注册表合法 typed inputs、必要变量及精确 binding refs。沿用 registry/compiler/backend 表示，不执行生成代码，不接受自报 verdict 或评测 K/N/I、D/A、L。若内部类型要求 contract_id，从同条报告派生唯一 ID 和最小契约适配，不另造语义义务。
 
-true 检查成立：保留执行审计，拦截相同缺陷主张。false 仅作为执行证据，外部 judge 决定有效性。unknown、不适用、无法闭合和 predicate-null：具体 source-backed 主张按原适用资格保留 W1，无法具体定位为 W0/结构化缺口；不假造 W2、不默删困难格。全局范围外主张不发布。参数不唯一绑定不得宣称执行证明。内部 D 状态显式为 disabled_by_ablation，发布不依赖虚构 D2/D1。
+true 检查成立：保留执行审计，拦截相同缺陷主张。false 仅作为执行证据，外部 judge 决定有效性。unknown、不适用、无法闭合和 predicate-null：具体 source-backed 主张按原适用资格保留 W1，无法具体定位为 W0/结构化缺口；不假造 W2、不默删困难格。范围纪律写入生成 prompt，不新增语义范围裁决器；unsupported 继续保留为未验证主张。参数不唯一绑定不得宣称执行证明。内部 D 状态显式为 disabled_by_ablation，发布不依赖虚构 D2/D1。
 
 逐条保存生成 report -> 绑定 -> plan/receipt -> filtered/published/folded 的映射；final 实质主张必须来自唯一生成输出，折叠不得扩大主张集合。唯一 final report 是评测分母，不按 predicate/facet 数重复计数。零报告格保存正常完成回执。
 
@@ -52,6 +52,21 @@ Sonnet Full 从 [E2 cells](../../../../final_results/e2_20260907/sonnet/cells.js
 运行前离线重算参考 K/N/I：Sonnet 536/183/104，823 报告，719/823=87.36%；Luna 561/198/144，903 报告，759/903=84.05%。这些是待核验的 Full 参考值，不是 A3 预测。Luna 历史十二谓词按现有 predicate_id_mapping 展示同组分析，保留原 ID/定义版本。
 
 真实调用必须用 utils.llm profile 与显式 live/full-live。profile 精确模型、provider/endpoint、temperature、context/max output、输入集合、prompt/schema、代码、轮次、条件与 worker 参数进入运行 manifest/hash；运行前与 Full 逐项核验并冻结。不同条件/模型/输入/配置不得 resume 为 A3。原始输出、usage、finish_reason、截断、错误和重试留审计；配置明文不打印、不入库。prompt generator 不读取凭据。
+
+### 4.1 2026-09-10 执行前核验
+
+[verify_sources.py](verify_sources.py) 从两组原始方法与 judge 文件独立复算，验证 324 格、方法与 judge 哈希、报告 ID 分母以及所有 `input_hashes` 与当前 54 pair 一致。Sonnet 的 hit@1/@3/@all 为 291/435、122/145、69/145；Luna 为 323/435、130/145、82/145，K/N/I 与上述参考值完全一致。绝对路径参与的 context manifest 不作为跨 worktree 内容一致性的替代。
+
+| profile / 精确模型 | adapter | context | A3 max output | 无凭据配置 hash |
+| --- | --- | ---: | ---: | --- |
+| claude-sonnet-5 | anthropic | 1000000 | 128000 | `sha256:b31ee2c0247e9b97bd302e9eb2294f0dc16d059c63a8a203027bc5fb3abfdaf2` |
+| gpt-5.6-luna | openai-responses | 272000 | 128000 | `sha256:05e7d948fd676e677f49a039ea75f0356f5aa005bbc2db89f5e72bf6ff4e446a` |
+
+Sonnet 与 E2 profile hash 相同。Luna v61 原始调用记录的 context 为 272000、各阶段 max output 为 10000；本轮保持模型和 context，以当前 profile 的 128000 输出上限容纳单次完整报告。这项输出预算差异保留为历史对照限制，不声称 Luna 是所有配置严格一致的单因素实验。无额外 temperature/top_p/seed 覆盖，沿用 provider/runtime 默认。凭据配置独立复制到仓库外、权限 600，不修改共享 profile；仅公开上述白名单与无凭据 hash。外部 judge 沿用 24000 输出上限、两读、arbitration、trigger=any、relation_first、closure_profile=full。
+
+执行环境为 pydantic 2.13.4、anthropic 0.117.0、openai 2.41.0、langgraph 1.2.4、pyfcstm 0.6.0；submodule commit `901f30e981c29eb8e304b33d61985652d2e85b2e`。A3 prompt/schema hash 为 `sha256:8819378f31fd7f291e73324d1087e33e6a392103756bcab92093bfe50d889b9d`；Full hash 仍为 `sha256:744e7f489591904a08e9919ded9f99ec73c2d55d81225fbd8a9ec18dca8fefe2`。
+
+共享准备函数仅作同一实例绑定、适用性降级、编译与执行。A3 显式关闭缺失 S1 对象的首元素补全；精确 carrier 的规范化保留。发布保留生成时的 expected/observed/reason/basis，适配诊断另存，不用诊断改写主张。
 
 ## 5. 调度与裁定
 
