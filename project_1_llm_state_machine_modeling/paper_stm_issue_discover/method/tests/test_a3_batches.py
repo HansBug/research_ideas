@@ -102,6 +102,28 @@ def test_tool_envelope_recovery_accepts_only_complete_first_payload(monkeypatch)
         recover_arguments({**value, "reason": "No parameter boundary"})
 
 
+def test_split_report_recovery_preserves_values_and_rejects_ambiguous_blocks(monkeypatch):
+    directory = Path(__file__).resolve().parents[2] / "discover_matrix/docs/generations/a3_20260910"
+    monkeypatch.syspath_prepend(str(directory))
+    from recover_tool_envelope import recover_arguments
+    from paper_stm_method.orchestration.direct_report import DirectReport
+
+    row = dict(title="Claim", requirement_quote="Required", source_quote="Authored",
+               source_refs=["line:1"], locus_kind="state", locus_names=["A"],
+               property="other", violation_direction="missing", expected="Expected",
+               observed="Observed", reason="Reason", basis="Basis", predicate_id=None,
+               predicate_inputs={}, element_refs=[])
+    head = {"title", "requirement_quote", "source_quote", "source_refs"}
+    blocks = [{k: v for k, v in row.items() if k in head},
+              {k: v for k, v in row.items() if k not in head}]
+    value = {"reason": "Original", "basis": "Original", "issues": blocks}
+    assert recover_arguments(value).issues == [DirectReport.model_validate(row)]
+    for bad in (blocks[:1], blocks[::-1], [blocks[0], {**blocks[1], "title": "Conflict"}],
+                [{k: v for k, v in blocks[0].items() if k != "title"}, blocks[1]]):
+        with pytest.raises(AssertionError):
+            recover_arguments({**value, "issues": bad})
+
+
 def test_content_counts_distinguish_reports_from_expected_units(monkeypatch):
     directory = Path(__file__).resolve().parents[2] / "discover_matrix/docs/generations/a3_20260910"
     monkeypatch.syspath_prepend(str(directory))

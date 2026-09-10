@@ -76,6 +76,8 @@ Sonnet 0046/r3 的首次回复已包含九条完整报告，但 JSON 被包在�
 
 **2026-09-10 开放模型 method-only 阶段（用户明确授权）：** 依次完成 Qwen、Muse，各冻结 54 pair × 3 round = 162 格；本阶段不启动任何外部 judge，裁定须等用户后续指令。复用远端 GPU 4-7 的现有权重与独立 conda，优先复用驻留 Qwen；method 总并发最多 16。Qwen 使用 `e1-qwen38-27b`（low、1,000,000 YaRN），Muse 使用 `e1-muse30b`（high、131,072），两者沿用 E1/E2 的 stream、remaining_context、TP4 和固定权重，启动参数见 [E1 复现附录](../../../../reports/model_readiness_20260906/2026-09-07-11-55-00-reproduction.md)。共享配置已不含这两个 profile，因此按既有 A4 manifest 的全部公开字段在仓库外重建权限 600 的专用配置，使用同一无鉴权 loopback 服务；不修改共享配置。原冻结 A3 prompt/schema、输入与执行发布规则不变，正常结果不重采样。方法产物独立归档，judge 状态明确为未运行，不生成 K/N/I 或 precision。
 
+Qwen `0002/r2` 的首次工具参数把四条完整报告各拆成相邻两个对象，前块恰为 title/requirement_quote/source_quote/source_refs，后块恰为原 schema 的全部其余字段。六次原位纠正未通过，后五次还产生了无效 JSON 字符串。[recover_tool_envelope.py](recover_tool_envelope.py) 仅在上述精确字段分区、顺序、非空偶数长度成立时合回首次回复，缺失/重复/冲突/逆序均拒绝，随后用原 schema 校验。此为事后结构接口修复，保留全部失败、原件和 usage，独立派生执行发布结果；无新 LLM 调用、无字段值改写、不修改冻结生成 prompt/schema，不将异常恢复伪装成正常一次成功。
+
 method 活跃总配置为 16 workers，先 Sonnet 后 Luna，共享上限，不为三轮重复启动三个 16-worker 驱动。judge 固定 Luna，实验 r1/r2/r3 各 8 workers，三个队列同时工作，跨模型总上限 24。复用原 CLI、锁与严格 resume；各轮首批 ready 后即可判定，未 ready 排队，零报告直接核销。每个 worker 保留标准两次独立读与必要仲裁。真实 PID、参数、吞吐、失败/降级/待判数量和首批 ETA 只记 PR。
 
 **2026-09-10 执行中并发修订（用户明确 override）：** 24 workers 改为 A3 与 page9 右侧 A4 合计的全局配额。A4 使用 8 workers 时，A3 最多活跃 16 workers，即只派发两个 8-worker 轮次池；第三轮队列保留并等待空位。只有确认 A4 没有 Luna worker 后，A3 才可恢复三个池、合计 24 workers。缩减时先停止额外池的派发，让此前已发出的调用落盘，再冻结空闲 worker；保留全部原始结果，不因调度改变重做已成功阶段。轮次、判定协议和报告分母不变，原始运行 manifest 的启动配置与后续实际活跃并发须区分记录。
