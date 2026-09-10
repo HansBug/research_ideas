@@ -63,5 +63,14 @@ def verify(archive):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--archive", type=Path, default=PAPER / "final_results/a3_20260910")
+    parser.add_argument("--raw-root", type=Path)
     args = parser.parse_args()
-    print(json.dumps(verify(args.archive), indent=2))
+    result = verify(args.archive)
+    if args.raw_root:
+        inventory = read(args.archive / "raw_index.json")["files"]
+        for name, record in inventory.items():
+            path = args.raw_root / name
+            assert not path.is_symlink() and path.stat().st_size == record["bytes"], name
+            assert digest(path) == record["sha256"], name
+        result["verified_raw_files"] = len(inventory)
+    print(json.dumps(result, indent=2))
