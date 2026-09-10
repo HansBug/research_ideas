@@ -9,6 +9,11 @@ from pathlib import Path
 from verify_sources import PAPER, digest, read, verify
 
 
+def archived_source(root, recorded_path):
+    # Preserve original bytes/hashes while resolving this run's paths after archival.
+    return root / Path(recorded_path).relative_to("/tmp/paper1-a3-runs")
+
+
 def arithmetic():
     spec = importlib.util.spec_from_file_location("a1_arithmetic", PAPER / "discover_matrix/docs/generations/a1_no_inspect_20260906/analyze_a1.py")
     module = importlib.util.module_from_spec(spec)
@@ -66,7 +71,7 @@ def content_breakdown(a3, full, items):
     report_groups = {}
     for arm, data in (("a3", a3), ("full", full)):
         report_groups[arm] = {}
-        for field in ("property", "predicate_id", "witness_level", "locus_kind"):
+        for field in ("property", "predicate_id", "witness_level", "locus_kind", "defect_class"):
             groups = {}
             for report in data["reports"]:
                 value = str(report["published_claim"].get(field) if field == "locus_kind" else report.get(field))
@@ -127,7 +132,7 @@ def analyze(root, allow_partial=False):
                 key = correction["pair_id"], correction["round"]
                 prior_path, prior = methods[key]
                 assert digest(prior_path) == correction["source_hash"]
-                path = Path(correction["corrected_source"])
+                path = archived_source(root, correction["corrected_source"])
                 assert digest(path) == correction["corrected_hash"]
                 cell = read(path)
                 assert cell["model_output"] == prior["model_output"] and cell["eligible"]
@@ -139,7 +144,7 @@ def analyze(root, allow_partial=False):
             if judge["status"] != "completed":
                 continue
             current_path, current = methods[key]
-            source_path = Path(judge["adapter_audit"]["source_path"])
+            source_path = archived_source(root, judge["adapter_audit"]["source_path"])
             assert digest(source_path) == judge["adapter_audit"]["source_hash"]
             if digest(current_path) != judge["adapter_audit"]["source_hash"]:
                 original = read(source_path)
@@ -156,6 +161,7 @@ def analyze(root, allow_partial=False):
         expected = {(p, rnd) for p in clusters for rnd in (1, 2, 3)}
         assert set(methods) <= expected and set(judgements) <= set(methods)
         reports, cells, funnel, calls = [], [], Counter(), Counter()
+        execution_groups = Counter()
         for key, (method_path, method) in sorted(methods.items()):
             funnel["method_cells"] += 1
             funnel["eligible_cells"] += bool(method["eligible"])
@@ -178,6 +184,10 @@ def analyze(root, allow_partial=False):
                 funnel["publication_" + record["publication_status"]] += 1
                 funnel["raw_verdict_" + record.get("receipt", {}).get("verdict", "missing")] += 1
                 funnel["witness_" + record["witness_level"]] += 1
+                execution_groups[(record["publication_status"], str(record["predicate_id"]),
+                                  record.get("receipt", {}).get("verdict", "missing"),
+                                  record.get("execution_receipt", {}).get("execution_status", "missing"),
+                                  record.get("source_quotes_exact"), record.get("binding", {}).get("precise"))] += 1
             row = {"pair_id": key[0], "round": key[1], "source": str(method_path), "sha256": digest(method_path),
                    "eligible": method["eligible"], "reports": len(method["report_issue_clusters"]), "judged": key in judgements}
             if key in judgements:
@@ -185,7 +195,7 @@ def analyze(root, allow_partial=False):
                 assert method["eligible"]
                 source_hash = judge["adapter_audit"]["source_hash"]
                 if source_hash != row["sha256"]:
-                    original = Path(judge["adapter_audit"]["source_path"])
+                    original = archived_source(root, judge["adapter_audit"]["source_path"])
                     assert digest(original) == source_hash
                     old_reports, _, _, _ = adapt_evidence_discovery_release(original, ())
                     new_reports, _, _, _ = adapt_evidence_discovery_release(method_path, ())
@@ -210,6 +220,8 @@ def analyze(root, allow_partial=False):
         full = {"reports": full_reports, "metrics": controls["models"][model]["metrics"], "cells": full_cells}
         full["per_round"] = per_round(full_reports, full_cells, items, math)
         a3 = {"reports": reports, "cells": cells, "coverage": coverage, "funnel": dict(funnel),
+              "execution_groups": [{**dict(zip(("publication_status", "predicate_id", "verdict", "execution_status", "source_quotes_exact", "binding_precise"), key)), "count": count}
+                                   for key, count in sorted(execution_groups.items(), key=lambda row: str(row[0]))],
               "call_audit": dict(calls), "call_audit_scope": "Selected completed generations, including their recorded retries. Interrupted unfinished calls remain separate raw audit; their missing usage is not zero cost.",
               "superseded_judgements": superseded_judgements, "metrics": math.calculate(reports, items)}
         # Partial figures are explicitly marked and never used in paired inference.

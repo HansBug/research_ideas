@@ -104,7 +104,11 @@ def test_tool_envelope_recovery_accepts_only_complete_first_payload(monkeypatch)
 def test_content_counts_distinguish_reports_from_expected_units(monkeypatch):
     directory = Path(__file__).resolve().parents[2] / "discover_matrix/docs/generations/a3_20260910"
     monkeypatch.syspath_prepend(str(directory))
-    from analyze_a3 import content_breakdown
+    from analyze_a3 import archived_source, content_breakdown
+
+    assert archived_source(Path("/archive"), "/tmp/paper1-a3-runs/sonnet/method.json") == Path("/archive/sonnet/method.json")
+    with pytest.raises(ValueError):
+        archived_source(Path("/archive"), "/unrelated/method.json")
 
     items = {e: {"pair": "0000", "L": "L1", "axes": {"defect_element": "transition"}, "summary": e}
              for e in ("shared", "lost", "gained")}
