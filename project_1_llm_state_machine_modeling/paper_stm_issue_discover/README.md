@@ -31,7 +31,7 @@
 5. [story/](./story/README.md) 给出论文叙事、claim 与术语；[archive/experiment_history/](./archive/experiment_history/README.md) 给出重要历史代次的可比性边界。
 6. [scripts/](./scripts/README.md) 列出所有薄命令行入口；[pipeline/](./pipeline/README.md) 仅保留输入准备和基础设施导航。
 7. [E2 三模型双臂事前登记](./discover_matrix/docs/generations/e2_20260907/preregistered.md) 定义972个新增格、历史Luna只读引用、固定Luna裁定及配对分析；执行进度见其合同PR，事前计划不作为效果结果。
-8. A3 的[四模型完整裁定汇总](./final_results/a3_open_judge_20260910/README.md) 覆盖 648 格、2207 条发布报告，并提供同模型 Full 对比及离线复算；[Sonnet/Luna 原归档](./final_results/a3_20260910/README.md)和 [Qwen/Muse method-only 历史快照](./final_results/a3_open_method_20260910/README.md)保持不变，后者本身不含外部 judge 指标。
+8. A3 的[正式四模型报告](./reports/2026-09-10-20-39-37-a3-four-model-results.md)与[学术 talk](../talks/2026-09-10-实验-A3中间引导消融与论文叙事.md)解释预期支持程度、有效发现与模型差异；[四模型完整裁定汇总](./final_results/a3_open_judge_20260910/README.md) 覆盖 648 格、2207 条发布报告，并提供同模型 Full 对比及离线复算；[Sonnet/Luna 原归档](./final_results/a3_20260910/README.md)和 [Qwen/Muse method-only 历史快照](./final_results/a3_open_method_20260910/README.md)保持不变，后者本身不含外部 judge 指标。
 
 从仓库根可用下列 provider-free 命令从 v61 归档复算论文口径的全部数字：
 

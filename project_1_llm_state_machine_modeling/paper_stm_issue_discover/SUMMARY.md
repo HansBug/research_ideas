@@ -6,7 +6,7 @@
 | --- | --- |
 | 研究问题、当前结果与适用范围 | [README.md](./README.md) |
 | 冻结结果与离线复算 | [final_results/v61_source_divergence_vs_x1v2_baseline/](./final_results/v61_source_divergence_vs_x1v2_baseline/README.md)；v60 人工评测归档见 [final_results/v60_current_vs_x1v2_baseline/](./final_results/v60_current_vs_x1v2_baseline/README.md) |
-| A3 四模型直接报告消融、完整裁定与配对复算 | [四模型汇总及 Qwen/Muse 裁定归档](./final_results/a3_open_judge_20260910/README.md)；原 Sonnet/Luna 与 method-only 快照独立保留 |
+| A3 四模型直接报告消融、完整裁定与配对复算 | [正式报告](./reports/2026-09-10-20-39-37-a3-four-model-results.md)、[学术 talk](../talks/2026-09-10-实验-A3中间引导消融与论文叙事.md)；[四模型汇总及 Qwen/Muse 裁定归档](./final_results/a3_open_judge_20260910/README.md)；原 Sonnet/Luna 与 method-only 快照独立保留 |
 | 当前方法的输入、阶段、输出和安装 | [method/](./method/README.md) |
 | issue #195 人工裁定的两阶段判定 | [judge/](./judge/README.md) |
 | 离线 hit、precision、W、K/N/I、谓词使用和成本 | [evaluation/](./evaluation/README.md) |
