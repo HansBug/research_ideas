@@ -10,6 +10,7 @@ from paper_stm_evaluation.a4_accounting import publication_members
 from paper_stm_evaluation.a4_replay import digest, mask_prepared
 from paper_stm_evaluation.a4_sources import REFERENCE, checked_json
 from utils.artifact_io import write_json
+from utils.structured_runtime import _usage_rows
 
 
 PAPER = Path(__file__).resolve().parents[4]
@@ -230,6 +231,16 @@ def analyze(root):
                 if key in judge_usage:
                     assert judge_usage[key] == public
                 judge_usage[key] = public
+    # Failed continuations and uncollected sibling outputs also consumed calls.
+    all_judge_usage = dict(judge_usage)
+    for path in sorted((root / "judge").glob("*/llm/**/result.json")):
+        for row in _usage_rows(json.loads(path.read_text())):
+            public = {k: row.get(k) for k in ("model_call_id", "status", "model", "input_tokens", "output_tokens")}
+            key = public["model_call_id"]
+            assert key, "Raw judge usage must identify its provider call"
+            if key in all_judge_usage:
+                assert all_judge_usage[key] == public
+            all_judge_usage[key] = public
     judge_calls = sum(r["parent_status"] == "pairs" for r in judge_receipts)
     return {"schema": "paper1.a4.analysis.v1", "model": manifest["identity"]["model"],
             "identity": manifest["identity"], "namespace": manifest["namespace"], "source_hashes": source_hashes,
@@ -242,11 +253,13 @@ def analyze(root):
                       "outer_runtime_attempts_all": runtime_attempts, "saved_cell_attempts": saved_attempts,
                       "failed_cell_attempts": failed_attempts, "transport_retry_events": transport_retries,
                       "schema_failures_final_layout": schema_failures, "residual_judge_completed_receipts": judge_calls,
-                      "residual_judge_observed_model_calls": len(judge_usage)},
+                      "residual_judge_observed_model_calls": len(judge_usage),
+                      "residual_judge_observed_model_calls_all_artifacts": len(all_judge_usage)},
             "errors": errors, "cells": cells, "candidates": candidates, "publications": publications,
             "examples": examples, "usage": list(usage.values()),
             "judge_batches": judge_receipts,
             "judge_observed_usage": list(judge_usage.values()),
+            "judge_all_artifact_usage": list(all_judge_usage.values()),
             "hit_changes": hit_changes, "precision_decomposition": decomposition,
             "paired_by_pair": pair_deltas,
             "scope": "Conditional terminal intervention; paired by pair across all three rounds. No significance interval or population-independence claim."}
