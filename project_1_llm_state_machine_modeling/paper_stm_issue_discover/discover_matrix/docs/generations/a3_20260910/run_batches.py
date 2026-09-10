@@ -28,8 +28,9 @@ def launch(command, log):
     return process
 
 
-def run(root):
+def run(root, smoke_judge):
     from paper_stm_method.orchestration.runner import FROZEN_PAIR_IDS
+    from paper_stm_judge.artifacts import adapt_evidence_discovery_release
 
     pairs = sorted(FROZEN_PAIR_IDS)
     smoke = {"0000", "0001", "0002"}
@@ -43,13 +44,24 @@ def run(root):
     ]
     method = None
     judges = {r: None for r in (1, 2, 3)}
-    submitted = set()
+    submitted = {("sonnet", p, 1) for p in smoke}
     completed = set()
     method_failures = []
     judge_failures = []
     for model, directory in sources:
         assert len(list(directory.glob("method/*/round-1.json"))) == 3
+    prior_source = Path(read(smoke_judge / "run_manifest.json")["source_root"])
+    for pair in smoke:
+        old, old_audit, _, _ = adapt_evidence_discovery_release(prior_source / "method" / pair / "round-1.json", ())
+        new, new_audit, _, _ = adapt_evidence_discovery_release(sources[0][1] / "method" / pair / "round-1.json", ())
+        assert [r.model_dump() for r in old] == [r.model_dump() for r in new], "smoke judge input changed"
+        emit(event="smoke_judge_reuse", pair=pair, original_source_hash=old_audit.source_hash,
+             corrected_source_hash=new_audit.source_hash, judge_root=str(smoke_judge), exact_report_projection=True)
     while True:
+        for pair in smoke:
+            result = smoke_judge / "pairs" / f"{pair}.json"
+            if result.exists() and read(result)["status"] == "completed":
+                completed.add(("sonnet", pair, 1))
         if method is not None and method[0].poll() is not None:
             process, model, directory = method
             emit(event="method_terminal", pid=process.pid, returncode=process.returncode, model=model)
@@ -113,7 +125,7 @@ def run(root):
                     submitted.add((model, pair, rnd))
                 judges[rnd] = (launch(command, root / "logs" / f"judge-{run_id}.log"), model, selected, output / run_id)
                 break
-        if method is None and not batches and all(value is None for value in judges.values()):
+        if method is None and not batches and all(value is None for value in judges.values()) and all(("sonnet", p, 1) in completed for p in smoke):
             break
         time.sleep(2)
     expected = {(model, pair, rnd) for model in ("sonnet", "luna") for pair in pairs for rnd in (1, 2, 3)}
@@ -125,8 +137,9 @@ def run(root):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, required=True)
+    parser.add_argument("--smoke-judge", type=Path, required=True)
     parser.add_argument("--allow-live", action="store_true")
     args = parser.parse_args()
     if not args.allow_live:
         parser.error("explicit --allow-live is required")
-    run(args.root.resolve())
+    run(args.root.resolve(), args.smoke_judge.resolve())
