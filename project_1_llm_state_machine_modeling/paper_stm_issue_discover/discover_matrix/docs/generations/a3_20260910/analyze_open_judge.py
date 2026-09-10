@@ -9,8 +9,15 @@ from verify_sources import PAPER, digest, read
 
 
 def verify_relation_coverage(relations, anonymous, expected_ids):
-    observed = {r["report_id"] for r in relations["responses"]} | set(relations["backend_invalid_report_ids"])
-    assert observed == (anonymous if expected_ids else set())
+    responses = {r["report_id"] for r in relations["responses"]}
+    invalid = set(relations["backend_invalid_report_ids"])
+    assert len(responses) == len(relations["responses"])
+    assert len(invalid) == len(relations["backend_invalid_report_ids"])
+    assert not responses & invalid and invalid <= anonymous
+    if expected_ids:
+        assert responses | invalid == anonymous
+    else:
+        assert not responses
 
 
 def analyze(root, allow_partial=False):

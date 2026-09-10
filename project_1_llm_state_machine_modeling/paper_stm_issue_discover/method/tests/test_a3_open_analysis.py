@@ -10,9 +10,14 @@ def test_relation_coverage_accepts_only_the_empty_denominator_skip(monkeypatch):
 
     empty = {"responses": [], "backend_invalid_report_ids": []}
     verify_relation_coverage(empty, {"R0001"}, set())
+    verify_relation_coverage({"responses": [], "backend_invalid_report_ids": ["R0001"]}, {"R0001", "R0002"}, set())
+    with pytest.raises(AssertionError):
+        verify_relation_coverage({"responses": [], "backend_invalid_report_ids": ["R9999"]}, {"R0001"}, set())
     with pytest.raises(AssertionError):
         verify_relation_coverage(empty, {"R0001"}, {"E1"})
     covered = {"responses": [{"report_id": "R0001"}], "backend_invalid_report_ids": ["R0002"]}
     verify_relation_coverage(covered, {"R0001", "R0002"}, {"E1"})
     with pytest.raises(AssertionError):
         verify_relation_coverage(covered, {"R0001"}, {"E1"})
+    with pytest.raises(AssertionError):
+        verify_relation_coverage(covered, {"R0001", "R0002"}, set())
