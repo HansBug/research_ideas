@@ -16,7 +16,8 @@
 | [results.json](results.json) | 两模型 A3/Full 的逐报告冻结判定、逐格生成到发布映射、来源哈希、完整主表/分层/逐轮指标、九簇重采样、命中增减与五轴及执行交叉表 |
 | [full_source_manifest.json](full_source_manifest.json) | 原 Full 324格的逐文件哈希、输入一致性与独立重算指标；未新增 Full 或重裁 |
 | [raw_index.json](raw_index.json) | 受限 raw 的逐文件大小与SHA-256、配置凭据精确匹配检查、历史未完成流名单 |
-| [archive_manifest.json](archive_manifest.json) | 上述三个文件与145条台账的SHA-256；脱敏 profile、endpoint origin、费率与官方来源链接 |
+| [predicate_view.json](predicate_view.json) | 原始谓词ID与当前P1 ID的报告计数视图，复用现有版本映射；Luna Full旧V4对应当前死锁谓词V1 |
+| [archive_manifest.json](archive_manifest.json) | 上述四个文件与145条台账的SHA-256；脱敏 profile、endpoint origin、费率与官方来源链接 |
 
 完整 raw 位于本工作区 ignored `runs/paper1/a3_20260910/raw/`，上层目录权限700。原 `/tmp/paper1-a3-runs` 保留；归档用 `rsync -aL` 展开来源符号链接，内容字节不变。历史中断的15份 `.part` 流保留为失败证据，不能升级为成功阶段或据此把未知 usage 计为零；只排除锁文件。原失败格及恢复 manifest 均保留，最终成功选择以 results.json 的 source/hash 为准。
 

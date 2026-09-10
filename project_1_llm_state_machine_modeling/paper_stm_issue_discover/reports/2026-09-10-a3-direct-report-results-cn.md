@@ -156,6 +156,8 @@
 
 类别来自唯一 145 条台账的既有五轴；None 表示该轴不适用，完整分组保留在 JSON。这里按裁判 FULL 关系的缺陷 × 轮次配对，不按标题或 report ID 判断“同一个缺陷”。报告 property、predicate、witness、locus 和 defect_class 的 K/N/I 交叉表亦保存在 JSON；不同条件的谓词选择和旧谓词版本不同，不能把谓词报告数直接当成语义能力的单因素估计。
 
+[谓词标签视图](../final_results/a3_20260910/predicate_view.json)复用现有版本映射，保留原始ID和当前P1 ID：Luna Full旧V4是当前V1死锁谓词，不是退出项。该谓词的报告K/N/I，Sonnet Full→A3为52/1/4→71/9/17，Luna为59/2/5→73/7/24；A3绑定该谓词的发布报告更多，其中无效报告也增加。这与跨迁移非终止性命中减少可以同时发生，不能仅用谓词调用量解释覆盖变化。
+
 ## 调用与异常审计
 
 | 模型 | 阶段 | 逻辑阶段/回执 | 记录的 provider calls | input tokens | output tokens | 记录费用 USD | 失败/未知 usage 行 |

@@ -2,6 +2,7 @@
 
 import argparse
 from collections import Counter
+import importlib.util
 import json
 from pathlib import Path
 
@@ -13,6 +14,26 @@ def canonical(value):
     return json.loads(json.dumps(value))
 
 
+def predicate_view(data):
+    path = PAPER / "evaluation/src/paper_stm_evaluation/predicate_id_mapping.py"
+    spec = importlib.util.spec_from_file_location("a3_predicate_mapping", path)
+    mapping = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mapping)
+    rows = []
+    for model, arms in data["models"].items():
+        for arm in ("a3", "full"):
+            version = mapping.PRE_P1_REGISTRY if (model, arm) == ("luna", "full") else mapping.CURRENT_REGISTRY
+            counts = Counter((r["predicate_id"], r["validity"]) for r in arms[arm]["reports"])
+            for predicate in sorted({p for p, _ in counts}, key=lambda p: p or ""):
+                rows.append({"model": model, "arm": arm, "source_registry": version,
+                             "original_predicate_id": predicate,
+                             "current_predicate_id": mapping.current_predicate_id(version, predicate),
+                             **{label: counts[predicate, validity] for label, validity in
+                                (("K", "VALID_KNOWN"), ("N", "VALID_NOVEL"), ("I", "INVALID"))}})
+    return {"schema": "a3.predicate-report-view.v1", "mapping_sha256": digest(path), "rows": rows,
+            "scope": "Labels on frozen published reports only. Preserve original IDs; no execution or judgement changes. Luna Full is pre-P1; Sonnet Full and both A3 runs use P1."}
+
+
 def verify(archive):
     manifest = read(archive / "archive_manifest.json")
     for name, expected_hash in manifest["files"].items():
@@ -21,6 +42,7 @@ def verify(archive):
     assert digest(ledger) == manifest["ledger_sha256"]
     items = read(ledger)["items"]
     data, math = read(archive / "results.json"), arithmetic()
+    assert predicate_view(data) == read(archive / "predicate_view.json")
     assert data["complete"] and set(data["models"]) == {"sonnet", "luna"}
     assert len(items) == data["ledger_items"] == 145
     assert data["expected_round_units"] == 435
