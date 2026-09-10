@@ -29,6 +29,23 @@ def normalized_reports(cell, method, judge, method_path, clusters):
             for r in outcomes]
 
 
+def per_round(reports, cells, items, math):
+    result = {}
+    for rnd in (1, 2, 3):
+        selected = [r for r in reports if r["round"] == rnd]
+        counts = Counter(r["validity"] for r in selected)
+        hit = {e for r in selected if r["validity"] == "VALID_KNOWN" for e in r["full_ledger_ids"]}
+        n_cells = sum(c["round"] == rnd and c.get("judged", True) for c in cells)
+        result[rnd] = {"judged_cells": n_cells, "reports": len(selected),
+                       "K": counts["VALID_KNOWN"], "N": counts["VALID_NOVEL"], "I": counts["INVALID"],
+                       "valid_reports": counts["VALID_KNOWN"] + counts["VALID_NOVEL"],
+                       "I_per_completed_cell": math.ratio(counts["INVALID"], n_cells),
+                       "precision": math.ratio(counts["VALID_KNOWN"] + counts["VALID_NOVEL"], len(selected)),
+                       "hit": math.ratio(len(hit), len(items)),
+                       "tier_hits": {tier: math.ratio(sum(items[e]["L"] == tier for e in hit), sum(i["L"] == tier for i in items.values())) for tier in ("L0", "L1", "L2")}}
+    return result
+
+
 def analyze(root, allow_partial=False):
     from paper_stm_judge.artifacts import adapt_evidence_discovery_release
 
@@ -112,16 +129,14 @@ def analyze(root, allow_partial=False):
             path = PAPER / row["method_source"]
             full_reports.extend(normalized_reports(row, read(path), read(PAPER / row["judge_source"]), path, clusters))
         full = {"reports": full_reports, "metrics": controls["models"][model]["metrics"], "cells": full_cells}
+        full["per_round"] = per_round(full_reports, full_cells, items, math)
         a3 = {"reports": reports, "cells": cells, "coverage": coverage, "funnel": dict(funnel), "metrics": math.calculate(reports, items)}
         # Partial figures are explicitly marked and never used in paired inference.
         a3["metrics_scope"] = "complete_162_cells" if complete else f"interim_{len(judgements)}_judged_cells"
-        a3["per_round"] = {}
-        for rnd in (1, 2, 3):
-            selected = [r for r in reports if r["round"] == rnd]
-            counts = Counter(r["validity"] for r in selected)
-            a3["per_round"][rnd] = {"judged_cells": sum(k[1] == rnd for k in judgements), "reports": len(selected),
-                                    "K": counts["VALID_KNOWN"], "N": counts["VALID_NOVEL"], "I": counts["INVALID"],
-                                    "precision": math.ratio(counts["VALID_KNOWN"] + counts["VALID_NOVEL"], len(selected))}
+        a3["per_round"] = per_round(reports, cells, items, math)
+        for arm in (a3, full):
+            arm["metrics"]["valid_reports"] = arm["metrics"]["K"] + arm["metrics"]["N"]
+            arm["metrics"]["I_per_completed_cell"] = math.ratio(arm["metrics"]["I"], len(judgements) if arm is a3 else 162)
         comparison = math.compare(a3, full, items) if complete else None
         if comparison:
             comparison["scope"] = "Same-model A3 versus frozen Full, 54 pairs x 3 rounds; nine NL clusters. Historical provider/date and Luna output-budget differences remain."
