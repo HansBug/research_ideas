@@ -97,12 +97,24 @@ def analyze(root, allow_partial=False):
             judgements[key] = path, judge
         expected = {(p, rnd) for p in clusters for rnd in (1, 2, 3)}
         assert set(methods) <= expected and set(judgements) <= set(methods)
-        reports, cells, funnel = [], [], Counter()
+        reports, cells, funnel, calls = [], [], Counter(), Counter()
         for key, (method_path, method) in sorted(methods.items()):
             funnel["method_cells"] += 1
             funnel["eligible_cells"] += bool(method["eligible"])
             funnel["generated"] += len(method["evidence_records"])
             funnel["published"] += len(method["report_issue_clusters"])
+            for call in method["llm_calls"]:
+                calls["logical_generation_stages"] += 1
+                calls["provider_model_calls"] += call["result"].get("model_calls_used", 0)
+                calls["schema_validation_failures"] += len(call["schema_validation_failures"])
+                calls["structured_recovered_cells"] += bool(call["result"].get("structured_recovery"))
+                calls["recorded_cost_usd"] += call["cost"].get("total_usd") or 0
+                calls["unpriced_usage_rows"] += call["cost"].get("unpriced_usage_count", 0)
+                for usage in call["usage"]:
+                    for name in ("input_tokens", "output_tokens", "reasoning_tokens"):
+                        calls[name] += usage.get(name) or 0
+                    calls["usage_status_" + str(usage.get("status", "unrecorded"))] += 1
+                calls["truncated_stages"] += bool(call["context_budget"]["truncation_applied"])
             for record in method["evidence_records"]:
                 funnel["binding_precise"] += bool(record.get("binding", {}).get("precise"))
                 funnel["publication_" + record["publication_status"]] += 1
@@ -140,7 +152,9 @@ def analyze(root, allow_partial=False):
             full_reports.extend(normalized_reports(row, read(path), read(PAPER / row["judge_source"]), path, clusters))
         full = {"reports": full_reports, "metrics": controls["models"][model]["metrics"], "cells": full_cells}
         full["per_round"] = per_round(full_reports, full_cells, items, math)
-        a3 = {"reports": reports, "cells": cells, "coverage": coverage, "funnel": dict(funnel), "metrics": math.calculate(reports, items)}
+        a3 = {"reports": reports, "cells": cells, "coverage": coverage, "funnel": dict(funnel),
+              "call_audit": dict(calls), "call_audit_scope": "Selected completed generations, including their recorded retries. Interrupted unfinished calls remain separate raw audit; their missing usage is not zero cost.",
+              "metrics": math.calculate(reports, items)}
         # Partial figures are explicitly marked and never used in paired inference.
         a3["metrics_scope"] = "complete_162_cells" if complete else f"interim_{len(judgements)}_judged_cells"
         a3["per_round"] = per_round(reports, cells, items, math)
