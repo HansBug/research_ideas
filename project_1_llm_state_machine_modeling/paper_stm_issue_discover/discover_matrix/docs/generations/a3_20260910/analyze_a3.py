@@ -193,6 +193,14 @@ def analyze(root, allow_partial=False):
                                   record.get("source_quotes_exact"), record.get("binding", {}).get("precise"))] += 1
             row = {"pair_id": key[0], "round": key[1], "source": str(method_path), "sha256": digest(method_path),
                    "eligible": method["eligible"], "reports": len(method["report_issue_clusters"]), "judged": key in judgements}
+            row["generation_mapping"] = [{**{k: record.get(k) for k in
+                ("generation_index", "generation_hash", "issue_id", "final_report_id", "publication_status",
+                 "issue_emitted", "predicate_id", "title", "witness_level", "source_quotes_exact", "reason", "basis")},
+                "binding_precise": record.get("binding", {}).get("precise"),
+                "verdict": record.get("receipt", {}).get("verdict"),
+                "execution_status": record.get("execution_receipt", {}).get("execution_status")}
+                for record in method["evidence_records"]]
+            assert {r["final_report_id"] for r in row["generation_mapping"] if r["final_report_id"]} == {r["issue_id"] for r in method["report_issue_clusters"]}
             if key in judgements:
                 judge_path, judge = judgements[key]
                 for receipt in judge["call_receipts"]:

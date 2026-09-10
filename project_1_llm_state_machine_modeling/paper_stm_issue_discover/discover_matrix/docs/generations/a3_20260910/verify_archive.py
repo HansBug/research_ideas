@@ -47,6 +47,12 @@ def verify(archive):
         assert not arms["a3"]["coverage"]["missing_judge_cells"]
         assert not arms["a3"]["coverage"]["missing_method_cells"]
         assert arms["a3"]["funnel"]["published"] == len(arms["a3"]["reports"])
+        mappings = [r for c in arms["a3"]["cells"] for r in c["generation_mapping"]]
+        assert len(mappings) == arms["a3"]["funnel"]["generated"]
+        assert {r["final_report_id"] for r in mappings if r["final_report_id"]} == {r["original_report_id"] for r in arms["a3"]["reports"]}
+        for field, prefix in (("publication_status", "publication_"), ("verdict", "raw_verdict_"), ("witness_level", "witness_")):
+            for value, count in Counter(r[field] for r in mappings).items():
+                assert arms["a3"]["funnel"][prefix + value] == count
         comparison = math.compare(arms["a3"], arms["full"], items)
         comparison["scope"] = arms["comparison"]["scope"]
         comparison["content"] = content_breakdown(arms["a3"], arms["full"], items)
