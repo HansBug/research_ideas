@@ -99,3 +99,25 @@ def test_tool_envelope_recovery_accepts_only_complete_first_payload(monkeypatch)
         recover_arguments({**value, "reason": value["reason"] + " trailing text"})
     with pytest.raises(AssertionError):
         recover_arguments({**value, "reason": "No parameter boundary"})
+
+
+def test_content_counts_distinguish_reports_from_expected_units(monkeypatch):
+    directory = Path(__file__).resolve().parents[2] / "discover_matrix/docs/generations/a3_20260910"
+    monkeypatch.syspath_prepend(str(directory))
+    from analyze_a3 import content_breakdown
+
+    items = {e: {"pair": "0000", "L": "L1", "axes": {"defect_element": "transition"}, "summary": e}
+             for e in ("shared", "lost", "gained")}
+
+    def report(ids, validity="VALID_KNOWN", rnd=1):
+        return {"round": rnd, "validity": validity, "full_ledger_ids": ids, "property": "reachability",
+                "predicate_id": "R1", "witness_level": "W1", "published_claim": {"locus_kind": "transition"}}
+
+    a3 = {"reports": [report(["shared", "gained"]), report(["shared"]), report(["lost"], "INVALID")]}
+    full = {"reports": [report(["shared", "lost"]), report(["shared"], rnd=2)]}
+    result = content_breakdown(a3, full, items)
+    assert {k: len(v) for k, v in result["partitions"].items()} == {"shared": 1, "full_only": 2, "a3_only": 1}
+    counts = result["axes"]["defect_element"]["transition"]
+    assert counts["expected_round_units"] == 9
+    assert counts["a3_hit_units"] == 2 and counts["full_hit_units"] == 3
+    assert result["report_groups"]["a3"]["predicate_id"]["R1"] == {"VALID_KNOWN": 2, "INVALID": 1}

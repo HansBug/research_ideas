@@ -68,7 +68,9 @@ Sonnet 与 E2 profile hash 相同。Luna v61 原始调用记录的 context 为 2
 
 共享准备函数仅作同一实例绑定、适用性降级、编译与执行。A3 显式关闭缺失 S1 对象的首元素补全；精确 carrier 的规范化保留。发布保留生成时的 expected/observed/reason/basis，适配诊断另存，不用诊断改写主张。
 
-精确 state ref 与 native canonical path 在输入目录中表示同一状态；A3 在 source/target/scope/initial_scope 槽位做一对一身份转换，避免把合法目录引用误判为不支持。预选 smoke 揭示该接口缺口后，使用 [reexecute_smoke.py](reexecute_smoke.py) 对已保存的三次真实生成做确定性执行重放，不调用 provider，不改变原始报告。旧方法原件完整保留但不作为修复后执行统计；派生 manifest 固定原件哈希、原始生成、修复代码与新执行回执。原生成 LLM 身份沿用真实调用记录，明确区分保存生成的重放与新增 live 调用，不冒充新的独立样本。
+精确 state ref 与 native canonical path 在输入目录中表示同一状态；A3 对注册表各 typed 槽位做一对一身份转换，包括 source/target/scope/initial_scope、S4/G3 和 runtime scenario 内的状态引用，以及事件引用（S3/R1 使用后端要求的事件短名）。转换只适用于唯一精确身份，不推断遗漏对象。预选 smoke 揭示接口缺口后，先用 [reexecute_smoke.py](reexecute_smoke.py) 重放三次已保存生成；十二谓词的真实后端检查随后补齐其余槽位，由 [reexecute_bindings.py](reexecute_bindings.py) 重放受影响的 6 个 Sonnet 和 16 个 Luna 格。所有重放均不调用 provider、不修改原始生成；派生 manifest 固定原件哈希、原始生成、修复代码与新执行回执。只有发布投影完全相同的格允许复用已完成 A3 judge；发布集合发生变化的七格在修复时尚未裁定。原生成 LLM 身份沿用真实调用记录，不把执行重放当作新的独立样本。
+
+Sonnet 0046/r3 的首次回复已包含九条完整报告，但 JSON 被包在畸形工具参数的字符串中，六次节点内 schema 纠正仍未通过。[recover_tool_envelope.py](recover_tool_envelope.py) 从首次回复提取完整 JSON 后按原 schema 校验，保留全部失败和 usage，不重新采样、不在六次回复中择优。相同的窄范围结构恢复现已进入 `DirectReportResponse`：只处理完整 JSON 和确切包裹形式，不修补语义、不补造字段。此例作为 schema 接口缺陷和异常恢复记录，不计作正常一次成功解析。
 
 ## 5. 调度与裁定
 

@@ -46,6 +46,40 @@ def per_round(reports, cells, items, math):
     return result
 
 
+def content_breakdown(a3, full, items):
+    """Keep report counts separate from matched expected-defect round units."""
+    units = {arm: {(e, r["round"]) for r in data["reports"]
+                   if r["validity"] == "VALID_KNOWN" for e in r["full_ledger_ids"]}
+             for arm, data in (("a3", a3), ("full", full))}
+    partitions = {"shared": units["a3"] & units["full"],
+                  "full_only": units["full"] - units["a3"],
+                  "a3_only": units["a3"] - units["full"]}
+    axes = {}
+    for axis in ("defect_locus", "defect_element", "defect_qualifier", "defect_logic_kind", "defect_reference"):
+        groups = {}
+        for value in sorted({str(i["axes"].get(axis)) for i in items.values()}):
+            ids = {e for e, i in items.items() if str(i["axes"].get(axis)) == value}
+            groups[value] = {"expected_defects": len(ids), "expected_round_units": 3 * len(ids),
+                             **{arm + "_hit_units": sum(e in ids for e, _ in found) for arm, found in units.items()},
+                             **{name: sum(e in ids for e, _ in found) for name, found in partitions.items()}}
+        axes[axis] = groups
+    report_groups = {}
+    for arm, data in (("a3", a3), ("full", full)):
+        report_groups[arm] = {}
+        for field in ("property", "predicate_id", "witness_level", "locus_kind"):
+            groups = {}
+            for report in data["reports"]:
+                value = str(report["published_claim"].get(field) if field == "locus_kind" else report.get(field))
+                counts = groups.setdefault(value, Counter())
+                counts[report["validity"]] += 1
+            report_groups[arm][field] = {value: dict(counts) for value, counts in sorted(groups.items())}
+    return {"scope": "Complete paired arms only. Ledger FULL relations identify expected-defect units; report groups count reports, not unique novel defects. No title-based semantic matching.",
+            "axes": axes, "report_groups": report_groups,
+            "partitions": {name: [{"ledger_id": e, "round": rnd, "pair_id": items[e]["pair"],
+                                    "L": items[e]["L"], "axes": items[e]["axes"], "summary": items[e]["summary"]}
+                                   for e, rnd in sorted(found)] for name, found in partitions.items()}}
+
+
 def analyze(root, allow_partial=False):
     from paper_stm_judge.artifacts import adapt_evidence_discovery_release
 
@@ -187,6 +221,7 @@ def analyze(root, allow_partial=False):
         comparison = math.compare(a3, full, items) if complete else None
         if comparison:
             comparison["scope"] = "Same-model A3 versus frozen Full, 54 pairs x 3 rounds; nine NL clusters. Historical provider/date and Luna output-budget differences remain."
+            comparison["content"] = content_breakdown(a3, full, items)
         output["models"][model] = {"a3": a3, "full": full, "comparison": comparison}
     return output
 
