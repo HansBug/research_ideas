@@ -77,6 +77,16 @@ def analyze(root, allow_partial=False):
                            for r in cell["evidence_records"])
                 assert len(cell["model_output"]["issues"]) == len(cell["evidence_records"])
                 methods[key] = path, cell
+        if model == "sonnet":
+            recovered_root = root / "sonnet/schema-recovered"
+            for path in recovered_root.glob("method/*/round-*.json"):
+                cell = read(path)
+                key = cell["pair_id"], cell["round"]
+                prior_path, prior = methods[key]
+                recovery = read(recovered_root / "run_manifest.json")
+                assert not prior["eligible"] and cell["eligible"]
+                assert recovery["source_hash"] == digest(prior_path)
+                methods[key] = path, cell
         judgements = {}
         for path in sorted((root / "judge" / model).glob("*/*/pairs/*.json")):
             judge = read(path)

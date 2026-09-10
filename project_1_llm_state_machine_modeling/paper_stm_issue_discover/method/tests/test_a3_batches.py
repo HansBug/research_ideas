@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 from paper_stm_method.orchestration import runner
 from paper_stm_judge import artifacts
 
@@ -83,3 +85,17 @@ def test_three_round_pools_wait_for_smoke_without_duplicate_cells(monkeypatch, t
     batches.run(tmp_path, smoke_judge)
     assert len(submitted) == 21
     assert {p.round for p in launched if p.kind == "judge"} == {1, 2, 3}
+
+
+def test_tool_envelope_recovery_accepts_only_complete_first_payload(monkeypatch):
+    directory = Path(__file__).resolve().parents[2] / "discover_matrix/docs/generations/a3_20260910"
+    monkeypatch.syspath_prepend(str(directory))
+    from recover_tool_envelope import recover_arguments
+
+    value = {"basis": "Fixture", "reason": 'Original reason</reason>\n<parameter name="issues">[]'}
+    result = recover_arguments(value)
+    assert result.reason == "Original reason" and result.issues == []
+    with pytest.raises(json.JSONDecodeError):
+        recover_arguments({**value, "reason": value["reason"] + " trailing text"})
+    with pytest.raises(AssertionError):
+        recover_arguments({**value, "reason": "No parameter boundary"})
