@@ -94,6 +94,7 @@ def analyze(root):
                 members[member["obligation_id"]].append(report["issue_id"])
         evidence = {r["obligation_id"]: r for r in tail["evidence_records"]}
         old_evidence = {r["obligation_id"]: r for r in source["evidence_records"]}
+        unresolved = set(tail["stage_outputs"]["validate_d"]["final_unresolved_ids"])
         assert set(evidence) == {r["obligation_id"] for r in batch["candidates"]}
         primary = {r["issue_id"]: r["obligation_id"] for r in tail["report_issue_clusters"]}
         for c in batch["candidates"]:
@@ -109,6 +110,7 @@ def analyze(root):
             d_changes[f"{old_d}->{e['d_level']}"] += 1
             candidates.append({"pair": pair, "round": rnd, "obligation_id": oid, "verdict": flow[0],
                                "origin": origin, "old_d": old_d, "new_d": e["d_level"], "publication": state,
+                               "unresolved": oid in unresolved,
                                "final_report_ids": members[oid], "claim_hash": digest(c["candidate"]),
                                "source": row["source"], "tail": str((cell_root / "tail.json").relative_to(root))})
             example_key = f"{flow[0]}/{state}"
