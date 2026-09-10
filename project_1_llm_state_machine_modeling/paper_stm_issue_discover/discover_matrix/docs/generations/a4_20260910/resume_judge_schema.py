@@ -143,10 +143,13 @@ class ResumeStages:
             self.continued[artifact] = {'path': str(path), 'sha256': digest(path), 'prior_turns': 6, 'additional_turn_limit': 6}
         if not self.allow_live:
             raise RuntimeError('PREFLIGHT_READY: ' + artifact)
-        with ContinueRuntime(self.profile, self.destination / 'llm' / uuid.uuid4().hex,
-                             transport_retries=self.manifest['transport_retries'], streaming=True) as live:
+        live = ContinueRuntime(self.profile, self.destination / 'llm' / uuid.uuid4().hex,
+                               transport_retries=self.manifest['transport_retries'], streaming=True)
+        try:
             live.resume_rows = rows
             return live.call(**call)
+        finally:
+            live.close()
 
 
 def recover(path, destination, executor, allow_live):
