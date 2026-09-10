@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -28,7 +29,25 @@ def launch(command, log):
     return process
 
 
-def run(root, smoke_judge):
+class ExistingMethod:
+    """Observe a method process across a scheduler restart without resubmission."""
+
+    def __init__(self, pid, directory):
+        self.pid, self.directory, self.returncode = pid, directory, None
+
+    def poll(self):
+        summary = self.directory / "summary.json"
+        if summary.exists():
+            self.returncode = 0 if not read(summary).get("failed_pairs") else 1
+        else:
+            try:
+                os.kill(self.pid, 0)
+            except ProcessLookupError:
+                self.returncode = 1
+        return self.returncode
+
+
+def run(root, smoke_judge, existing_method_pid=None):
     from paper_stm_method.orchestration.runner import FROZEN_PAIR_IDS
     from paper_stm_judge.artifacts import adapt_evidence_discovery_release
 
@@ -43,6 +62,17 @@ def run(root, smoke_judge):
         ("luna", "full", pairs, None),
     ]
     method = None
+    if existing_method_pid is not None:
+        manifests = list((root / "sonnet/remaining").glob("*/run_manifest.json"))
+        assert len(manifests) == 1
+        directory = manifests[0].parent
+        manifest = read(manifests[0])
+        assert manifest["ablation"] == "direct-report" and manifest["workers"] == 16
+        assert set(manifest["selected_pair_ids"]) == set(pairs) - smoke
+        method = ExistingMethod(existing_method_pid, directory), "sonnet", directory
+        sources.append(("sonnet", directory))
+        batches.pop(0)
+        emit(event="adopt_existing_method", pid=existing_method_pid, source=str(directory))
     judges = {r: None for r in (1, 2, 3)}
     submitted = {("sonnet", p, 1) for p in smoke}
     completed = set()
@@ -140,8 +170,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--smoke-judge", type=Path, required=True)
+    parser.add_argument("--existing-method-pid", type=int)
     parser.add_argument("--allow-live", action="store_true")
     args = parser.parse_args()
     if not args.allow_live:
         parser.error("explicit --allow-live is required")
-    run(args.root.resolve(), args.smoke_judge.resolve())
+    run(args.root.resolve(), args.smoke_judge.resolve(), args.existing_method_pid)

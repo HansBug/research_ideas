@@ -1,0 +1,140 @@
+"""Recompute A3 sources, publication funnel, judgements, and paired metrics offline."""
+
+import argparse
+from collections import Counter
+import importlib.util
+import json
+from pathlib import Path
+
+from verify_sources import PAPER, digest, read, verify
+
+
+def arithmetic():
+    spec = importlib.util.spec_from_file_location("a1_arithmetic", PAPER / "discover_matrix/docs/generations/a1_no_inspect_20260906/analyze_a1.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def normalized_reports(cell, method, judge, method_path, clusters):
+    published = {r["issue_id"]: r for r in method["report_issue_clusters"]}
+    outcomes = judge["report_outcomes"]
+    assert len(published) == len(outcomes)
+    assert set(published) == {r["original_report_id"] for r in outcomes}
+    return [{**r, "pair_id": cell["pair_id"], "round": cell["round"],
+             "nl_cluster": clusters[cell["pair_id"]], "method_cell": str(method_path),
+             "published_claim": {k: published[r["original_report_id"]].get(k) for k in
+                                 ("title", "locus_kind", "locus_names", "property", "violation_direction", "expected", "observed", "requirement_quote", "source_refs", "reason", "basis")},
+             **{k: published[r["original_report_id"]].get(k) for k in ("title", "property", "predicate_id", "witness_level")}}
+            for r in outcomes]
+
+
+def analyze(root, allow_partial=False):
+    from paper_stm_judge.artifacts import adapt_evidence_discovery_release
+
+    math = arithmetic()
+    items = read(PAPER / "discover_matrix/ledger_v2/ledger.json")["items"]
+    clusters = read(PAPER / "final_results/e2_20260907/sonnet/cells.json")["pair_clusters"]
+    controls = verify()
+    output = {"schema": "a3.analysis.v1", "complete": True, "models": {},
+              "scope": "Sonnet/Luna only; no Qwen/Muse results, no O2 eligibility implied",
+              "ledger_items": len(items), "expected_round_units": 3 * len(items)}
+    for model in ("sonnet", "luna"):
+        source_roots = ([root / "sonnet/smoke-corrected", *sorted((root / "sonnet/remaining").glob("*/run_manifest.json")),
+                         *sorted((root / "sonnet/smoke-r2").glob("*/run_manifest.json")),
+                         *sorted((root / "sonnet/smoke-r3").glob("*/run_manifest.json"))]
+                        if model == "sonnet" else sorted((root / "luna/full").glob("*/run_manifest.json")))
+        source_roots = [p.parent if p.name == "run_manifest.json" else p for p in source_roots]
+        methods = {}
+        for directory in source_roots:
+            for path in directory.glob("method/*/round-*.json"):
+                cell = read(path)
+                key = cell["pair_id"], cell["round"]
+                assert key not in methods, (model, key, "duplicate method cell")
+                assert cell["ablation"] == "direct-report"
+                assert len(cell["llm_calls"]) == 1
+                assert cell["stage_outputs"]["execute_batch"]["new_candidate_count"] == 0
+                assert all(r["d_level"] is None for r in cell["evidence_records"])
+                assert all(r["expected"] == cell["model_output"]["issues"][r["generation_index"]]["expected"]
+                           and r["observed"] == cell["model_output"]["issues"][r["generation_index"]]["observed"]
+                           for r in cell["evidence_records"])
+                assert len(cell["model_output"]["issues"]) == len(cell["evidence_records"])
+                methods[key] = path, cell
+        judgements = {}
+        for path in sorted((root / "judge" / model).glob("*/*/pairs/*.json")):
+            judge = read(path)
+            key = judge["pair_id"], judge["round"]
+            if judge["status"] != "completed":
+                continue
+            assert key not in judgements, (model, key, "duplicate judged cell")
+            judgements[key] = path, judge
+        expected = {(p, rnd) for p in clusters for rnd in (1, 2, 3)}
+        assert set(methods) <= expected and set(judgements) <= set(methods)
+        reports, cells, funnel = [], [], Counter()
+        for key, (method_path, method) in sorted(methods.items()):
+            funnel["method_cells"] += 1
+            funnel["eligible_cells"] += bool(method["eligible"])
+            funnel["generated"] += len(method["evidence_records"])
+            funnel["published"] += len(method["report_issue_clusters"])
+            for record in method["evidence_records"]:
+                funnel["binding_precise"] += bool(record.get("binding", {}).get("precise"))
+                funnel["publication_" + record["publication_status"]] += 1
+                funnel["raw_verdict_" + record.get("receipt", {}).get("verdict", "missing")] += 1
+                funnel["witness_" + record["witness_level"]] += 1
+            row = {"pair_id": key[0], "round": key[1], "source": str(method_path), "sha256": digest(method_path),
+                   "eligible": method["eligible"], "reports": len(method["report_issue_clusters"]), "judged": key in judgements}
+            if key in judgements:
+                judge_path, judge = judgements[key]
+                assert method["eligible"]
+                source_hash = judge["adapter_audit"]["source_hash"]
+                if source_hash != row["sha256"]:
+                    assert model == "sonnet" and key in {(p, 1) for p in ("0000", "0001", "0002")}
+                    original = Path(judge["adapter_audit"]["source_path"])
+                    assert digest(original) == source_hash
+                    old_reports, _, _, _ = adapt_evidence_discovery_release(original, ())
+                    new_reports, _, _, _ = adapt_evidence_discovery_release(method_path, ())
+                    assert [r.model_dump() for r in old_reports] == [r.model_dump() for r in new_reports]
+                    row["judge_reuse"] = {"original_source": str(original), "original_source_hash": source_hash,
+                                         "reason": "Identical report projection; only deterministic execution evidence repaired."}
+                reports.extend(normalized_reports(row, method, judge, method_path, clusters))
+                row.update(judge_source=str(judge_path), judge_sha256=digest(judge_path))
+            cells.append(row)
+        coverage = {"planned_cells": 162, "eligible_cells": funnel["eligible_cells"], "judged_cells": len(judgements),
+                    "unjudged_reports": sum(c["reports"] for c in cells if not c["judged"]),
+                    "missing_method_cells": sorted(expected-set(methods)), "missing_judge_cells": sorted(expected-set(judgements))}
+        complete = set(methods) == set(judgements) == expected and funnel["eligible_cells"] == 162
+        output["complete"] &= complete
+        if not allow_partial:
+            assert complete, (model, coverage)
+        full_reports = []
+        full_cells = controls["models"][model]["cells"]
+        for row in full_cells:
+            path = PAPER / row["method_source"]
+            full_reports.extend(normalized_reports(row, read(path), read(PAPER / row["judge_source"]), path, clusters))
+        full = {"reports": full_reports, "metrics": controls["models"][model]["metrics"], "cells": full_cells}
+        a3 = {"reports": reports, "cells": cells, "coverage": coverage, "funnel": dict(funnel), "metrics": math.calculate(reports, items)}
+        # Partial figures are explicitly marked and never used in paired inference.
+        a3["metrics_scope"] = "complete_162_cells" if complete else f"interim_{len(judgements)}_judged_cells"
+        a3["per_round"] = {}
+        for rnd in (1, 2, 3):
+            selected = [r for r in reports if r["round"] == rnd]
+            counts = Counter(r["validity"] for r in selected)
+            a3["per_round"][rnd] = {"judged_cells": sum(k[1] == rnd for k in judgements), "reports": len(selected),
+                                    "K": counts["VALID_KNOWN"], "N": counts["VALID_NOVEL"], "I": counts["INVALID"],
+                                    "precision": math.ratio(counts["VALID_KNOWN"] + counts["VALID_NOVEL"], len(selected))}
+        comparison = math.compare(a3, full, items) if complete else None
+        if comparison:
+            comparison["scope"] = "Same-model A3 versus frozen Full, 54 pairs x 3 rounds; nine NL clusters. Historical provider/date and Luna output-budget differences remain."
+        output["models"][model] = {"a3": a3, "full": full, "comparison": comparison}
+    return output
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--run-root", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--allow-partial", action="store_true")
+    args = parser.parse_args()
+    result = analyze(args.run_root.resolve(), args.allow_partial)
+    args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n")
+    print(json.dumps({"complete": result["complete"], "models": {m: {"coverage": {k: len(v) if isinstance(v, list) else v for k, v in d["a3"]["coverage"].items()}, "funnel": d["a3"]["funnel"]} for m, d in result["models"].items()}}, indent=2))
