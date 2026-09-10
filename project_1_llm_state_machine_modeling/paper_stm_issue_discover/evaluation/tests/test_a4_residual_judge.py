@@ -3,6 +3,7 @@
 import importlib.util
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -17,6 +18,30 @@ SPEC = importlib.util.spec_from_file_location(
 )
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
+
+
+def test_live_residual_preserves_native_pair_batches_and_worker_limit(tmp_path, monkeypatch):
+    filters = {1: {"0000": ["r1", "r2", "r3"]}, 2: {"0001": ["r4", "r5"]}, 3: {"0002": ["r6"]}}
+    calls = []
+    prepared = iter((filters, {1: {}, 2: {}, 3: {}}))
+    monkeypatch.setattr(MODULE, "prepare", lambda *args: next(prepared))
+    monkeypatch.setattr(MODULE.subprocess, "run", lambda command, **kwargs: calls.append(command) or SimpleNamespace(returncode=0))
+    monkeypatch.setattr(MODULE.sys, "argv", [
+        "residual_judge.py", "--paper-root", str(PAPER), "--root", str(tmp_path),
+        "--input-root", str(tmp_path / "inputs"), "--ledger", str(tmp_path / "ledger.json"), "--allow-live",
+    ])
+    MODULE.main()
+    assert len(calls) == 3
+    assert sum(int(c[c.index("--workers") + 1]) for c in calls) == 8
+    for command in calls:
+        assert command[1:3] == ["-m", "paper_stm_judge.cli"]
+        round_index = int(command[command.index("--round") + 1])
+        actual = json.loads(Path(command[command.index("--report-filter") + 1]).read_text())
+        assert actual == filters[round_index]
+        for option, value in {"--validity-readings": "2", "--validity-aggregation": "arbitration",
+                              "--validity-arbitration-trigger": "any", "--k-closure": "relation_first",
+                              "--closure-profile": "full", "--profile": "gpt-5.6-luna"}.items():
+            assert command[command.index(option) + 1] == value
 
 
 def test_residual_export_resume_and_protocol_guard(tmp_path, monkeypatch):
