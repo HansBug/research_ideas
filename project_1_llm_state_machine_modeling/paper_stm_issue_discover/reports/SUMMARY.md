@@ -4,6 +4,7 @@
 
 | 报告类型 | 使用方式 |
 | --- | --- |
+| [2026-09-10 A2 三模型汇总与 Qwen 全量结果](./2026-09-10-a2-three-model-results.md) | Luna/Sonnet/Qwen 各 162 格 A2 裁定；普通 precision 均未下降，九簇区间均含零。Qwen full/A2 为 89.25%/91.36%，FULL hit@1 为 311/435 和 283/435，L0/L1 下降而 L2 上升；逐轮、逐 pair 和机器摘要附后。Muse 仅 method 162 eligible，未执行 A2 judge，不计作零分 |
 | [2026-09-10 Sonnet 5 A2 全量报告](./2026-09-10-a2-sonnet5-full-results.md) | 162 格全部裁定；A2/full precision 为 88.44%/87.36%，strict precision 为 77.64%/78.98%，FULL hit@1 为 294/435 和 291/435；普通 precision 差值九簇区间跨零，不能沿用 15-pair pilot 作为全量效果证据 |
 | v26、v27-stream、v51 及早期 Judge 对照 | historical experiment report；不可与 v60/current 指标直接相减或合并 |
 | PlantUML frontend、source trace、ledger contract | implementation/protocol provenance；不构成 current experiment result |

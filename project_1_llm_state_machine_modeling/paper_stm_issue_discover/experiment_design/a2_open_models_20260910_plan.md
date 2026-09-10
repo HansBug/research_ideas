@@ -1,5 +1,7 @@
 # Qwen / Muse A2 全量运行登记（2026-09-10）
 
+本批事后范围记录：Qwen method/judge 均完成 162 格；Muse method 完成 162 eligible 格后，用户要求暂停其 judge，因此 Muse A2 不进入发现指标统计。下文保留原调度设计，不表示 Muse judge 已执行或仍有自动启动授权。[完整结果、三模型对照及复核入口](../reports/2026-09-10-a2-three-model-results.md)。
+
 按用户追加授权，在 Sonnet A2 method/judge 均完成 162 格后，合入伞分支的 E1/E2/A1，再运行 Qwen3.8-27B 和 Muse Glimmer-30B 的原 A2 `no-predicates`。Sonnet 全量结果见[报告](../reports/2026-09-10-a2-sonnet5-full-results.md)，其普通 precision 没有出现局部 pilot 中的下降；后续两模型不以追求指定结果为调参目标。
 
 ## 条件与输入
