@@ -38,6 +38,8 @@ python -c "from paper_stm_method.inputs import parse_fcstm; print(parse_fcstm('s
 
 ## 实验引用与边界
 
+A3 通过 `--ablation direct-report` 启用：`NL + 原始 STM + inspection -> 一次 LLM 生成报告及可选谓词 -> 真实执行 -> 确定性 final report`。关闭 Full 的义务提取、发现 lens、扩充、确定性新增候选及内部 D 调用；unsupported 保留未验证报告，true 拦截，不因 false 自动认定外部有效。配置、来源、发布适配和验收见 [A3 事前协议](../discover_matrix/docs/generations/a3_20260910/preregistered.md)。
+
 原生 CLI 的 `--rounds 1 --round N` 可独立执行第1、2或3轮；省略 `--round` 保持从第1轮开始的既有行为。显式轮次进入 manifest/summary 与严格 resume hash，不需要伪造前轮回执。全54 pair 或超过代表性诊断子集上限的分批 live 运行另需 `--allow-full-live`；profile、轮次、输入集合与配置须由调用方在运行前登记，不再由入口硬编码为单一模型。每轮不读取此前轮次的发现。
 
 方法条件统一通过 `--ablation none|no-inspect|no-predicates` 传递，省略时为 `none`，保持完整方法行为。`no-inspect` 使用 method-local 受限视图：前置检查事实、诊断摘要及其派生候选/预检/D 校验关闭；保留作者源、FCSTM、转换追踪、源码分歧和当前 12 条谓词的候选专属执行。原输入在 `input_audits/` 保留，仅作审计，不传入发现流程。主动关闭记录为 `disabled_by_ablation`，不是检查通过。`no-predicates` 尚未实现，会在 provider 调用前拒绝，不会静默运行 full。具体关闭/保留边界遵守[消融公约](../discover_matrix/docs/protocol/ablation_design_and_parallel_contract.md)。条件进入 manifest、worker、cell、pair status、summary 与 resume 合同；新 envelope 使用 manifest/status/summary v4 和 cell v10。旧 v3、cell v8/v9 可作为历史 full 只读解析，不满足新运行的恢复条件。模型/endpoint/token 配置以无凭据 hash 参与运行身份，不把 profile 名称相同视作配置相同。

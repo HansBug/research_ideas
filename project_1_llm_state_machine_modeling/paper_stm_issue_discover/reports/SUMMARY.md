@@ -1,9 +1,11 @@
 # 历史报告索引
 
-本页不维护 active report 清单或当前实验结论。当前结果、复算和技术限制见 [v61 归档](../final_results/v61_source_divergence_vs_x1v2_baseline/README.md)；代次比较和旧报告的可比性见 [实验历史索引](../archive/experiment_history/README.md)。
+本页维护独立实验与历史报告的解释入口，不复制完整机器事实表。当前结果、复算和技术限制见 [v61 归档](../final_results/v61_source_divergence_vs_x1v2_baseline/README.md)；代次比较和旧报告的可比性见 [实验历史索引](../archive/experiment_history/README.md)。
 
 | 报告类型 | 使用方式 |
 | --- | --- |
+| [2026-09-10 A3 四模型中间引导消融](./2026-09-10-20-39-37-a3-four-model-results.md) | 🟢 四模型冻结事实源 `a390c1275`，旧两模型源 `585e55d1f`；完整结果、模型差异、三例与 A.1–A.4 证据链。组合消融、历史配置和自动裁定边界保留；配套[学术 talk](../../talks/2026-09-10-实验-A3中间引导消融与论文叙事.md)。 |
+| [2026-09-10 A3 两模型历史报告](./2026-09-10-a3-direct-report-results-cn.md) | Sonnet/Luna 历史快照，原事实不变；完整四模型解释 superseded_by 上述正式报告。 |
 | [2026-09-10 A4 谓词执行反馈消融](./2026-09-10-17-01-11-a4-frozen-full-tail-results.md) | 四款模型 648 格、3675 份报告全部核销；普通/strict precision、逐轮分母、候选筛选与源案例。Qwen 旧失败与授权重跑后的成功裁定均保留；小型核算 JSON 支持离线复算，原始对话仅本地保存；配套[学术 talk](../../talks/2026-09-10-实验-A4谓词执行反馈消融与论文叙事.md)解释四模型差异、误报抑制与 C-2。 |
 | v26、v27-stream、v51 及早期 Judge 对照 | historical experiment report；不可与 v60/current 指标直接相减或合并 |
 | PlantUML frontend、source trace、ledger contract | implementation/protocol provenance；不构成 current experiment result |
