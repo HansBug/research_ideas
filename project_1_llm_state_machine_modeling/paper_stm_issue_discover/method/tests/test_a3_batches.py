@@ -1,6 +1,7 @@
 """Scheduling contracts without providers or child processes."""
 
 import importlib.util
+import hashlib
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -125,3 +126,40 @@ def test_content_counts_distinguish_reports_from_expected_units(monkeypatch):
     assert counts["expected_round_units"] == 9
     assert counts["a3_hit_units"] == 2 and counts["full_hit_units"] == 3
     assert result["report_groups"]["a3"]["predicate_id"]["R1"] == {"VALID_KNOWN": 2, "INVALID": 1}
+
+
+def test_judge_resume_preserves_reading_identity_and_rejects_prompt_drift(monkeypatch, tmp_path):
+    from pydantic import BaseModel
+
+    directory = Path(__file__).resolve().parents[2] / "discover_matrix/docs/generations/a3_20260910"
+    monkeypatch.syspath_prepend(str(directory))
+    from recover_judge_provider import ResumeStages, response_schema_hash
+
+    class Response(BaseModel):
+        value: str
+
+    result_path = tmp_path / "0000/round-1/validity_primary_1-VB-01/cell-attempt-1/result.json"
+    result_path.parent.mkdir(parents=True)
+    result_path.write_text(json.dumps({"status": "success", "real_llm": True, "model": "fixture",
+                                      "output": {"value": "saved first reading"}, "context_window_tokens": 272000,
+                                      "max_output_tokens": 24000}))
+    receipt = {"status": "success", "call_id": "0000:r1:validity_primary_1:VB-01",
+               "artifact_paths": [str(result_path)], "schema_hash": response_schema_hash(Response),
+               "prompt_hash": "sha256:" + hashlib.sha256(b"system\nprompt").hexdigest(),
+               "retries": [], "usage": [], "cost_usd": 1.25, "cost_eligible": True}
+    live_calls = []
+
+    def call_many(calls):
+        live_calls.extend(calls)
+        return ("new second reading",)
+
+    live = SimpleNamespace(profile="fixture", config=SimpleNamespace(model="fixture"), call_many=call_many)
+    runtime = ResumeStages(live, [receipt])
+    call = dict(artifact_id="0000/round-1/validity_primary_1-VB-01", schema=Response,
+                kind="fixture", system_prompt="system", prompt="prompt", max_output_tokens=24000)
+    outcomes = runtime.call_many((call, {**call, "artifact_id": "0000/round-1/validity_primary_2-VB-01"}))
+    assert outcomes[0].response.value == "saved first reading"
+    assert outcomes[1] == "new second reading" and len(live_calls) == 1
+    assert runtime.reused[receipt["call_id"]]["receipt"] == receipt
+    with pytest.raises(AssertionError, match="prompt changed"):
+        runtime.call(**{**call, "prompt": "different"})
