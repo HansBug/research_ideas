@@ -46,6 +46,9 @@ def verify(archive, models=("sonnet", "luna")):
     data, math = read(archive / "results.json"), arithmetic()
     assert predicate_view(data) == read(archive / "predicate_view.json")
     assert data["complete"] and set(data["models"]) == set(models)
+    if set(models) == {"qwen", "muse"}:
+        from analyze_open_judge import four_model_summary
+        assert canonical(four_model_summary(data)) == read(archive / "four_model_summary.json"), "four-model summary"
     assert len(items) == data["ledger_items"] == 145
     assert data["expected_round_units"] == 435
     for model, arms in data["models"].items():
