@@ -76,6 +76,8 @@ Sonnet 0046/r3 的首次回复已包含九条完整报告，但 JSON 被包在�
 
 method 活跃总配置为 16 workers，先 Sonnet 后 Luna，共享上限，不为三轮重复启动三个 16-worker 驱动。judge 固定 Luna，实验 r1/r2/r3 各 8 workers，三个队列同时工作，跨模型总上限 24。复用原 CLI、锁与严格 resume；各轮首批 ready 后即可判定，未 ready 排队，零报告直接核销。每个 worker 保留标准两次独立读与必要仲裁。真实 PID、参数、吞吐、失败/降级/待判数量和首批 ETA 只记 PR。
 
+**2026-09-10 执行中并发修订（用户明确 override）：** 24 workers 改为 A3 与 page9 右侧 A4 合计的全局配额。A4 使用 8 workers 时，A3 最多活跃 16 workers，即只派发两个 8-worker 轮次池；第三轮队列保留并等待空位。只有确认 A4 没有 Luna worker 后，A3 才可恢复三个池、合计 24 workers。缩减时先停止额外池的派发，让此前已发出的调用落盘，再冻结空闲 worker；保留全部原始结果，不因调度改变重做已成功阶段。轮次、判定协议和报告分母不变，原始运行 manifest 的启动配置与后续实际活跃并发须区分记录。
+
 judge 只判 A3 唯一 final report，使用标准盲投影，不把执行 verdict、内部标签、Full 标签或 expected 答案送入 validity；relation 按既有隔离协议使用 expected。A4 true-I oracle 与 Full 内容复用规则不适用于 A3。仅完全相同输入/配置 hash 的已完成 A3 judge 可 resume。所有报告和关系映射必须闭合，人工确认数量如实为实际值。
 
 ## 6. 事前假设与分析
