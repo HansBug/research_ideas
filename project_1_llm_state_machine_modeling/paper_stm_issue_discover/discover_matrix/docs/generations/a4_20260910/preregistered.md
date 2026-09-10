@@ -28,6 +28,8 @@ NL、STM、检查事实、契约、候选及顺序、来源、路由、绑定和
 
 初始执行登记为先 Sonnet 162 格、再 Luna 162 格，Qwen/Muse 留后续；当时 method 最大 16 workers，residual judge 最大 8。2026-09-10 用户在开放模型调用前追加授权：本轮执行扩展至四模型各 162 格，共 648 格，judge 全局上限调整为 24 workers。该上限包含同渠道其他实验的 judge，不能为每个模型分别开 24。已有 8-worker 批次不为提速重启。method 仍最大 16 workers。
 
+同日后续指令再次明确：不再等待其他实验的配额，A4 judge 保持合计最多 8 workers。本轮执行曾将 Luna/Qwen/Muse 各 8 workers 同时启动，配置合计 24，属于对该最新指令的执行偏差，不能表述为全程合计 8。已有成功与失败调用均保留；后续恢复按合计最多 8 workers 衔接，不取消在途调用以重写并发历史，也不改变双读、仲裁、schema 修正上限或裁定规则。
+
 开放模型使用远端 GPU 4-7、各自独立 conda、固定权重和原已验参数；可先复用已驻留 Muse，再切换 Qwen。外部 judge 按 Sonnet、Luna、Qwen、Muse 分组推进，复用原同 pair/round 的 batch、双读、仲裁与失败恢复，不把残余报告强制拆成逐条请求。所有正式调用 stream，使用各 source backbone 对应 profile；沿用已核验模型输出上限，不设置小额 run override。Sonnet 按已有配置启用代理。范围扩展不改变屏蔽、内容等价、oracle 或指标定义，也不以 precision 必须下降作为验收条件。
 
 运行 manifest 绑定来源清单、实现文件 hash、模型配置 hash、treatment 和 masked-input hash。每个 stage cache 另绑定 system/prompt/schema/参数，只有同命名空间已成功真实输出可以恢复；不读取 Full/A2 cache。失败尝试另存，恢复不重复成功末端调用。预选 smoke 为排序后 0000/r1，配置不变时归入对应 162 格。
