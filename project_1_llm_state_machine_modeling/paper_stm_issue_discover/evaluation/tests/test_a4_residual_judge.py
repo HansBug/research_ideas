@@ -54,3 +54,20 @@ def test_residual_export_resume_and_protocol_guard(tmp_path, monkeypatch):
     write_json(destination, record)
     with pytest.raises(ValueError, match="protocol"):
         MODULE.prepare(PAPER, tmp_path)
+
+
+def test_analysis_counts_unique_expected_units_and_keeps_zero_cells():
+    spec = importlib.util.spec_from_file_location(
+        "a4_analysis", PAPER / "discover_matrix/docs/generations/a4_20260910/analyze_a4.py"
+    )
+    analysis = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(analysis)
+    known = {"validity": "VALID_KNOWN", "round": 1, "full_ledger_ids": ["E1"],
+             "partial_ledger_ids": [], "d_tier": "D0"}
+    invalid = {"validity": "INVALID", "round": 1, "full_ledger_ids": [], "partial_ledger_ids": []}
+    result = analysis.tally([known, known, invalid], 2, 6)
+    assert result["precision"] == {"numerator": 2, "denominator": 3, "rate": 2 / 3}
+    assert result["strict_precision"]["numerator"] == 0
+    assert result["hit"]["numerator"] == 1
+    assert result["invalid_per_cell"]["rate"] == .5
+    assert analysis.tally([], 1, 3)["precision"]["rate"] is None
