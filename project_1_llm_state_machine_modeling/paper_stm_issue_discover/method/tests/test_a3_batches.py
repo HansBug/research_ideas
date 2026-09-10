@@ -1,0 +1,85 @@
+"""Scheduling contracts without providers or child processes."""
+
+import importlib.util
+import json
+from pathlib import Path
+from types import SimpleNamespace
+
+from paper_stm_method.orchestration import runner
+from paper_stm_judge import artifacts
+
+
+def test_three_round_pools_wait_for_smoke_without_duplicate_cells(monkeypatch, tmp_path):
+    script = Path(__file__).resolve().parents[2] / "discover_matrix/docs/generations/a3_20260910/run_batches.py"
+    spec = importlib.util.spec_from_file_location("a3_batches", script)
+    batches = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(batches)
+    monkeypatch.setattr(runner, "FROZEN_PAIR_IDS", ("0000", "0001", "0002", "0003"))
+    monkeypatch.setattr(artifacts, "adapt_evidence_discovery_release", lambda *a: ([], SimpleNamespace(source_hash="fixture"), 1, "fixture"))
+
+    def write(path, data):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(data))
+
+    smoke_judge = tmp_path / "smoke-judge"
+    write(smoke_judge / "run_manifest.json", {"source_root": str(tmp_path / "old-smoke")})
+    for pair in ("0000", "0001", "0002"):
+        write(tmp_path / "sonnet/smoke-corrected/method" / pair / "round-1.json", {"eligible": True, "status": "completed"})
+    active, launched, submitted = [], [], set()
+    ticks = 0
+
+    class Process:
+        def __init__(self, kind, rnd):
+            self.kind, self.round, self.pid = kind, rnd, len(launched) + 1
+            self.returncode = None
+            self.polls = 0
+
+        def poll(self):
+            self.polls += 1
+            if self.polls >= 2:
+                self.returncode = 0
+                if self in active:
+                    active.remove(self)
+            return self.returncode
+
+    def launch(command, log):
+        kind = "method" if "paper_stm_method.cli" in command else "judge"
+        value = lambda flag: command[command.index(flag) + 1]
+        rnd = int(value("--round")) if "--round" in command else None
+        workers = int(value("--workers"))
+        assert workers == (16 if kind == "method" else 8)
+        assert not any(p.kind == kind and (kind == "method" or p.round == rnd) for p in active)
+        if kind == "judge" and rnd == 1:
+            assert ticks >= 2, "r1 launched before the external smoke pool drained"
+        directory = Path(value("--output-dir")) / value("--run-id")
+        selected = [command[i+1] for i, flag in enumerate(command) if flag == "--pair-id"]
+        model = "sonnet" if "sonnet" in directory.parts else "luna"
+        if kind == "method":
+            for pair in selected:
+                for r in (rnd,) if rnd else (1, 2, 3):
+                    write(directory / "method" / pair / f"round-{r}.json", {"eligible": True, "status": "completed"})
+            write(directory / "summary.json", {"failed_pairs": []})
+        else:
+            for pair in selected:
+                key = model, pair, rnd
+                assert key not in submitted
+                submitted.add(key)
+                write(directory / "pairs" / f"{pair}.json", {"status": "completed"})
+        process = Process(kind, rnd)
+        active.append(process)
+        launched.append(process)
+        return process
+
+    def sleep(seconds):
+        nonlocal ticks
+        ticks += 1
+        if ticks == 2:
+            for pair in ("0000", "0001", "0002"):
+                write(smoke_judge / "pairs" / f"{pair}.json", {"status": "completed"})
+        assert ticks < 50
+
+    monkeypatch.setattr(batches, "launch", launch)
+    monkeypatch.setattr(batches.time, "sleep", sleep)
+    batches.run(tmp_path, smoke_judge)
+    assert len(submitted) == 21
+    assert {p.round for p in launched if p.kind == "judge"} == {1, 2, 3}
