@@ -4,7 +4,7 @@
 
 | 报告类型 | 使用方式 |
 | --- | --- |
-| [2026-09-10 A4 冻结 Full 末端重放](./2026-09-10-a4-frozen-full-tail-results.md) | 四款模型 648 格、3675 份报告全部核销；普通/strict precision、逐轮分母、候选筛选与源案例。Qwen 旧失败与授权重跑后的成功裁定均保留；小型核算 JSON 支持离线复算，原始对话仅本地保存 |
+| [2026-09-10 A4 谓词执行反馈消融](./2026-09-10-17-01-11-a4-frozen-full-tail-results.md) | 四款模型 648 格、3675 份报告全部核销；普通/strict precision、逐轮分母、候选筛选与源案例。Qwen 旧失败与授权重跑后的成功裁定均保留；小型核算 JSON 支持离线复算，原始对话仅本地保存；配套[学术 talk](../../talks/2026-09-10-实验-A4谓词执行反馈消融与论文叙事.md)解释四模型差异、误报抑制与 C-2。 |
 | v26、v27-stream、v51 及早期 Judge 对照 | historical experiment report；不可与 v60/current 指标直接相减或合并 |
 | PlantUML frontend、source trace、ledger contract | implementation/protocol provenance；不构成 current experiment result |
 | R5/R5.5 readiness、seed、negative evidence、scope handoff | historical corpus/conversion evidence；不构成当前方法或评测协议 |
