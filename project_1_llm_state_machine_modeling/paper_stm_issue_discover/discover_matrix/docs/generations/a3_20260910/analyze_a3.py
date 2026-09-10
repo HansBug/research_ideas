@@ -161,6 +161,7 @@ def analyze(root, allow_partial=False):
         expected = {(p, rnd) for p in clusters for rnd in (1, 2, 3)}
         assert set(methods) <= expected and set(judgements) <= set(methods)
         reports, cells, funnel, calls = [], [], Counter(), Counter()
+        judge_calls, judge_usage_ids = Counter(), set()
         execution_groups = Counter()
         for key, (method_path, method) in sorted(methods.items()):
             funnel["method_cells"] += 1
@@ -178,6 +179,8 @@ def analyze(root, allow_partial=False):
                     for name in ("input_tokens", "output_tokens", "reasoning_tokens"):
                         calls[name] += usage.get(name) or 0
                     calls["usage_status_" + str(usage.get("status", "unrecorded"))] += 1
+                    response = usage.get("provider_response") or {}
+                    calls["provider_stop_" + str(response.get("stop_reason", response.get("status", "unrecorded")))] += 1
                 calls["truncated_stages"] += bool(call["context_budget"]["truncation_applied"])
             for record in method["evidence_records"]:
                 funnel["binding_precise"] += bool(record.get("binding", {}).get("precise"))
@@ -192,6 +195,22 @@ def analyze(root, allow_partial=False):
                    "eligible": method["eligible"], "reports": len(method["report_issue_clusters"]), "judged": key in judgements}
             if key in judgements:
                 judge_path, judge = judgements[key]
+                for receipt in judge["call_receipts"]:
+                    judge_calls["stage_receipts"] += 1
+                    judge_calls["stage_status_" + receipt["status"]] += 1
+                    judge_calls["recorded_cost_usd"] += receipt["cost_usd"] or 0
+                    judge_calls["unpriced_stage_receipts"] += receipt["cost_usd"] is None
+                    for usage in receipt["usage"]:
+                        usage_id = usage["model_call_id"]
+                        assert usage_id not in judge_usage_ids, (model, key, "duplicate judge usage", usage_id)
+                        judge_usage_ids.add(usage_id)
+                        judge_calls["observed_provider_calls"] += 1
+                        judge_calls["usage_status_" + usage["status"]] += 1
+                        judge_calls["unknown_token_usage_rows"] += usage["input_tokens"] is None or usage["output_tokens"] is None
+                        for name in ("input_tokens", "output_tokens"):
+                            judge_calls[name] += usage[name] or 0
+                        response = json.loads(usage["raw_usage_json"]).get("provider_response") or {}
+                        judge_calls["provider_stop_" + str(response.get("stop_reason", response.get("status", "unrecorded")))] += 1
                 assert method["eligible"]
                 source_hash = judge["adapter_audit"]["source_hash"]
                 if source_hash != row["sha256"]:
@@ -223,6 +242,8 @@ def analyze(root, allow_partial=False):
               "execution_groups": [{**dict(zip(("publication_status", "predicate_id", "verdict", "execution_status", "source_quotes_exact", "binding_precise"), key)), "count": count}
                                    for key, count in sorted(execution_groups.items(), key=lambda row: str(row[0]))],
               "call_audit": dict(calls), "call_audit_scope": "Selected completed generations, including their recorded retries. Interrupted unfinished calls remain separate raw audit; their missing usage is not zero cost.",
+              "judge_call_audit": dict(judge_calls),
+              "judge_call_audit_scope": "Final cell receipts, including preserved failed receipts and exact reused stages once. Unknown usage/cost is not zero; unfinished failures outside completed cells remain in raw audit.",
               "superseded_judgements": superseded_judgements, "metrics": math.calculate(reports, items)}
         # Partial figures are explicitly marked and never used in paired inference.
         a3["metrics_scope"] = "complete_162_cells" if complete else f"interim_{len(judgements)}_judged_cells"
