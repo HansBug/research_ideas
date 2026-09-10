@@ -907,6 +907,7 @@ class _Builder:
         contracts_by_id: Mapping[str, NLContract],
     ) -> None:
         self.pair = pair
+        self.predicates_enabled = getattr(pair, "ablation_mode", "none") != "no-predicates"
         self.author_index = build_author_index(pair)
         self.obligations: list[FrontierObligation] = []
         self.checks: list[FrontierCheckReceipt] = []
@@ -2298,8 +2299,8 @@ def _materialize_root_reachability(
         candidate = _candidate(
             derived,
             title=f"Required operating scope {scope.name} is unreachable from root",
-            predicate_id="G1",
-            predicate_inputs={"source": "[*]", "target": scope.name},
+            predicate_id="G1" if builder.predicates_enabled else None,
+            predicate_inputs={"source": "[*]", "target": scope.name} if builder.predicates_enabled else {},
             element_refs=supporting_refs,
             source_refs=derived.source_refs,
             expected=derived.normative_statement,
@@ -2573,8 +2574,8 @@ def _materialize_source_dead_ends(
         candidate = _candidate(
             derived,
             title=f"{state.name} is a source-certified reachable dead end",
-            predicate_id="V1",
-            predicate_inputs={"initial_scope": state.name},
+            predicate_id="V1" if builder.predicates_enabled else None,
+            predicate_inputs={"initial_scope": state.name} if builder.predicates_enabled else {},
             element_refs=(state.ref,),
             source_refs=derived.source_refs,
             expected=derived.normative_statement,
@@ -2629,8 +2630,8 @@ def _materialize_dead_ends(
         candidate = _candidate(
             contract,
             title=f"{state.name} has no operational continuation",
-            predicate_id="V1",
-            predicate_inputs={"initial_scope": state.name},
+            predicate_id="V1" if builder.predicates_enabled else None,
+            predicate_inputs={"initial_scope": state.name} if builder.predicates_enabled else {},
             element_refs=(state.ref,),
             source_refs=contract.source_refs,
             expected=contract.normative_statement,
@@ -3297,11 +3298,11 @@ def _materialize_group_guards(
             candidate = _candidate(
                 derived,
                 title=f"{source.name} to {target.name} omits its required guard",
-                predicate_id="S5",
+                predicate_id="S5" if builder.predicates_enabled else None,
                 predicate_inputs={
                     "transition_ref": transition.ref,
                     "expected_guard": alternative.guard,
-                },
+                } if builder.predicates_enabled else {},
                 element_refs=(source.ref, target.ref, transition.ref),
                 source_refs=derived.source_refs,
                 expected=derived.normative_statement,
@@ -4923,11 +4924,11 @@ def _materialize_inspection_diagnostics(
                 trigger_candidate = _candidate(
                     trigger_contract,
                     title=f"Initial transition {fact.transition_ref} has a trigger",
-                    predicate_id="S3",
+                    predicate_id="S3" if builder.predicates_enabled else None,
                     predicate_inputs={
                         "transition": fact.transition_ref,
                         "triggers": [],
-                    },
+                    } if builder.predicates_enabled else {},
                     element_refs=(owner.ref, target.ref, fact.transition_ref),
                     source_refs=trigger_contract.source_refs,
                     expected=trigger_contract.normative_statement,
@@ -5754,7 +5755,8 @@ def materialize_typed_frontier(
         _materialize_dead_ends(builder, all_contracts, grounding_responses)
     _materialize_termination(builder, all_contracts)
     _materialize_group_guards(builder, all_groups, all_contracts)
-    _materialize_group_post_states(builder, all_groups, all_contracts)
+    if builder.predicates_enabled:
+        _materialize_group_post_states(builder, all_groups, all_contracts)
     _materialize_group_collisions(builder, all_groups, all_contracts)
     _materialize_wrong_targets(builder, all_contracts, all_groups, grounding_responses)
     _materialize_aggregate_data_semantics(builder, all_contracts)

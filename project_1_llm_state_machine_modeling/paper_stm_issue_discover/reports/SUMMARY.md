@@ -4,6 +4,8 @@
 
 | 报告类型 | 使用方式 |
 | --- | --- |
+| [2026-09-10 A2 三模型汇总与 Qwen 全量结果](./2026-09-10-a2-three-model-results.md) | Luna/Sonnet/Qwen 各 162 格 A2 裁定；普通 precision 均未下降，九簇区间均含零。Qwen full/A2 为 89.25%/91.36%，FULL hit@1 为 311/435 和 283/435，L0/L1 下降而 L2 上升；逐轮、逐 pair 和机器摘要附后。Muse 仅 method 162 eligible，未执行 A2 judge，不计作零分 |
+| [2026-09-10 Sonnet 5 A2 全量报告](./2026-09-10-a2-sonnet5-full-results.md) | 162 格全部裁定；A2/full precision 为 88.44%/87.36%，strict precision 为 77.64%/78.98%，FULL hit@1 为 294/435 和 291/435；普通 precision 差值九簇区间跨零，不能沿用 15-pair pilot 作为全量效果证据 |
 | v26、v27-stream、v51 及早期 Judge 对照 | historical experiment report；不可与 v60/current 指标直接相减或合并 |
 | PlantUML frontend、source trace、ledger contract | implementation/protocol provenance；不构成 current experiment result |
 | R5/R5.5 readiness、seed、negative evidence、scope handoff | historical corpus/conversion evidence；不构成当前方法或评测协议 |
@@ -22,5 +24,9 @@
 | [2026-09-05 P1 十二谓词十格 smoke](./2026-09-05-22-18-46-p1-twelve-predicates-smoke-cn.md) | 来源 `1f852a8b3`；十格完成，93 条匹配终止回执同判，但保留三类证据降级/漏报风险；原始审计仅本地，远端不能独立复核，不主张质量等价；建议暂不追加重跑 |
 | [2026-09-02 台账外 D2 跨臂去重分析](./2026-09-02-novel-d2-cross-arm-dedup/analysis.md) | 基于 v4 人工裁定与人工分组的派生分析；跨臂匹配与类型/L 归类为 agent 单轮判读，非人工裁定；只服务 outline §5.4/§6.2 的量级陈述，不进任何主指标 |
 | R5.7 Better STM 报告链 | 已归档的历史路线；从 [archive/](../archive/README.md) 进入 |
+| [2026-09-06 A2 `no-predicates` Luna smoke](./2026-09-06-11-40-04-a2-smoke.md) | 源码 `507f1bac2`；五格为 3 正常、1 降级、1 失败，31 eligible 报告、2 隔离报告；51 处实际上下文事实对拍通过，谓词零执行；空流未走现有 transport retry，保留运行风险；无独立 judge，不构成效果结论，raw 仅本地 |
+| [2026-09-06 A2 完整结果与原因审计](./2026-09-06-20-24-24-a2-no-predicates-v61-results-cn.md) | [独立归档](../final_results/a2_no_predicates_vs_v61_20260906/README.md)；162 格/942 报告全部裁定，FULL hit@1=328/435、precision=800/942；44 gained/39 lost 已逐项定位。未见预期精度下降，四项九簇区间跨零；主/严格口径、269 组相同核心文本分歧及双臂裁定反例均保留。历史版本/provider 对比，非单因素因果估计；人工确认 0。运行源码与创建提交见报告 A.1 |
+| [2026-09-09 Sonnet5 C2 15-pair A2 对照](./2026-09-09-03-14-14-c2-sonnet15-a2-comparison.md) | [独立归档](../final_results/c2_sonnet15_20260909/README.md)；15 pair round-1：full 114/94.74%/43，A2 `no-predicates` 126/86.51%/45，full-removal/broad 62/87.10%/33，baseline 89/79.78%/38；另记录 12-pair raw-inspect stress（full 78.79% vs raw 47.37%）。一次 Sonnet draw、定向集合、无新增人工确认；不能作总体或 predicate-only 因果结论。 |
+| [2026-09-09 Sonnet5 A2 全量事前登记](../discover_matrix/docs/generations/a2_sonnet5_full_20260909/preregistered.md) | 54 pair × 3 round；Sonnet method `no-predicates`，Luna v3.11 judge；用于确认 15-pair pilot 的 precision/coverage 信号，主张边界限定为整套 predicate-guided mechanism 的条件性净差异。 |
 
 任何新读者应先读工作区 [README.md](../README.md) 和 v61 归档，而不是从本目录选择一份旧报告作为默认入口。

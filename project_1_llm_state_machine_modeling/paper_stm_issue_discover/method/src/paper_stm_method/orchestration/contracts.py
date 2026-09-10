@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 AblationMode = Literal["none", "no-inspect", "no-predicates"]
 ABLATION_MODES = ("none", "no-inspect", "no-predicates")
-IMPLEMENTED_ABLATIONS = ("none", "no-inspect")
+IMPLEMENTED_ABLATIONS = ABLATION_MODES
 
 
 def validate_ablation(value: str) -> AblationMode:

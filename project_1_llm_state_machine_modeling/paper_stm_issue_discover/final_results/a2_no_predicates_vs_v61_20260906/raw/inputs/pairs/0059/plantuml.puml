@@ -1,0 +1,43 @@
+@startuml
+
+[*] --> AutonomousMode
+
+state AutonomousMode {
+[*] --> InitialState
+InitialState --> HighwayMode : [high_way=true]
+InitialState --> UrbanMode : [urban_way=true]
+
+state HighwayMode {
+[*] --> enter_hwy
+enter_hwy --> cruise
+cruise --> lane_change : [dist_to_front<25 && extra_lane=true]
+lane_change --> cruise : [lane_change_complete]
+lane_change --> exit_hwy : [dist_to_exit<2]
+cruise --> exit_hwy : [dist_to_exit<2]
+}
+
+state UrbanMode {
+[*] --> enter_urban
+enter_urban --> lane_change_urban : [dist_to_front<15 && extra_lane=true]
+enter_urban --> straight : [road_clear]
+enter_urban --> intersection : [intersection=true]
+lane_change_urban --> straight : [lane_change_complete]
+lane_change_urban --> exit_urban : [dist_to_exit<0.7]
+straight --> intersection : [intersection=true]
+straight --> lane_change_urban : [dist_to_front<15 && extra_lane=true]
+}
+
+HighwayMode --> UrbanMode : [urban_way=true]
+UrbanMode --> HighwayMode : [high_way=true]
+
+HighwayMode --> FinishState : [auto_finished=true]
+UrbanMode --> FinishState : [auto_finished=true]
+}
+
+state CollisionAvoidanceSystem {
+[*] --> collision_avoidance_deactive
+collision_avoidance_deactive --> collision_avoidance_active : [pedestrian_detected] || [dist_to_rear<5 && vel>30] || [dist_to_front<15 && in_highway] || [dist_to_front<10 && in_urban]
+collision_avoidance_active --> collision_avoidance_deactive : [front_inactive && rear_inactive && pedestrian_inactive]
+}
+
+@enduml

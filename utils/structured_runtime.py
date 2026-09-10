@@ -874,7 +874,9 @@ class PublicStructuredRuntime:
             else max_output_tokens
         )
         if selected_max_output_tokens is None or selected_max_output_tokens <= 0:
-            raise ValueError("configure the model's verified positive max_output_tokens in its profile")
+            raise ValueError(
+                "configure the model's verified positive max_output_tokens in its profile"
+            )
         attempts: list[dict[str, Any]] = []
         all_usage: list[dict[str, Any]] = []
         all_schema_validation_failures: list[StructuredSchemaValidationFailure] = []
@@ -905,7 +907,8 @@ class PublicStructuredRuntime:
                         log_level="ERROR",
                         model_call_options=(
                             {"max_tokens": max_output_tokens}
-                            if max_output_tokens is not None else None
+                            if max_output_tokens is not None
+                            else None
                         ),
                         audit_out=audit_path,
                         result_out=result_path,
@@ -1179,7 +1182,7 @@ class FixtureStructuredRuntime:
         selected_max_output_tokens = int(
             kwargs.get("max_output_tokens") or MAX_STRUCTURED_OUTPUT_TOKENS
         )
-        if schema.__name__ == "NLContractResponse":
+        if any(base.__name__ == "NLContractResponse" for base in schema.__mro__):
             payload: dict[str, Any] = {
                 "contracts": [],
                 "segment_disposition": {},
@@ -1219,7 +1222,7 @@ class FixtureStructuredRuntime:
                 "reason": "Fixture grounding output leaves candidate generation to the fallback receipt.",
                 "basis": "provider-free fixture runtime",
             }
-        elif schema.__name__ == "DAdjudicationResponse":
+        elif any(base.__name__ == "DAdjudicationResponse" for base in schema.__mro__):
             parts = artifact_id.split("/")
             pair_id = parts[1] if len(parts) > 1 else "fixture"
             round_id = next(
