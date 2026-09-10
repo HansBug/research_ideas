@@ -87,12 +87,36 @@ def analyze(root, allow_partial=False):
                 assert not prior["eligible"] and cell["eligible"]
                 assert recovery["source_hash"] == digest(prior_path)
                 methods[key] = path, cell
-        judgements = {}
+        binding_manifest = root / model / "binding-corrected/run_manifest.json"
+        if binding_manifest.exists():
+            for correction in read(binding_manifest)["cells"]:
+                key = correction["pair_id"], correction["round"]
+                prior_path, prior = methods[key]
+                assert digest(prior_path) == correction["source_hash"]
+                path = Path(correction["corrected_source"])
+                assert digest(path) == correction["corrected_hash"]
+                cell = read(path)
+                assert cell["model_output"] == prior["model_output"] and cell["eligible"]
+                methods[key] = path, cell
+        judgements, superseded_judgements = {}, []
         for path in sorted((root / "judge" / model).glob("*/*/pairs/*.json")):
             judge = read(path)
             key = judge["pair_id"], judge["round"]
             if judge["status"] != "completed":
                 continue
+            current_path, current = methods[key]
+            source_path = Path(judge["adapter_audit"]["source_path"])
+            assert digest(source_path) == judge["adapter_audit"]["source_hash"]
+            if digest(current_path) != judge["adapter_audit"]["source_hash"]:
+                original = read(source_path)
+                assert original["model_output"] == current["model_output"]
+                assert original["input_hashes"] == current["input_hashes"]
+                before, _, _, _ = adapt_evidence_discovery_release(source_path, ())
+                after, _, _, _ = adapt_evidence_discovery_release(current_path, ())
+                if [r.model_dump() for r in before] != [r.model_dump() for r in after]:
+                    superseded_judgements.append({"pair_id": key[0], "round": key[1], "source": str(path), "sha256": digest(path),
+                                                  "reason": "Deterministic execution repair changed the published input; this judgement is excluded."})
+                    continue
             assert key not in judgements, (model, key, "duplicate judged cell")
             judgements[key] = path, judge
         expected = {(p, rnd) for p in clusters for rnd in (1, 2, 3)}
@@ -127,7 +151,6 @@ def analyze(root, allow_partial=False):
                 assert method["eligible"]
                 source_hash = judge["adapter_audit"]["source_hash"]
                 if source_hash != row["sha256"]:
-                    assert model == "sonnet" and key in {(p, 1) for p in ("0000", "0001", "0002")}
                     original = Path(judge["adapter_audit"]["source_path"])
                     assert digest(original) == source_hash
                     old_reports, _, _, _ = adapt_evidence_discovery_release(original, ())
@@ -154,7 +177,7 @@ def analyze(root, allow_partial=False):
         full["per_round"] = per_round(full_reports, full_cells, items, math)
         a3 = {"reports": reports, "cells": cells, "coverage": coverage, "funnel": dict(funnel),
               "call_audit": dict(calls), "call_audit_scope": "Selected completed generations, including their recorded retries. Interrupted unfinished calls remain separate raw audit; their missing usage is not zero cost.",
-              "metrics": math.calculate(reports, items)}
+              "superseded_judgements": superseded_judgements, "metrics": math.calculate(reports, items)}
         # Partial figures are explicitly marked and never used in paired inference.
         a3["metrics_scope"] = "complete_162_cells" if complete else f"interim_{len(judgements)}_judged_cells"
         a3["per_round"] = per_round(reports, cells, items, math)
