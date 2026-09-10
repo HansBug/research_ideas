@@ -1,35 +1,37 @@
-# Paper1 术语政策
+# 论文术语与实验名称
 
-本表是 `paper_outline.md` 的可机检术语合同。首次出现位置以大纲 section anchor 为准；后续正文使用「后续允许形式」。代码、公式、路径、正式论文/工具名称和表中 `protected exceptions` 不参加英文全称检查。自然语言输入统一称「自然语言描述」，不称「需求」；上游数据集作者的 requirement description 只在 §5.1 交代一次。
+正文使用描述性名称，内部代号只出现在来源、实现和写作材料中。首次定义的位置按当前大纲节号定位；英文全文采用相同含义。
 
-| term_id | 中文 | English | 缩写 | 首次出现位置 | 后续允许形式 | protected exceptions |
-| --- | --- | --- | --- | --- | --- | --- |
-| natural_language | 自然语言 | natural language | NL | `outline-0` | 自然语言、自然语言描述；`NL` 仅在公式、表列或代码字段 | `NL` 字段与任务合同 |
-| state_machine | 状态机 | state machine | STM | `outline-0` | 状态机；`STM` 仅在任务合同、表列、代码或文献题名 | `STM`、论文与工具正式题名、反引号内的英文题目候选 |
-| large_language_model | 大语言模型 | large language model | LLM | `outline-0` | 大语言模型；`LLM` 仅在公式、表列或代码字段 | `LLM`、`LLM-as-a-Judge`、论文与工具正式题名 |
-| fcstm | 有限控制状态机 | finite control state machine | FCSTM | `outline-0` | 有限控制状态机；`FCSTM` 在代码、公式、表列和字段中保留 | `FCSTM`、`fcstm`、路径和 API 名 |
-| plantuml_adapter | PlantUML 适配器 | PlantUML adapter | 无 | `outline-0` | PlantUML 适配器 | `PlantUML` 正式语言名和源文件扩展名 |
-| provenance | 来源归属 | provenance | 无 | `outline-0` | 来源归属、来源映射 | 文件/字段名与链接目标 |
-| inspect_facts | 确定性检查事实 | deterministic inspect facts | 无 | `outline-0` | 确定性检查事实、检查事实 | `inspect facts`、代码、字段和图标签 |
-| typed_predicate | 类型化谓词 | typed predicate | 无 | `outline-0` | 类型化谓词、谓词 | predicate ID、代码字段 |
-| replay_receipt | 回放回执 | replay receipt | 无 | `outline-0` | 回放回执、回执 | 代码字段 |
-| problem_level | 问题层级 | problem level | L | `outline-2` | 问题层级；`L0/L1/L2` 在表、公式和字段中保留 | `L0`、`L1`、`L2` |
-| witness_strength | 见证强度 | witness strength | W | `outline-2` | 见证强度、证据强度；`W0/W1/W2` 在表、公式和字段中保留 | `W0`、`W1`、`W2` |
-| use_case_specification | 用例规约 | use-case specification | UCS | `outline-2` | 用例规约；`UCS` 在文献比较、表列或字段中保留 | `UCS`、论文题名和原文引述 |
-| llfsm | 轻量级有限状态机 | Lightweight Finite State Machine | LLFSM | `outline-2` | 轻量级有限状态机；`LLFSM` 在文献比较、表列或字段中保留 | `LLFSM`、论文题名和原文引述 |
-| defect_status | 缺陷状态 | defect status | D | `outline-5` | 缺陷状态；`D0/D1/D2/A0` 在表、公式和字段中保留 | `D0`、`D1`、`D2`、`A0` |
-| adjudication | 人工裁定 | human adjudication | 无 | `outline-5` | 人工裁定、裁定 | — |
-| hit_source_decomposition | 命中来源分解 | hit-source decomposition | 无 | `outline-5` | 命中来源分解、来源分解 | 表列 |
-| relation | 对应关系 | relation | 无 | `outline-5` | 对应关系；`FULL/PARTIAL/NO` 在表、公式和字段中保留 | `FULL_MATCH`、`PARTIAL_MATCH`、`NO_MATCH` |
-| bookkeeping | 记账类别 | bookkeeping category | K/N/I | `outline-5` | 记账类别；`K/N/I` 在表、公式和字段中保留 | `VALID_KNOWN`、`VALID_NOVEL`、`INVALID` |
-| nadc | 非缺陷主张 | not-a-defect claim | NADC | `outline-5` | 非缺陷主张；`NADC` 在表、公式和字段中保留 | `NOT_A_DEFECT_CLAIM` |
-| divergence_checks | 源–语义分歧检查 | source–semantics divergence checks | 无 | `outline-0` | 源–语义分歧检查、分歧检查、分歧审计 | 代码字段、`source_divergence` frontier kind |
-| author_source_index | 作者源索引 | author-source index | 无 | `outline-4` | 作者源索引；作者拥有 / 编译器拥有的载体 | 代码字段 |
-| carrier_attribution_gate | 载体归属门 | carrier-attribution gate | 无 | `outline-4` | 载体归属门 | `skipped_compiler_owned_carrier` |
-| causal_fold | 因果折叠 | causal fold | 无 | `outline-4` | 因果折叠、子主张 | 代码字段 |
-| guard_modality_aggregation | 守卫模态聚合 | guard-modality aggregation | 无 | `outline-4` | 守卫模态聚合、聚合根 | 代码字段 |
-| lossy_normalization | 有损规范化 | lossy normalization | 无 | `outline-4` | 有损规范化 | — |
+| 概念 | 正文用语 / English | 定义位置与边界 |
+| --- | --- | --- |
+| 分析输入 | 自然语言描述 / natural-language description；既有源状态机 / existing source state machine | §1、§3；分析期间固定，当前制品来自上游 LLM 输出 |
+| 方法主体 | 大语言模型 / large language model (LLM) | 摘要；全文首次用缩写前展开 |
+| 分析表示 | 有限控制状态机 / finite control state machine (FCSTM) | §3.2；工程工作表示，不是独立算法创新 |
+| C-1 | 模型事实支持的发现 / discovery supported by model inspection facts | §1、§4.2；事实不自行产生义务 |
+| C-2 | 结构化中间引导 / structured intermediate guidance | §1、§4.3；包含义务、发现、扩充、探测及内部语义复核的整组机制 |
+| C-3 | 执行反馈约束报告 / execution feedback for report decisions | §1、§4.4；类型化谓词、后端求值及结果解释，不声称整个谓词系统已被单独消融 |
+| C-4 | 多模型实证与可复核材料 / multi-model evaluation and auditable materials | §1、§5；不暗示公开匿名制品已完成 |
+| L | 问题层级 / problem level | §2.1；L0 点状，L1 结构或局部，L2 跨迁移行为；独立于算法与 W |
+| W | 证据强度 / witness strength | §2.1；W0 无精确定位，W1 有定位，W2 有合格执行证据；不代表完整缺陷已证明 |
+| D | 缺陷状态 / defect status | §5.4；D2、D1、D0 与 A0 遵循冻结评价协议 |
+| 内部评估 | 语义复核 / internal semantic assessment | §4.3；服务于发布决定，与外部评价的调用和材料分开 |
+| 外部评价 | 外部评价器 / external evaluator | §5.4；固定 Luna 双读及分歧仲裁，不能写成全量人工裁定或独立模型委员会 |
+| K/N/I | 参考集合相关有效 / 集合外有效 / 无效报告 | §5.4；关系优先规则可将部分 D0 计 K，故并列 strict precision |
+| P / P_strict | 普通 / 严格报告精确率 | §5.5；分母均为全部发布报告，严格分子只计有效 D1/D2 |
+| hit@1 / hit@3 / hit@all | 三轮平均 / 三轮至少一次 / 三轮全命中覆盖 | §5.5；分母分别 435/145/145，PARTIAL 不计主命中 |
+| 来源映射 | source mapping / provenance | §3.2；区分源制品和内部表示，不将编译器产物归给源作者 |
 
-责任边界（v61 口径，2026-09-04 导师裁定后）：D、有效性与对应关系的定义来自人工裁定协议，执行者是作者（按协议逐条裁定、边界情形讨论至共识，不报一致性系数）；程序只在已完成的裁定字段上确定性闭合 K/N/I 并汇总；C2 的回执不替代有效性裁定；论文不提任何自动判定仪器。对外术语：L 写 problem level，D 写 defect status，字母不变。
+| 内部条件 | 正文名称 | RQ |
+| --- | --- | --- |
+| X1v2 baseline | 同模型直接发现基线 | RQ1 |
+| v61 / E2 ours | Full / 完整方法；历史 Luna 身份另注 | 共同对照 |
+| A1 | 无检查事实 | RQ2 |
+| A3 | 无中间引导 | RQ3 |
+| A4 | 无执行反馈 | RQ4 |
+| A2 | 不进入正文 | 无 |
 
-谓词编号使用当前连续集合 `S1–S5 / G1–G3 / R1–R3 / V1`，族规模为 `5/3/3/1`。历史结果的编号展示按原 registry 版本映射，保留运行身份与原始记录；版本说明见大纲 §5.1。A2 指整个谓词机制一次关闭，包括词表、路由与类型化绑定、后端执行与回执；不做谓词子集消融。
+谓词编号采用当前 `S1–S5 / G1–G3 / R1–R3 / V1`，共 12 项定义。历史运行保留原注册表、编号及哈希；不能把当前编号映射写成历史重跑。论文中“谓词”是有类型、可执行的检查模板，不能暗示自由形式逻辑中的完备证明系统。
+
+不用“显著提高”代替点估计；写“在四种固定配置上提高”，并明确指标与条件。少报导致的精确率提高需与有效产出和覆盖一起解释。“降低幻觉”如用作动机，结果中落实为既定评价下的无效报告比例，不能等同于全部误报已由独立真值反证。
+
+文献题名、代码、URL、正式模型名称、公式和冻结字段为保护区，语言润色不得改变。引用文献中的 requirements 可译为“需求”；本文输入仍统一称“自然语言描述”。历史导师纪要保留原话，其旧评价口径不覆盖新增实验的真实来源。
