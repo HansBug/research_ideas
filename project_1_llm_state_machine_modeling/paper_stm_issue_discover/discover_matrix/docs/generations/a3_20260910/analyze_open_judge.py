@@ -142,6 +142,11 @@ def four_model_summary(open_results):
     previous = read(previous_path)
     assert previous["complete"] and set(previous["models"]) == {"sonnet", "luna"}
     models = {**previous["models"], **open_results["models"]}
+    for model, arms in models.items():
+        coverage = arms["a3"]["coverage"]
+        assert coverage["planned_cells"] == coverage["eligible_cells"] == coverage["judged_cells"] == 162, model
+        assert coverage["unjudged_reports"] == 0 and len(arms["a3"]["cells"]) == 162, model
+        assert not coverage["missing_method_cells"] and not coverage["missing_judge_cells"], model
     return {"schema": "a3.four-model-summary.v1", "complete": True, "human_confirmations": 0,
             "prior_results_sha256": digest(previous_path), "method_cells": 648, "judged_cells": 648,
             "published_reports": sum(d["a3"]["metrics"]["reports"] for d in models.values()),
