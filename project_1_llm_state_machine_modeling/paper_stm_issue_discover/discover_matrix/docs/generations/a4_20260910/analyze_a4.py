@@ -180,6 +180,18 @@ def analyze(root):
     pairs = sorted({c["pair"] for c in cells})
     assert len(pairs) == 54 and {(c["pair"], c["round"]) for c in cells} == {(p, r) for p in pairs for r in (1, 2, 3)}
     pair_deltas = {p: {arm: tally([r for r in rs if r["pair_id"] == p], 3, 3 * sum(v["pair"] == p for v in items.values())) for arm, rs in reports.items()} for p in pairs}
+    hit_units = {arm: {(e, r["round"]) for r in rs if r["validity"] == "VALID_KNOWN" for e in r["full_ledger_ids"]}
+                 for arm, rs in reports.items()}
+    hit_changes = {"lost": sorted(hit_units["full"] - hit_units["a4"]),
+                   "gained": sorted(hit_units["a4"] - hit_units["full"])}
+    v0, v1 = (metrics[arm]["K"] + metrics[arm]["N"] for arm in ("full", "a4"))
+    i0, i1 = (metrics[arm]["I"] for arm in ("full", "a4"))
+    intermediate = v1 / (v1 + i0) if v1 + i0 else None
+    decomposition = {
+        "order": "replace valid volume first with Full I fixed, then replace I; arithmetic, not a causal decomposition",
+        "valid_volume_pp": 100 * (intermediate - metrics["full"]["precision"]["rate"]) if intermediate is not None else None,
+        "invalid_volume_pp": 100 * (metrics["a4"]["precision"]["rate"] - intermediate) if intermediate is not None and v1 + i1 else None,
+    }
     judge_calls = sum(len(json.loads(p.read_text())["call_receipts"]) for p in (root / "judge").glob("*/pairs/*.json"))
     return {"schema": "paper1.a4.analysis.v1", "model": manifest["identity"]["model"],
             "identity": manifest["identity"], "namespace": manifest["namespace"], "source_hashes": source_hashes,
@@ -191,6 +203,7 @@ def analyze(root):
                       "schema_failures": schema_failures, "residual_judge": judge_calls},
             "errors": errors, "cells": cells, "candidates": candidates, "publications": publications,
             "examples": examples, "usage": list(usage.values()),
+            "hit_changes": hit_changes, "precision_decomposition": decomposition,
             "paired_by_pair": pair_deltas,
             "scope": "Conditional terminal intervention; paired by pair across all three rounds. No significance interval or population-independence claim."}
 
