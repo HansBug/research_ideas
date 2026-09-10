@@ -154,17 +154,6 @@ def analyze(root):
         reused_calls += sum(c["reused"] for c in tail["call_audit"])
         attempts += sum(len(c["attempts"]) for c in tail["llm_calls"])
         schema_failures += sum(len(c["schema_validation_failures"]) for c in tail["llm_calls"])
-        for call in tail["llm_calls"]:
-            for u in call["usage"]:
-                key = u["model_call_id"]
-                public = {k: u.get(k) for k in (
-                    "model_call_id", "model", "input_tokens", "output_tokens", "reasoning_tokens",
-                    "started_at_utc", "ended_at_utc", "duration_seconds", "time_to_first_chunk_seconds",
-                    "status", "output_budget", "provider_response",
-                )}
-                if key in usage:
-                    assert usage[key] == public, "Conflicting repeated usage receipt"
-                usage[key] = public
         errors.extend({"pair": pair, "round": rnd, **e} for e in tail["errors"])
         cells.append({"pair": pair, "round": rnd, "source_hash": source_hash, "judge_hash": judge_hash,
                       "tail_hash": tail_hash, "full": tally(before, 1, len(expected_ids)),
@@ -192,6 +181,29 @@ def analyze(root):
         "valid_volume_pp": 100 * (intermediate - metrics["full"]["precision"]["rate"]) if intermediate is not None else None,
         "invalid_volume_pp": 100 * (metrics["a4"]["precision"]["rate"] - intermediate) if intermediate is not None and v1 + i1 else None,
     }
+    real_terminal_calls = runtime_attempts = saved_attempts = failed_attempts = 0
+    for path in sorted((root / "cells").glob("*/round-*/attempts/*/tail.json")):
+        attempt = json.loads(path.read_text())
+        saved_attempts += 1
+        failed_attempts += not attempt["eligible"]
+        real_terminal_calls += sum(not c["reused"] for c in attempt["call_audit"])
+        for audit, call in zip(attempt["call_audit"], attempt["llm_calls"], strict=True):
+            if not audit["reused"]:
+                runtime_attempts += len(call["attempts"])
+            for u in call["usage"]:
+                key = u["model_call_id"]
+                public = {k: u.get(k) for k in (
+                    "model_call_id", "model", "input_tokens", "output_tokens", "reasoning_tokens",
+                    "started_at_utc", "ended_at_utc", "duration_seconds", "time_to_first_chunk_seconds",
+                    "status", "output_budget", "provider_response",
+                )}
+                if key in usage:
+                    assert usage[key] == public
+                usage[key] = public
+    transport_retries = 0
+    for path in (root / "cells").glob("*/round-*/attempts/*/provider/**/audit.jsonl"):
+        with path.open() as stream:
+            transport_retries += sum(json.loads(line).get("record_type") == "transport_retry" for line in stream)
     judge_calls = sum(len(json.loads(p.read_text())["call_receipts"]) for p in (root / "judge").glob("*/pairs/*.json"))
     return {"schema": "paper1.a4.analysis.v1", "model": manifest["identity"]["model"],
             "identity": manifest["identity"], "namespace": manifest["namespace"], "source_hashes": source_hashes,
@@ -199,8 +211,11 @@ def analyze(root):
             "candidate_flows": dict(sorted(flows.items())), "true_origins": dict(true_origins),
             "d_transitions": dict(d_changes), "matched_wording_changed": wording_changed,
             "matched_semantic_assessment_changed": semantic_changed, "stage_statuses": dict(diagnostics),
-            "calls": {"terminal": calls, "cached_terminal": reused_calls, "provider_attempts": attempts,
-                      "schema_failures": schema_failures, "residual_judge": judge_calls},
+            "calls": {"terminal_final_layout": calls, "cached_terminal_final_layout": reused_calls,
+                      "outer_runtime_attempts_final_layout": attempts, "real_terminal_all_attempts": real_terminal_calls,
+                      "outer_runtime_attempts_all": runtime_attempts, "saved_cell_attempts": saved_attempts,
+                      "failed_cell_attempts": failed_attempts, "transport_retry_events": transport_retries,
+                      "schema_failures_final_layout": schema_failures, "residual_judge_completed_receipts": judge_calls},
             "errors": errors, "cells": cells, "candidates": candidates, "publications": publications,
             "examples": examples, "usage": list(usage.values()),
             "hit_changes": hit_changes, "precision_decomposition": decomposition,
