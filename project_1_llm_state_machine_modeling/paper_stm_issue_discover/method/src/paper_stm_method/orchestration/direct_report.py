@@ -139,6 +139,24 @@ def build_prompt(pair) -> str:
     }, ensure_ascii=False, sort_keys=True)
 
 
+def execution_candidate(candidate, pair):
+    # The prompt's exact projection refs and native paths identify the same state.
+    paths = {state.ref: state.canonical_path for state in pair.model.states}
+
+    def native(value):
+        if isinstance(value, str):
+            return paths.get(value, value)
+        if isinstance(value, list):
+            return [native(item) for item in value]
+        return value
+
+    inputs = dict(candidate.predicate_inputs)
+    for key in ("source", "target", "scope", "initial_scope"):
+        if key in inputs:
+            inputs[key] = native(inputs[key])
+    return candidate.model_copy(update={"predicate_inputs": inputs})
+
+
 def direct_report_cell(*, pair, round_index, runtime, output_root, run_identity):
     # Import only shared execution/receipt helpers; the Full stage graph is never entered.
     from . import runner
@@ -170,7 +188,7 @@ def direct_report_cell(*, pair, round_index, runtime, output_root, run_identity)
             "publication_status": "coverage_gap", "final_report_id": None,
         }
         try:
-            prepared = runner._prepare_candidate(pair, candidate, round_index, index, infer_missing_subject=False)
+            prepared = runner._prepare_candidate(pair, execution_candidate(candidate, pair), round_index, index, infer_missing_subject=False)
             binding, plan, receipt = (prepared[k] for k in ("binding", "plan", "receipt"))
             execution = build_predicate_execution_receipt(
                 pair_id=pair.pair_id, run_id=run_identity["run_id"],

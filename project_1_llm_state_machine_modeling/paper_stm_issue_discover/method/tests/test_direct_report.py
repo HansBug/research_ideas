@@ -10,6 +10,7 @@ from paper_stm_method.inputs import load_pair
 from paper_stm_method.orchestration import runner
 from paper_stm_method.orchestration.direct_report import (
     DISABLED_STEPS, DirectReport, DirectReportResponse, build_prompt,
+    execution_candidate,
 )
 from paper_stm_method.orchestration.runtime import FixtureStructuredRuntime
 
@@ -165,3 +166,19 @@ def test_backend_error_degrades_and_missing_subject_is_not_invented(monkeypatch,
     assert record["witness_level"] == "W1"
     assert record["publication_status"] == "published"
     assert record["expected"] == reports(pair)[1].expected
+
+
+def test_exact_state_refs_execute_in_native_graph_backend():
+    pair = load_pair(REPORT / "pairs/0000")
+    states = {s.name: s for s in pair.model.states}
+    candidate = reports(pair)[0].candidate(0).model_copy(update={
+        "predicate_id": "G1", "property": "reachability", "violation_direction": "unreachable",
+        "predicate_inputs": {"source": states["HumanDrivingMode"].ref, "target": states["FinalState"].ref},
+        "element_refs": [states["HumanDrivingMode"].ref, states["FinalState"].ref],
+    })
+    adapted = execution_candidate(candidate, pair)
+    assert adapted.predicate_inputs == {"source": states["HumanDrivingMode"].canonical_path, "target": states["FinalState"].canonical_path}
+    assert adapted.expected == candidate.expected
+    prepared = runner._prepare_candidate(pair, adapted, 1, 0, infer_missing_subject=False)
+    assert prepared["receipt"].terminal_state == "completed"
+    assert prepared["receipt"].verdict in ("true", "false")

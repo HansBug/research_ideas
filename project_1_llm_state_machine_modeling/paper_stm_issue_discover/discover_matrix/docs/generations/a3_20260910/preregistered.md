@@ -68,6 +68,8 @@ Sonnet 与 E2 profile hash 相同。Luna v61 原始调用记录的 context 为 2
 
 共享准备函数仅作同一实例绑定、适用性降级、编译与执行。A3 显式关闭缺失 S1 对象的首元素补全；精确 carrier 的规范化保留。发布保留生成时的 expected/observed/reason/basis，适配诊断另存，不用诊断改写主张。
 
+精确 state ref 与 native canonical path 在输入目录中表示同一状态；A3 在 source/target/scope/initial_scope 槽位做一对一身份转换，避免把合法目录引用误判为不支持。预选 smoke 揭示该接口缺口后，使用 [reexecute_smoke.py](reexecute_smoke.py) 对已保存的三次真实生成做确定性执行重放，不调用 provider，不改变原始报告。旧方法原件完整保留但不作为修复后执行统计；派生 manifest 固定原件哈希、原始生成、修复代码与新执行回执。原生成 LLM 身份沿用真实调用记录，明确区分保存生成的重放与新增 live 调用，不冒充新的独立样本。
+
 ## 5. 调度与裁定
 
 method 活跃总配置为 16 workers，先 Sonnet 后 Luna，共享上限，不为三轮重复启动三个 16-worker 驱动。judge 固定 Luna，实验 r1/r2/r3 各 8 workers，三个队列同时工作，跨模型总上限 24。复用原 CLI、锁与严格 resume；各轮首批 ready 后即可判定，未 ready 排队，零报告直接核销。每个 worker 保留标准两次独立读与必要仲裁。真实 PID、参数、吞吐、失败/降级/待判数量和首批 ETA 只记 PR。
