@@ -8,7 +8,7 @@ from pathlib import Path
 
 from paper_stm_evaluation.a4_accounting import publication_members
 from paper_stm_evaluation.a4_replay import digest, mask_prepared
-from paper_stm_evaluation.a4_sources import checked_json
+from paper_stm_evaluation.a4_sources import REFERENCE, checked_json
 from utils.artifact_io import write_json
 
 
@@ -170,7 +170,7 @@ def analyze(root):
                       "unresolved_ids": tail["stage_outputs"]["validate_d"]["final_unresolved_ids"]})
     metrics = {arm: calculate_metrics(rs, items) for arm, rs in reports.items()}
     rounds = {str(rnd): {arm: tally([r for r in rs if r["round"] == rnd], 54, 145) for arm, rs in reports.items()} for rnd in (1, 2, 3)}
-    reference = {"sonnet": (536, 183, 104), "luna": (561, 198, 144)}[manifest["identity"]["model"]]
+    reference = REFERENCE[manifest["identity"]["model"]][0]
     assert tuple(metrics["full"][key] for key in "KNI") == reference
     assert sum(routes.values()) == metrics["a4"]["reports"]
     pairs = sorted({c["pair"] for c in cells})

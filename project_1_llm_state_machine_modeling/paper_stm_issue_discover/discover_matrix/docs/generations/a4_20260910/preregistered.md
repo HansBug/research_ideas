@@ -26,7 +26,9 @@ NL、STM、检查事实、契约、候选及顺序、来源、路由、绑定和
 
 ## 运行身份与恢复
 
-先 Sonnet 162 格，再 Luna 162 格；Qwen/Muse 各 162 格留后续执行阶段。method 最大 16 workers；residual judge 最大 8。所有正式调用 stream，使用各 source backbone 对应 profile；沿用已核验模型输出上限，不设置小额 run override。Sonnet 按已有配置启用代理。
+初始执行登记为先 Sonnet 162 格、再 Luna 162 格，Qwen/Muse 留后续；当时 method 最大 16 workers，residual judge 最大 8。2026-09-10 用户在开放模型调用前追加授权：本轮执行扩展至四模型各 162 格，共 648 格，judge 全局上限调整为 24 workers。该上限包含同渠道其他实验的 judge，不能为每个模型分别开 24。已有 8-worker 批次不为提速重启。method 仍最大 16 workers。
+
+开放模型使用远端 GPU 4-7、各自独立 conda、固定权重和原已验参数；可先复用已驻留 Muse，再切换 Qwen。外部 judge 按 Sonnet、Luna、Qwen、Muse 分组推进，复用原同 pair/round 的 batch、双读、仲裁与失败恢复，不把残余报告强制拆成逐条请求。所有正式调用 stream，使用各 source backbone 对应 profile；沿用已核验模型输出上限，不设置小额 run override。Sonnet 按已有配置启用代理。范围扩展不改变屏蔽、内容等价、oracle 或指标定义，也不以 precision 必须下降作为验收条件。
 
 运行 manifest 绑定来源清单、实现文件 hash、模型配置 hash、treatment 和 masked-input hash。每个 stage cache 另绑定 system/prompt/schema/参数，只有同命名空间已成功真实输出可以恢复；不读取 Full/A2 cache。失败尝试另存，恢复不重复成功末端调用。预选 smoke 为排序后 0000/r1，配置不变时归入对应 162 格。
 
@@ -53,4 +55,4 @@ python -m paper_stm_evaluation.a4_run verify --paper-root "$P" --output "$OUT"
 
 Full 参考 K/N/I 为 Sonnet 536/183/104、Luna 561/198/144、Qwen 599/256/103、Muse 544/229/137。此前同率外推只是条件算术：Sonnet 约 +133 I/75.21%，Luna 约 +237 I/66.58%；nonprobe 情形约 +50 I/82.36%、+102 I/75.52%。这些不是实测、区间、保证或验收阈值。
 
-原始 prompts/SSE 与大体量逐调用审计留本地受限归档；仓库交付稳定协议、必要脚本/测试、来源 hash、适量复算结果和中文报告。本阶段两模型完成不等于四模型 A4 或 A4→O2 完成；A3 仍独立必需。
+原始 prompts/SSE 与大体量逐调用审计留本地受限归档；仓库交付稳定协议、必要脚本/测试、来源 hash、适量复算结果和中文报告。两模型结果不能代替追加授权后的四模型验收；四模型均须完成末端、残余裁定、离线复算与审查。A3 仍独立必需，不因本实验结果自动启动 O2。
