@@ -32,6 +32,13 @@ def report_row(outcome, pair, round_index):
             "d_tier": outcome.get("d_tier"), "a0_subtype": outcome.get("a0_subtype")}
 
 
+def calculate_metrics(reports, items):
+    result = arithmetic.calculate(reports, items)
+    result["D_A"] = {key if key is not None else "NO_EXTERNAL_D_A_LABEL": count
+                     for key, count in result["D_A"].items()}
+    return result
+
+
 def tally(reports, cells, expected_count):
     labels = Counter(LABELS[r["validity"]] for r in reports)
     full = {(e, r["round"]) for r in reports if r["validity"] == "VALID_KNOWN" for e in r["full_ledger_ids"]}
@@ -161,7 +168,7 @@ def analyze(root):
                       "elapsed_seconds": tail["elapsed_seconds"], "calls": tail["counters"]["terminal_structured_calls"],
                       "errors": len(tail["errors"]),
                       "unresolved_ids": tail["stage_outputs"]["validate_d"]["final_unresolved_ids"]})
-    metrics = {arm: arithmetic.calculate(rs, items) for arm, rs in reports.items()}
+    metrics = {arm: calculate_metrics(rs, items) for arm, rs in reports.items()}
     rounds = {str(rnd): {arm: tally([r for r in rs if r["round"] == rnd], 54, 145) for arm, rs in reports.items()} for rnd in (1, 2, 3)}
     reference = {"sonnet": (536, 183, 104), "luna": (561, 198, 144)}[manifest["identity"]["model"]]
     assert tuple(metrics["full"][key] for key in "KNI") == reference

@@ -71,3 +71,9 @@ def test_analysis_counts_unique_expected_units_and_keeps_zero_cells():
     assert result["hit"]["numerator"] == 1
     assert result["invalid_per_cell"]["rate"] == .5
     assert analysis.tally([], 1, 3)["precision"]["rate"] is None
+    oracle = analysis.report_row({**invalid, "original_report_id": "oracle"}, "0000", 1)
+    novel = analysis.report_row({**invalid, "original_report_id": "novel", "validity": "VALID_NOVEL", "d_tier": "D1"}, "0000", 1)
+    metrics = analysis.calculate_metrics([oracle, novel], {})
+    assert metrics["D_A"] == {"NO_EXTERNAL_D_A_LABEL": 1, "D1": 1}
+    assert metrics["precision"]["rate"] == metrics["strict"]["precision"]["rate"] == .5
+    json.dumps(metrics, sort_keys=True)
