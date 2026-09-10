@@ -220,7 +220,9 @@ def analyze(root):
             assert 1 <= len(call["report_ids"]) <= 8
             judge_receipts.append({"source": str(path.relative_to(root)), "pair": record["pair_id"],
                                    "round": record["round"], "parent_status": path.parent.name,
-                                   **{k: call[k] for k in ("call_id", "batch_id", "report_ids", "phase", "status", "prompt_hash", "retries", "duration_seconds")}})
+                                   **{k: call[k] for k in ("call_id", "batch_id", "report_ids", "phase", "status", "prompt_hash", "duration_seconds")},
+                                   "attempts": [{k: attempt.get(k) for k in ("attempt_no", "status", "provider_error", "error_code")}
+                                                for attempt in call["retries"]]})
             for item in call["usage"]:
                 public = {k: item.get(k) for k in ("model_call_id", "status", "model", "input_tokens", "output_tokens")}
                 key = public["model_call_id"]
