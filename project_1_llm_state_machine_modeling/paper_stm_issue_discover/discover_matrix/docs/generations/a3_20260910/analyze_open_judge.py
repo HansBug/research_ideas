@@ -136,12 +136,31 @@ def analyze(root, allow_partial=False):
     return output
 
 
+def four_model_summary(open_results):
+    assert open_results["complete"] and set(open_results["models"]) == {"qwen", "muse"}
+    previous_path = PAPER / "final_results/a3_20260910/results.json"
+    previous = read(previous_path)
+    assert previous["complete"] and set(previous["models"]) == {"sonnet", "luna"}
+    models = {**previous["models"], **open_results["models"]}
+    return {"schema": "a3.four-model-summary.v1", "complete": True, "human_confirmations": 0,
+            "prior_results_sha256": digest(previous_path), "method_cells": 648, "judged_cells": 648,
+            "published_reports": sum(d["a3"]["metrics"]["reports"] for d in models.values()),
+            "unjudged_reports": sum(d["a3"]["coverage"]["unjudged_reports"] for d in models.values()),
+            "models": {m: {"a3": {k: d["a3"][k] for k in ("metrics", "per_round", "coverage", "funnel")},
+                           "full": {k: d["full"][k] for k in ("metrics", "per_round")},
+                           "comparison": {k: d["comparison"][k] for k in ("scope", "delta_pp", "cluster_bootstrap_95pct", "lost_by_tier", "gained_by_tier")}}
+                       for m, d in models.items()}}
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--allow-partial", action="store_true")
+    parser.add_argument("--four-model-output", type=Path)
     args = parser.parse_args()
     data = analyze(args.root.resolve(), args.allow_partial)
     args.output.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")) + "\n")
-    print(json.dumps({m: d["a3"]["coverage"] for m, d in data["models"].items()}))
+    if args.four_model_output:
+        args.four_model_output.write_text(json.dumps(four_model_summary(data), ensure_ascii=False, indent=2) + "\n")
+    print(json.dumps({m: {k: v for k, v in d["a3"]["coverage"].items() if not k.startswith("missing_")} for m, d in data["models"].items()}))
