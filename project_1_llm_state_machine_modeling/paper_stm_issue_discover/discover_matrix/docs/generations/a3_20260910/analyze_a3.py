@@ -40,7 +40,7 @@ def analyze(root, allow_partial=False):
               "scope": "Sonnet/Luna only; no Qwen/Muse results, no O2 eligibility implied",
               "ledger_items": len(items), "expected_round_units": 3 * len(items)}
     for model in ("sonnet", "luna"):
-        source_roots = ([root / "sonnet/smoke-corrected", *sorted((root / "sonnet/remaining").glob("*/run_manifest.json")),
+        source_roots = ([root / "sonnet/smoke-corrected", root / "sonnet/recovered", *sorted((root / "sonnet").glob("fill-r*/*/run_manifest.json")), *sorted((root / "sonnet/remaining").glob("*/run_manifest.json")),
                          *sorted((root / "sonnet/smoke-r2").glob("*/run_manifest.json")),
                          *sorted((root / "sonnet/smoke-r3").glob("*/run_manifest.json"))]
                         if model == "sonnet" else sorted((root / "luna/full").glob("*/run_manifest.json")))
