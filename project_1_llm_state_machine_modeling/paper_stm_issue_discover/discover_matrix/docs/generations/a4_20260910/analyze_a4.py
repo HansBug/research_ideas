@@ -211,7 +211,7 @@ def analyze(root):
     for path in (root / "cells").glob("*/round-*/attempts/*/provider/**/audit.jsonl"):
         with path.open() as stream:
             transport_retries += sum(json.loads(line).get("record_type") == "transport_retry" for line in stream)
-    judge_receipts = []
+    judge_receipts, judge_usage = [], {}
     for path in sorted((root / "judge").glob("*/*/*.json")):
         if path.parent.name not in {"pairs", "failures"}:
             continue
@@ -220,7 +220,14 @@ def analyze(root):
             assert 1 <= len(call["report_ids"]) <= 8
             judge_receipts.append({"source": str(path.relative_to(root)), "pair": record["pair_id"],
                                    "round": record["round"], "parent_status": path.parent.name,
-                                   **{k: call[k] for k in ("call_id", "batch_id", "report_ids", "phase", "status", "prompt_hash")}})
+                                   **{k: call[k] for k in ("call_id", "batch_id", "report_ids", "phase", "status", "prompt_hash", "retries", "duration_seconds")}})
+            for item in call["usage"]:
+                public = {k: item.get(k) for k in ("model_call_id", "status", "model", "input_tokens", "output_tokens")}
+                key = public["model_call_id"]
+                assert key, "Judge usage must identify its observed provider call"
+                if key in judge_usage:
+                    assert judge_usage[key] == public
+                judge_usage[key] = public
     judge_calls = sum(r["parent_status"] == "pairs" for r in judge_receipts)
     return {"schema": "paper1.a4.analysis.v1", "model": manifest["identity"]["model"],
             "identity": manifest["identity"], "namespace": manifest["namespace"], "source_hashes": source_hashes,
@@ -232,10 +239,12 @@ def analyze(root):
                       "outer_runtime_attempts_final_layout": attempts, "real_terminal_all_attempts": real_terminal_calls,
                       "outer_runtime_attempts_all": runtime_attempts, "saved_cell_attempts": saved_attempts,
                       "failed_cell_attempts": failed_attempts, "transport_retry_events": transport_retries,
-                      "schema_failures_final_layout": schema_failures, "residual_judge_completed_receipts": judge_calls},
+                      "schema_failures_final_layout": schema_failures, "residual_judge_completed_receipts": judge_calls,
+                      "residual_judge_observed_model_calls": len(judge_usage)},
             "errors": errors, "cells": cells, "candidates": candidates, "publications": publications,
             "examples": examples, "usage": list(usage.values()),
             "judge_batches": judge_receipts,
+            "judge_observed_usage": list(judge_usage.values()),
             "hit_changes": hit_changes, "precision_decomposition": decomposition,
             "paired_by_pair": pair_deltas,
             "scope": "Conditional terminal intervention; paired by pair across all three rounds. No significance interval or population-independence claim."}
