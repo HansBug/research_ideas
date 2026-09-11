@@ -4,7 +4,7 @@
 
 ## 摘要
 
-状态机（state machine）中的行为偏差常涉及多条迁移（transition）和事件响应（event response），仅核对元素是否存在难以发现这类问题。本文研究如何依据自然语言描述（natural-language description）发现既有状态机中的问题，并给出可定位、可复核的报告。我们提出一种面向通用状态机的方法，以大语言模型（large language model，LLM）为发现主体，结合模型检查事实（model inspection facts）、结构化中间引导（structured intermediate guidance）和执行反馈（execution feedback）。方法以 PlantUML 制品为案例研究（case study）完成实现与评测。检查事实为跨迁移的行为问题提供可引用的模型关系；中间引导以 LLM 分阶段发现和基于规则的确定性候选加工（rule-based candidate processing）把描述中的义务（obligation）与候选问题（candidate issue）联系起来；类型化谓词（typed predicate）把候选中的可检查命题升级为可执行证据（executable evidence），其后端（backend）执行结果用于排除不成立的报告。我们公开了由博士生人工标注的、面向 54 个描述与模型制品对的 145 条参考问题（reference issue）数据集。在三轮重复运行中，完整方法（full method，Full）相对同模型直接发现基线（direct-discovery baseline）的平均覆盖率（mean coverage）提高 11.49 至 22.53 个百分点，其中行为层问题提高 24.79 至 44.44 个百分点。三项消融实验（ablation study）分别表明：检查事实主要扩大行为层问题的覆盖；中间引导在四种配置上同时提高覆盖与报告精确率（precision），严格口径下的精确率在三种配置上提高；执行反馈在固定候选与既定评价政策下排除不成立的报告，使精确率提高 0.72 至 4.03 个百分点。
+状态机（state machine）中的行为偏差常涉及多条迁移（transition）和事件响应（event response），仅核对元素是否存在难以发现这类问题。本文研究如何依据自然语言描述（natural-language description）发现既有状态机中的问题，并给出可定位、可复核的报告。我们提出一种面向通用状态机的方法，以大语言模型（large language model，LLM）为发现主体，结合模型检查事实（model inspection facts）、结构化中间引导（structured intermediate guidance）和执行反馈（execution feedback）。方法以 PlantUML 制品为案例研究（case study）完成实现与评测。检查事实为跨迁移的行为问题提供可引用的模型关系；中间引导以 LLM 分阶段发现和基于规则的确定性候选加工（rule-based candidate processing）把描述中的义务（obligation）与候选问题（candidate issue）联系起来；类型化谓词（typed predicate）把候选中的可检查命题升级为可执行证据（executable evidence），其后端（backend）执行结果用于排除不成立的报告。我们构建了由博士生人工标注的、面向 54 个描述与模型制品对的 145 条参考问题（reference issue）数据集，并随论文提供。在三轮重复运行中，完整方法（full method，Full）相对同模型直接发现基线（direct-discovery baseline）的平均覆盖率（mean coverage）提高 11.49 至 22.53 个百分点，其中行为层问题提高 24.79 至 44.44 个百分点。三项消融实验（ablation study）分别表明：检查事实主要扩大行为层问题的覆盖；中间引导在四种配置上同时提高覆盖与报告精确率（precision），严格口径下的精确率在三种配置上提高；执行反馈在固定候选与既定评价政策下排除不成立的报告，使精确率提高 0.72 至 4.03 个百分点。
 
 ## 1. 引言
 
@@ -21,7 +21,7 @@ LLM 能够解释自由文本并提出问题，但直接询问模型“哪里有�
 1. **C-1：模型检查事实引导的行为问题发现。** 将可追溯的结构、拓扑（topology）和运行事实接入候选发现，使发现过程能够直接引用并检查跨迁移行为信息，从而更强地发现跨迁移的行为问题。
 2. **C-2：结构化中间引导与基于规则的确定性候选加工。** 通过义务组织、多视角发现、候选扩充、确定性候选补充和语义复核（internal semantic assessment），连接描述要求与模型行为；这组机制同时提高问题覆盖与报告精确率。
 3. **C-3：类型化谓词带来的证据升级与执行反馈。** 将候选中的可检查命题绑定到明确对象和执行范围，使报告获得可重放的执行证据；执行返回结果用于排除不成立的报告，在既定候选下提高报告精确率。
-4. **C-4：人工标注的状态机问题数据集。** 公开面向 54 个描述与状态机制品对、由博士生人工标注的 145 条参考问题，以及逐条来源定位、问题分类和判定依据，为后续问题发现研究提供固定评价材料。
+4. **C-4：人工标注的状态机问题数据集。** 构建并提供面向 54 个描述与状态机制品对、由博士生人工标注的 145 条参考问题，以及逐条来源定位、问题分类和判定依据，为后续问题发现研究提供固定评价材料。
 
 实验首先在 gpt-5.6-luna 上分析完整方法的效果和问题层级（problem level）差异，再考察另外三种模型配置；三项消融分别检验检查事实、中间引导和执行反馈。结果显示，检查事实主要扩大行为层覆盖，中间引导同时扩大覆盖并提高普通精确率，执行反馈主要改善固定候选下的报告选择。这些结果为如何结合 LLM 的语义分析与确定性执行提供了经验依据。
 
@@ -214,9 +214,9 @@ RQ1 和 RQ2 评价完整方法；RQ3、RQ4、RQ5 分别对应 C-1、C-2、C-3，
 
 **Figure 3. Report adjudication under the frozen relation-first policy. The evaluator records reference matching and semantic status separately. The execution-feedback ablation first applies its frozen accounting rules, then uses the same evaluator for residual reports.**
 
-外部评价器（external evaluator）固定为 gpt-5.6-luna，按冻结协议进行两次判读和分歧仲裁；LLM 作为软件工程制品评价者的偏差与一致性风险已有系统梳理，固定协议、多读与仲裁即针对这些风险。[^judge]语义判断与参考匹配的调用角色及输入材料分开。人工构建参考数据集与逐报告评价是两个过程：历史 gpt-5.6-luna Full 的 903 份报告已有作者确认，新增实验的逐报告人工确认数为 0。本文报告的新增结果来自该固定评价协议，统计复算保持原标签。
+报告评阅（manual review）由博士生按冻结协议人工完成：每份报告由两位评阅者（reviewer）独立判读缺陷状态与参考关系，判读不一致时由第三位评阅者仲裁。语义判断与参考匹配分步进行：判断有效性时评阅材料只包含报告、描述、源制品和允许的制品事实，不含方法内部标签与执行返回值；参考匹配在隔离步骤中读取待匹配的参考问题。参考数据集的标注与逐报告评阅由同一组博士生承担，但分属两个过程：标注先于评阅完成并冻结，评阅在全部条件的报告生成后进行。统计复算保持评阅标签不变。
 
-执行反馈消融还使用已冻结的核算规则。3675 份报告中，130 份重新发布原 true 候选的同一缺陷主张，按规则计 I；3240 份与 Full 内容等价（content equivalent），复用原标签；305 份交由同一评价协议新判。原 true 可能只确认完整主张中的较窄命题，因此这些指定为 I 的报告并非全部经过独立语义反证。RQ5 的精确率以该政策为条件，不将其扩大为完整谓词系统的端到端因果效果。
+执行反馈消融还使用已冻结的核算规则。3675 份报告中，130 份重新发布原 true 候选的同一缺陷主张，按规则计 I；3240 份与 Full 内容等价（content equivalent），复用原标签；305 份按同一协议人工新判。原 true 可能只确认完整主张中的较窄命题，因此这些指定为 I 的报告并非全部经过独立语义反证。RQ5 的精确率以该政策为条件，不将其扩大为完整谓词系统的端到端因果效果。
 
 ### 5.5 指标与统计分析
 
@@ -384,15 +384,15 @@ qwen3.8-27b 的变化说明为什么需要同时考察比例与产出：其严�
 
 自由文本中的隐含义务与合法设计选择仍需要语义判断。类型化谓词能够回答边界明确的查询，但不能覆盖所有描述意图；扩展谓词族、改进义务解释和识别抽象反例，是进一步提高报告质量的方向。公开参考集合有助于持续检验这些能力，也可以随新增领域材料扩充。
 
-本研究使用九个描述簇、四种固定模型配置及三轮重复运行。后续研究需要在人工设计的工业模型、更大规模的制品及更多模型配置上检验效果，并开展独立人工报告复核。中间引导各阶段的作用和调用成本也值得通过预算匹配实验进一步分离。最终，工程师使用报告的效果还需要用户研究（user study）衡量，包括复核时间、问题理解和修复决策；本文尚未测量这些使用收益。
+本研究使用九个描述簇、四种固定模型配置及三轮重复运行。后续研究需要在人工设计的工业模型、更大规模的制品及更多模型配置上检验效果，并扩大评阅者人数、测量标注与评阅的一致性。中间引导各阶段的作用和调用成本也值得通过预算匹配实验进一步分离。最终，工程师使用报告的效果还需要用户研究（user study）衡量，包括复核时间、问题理解和修复决策；本文尚未测量这些使用收益。
 
 ## 9. 结论
 
-本文提出一种依据自然语言描述发现既有状态机问题的方法，将模型检查事实、结构化中间引导和类型化谓词执行反馈连接起来；方法面向通用状态机，本文以 PlantUML 制品为案例研究完成实现与评测。54 个输入对上的实验表明，完整方法在四种固定配置中均提高问题覆盖，行为层收益最为一致；三项消融分别说明检查事实对行为层覆盖、中间引导对覆盖与精确率、执行反馈对报告精确率的作用。本文同时公开博士生人工标注的 145 条参考问题及其来源依据，为后续研究提供可复用评价材料。
+本文提出一种依据自然语言描述发现既有状态机问题的方法，将模型检查事实、结构化中间引导和类型化谓词执行反馈连接起来；方法面向通用状态机，本文以 PlantUML 制品为案例研究完成实现与评测。54 个输入对上的实验表明，完整方法在四种固定配置中均提高问题覆盖，行为层收益最为一致；三项消融分别说明检查事实对行为层覆盖、中间引导对覆盖与精确率、执行反馈对报告精确率的作用。本文同时提供博士生人工标注的 145 条参考问题及其来源依据，为后续研究提供可复用评价材料。
 
 ## 10. 数据可得性
 
-[公开研究仓库](https://github.com/HansBug/research_ideas/tree/paper1/o2-outline-rebuild/project_1_llm_state_machine_modeling/paper_stm_issue_discover)提供输入来源、54 个输入对、145 条参考问题、逐条判定依据、冻结实验结果和无需调用模型的指标复算入口。[参考问题台账](https://github.com/HansBug/research_ideas/tree/paper1/o2-outline-rebuild/project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2)保留来源与问题级标注；上游语料归属 Wang 等的公开研究。[^wang2025] 冻结结果的复算可重现本文统计，真实模型调用的随机性和人工判断过程则由各自记录说明。
+复现材料包含输入来源、54 个输入对、145 条参考问题及其来源与问题级标注、逐条判定依据、冻结实验结果，以及无需调用模型即可重算全部统计的脚本；这些材料以匿名复现包随评审提供，论文录用后公开。上游语料归属 Wang 等的公开研究。[^wang2025] 冻结结果的复算可重现本文统计，真实模型调用的随机性与人工评阅过程则由各自记录说明。
 
 ## 参考文献
 
@@ -500,8 +500,6 @@ qwen3.8-27b 的变化说明为什么需要同时考察比例与产出：其严�
 [^pollock]: John L. Pollock. “Defeasible Reasoning.” *Cognitive Science*, 11(4):481--518, 1987.
 
 [^sei_defeaters]: John B. Goodenough, Charles B. Weinstock, and Ari Z. Klein. *Eliminative Argumentation: A Basis for Arguing Confidence in System Properties*. CMU/SEI-2015-TR-005, 2015.
-
-[^judge]: Wang et al. “LLM-as-a-Judge in Software Engineering.” *ISSTA*, 2025. https://doi.org/10.1145/3728963.
 
 [^porter]: Adam A. Porter, Lawrence G. Votta, and Victor R. Basili. “Comparing Detection Methods for Software Requirements Inspections: A Replicated Experiment.” *IEEE TSE*, 21(6), 1995. https://doi.org/10.1109/32.391380.
 
