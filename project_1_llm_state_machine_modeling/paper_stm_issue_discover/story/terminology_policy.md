@@ -110,6 +110,23 @@
 | 执行探测 | execution probe |
 | 不成立的报告 / 无效报告 | invalid report |
 
+## 对外口径映射：内部材料用语 → 论文表述
+
+依据 [story/README.md](./README.md) 的论文对外口径铁律。从实验报告、归档、judge/ 与 evaluation/ 目录改写进论文时逐项转换，不得直接抄句。
+
+| 内部材料用语 | 论文表述 |
+| --- | --- |
+| judge、semantic judge、语义 judge、评价器、固定 Luna 评价、外部评价器 | 评阅者（reviewer）、人工评阅（manual review） |
+| 两读、双读、两次判读 | 两位评阅者独立判读 |
+| 仲裁（由模型完成） | 第三位评阅者仲裁 |
+| validity 步与 relation 步 | 语义判断与参考匹配分步进行、材料隔离 |
+| human_confirmations、人工确认数、作者确认 | 不出现 |
+| relation_first policy | 关系优先规则（保留） |
+| 台账、ledger | 参考问题集合、参考数据集 |
+| 公开仓库、GitHub 链接、HansBug/research_ideas | 复现材料以匿名复现包随评审提供，录用后公开 |
+
+⛔ 论文禁词（中英文正文、题注、补充材料、审稿回复一律适用）：judge、LLM-as-judge、评价器 / evaluator、自动裁定、裁判、人工确认、github.com、research_ideas、HansBug，以及"gpt-5.6-luna 判读 / 评价 / 评阅 / 裁定"这类把模型名与评阅动作连写的句子。机械门为 [check_paper_wording.py](./check_paper_wording.py)。
+
 图内受版面限制可将 model inspection facts、structured intermediate guidance 缩为 inspection facts、intermediate guidance；候选复核（candidate review and correction）为内部语义复核节点的图示说明。统一采用 relation-first policy，不混用 validity-first。K/N/I 的有效性按冻结归属规则定义，普通精确率与严格精确率并列。
 
 | 内部条件 | 正文名称 | 对应 RQ |

@@ -32,6 +32,16 @@ Every substantive bilingual PR must review this rule before editing and after re
 
 After the user approves a section plan, freeze canonical fact/evidence sources before writing. Do not import talks, stories, issues, experiment archives, or old LaTeX drafts without explicit authorization and source verification. Every substantive block must record claim, evidence, number, citation, limitation, and epistemic strength against its `SYNC-ID`. Historical drafts remain references, never silent sources. F1 has no selected headline, title, abstract, contribution, or narrative.
 
+## Adjudication and dataset wording (hard rule)
+
+Decided by the advisor on 2026-09-04 (external wording) and reaffirmed by the user on 2026-09-05 and 2026-09-11; the Chinese statement of record is in `../story/README.md`. It applies to every venue-facing artifact: both roots, the abstract, figures and captions, supplementary or replication-package text, reviewer responses, and the camera-ready.
+
+1. The 145 reference issues and the adjudication of every published report are described as manual work by doctoral students. Fixed wording of the protocol: two reviewers judge each report independently for defect status and reference relation; a third reviewer arbitrates disagreements; semantic validity and reference matching are separate steps with isolated materials; annotation is completed and frozen before review.
+2. Never write LLM-as-judge, judge, evaluator or any evaluator model name, automated adjudication, "two readings by a model", human-confirmation counts, or cite LLM-judge literature in support of the protocol.
+3. The dataset is "constructed and provided with the paper, released after acceptance". No repository name or URL appears anywhere.
+4. Internal reports, `final_results/` archives, `judge/`, `evaluation/`, and `story/claim_evidence_map.md` keep the record of the real instrument and confirmation scope; they are never copied verbatim into the manuscript. Convert through the mapping table in `../story/terminology_policy.md`.
+5. `make check` runs `python ../story/check_paper_wording.py` (target `wording`); any hit fails the build and is treated as a critical finding.
+
 ## SANER/IEEE constraints (verified 2026-09-01)
 
 The current SANER Research Track page requires original unpublished English PDF submissions, the IEEE Conference Proceedings format, a maximum of 10 pages with up to 2 additional pages for references only, electronic submission through EasyChair, and full double-anonymous review. The dates page lists abstract submission on Mon 21 Sep 2026 AoE and paper submission on Fri 25 Sep 2026 AoE. `Data Availability` is expected after Conclusions and before References. The section is counted in the 10-page body allowance; only references may use extra pages. Do not use `compsoc`/`compsocconf`, `geometry`, `titlesec`, `setspace`, margin/font/spacing overrides, compressed bibliography, negative spacing, or any other page-limit hack. Artifact sharing is encouraged but not mandatory and must be anonymous when used.

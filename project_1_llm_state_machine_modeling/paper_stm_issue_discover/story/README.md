@@ -2,6 +2,20 @@
 
 [paper_outline.md](./paper_outline.md) 是唯一规范中文论文，供正文写作和飞书批注使用。论文研究自由文本描述与既有、分析期间固定的源状态机之间的定位问题发现。三个技术贡献围绕检查事实、中间引导和执行反馈展开，第四项为博士生人工标注的公开数据集。当前实例只覆盖 PlantUML 适配器。
 
+## 论文对外口径铁律：评阅与数据集
+
+来源：[2026-09-04 导师讨论 §4.10](../../talks/2026-09-04-导师-paper1大纲收口与消融基线口径.md) 的对外口径决定，用户 2026-09-05 与 2026-09-11 两次重申并要求写入所有论文写作相关的 GUIDE 与 README。适用于一切面向 venue 的材料：中英文正文、摘要、图表与题注、补充材料与复现包说明、审稿回复、camera-ready。
+
+1. **145 条参考问题的标注与全部输出报告的评阅，一律写为博士生人工完成。** 评阅协议的固定写法：两位评阅者独立判读缺陷状态与参考关系，不一致时由第三位评阅者仲裁；语义判断与参考匹配分步进行、材料隔离；标注先于评阅完成并冻结。
+2. ⛔ **绝对禁止出现**：LLM-as-judge、LLM 评价者、评价器（evaluator）及任何评价模型名、judge、自动裁定、"两读由模型完成"、人工确认数，以及用 LLM 评价文献支撑评价协议。"外部评价器"这类会引出"器是什么"的词也不用。
+3. **数据集写"构建并随论文提供，录用后公开"**；不写仓库名与仓库链接（仓库将转 private）。
+4. **内部材料保留真实记录，但不得抄入论文。** 各实验正式报告、`final_results/` 归档、`judge/` 与 `evaluation/` 目录、本目录的 [claim_evidence_map.md](./claim_evidence_map.md) 继续记录实际评价装置与人工确认范围；从内部材料改写进论文时，按 [terminology_policy.md](./terminology_policy.md) 的口径映射表转换，不得直接抄句。
+5. **机械门**：每次回写飞书、提交或排版前运行下面的命令，命中为零才算通过；命中一律按 C 级处理。
+
+```bash
+python project_1_llm_state_machine_modeling/paper_stm_issue_discover/story/check_paper_wording.py
+```
+
 | 文档 | 职责 |
 | --- | --- |
 | [paper_outline.md](./paper_outline.md) | 完整中文论文：题目、摘要、各节论证、主结果和外部参考文献 |
@@ -10,7 +24,8 @@
 | [paper_result_inventory.md](./paper_result_inventory.md) | 主文、补充材料和不进入论文的结果处置 |
 | [outline_sources.md](./outline_sources.md) | 章节到正式报告、机器字段、复算入口和文献核验材料的索引 |
 | [figure_table_specs.md](./figure_table_specs.md) | 九张图和八张主表的内容、题注、数据与实测版面占用 |
-| [terminology_policy.md](./terminology_policy.md) | 统一术语及内部名称到论文用语的映射 |
+| [terminology_policy.md](./terminology_policy.md) | 统一术语、内部名称到论文用语的映射，以及评阅与数据集的对外口径映射表 |
+| [check_paper_wording.py](./check_paper_wording.py) | 论文对外口径的机械门：扫描中文正文与 Overleaf 源文件中的禁词，命中即失败 |
 | [outline_feedback.md](./outline_feedback.md) | 飞书文档定位、批注回收规则及有来源的写作决策 |
 | [model_scope.md](./model_scope.md) | 模型范围、投影和来源责任 |
 

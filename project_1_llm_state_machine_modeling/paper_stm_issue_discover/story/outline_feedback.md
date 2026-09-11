@@ -372,3 +372,9 @@
 > 这边务必不要再文章任何地方说是LLM as judge，这个按照之前的讨论口径，无论是145 issue标注还是输出评阅，也都是博士生人工完成的才行。
 
 写作决定：采纳，依据 [2026-09-04 导师讨论 §4.10](../../talks/2026-09-04-导师-paper1大纲收口与消融基线口径.md) 的对外口径决定与本次用户重申。§5.4 改为“报告评阅由博士生按冻结协议人工完成：两位评阅者独立判读、第三位仲裁；语义判断与参考匹配分步、材料隔离；标注先于评阅完成并冻结”；删除评价器模型名、LLM 评价者文献 [^judge] 与“新增实验人工确认数为 0”一句；A4 的“交由同一评价协议新判”改为“按同一协议人工新判”；§8 的“独立人工报告复核”改为“扩大评阅者人数、测量一致性”。内部材料（各实验正式报告、归档、本目录主张映射）保留实际评价装置与人工确认范围的记录，不随论文口径改写。
+
+## 2026-09-11 用户指令：评阅口径写成铁律
+
+用户指令原话：“关于judge这块，口径要彻底夯实，就是，对paper里宣称是人工做法，绝对禁止再paper里提llm as judge这样的概念，这个口径务必明确+给到所有的和paper撰写相关的guide和readme里面这样的。”
+
+落地：铁律正文写入 [story/README.md](./README.md)；口径映射表与禁词表写入 [terminology_policy.md](./terminology_policy.md)；新增机械门 [check_paper_wording.py](./check_paper_wording.py) 并接入 `overleaf/Makefile` 的 `check`；[paper_stm_issue_discover/README.md](../README.md)、[overleaf/GUIDE.md](../overleaf/GUIDE.md)、[overleaf/README.md](../overleaf/README.md)、[reports/GUIDE.md](../reports/GUIDE.md) 与仓库根 `CLAUDE.md` 均加入指向该铁律的条目。内部实验报告与归档中的评价装置记录不改。

@@ -3,7 +3,7 @@ LATEXMK ?= latexmk
 LATEX_FLAGS := -pdf -interaction=nonstopmode -halt-on-error -file-line-error
 OVERLEAF_ZIP ?= build/overleaf-upload.zip
 
-.PHONY: en zh all zip check clean
+.PHONY: wording en zh all zip check clean
 
 en:
 	@mkdir -p build/en
@@ -23,8 +23,11 @@ zip:
 	@find Makefile main.tex main-zh.tex IEEEtran.cls IEEEtran.bst c70gbsn.fd references.bib config sections figures tables -type f ! -name 'README.md' -print | zip -q -@ "$(OVERLEAF_ZIP)"
 	@printf 'Created %s\n' "$(OVERLEAF_ZIP)"
 
-check:
+check: wording
 	tools/check-paper
+
+wording:
+	python3 ../story/check_paper_wording.py
 
 clean:
 	rm -rf build

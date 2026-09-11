@@ -212,7 +212,7 @@ RQ1 和 RQ2 评价完整方法；RQ3、RQ4、RQ5 分别对应 C-1、C-2、C-3，
 
 ![Frozen report adjudication policy](./figures/adjudication.svg)
 
-**Figure 3. Report adjudication under the frozen relation-first policy. The evaluator records reference matching and semantic status separately. The execution-feedback ablation first applies its frozen accounting rules, then uses the same evaluator for residual reports.**
+**Figure 3. Report adjudication under the frozen relation-first policy. Reviewers record reference matching and semantic status separately. The execution-feedback ablation first applies its frozen accounting rules, then the same reviewers adjudicate residual reports.**
 
 报告评阅（manual review）由博士生按冻结协议人工完成：每份报告由两位评阅者（reviewer）独立判读缺陷状态与参考关系，判读不一致时由第三位评阅者仲裁。语义判断与参考匹配分步进行：判断有效性时评阅材料只包含报告、描述、源制品和允许的制品事实，不含方法内部标签与执行返回值；参考匹配在隔离步骤中读取待匹配的参考问题。参考数据集的标注与逐报告评阅由同一组博士生承担，但分属两个过程：标注先于评阅完成并冻结，评阅在全部条件的报告生成后进行。统计复算保持评阅标签不变。
 
