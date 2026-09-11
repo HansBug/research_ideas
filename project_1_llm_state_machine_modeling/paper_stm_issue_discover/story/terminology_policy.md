@@ -102,6 +102,12 @@
 | 严格报告精确率 | strict precision |
 | 配对簇重采样 | paired cluster bootstrap |
 | 用户研究 | user study |
+| 案例研究 | case study |
+| 适配器 | adapter |
+| 基于规则的确定性候选加工 | rule-based candidate processing |
+| 清单候选 | inventory candidate |
+| 执行探测 | execution probe |
+| 不成立的报告 / 无效报告 | invalid report |
 
 图内受版面限制可将 model inspection facts、structured intermediate guidance 缩为 inspection facts、intermediate guidance；候选复核（candidate review and correction）为内部语义复核节点的图示说明。统一采用 relation-first policy，不混用 validity-first。K/N/I 的有效性按冻结归属规则定义，普通精确率与严格精确率并列。
 
@@ -114,6 +120,6 @@
 | A4 | 无执行反馈 / no execution feedback | RQ5 |
 | A2 | 不进入本文叙事 | 无 |
 
-C-4 固定为人工标注数据集 / manually annotated dataset；不再称多模型实证贡献。谓词是有类型、可执行的检查模板，不指自由逻辑中的完备证明系统。当前 12 项与历史 19 项注册身份分别追溯，不写成历史重跑。
+C-4 固定为人工标注数据集 / manually annotated dataset；不再称多模型实证贡献。C-1/C-2/C-3 按 [2026-09-10 导师聊天](../../talks/2026-09-10-导师-paper1三项技术贡献定稿与A4精确率口径.md)定稿：检查事实→行为问题的更强发现；中间引导 + 基于规则的候选加工→覆盖与精确率双重提高；类型化谓词→证据升级，执行结果排除不成立的报告并提高精确率。全文不用“幻觉”一词，改写为“不成立的报告 / 无效报告”。方法面向通用状态机，PlantUML 只称案例研究。谓词是有类型、可执行的检查模板，不指自由逻辑中的完备证明系统。当前 12 项与历史 19 项注册身份分别追溯，不写成历史重跑。
 
 语言修改保护数值、公式、模型 ID、文献题名、来源和条件。点估计写明幅度与适用范围，不用“显著”替代统计证据；A3 的整组干预与 A4 的固定候选及标签政策保留。
