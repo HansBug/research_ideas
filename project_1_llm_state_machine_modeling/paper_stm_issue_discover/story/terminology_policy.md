@@ -9,7 +9,7 @@
 | 事件响应 | event response |
 | 自然语言描述 | natural-language description |
 | 大语言模型 | large language model，LLM |
-| 模型检查事实 | model inspection facts |
+| 模型检视事实 | model inspection facts |
 | 结构化中间引导 | structured intermediate guidance |
 | 执行反馈 | execution feedback |
 | 义务 | obligation |
@@ -110,6 +110,8 @@
 | 执行探测 | execution probe |
 | 不成立的报告 / 无效报告 | invalid report |
 | 配置进展检查 | progress check |
+| D2-only 覆盖 | D2-only coverage（沿用 hit@1 的命中定义，只统计 98 条 D2 参考问题，分母 294，不限制报告缺陷状态） |
+| 严格覆盖 | strict coverage（只计 D1/D2 报告提供的 FULL 匹配，限制的是报告） |
 | 严格覆盖 | strict coverage |
 | 有限控制状态机 | finite control STate Machine，FCSTM（STM 首字母大写解释缩写来源） |
 
@@ -130,7 +132,7 @@
 
 ⛔ 论文禁词（中英文正文、题注、补充材料、审稿回复一律适用）：judge、LLM-as-judge、评价器 / evaluator、自动裁定、裁判、人工确认、github.com、research_ideas、HansBug，以及"gpt-5.6-luna 判读 / 评价 / 评阅 / 裁定"这类把模型名与评阅动作连写的句子。机械门为 [check_paper_wording.py](./check_paper_wording.py)。
 
-图题一律中文（“图 N：”），图内文字、图例与坐标轴一律英文；表题中文。谓词第四族在论文中称“配置进展检查”，不再使用“有界验证”作为族名；论文只出现 12 条谓词，不出现旧注册表条目数或“历史”“冻结记录”“请求身份”等实验日志用语。hit@k 保留记法但须解释为三轮均值、并集、交集。
+图题一律中文（“图 N：”），图内文字、图例与坐标轴一律英文；表题中文。谓词第四族在论文中称“配置进展检查”，不再使用“有界验证”作为族名；论文只出现 12 条谓词，不出现旧注册表条目数或“历史”“冻结记录”“请求身份”等实验日志用语。hit@k 保留记法但须解释为三轮均值、并集、交集。P 只称“普通报告精确率”，不引入“接纳率”等第二名称；模型检视事实（model inspection facts）中的“检视”与形式化“模型检查（model checking）”区分，全文不再写“模型检查事实”。RQ5 只写“冻结上游候选、屏蔽执行反馈、同一协议评阅”，不写任何核算路径；图 4 只保留关系优先规则一个面板。V1 写为在 SMT 求解器上执行的有界模型检查查询（变量取初始赋值），与 §4.2 的 SMT 表述一致。不写调用预算、调用次数或 token；阶段表用“轮数上限”。
 
 图内受版面限制可将 model inspection facts、structured intermediate guidance 缩为 inspection facts、intermediate guidance；候选复核（candidate review and correction）为内部语义复核节点的图示说明。统一采用 relation-first policy，不混用 validity-first。K/N/I 的有效性按冻结归属规则定义，普通精确率与严格精确率并列。
 
@@ -138,11 +140,11 @@
 | --- | --- | --- |
 | X1v2 baseline | 直接发现基线 / direct-discovery baseline | RQ1、RQ2 |
 | v61 / E2 ours | 完整方法 / full method (Full) | 共同对照 |
-| A1 | 无检查事实 / no inspection facts | RQ3 |
+| A1 | 无检视事实 / no inspection facts | RQ3 |
 | A3 | 无中间引导 / no intermediate guidance | RQ4 |
 | A4 | 无执行反馈 / no execution feedback | RQ5 |
 | A2 | 不进入本文叙事 | 无 |
 
-C-4 固定为人工标注数据集 / manually annotated dataset；不再称多模型实证贡献。C-1/C-2/C-3 按 [2026-09-10 导师聊天](../../talks/2026-09-10-导师-paper1三项技术贡献定稿与A4精确率口径.md)定稿：检查事实→行为问题的更强发现；中间引导 + 基于规则的候选加工→覆盖与精确率双重提高；类型化谓词→证据升级，执行结果排除不成立的报告并提高精确率。全文不用“幻觉”一词，改写为“不成立的报告 / 无效报告”。方法面向通用状态机，PlantUML 只称案例研究。评价口径按 2026-09-04 导师决定与 2026-09-11 用户批注统一：145 条参考问题的标注与全部输出报告的评阅均写为博士生人工完成（两位独立判读、第三位仲裁），正文任何位置不出现 LLM-as-judge、评价器模型名或人工确认数；数据集写“构建并随论文提供”，不写仓库名与链接。谓词是有类型、可执行的检查模板，不指自由逻辑中的完备证明系统。当前 12 项与历史 19 项注册身份分别追溯，不写成历史重跑。
+C-4 固定为人工标注数据集 / manually annotated dataset；不再称多模型实证贡献。C-1/C-2/C-3 按 [2026-09-10 导师聊天](../../talks/2026-09-10-导师-paper1三项技术贡献定稿与A4精确率口径.md)定稿：检视事实→行为问题的更强发现；中间引导 + 基于规则的候选加工→覆盖与精确率双重提高；类型化谓词→证据升级，执行结果排除不成立的报告并提高精确率。全文不用“幻觉”一词，改写为“不成立的报告 / 无效报告”。方法面向通用状态机，PlantUML 只称案例研究。评价口径按 2026-09-04 导师决定与 2026-09-11 用户批注统一：145 条参考问题的标注与全部输出报告的评阅均写为博士生人工完成（两位独立判读、第三位仲裁），正文任何位置不出现 LLM-as-judge、评价器模型名或人工确认数；数据集写“构建并随论文提供”，不写仓库名与链接。谓词是有类型、可执行的检查模板，不指自由逻辑中的完备证明系统。当前 12 项与历史 19 项注册身份分别追溯，不写成历史重跑。
 
 语言修改保护数值、公式、模型 ID、文献题名、来源和条件。点估计写明幅度与适用范围，不用“显著”替代统计证据；A3 的整组干预与 A4 的固定候选及标签政策保留。

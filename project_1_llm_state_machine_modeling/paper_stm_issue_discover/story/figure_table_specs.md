@@ -7,10 +7,10 @@
 | 图 1：方法与说明性案例（画板） | §4.1 | [method.svg](./figures/method.svg)；S6 | 0.50 页 |
 | 图 2：中间引导生命周期示例（mermaid 画板） | §4.3 | [guidance_lifecycle.svg](./figures/guidance_lifecycle.svg)，源 [guidance_lifecycle.mmd](./figures/guidance_lifecycle.mmd)；S6 | 0.40 页 |
 | 图 3：语料规模与参考问题分布 | §5.2 | [corpus.svg](./figures/corpus.svg)；S0 | 0.35 页 |
-| 图 4：冻结 K/N/I 判定规则（画板） | §5.4 | [adjudication.svg](./figures/adjudication.svg)；S4/S7 | 0.60 页 |
+| 图 4：冻结的关系优先判定规则（画板，2026-09-11 第六轮起只保留单面板，原 (b) 路径面板按用户决定删除） | §5.4 | [adjudication.svg](./figures/adjudication.svg)；S7 | 0.45 页 |
 | 图 5：四模型分层覆盖 | §6.1 | [coverage.svg](./figures/coverage.svg)；S1 | 0.45 页 |
 | 图 6：四模型配对差值与九簇区间 | §6.2 | [main_delta.svg](./figures/main_delta.svg)；S1 | 0.35 页 |
-| 图 7：关闭检查事实的配对差值（RQ3） | §6.3 | [rq3_delta.svg](./figures/rq3_delta.svg)；S2 | 0.30 页 |
+| 图 7：关闭检视事实的配对差值（RQ3） | §6.3 | [rq3_delta.svg](./figures/rq3_delta.svg)；S2 | 0.30 页 |
 | 图 8：移除中间引导的配对差值（RQ4） | §6.4 | [rq4_delta.svg](./figures/rq4_delta.svg)；S3 | 0.35 页 |
 | 图 9：屏蔽执行反馈（RQ5；纵轴从 60% 起，用户 2026-09-11 决定保持） | §6.5 | [rq5_execution.svg](./figures/rq5_execution.svg)；S4 | 0.35 页 |
 | 表 1：最接近工作四维比较 | §2.2 | S7 closest-work 矩阵 | 0.35 页 |
@@ -20,9 +20,9 @@
 | 表 5：基线与消融条件 | §5.3 | S1–S4 的真实干预合同 | 0.22 页 |
 | 表 6：gpt-5.6-luna 基线与 Full 完整结果（含严格覆盖与 D2-only 覆盖） | §6.1 | S1/S5；D2-only 与严格覆盖由 cells.json 与 raw 逐报告重算 | 0.30 页 |
 | 表 7：四模型基线与 Full（含严格与 D2-only 覆盖） | §6.2 | S1/S5；8 行 | 0.40 页 |
-| 表 8：关闭检查事实 | §6.3 | S2 | 0.30 页 |
+| 表 8：关闭检视事实 | §6.3 | S2 | 0.30 页 |
 | 表 9：移除中间引导 | §6.4 | S3；8 行 | 0.35 页 |
-| 表 10：Full 各阶段产出计数 | §6.4 | E2 raw 逐格 `stage_outputs.execute_batch` 计数器与 v61 raw method 输出（`/tmp` 统计脚本已并入 plot_bars 之外的核对记录） | 0.30 页 |
+| 表 10：Full 各阶段产出计数 | §6.4 | E2 raw 逐格 `stage_outputs.execute_batch` 计数器与 v61 raw method 输出；候选总数 = admitted_llm + frontier（含 unresolved 与 domain_invariant）+ exact_s2_scout + execution_probe，源迁移闭合不计入 | 0.30 页 |
 | 表 11：屏蔽执行反馈 | §6.5 | S4；8 行 | 0.30 页 |
 | 表 12：各谓词族的执行回执与 W2 报告 | §6.6 | E2 `cells.json` 的 predicate_receipts / candidate_evidence；gpt-5.6-luna 用 evaluate_rq3 输出；旧 ID 按 G4→G3、R4→R3、V4→V1 映射，论文只出现 12 条谓词 | 0.40 页 |
 
@@ -30,7 +30,7 @@
 
 图 1 与图 2 的 Idle→Running→Halt 为说明性案例，不计入实验。Start/Stop 是迁移事件；Halt 无出口，描述要求 Stop 后返回 Idle。`may_reach(Halt, {Idle})` 与 `transition_exists(Running, Stop, Halt)` 是论文层面的查询简写，后者 true 只反驳完全对应的缺边主张。
 
-图 4 使用冻结 relation-first policy：非 A0 且 FULL/PARTIAL 可以计 K，包括 D0；严格分子限 K/N 且 D1/D2。右侧先处理原 true 同主张指定 I，再内容等价复用，最后新增评价，不能交换顺序。
+图 4 使用冻结 relation-first policy：非 A0 且 FULL/PARTIAL 可以计 K，包括 D0；严格分子限 K/N 且 D1/D2。无执行反馈条件的报告与其余条件一样按同一协议评阅，图中不再单列路径。
 
 ## 数据图复现
 
