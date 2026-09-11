@@ -403,7 +403,7 @@
 | [3] | “模型检查事实”与 model checking 撞词，是否改为“模型检视事实” | 改（45 处 + C-1 名称 + §4.2 标题） |
 | [5]/[34] | 有效报告定义与 P 的名称：A 保留 P 并称接纳率、B 改符号、C 只报 P_strict | A |
 | [10] | S5 按 AST 同一性定稿，还是改 Z3 等价并重跑 | AST 同一性定稿 |
-| [16] | 标题备选 A–E | B > A > C |
+| [16] | 标题：用户 2026-09-11 选定 “Facts, Guidance, Execution: What an LLM Needs to Find Behavioral Issues in State Machines”（中文题同步为“事实、引导与执行：LLM 发现状态机行为问题需要什么”）；备选 “Beyond Element Matching: …”“Reading Between the Transitions: …”“Neither Facts Nor Guidance Alone: …” 以评论挂在飞书标题上待后续决策 | 已定 |
 | [19] | 引言第二个动机例子（守卫始终不成立）语料未检验：A 改措辞 + §8 一句、B 换例、C 维持 | A |
 | [23]/[45] | 是否在另三模型补跑无检查事实条件（486 次运行 + 约 2500–2800 份人工评阅） | 视时间 |
 | [27] | 130 份指定 I 报告是否内部抽检 | 内部抽 30 份校准，不进论文 |

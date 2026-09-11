@@ -1,6 +1,6 @@
-# 面向自然语言描述的状态机问题发现：模型事实、结构化引导与执行反馈
+# 事实、引导与执行：LLM 发现状态机行为问题需要什么
 
-**Discovering Issues in State Machines against Natural-Language Descriptions with Model Facts, Structured Guidance, and Execution Feedback**
+**Facts, Guidance, Execution: What an LLM Needs to Find Behavioral Issues in State Machines**
 
 ## 摘要
 
