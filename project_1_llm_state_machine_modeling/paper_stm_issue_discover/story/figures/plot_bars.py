@@ -270,6 +270,82 @@ def fig_rq5():
     save(fig, 'rq5_execution')
 
 
+# ---------------------------------------------------------------- paired differences with cluster-bootstrap intervals
+MARKERS = {'luna': 'o', 'sonnet': 's', 'qwen': 'D', 'muse': '^'}
+COLORS = {'luna': '#007f73', 'sonnet': '#62758a', 'qwen': '#c8772a', 'muse': '#8e5ea2'}
+
+def ci(obj):
+    lo = obj.get('low', obj.get('percentile_2_5')); hi = obj.get('high', obj.get('percentile_97_5'))
+    return float(lo), float(hi)
+
+def delta_panel(ax, groups, series, ylabel, title):
+    """groups: list of metric labels; series: dict model -> list of (delta, lo, hi) per group."""
+    n = len(series); width = 0.8 / n
+    for i, (key, vals) in enumerate(series.items()):
+        xs = [g + (i - (n - 1) / 2) * width for g in range(len(groups))]
+        d = [v[0] for v in vals]; lo = [v[0] - v[1] for v in vals]; hi = [v[2] - v[0] for v in vals]
+        ax.errorbar(xs, d, yerr=[lo, hi], fmt=MARKERS[key], color=COLORS[key], ecolor=COLORS[key], elinewidth=1.1,
+                    capsize=2.5, markersize=5.5, label=MODELS[key], zorder=3)
+    ax.axhline(0, color='#202833', linewidth=0.8, zorder=1)
+    ax.set_xticks(range(len(groups)), groups)
+    ax.set_ylabel(ylabel); ax.set_title(title, fontsize=9.5)
+    ax.grid(axis='y', color='#e3e5e8', linewidth=0.6, zorder=0)
+
+
+def fig_main_delta():
+    cov, prec = {}, {}
+    for key in MODELS:
+        data = load(E2 / ('luna_history.json' if key == 'luna' else f'{key}/statistics.json'))
+        st = data['statistics'] if key == 'luna' else data
+        d, b = st['delta_pp'], st['cluster_bootstrap_95pct']
+        cov[key] = [(d[k],) + ci(b[k]) for k in ('hit1', 'hit3', 'hitall')]
+        prec[key] = [(d[k],) + ci(b[k]) for k in ('precision', 'strict_precision')]
+    assert round(cov['luna'][0][0], 2) == 22.53 and (round(cov['luna'][0][1], 2), round(cov['luna'][0][2], 2)) == (16.67, 28.33)
+    assert round(cov['sonnet'][0][1], 2) == -1.67 and round(prec['luna'][1][0], 2) == -3.63
+    fig, axes = plt.subplots(1, 2, figsize=(8.6, 2.8), gridspec_kw={'width_ratios': [1.5, 1]})
+    delta_panel(axes[0], ['hit@1', 'hit@3', 'hit@all'], cov, 'Full − Baseline (pp)', '(a) Coverage differences')
+    delta_panel(axes[1], ['P', 'P_strict'], prec, '', '(b) Precision differences')
+    fig.subplots_adjust(left=0.08, right=0.995, top=0.88, wspace=0.18)
+    fig_legend(fig, axes[0], bottom=0.24)
+    save(fig, 'main_delta')
+
+
+def fig_rq3_delta():
+    c = load(A1)['comparison']; d, b = c['delta_pp'], c['cluster_bootstrap_95pct']
+    keys = [('hit1', 'hit@1'), ('hit3', 'hit@3'), ('hitall', 'hit@all'), ('L0_hit1', 'L0 hit@1'), ('L1_hit1', 'L1 hit@1'),
+            ('L2_hit1', 'L2 hit@1'), ('precision', 'P')]
+    keys = [(k, l) for k, l in keys if k in d and k in b]
+    vals = [(d[k],) + ci(b[k]) for k, _ in keys]
+    assert round(vals[0][0], 2) == -20.69 and (round(vals[0][1], 2), round(vals[0][2], 2)) == (-36.0, -9.22)
+    fig, ax = plt.subplots(figsize=(8.6, 2.6))
+    xs = range(len(keys))
+    ax.errorbar(list(xs), [v[0] for v in vals], yerr=[[v[0] - v[1] for v in vals], [v[2] - v[0] for v in vals]],
+                fmt='o', color=C_ABL, ecolor=C_ABL, elinewidth=1.1, capsize=2.5, markersize=5.5, zorder=3)
+    for x, v in zip(xs, vals):
+        ax.text(x + 0.12, v[0], f'{v[0]:+.2f}', va='center', fontsize=7.5)
+    ax.axhline(0, color='#202833', linewidth=0.8); ax.set_xticks(list(xs), [l for _, l in keys]); ax.set_xlim(-0.5, len(keys) - 0.3)
+    ax.set_ylabel('No inspection facts − Full (pp)'); ax.set_title('Removing model inspection facts on gpt-5.6-luna (nine-cluster paired bootstrap, 95%)', fontsize=9.5)
+    ax.grid(axis='y', color='#e3e5e8', linewidth=0.6, zorder=0)
+    fig.subplots_adjust(left=0.08, right=0.99, top=0.86, bottom=0.16)
+    save(fig, 'rq3_delta')
+
+
+def fig_rq4_delta():
+    d = load(A3)['models']; series_cov, series_p = {}, {}
+    for key in MODELS:
+        c = d[key]['comparison']; dp, b = c['delta_pp'], c['cluster_bootstrap_95pct']
+        series_cov[key] = [(dp[k],) + ci(b[k]) for k in ('hit1', 'hit3', 'hitall') if k in dp and k in b]
+        series_p[key] = [(dp[k],) + ci(b[k]) for k in ('precision', 'strict_precision') if k in dp and k in b]
+    assert (round(series_cov['sonnet'][0][1], 2), round(series_cov['sonnet'][0][2], 2)) == (-27.02, 0.0)
+    ncov = len(next(iter(series_cov.values()))); nprec = len(next(iter(series_p.values())))
+    fig, axes = plt.subplots(1, 2, figsize=(8.6, 2.8), gridspec_kw={'width_ratios': [max(ncov, 1), max(nprec, 1)]})
+    delta_panel(axes[0], ['hit@1', 'hit@3', 'hit@all'][:ncov], series_cov, 'No guidance − Full (pp)', '(a) Coverage differences')
+    delta_panel(axes[1], ['P', 'P_strict'][:nprec], series_p, '', '(b) Precision differences')
+    fig.subplots_adjust(left=0.08, right=0.995, top=0.88, wspace=0.18)
+    fig_legend(fig, axes[0], bottom=0.24)
+    save(fig, 'rq4_delta')
+
+
 # ---------------------------------------------------------------- Markdown table rows
 def frac(obj):
     return f"{obj['numerator']}/{obj['denominator']}（{rate(obj):.2f}%）"
@@ -320,11 +396,11 @@ def tables():
 def main():
     style()
     fig_corpus()
-    fig_main()
-    fig_rq3()
-    fig_rq4()
+    fig_main_delta()
+    fig_rq3_delta()
+    fig_rq4_delta()
     fig_rq5()
-    print('Verified frozen anchors; wrote corpus, main_hit, main_precision, rq3_inspection, rq4_guidance, rq5_execution (svg/png/pdf)')
+    print('Verified frozen anchors; wrote corpus, main_delta, rq3_delta, rq4_delta, rq5_execution (svg/png/pdf)')
     if '--tables' in sys.argv:
         tables()
 

@@ -109,6 +109,9 @@
 | 清单候选 | inventory candidate |
 | 执行探测 | execution probe |
 | 不成立的报告 / 无效报告 | invalid report |
+| 配置进展检查 | progress check |
+| 严格覆盖 | strict coverage |
+| 有限控制状态机 | finite control STate Machine，FCSTM（STM 首字母大写解释缩写来源） |
 
 ## 对外口径映射：内部材料用语 → 论文表述
 
@@ -126,6 +129,8 @@
 | 公开仓库、GitHub 链接、HansBug/research_ideas | 复现材料以匿名复现包随评审提供，录用后公开 |
 
 ⛔ 论文禁词（中英文正文、题注、补充材料、审稿回复一律适用）：judge、LLM-as-judge、评价器 / evaluator、自动裁定、裁判、人工确认、github.com、research_ideas、HansBug，以及"gpt-5.6-luna 判读 / 评价 / 评阅 / 裁定"这类把模型名与评阅动作连写的句子。机械门为 [check_paper_wording.py](./check_paper_wording.py)。
+
+图题一律中文（“图 N：”），图内文字、图例与坐标轴一律英文；表题中文。谓词第四族在论文中称“配置进展检查”，不再使用“有界验证”作为族名；论文只出现 12 条谓词，不出现旧注册表条目数或“历史”“冻结记录”“请求身份”等实验日志用语。hit@k 保留记法但须解释为三轮均值、并集、交集。
 
 图内受版面限制可将 model inspection facts、structured intermediate guidance 缩为 inspection facts、intermediate guidance；候选复核（candidate review and correction）为内部语义复核节点的图示说明。统一采用 relation-first policy，不混用 validity-first。K/N/I 的有效性按冻结归属规则定义，普通精确率与严格精确率并列。
 
