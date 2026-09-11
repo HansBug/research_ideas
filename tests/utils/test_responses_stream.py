@@ -75,6 +75,9 @@ def test_normal_stream_unchanged(asynchronous, headers):
        error={"code": "server_error", "message": "origin failure"})}], "response.failed", True),
     ([{"type": "error", "code": "rate_limit_exceeded", "message": "busy", "sequence_number": 0}], "error", True),
     ([{"type": "error", "code": "invalid_api_key", "message": "unauthorized", "sequence_number": 0}], "error", False),
+    # Exact relay event observed 2026-09-11 (aizzz, cell 0053) after several argument deltas.
+    ([{"type": "error", "sequence_number": 0, "error": {"code": "stream_read_error",
+       "message": "stream_read_error", "type": "upstream_error"}}], "error", True),
     ([{"type": "error", "code": "invalid_request_error", "message": "bad schema", "sequence_number": 0}], "error", False),
     ([{"type": "response.failed", "sequence_number": 0, "response": response("failed",
        error={"code": "upstream_error", "message": "Upstream service temporarily unavailable"})}], "response.failed", True),
