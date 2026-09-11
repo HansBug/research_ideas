@@ -29,7 +29,7 @@ LLM 能够解释自由文本并提出问题，但直接询问模型“哪里有�
 
 ### 2.1 问题层级与证据强度
 
-问题层级描述陈述一个问题所需的信息范围。本文将问题分为点状或表面对齐问题（surface-alignment issue，L0）、结构或局部状态问题（structural or local-state issue，L1）和行为或全局问题（behavioral or global issue，L2）。L0 例如描述中点名的元素缺失；L1 例如层次归属或触发槽位错误；L2 则涉及跨迁移路径、可达性、终止（termination）、响应或全局交互。
+问题层级描述陈述一个问题所需的信息范围。它不同于按缺陷现象分类的软件异常分类标准，也不同于概念模型质量框架中的语法、语义与语用质量划分；本文只关心模型相对描述的语义偏差需要多大范围的模型信息才能陈述。[^ieee1044][^krogstie]本文将问题分为点状或表面对齐问题（surface-alignment issue，L0）、结构或局部状态问题（structural or local-state issue，L1）和行为或全局问题（behavioral or global issue，L2）。L0 例如描述中点名的元素缺失；L1 例如层次归属或触发槽位错误；L2 则涉及跨迁移路径、可达性、终止（termination）、响应或全局交互。
 
 这一分类综合了既有模型分析中的不同信息范围。统一建模语言（Unified Modeling Language，UML）一致性研究区分句法约束与需要考虑动态行为的约束；模型检查理论进一步区分单状态命题与必须考察路径片段的性质。[^torre][^knapp][^baier_katoen] L0/L1/L2 是本文据此定义并在参考集合上冻结的操作化分类，不是这些文献原有的三级枚举。分类依据是问题本身：图遍历和 LLM 都可能发现 L2 问题，使用某种后端也不自动提高问题层级。
 
@@ -37,13 +37,13 @@ LLM 能够解释自由文本并提出问题，但直接询问模型“哪里有�
 
 ### 2.2 需求解释、模型分析与问题发现
 
-需求与模型的一致性检查首先需要建立跨制品对应关系。Li 与 Zheng 将需求结构化，检查业务对象、过程和状态关系，并输出可定位的不一致；LiSSA 研究追踪关系恢复（traceability link recovery），帮助连接语义相关的制品；MCeT 进一步让 LLM 评价行为模型并报告问题。[^li_zheng][^lissa][^mcet] 这些工作为本文提供了任务与评价基础，但对应关系本身不足以确定路径可行性、终止或事件响应是否满足描述。本文关注如何把模型分析得到的行为事实引入发现过程，并让检查结果影响报告决定。
+需求与模型的一致性检查首先需要建立跨制品对应关系。Li 与 Zheng 将需求结构化，检查业务对象、过程和状态关系，并输出可定位的不一致；LiSSA 研究追踪关系恢复（traceability link recovery），帮助连接语义相关的制品；MCeT 进一步让 LLM 评价行为模型并报告问题。[^li_zheng][^lissa][^mcet] Sultan 等用依赖图与 LLM 检查 SysML 状态机、用例与块图之间的一致性并给出修正，Liu 等以可观测量与 SMT 求解检查需求与异构模型的一致性。[^sultan2024][^sultan][^liu] 在 LLM 之前，需求一致性检查依赖形式化中间表示：Gervasi 与 Zowghi 用逻辑推理定位自然语言需求间的不一致，ARSENAL 从需求文本抽取形式规约，SPIDER 与 VARED 分别辅助构造性质模式和验证早期设计；UML 一致性规则的系统梳理与动态图一致性测试给出了规则式检查所覆盖的关系范围。[^carl][^arsenal][^spider][^vared][^torre2018][^engels][^hilken] 这些工作为本文提供了任务与评价基础，但对应关系本身不足以确定路径可行性、终止或事件响应是否满足描述。本文关注如何把模型分析得到的行为事实引入发现过程，并让检查结果影响报告决定。
 
-形式化方法（formal methods）为这一步提供了明确的分析能力。状态机的形式化与自动验证已有系统研究，层次状态需求的完整性（completeness）和一致性也有成熟检查方法。[^uml_survey][^heimdahl][^heitmeyer] 性质模式（property pattern）与语法约束的性质生成研究帮助将需求转化为形式性质。形式化需求获取工具（Formal Requirements Elicitation Tool，FRET）也支持这一转换。[^dwyer][^fret][^estivill] 这些方法通常需要先给出待验证的对象和性质；对于自由文本与既有模型，发现哪些问题值得检查、正确绑定模型对象，以及解释结果对描述的意义，仍然是必要环节。测试预言问题（oracle problem）说明，执行一个查询与判断软件是否满足用户意图具有不同的证据要求。[^barr]
+形式化方法（formal methods）为这一步提供了明确的分析能力。状态机的形式化与自动验证已有系统研究，层次状态需求的完整性（completeness）和一致性也有成熟检查方法。[^uml_survey][^heimdahl][^heitmeyer] 性质模式（property pattern）与语法约束的性质生成研究帮助将需求转化为形式性质。形式化需求获取工具（Formal Requirements Elicitation Tool，FRET）也支持这一转换。[^dwyer][^fret][^estivill] LLM 也已用于把自然语言意图转为形式后置条件、在闭环中验证生成的代码，以及在工业环境下对照自然语言需求静态检查代码。[^nl2postcond][^clover][^zhou2026] 这些方法通常需要先给出待验证的对象和性质；对于自由文本与既有模型，发现哪些问题值得检查、正确绑定模型对象，以及解释结果对描述的意义，仍然是必要环节。测试预言问题（oracle problem）说明，执行一个查询与判断软件是否满足用户意图具有不同的证据要求。[^barr]
 
 本文围绕这一衔接过程组织方法：模型检查事实为候选提供具体依据，中间引导将事实与描述义务联系起来，类型化谓词把其中可检查的部分交给确定性后端，语义复核再判断结果对完整主张的支持程度。与单独生成性质或直接评价模型相比，该组织方式同时关心候选覆盖与报告证据；其作用由同模型基线和三项消融检验。
 
-行为模型生成与补全则为本文提供上游应用场景。Wang 等研究 LLM 生成模型及反馈，de Biase 等研究从“给定—当—则”（Given–When–Then）需求补全状态机。[^wang2025][^gwt] 本文接收这些流程可能产生的既有模型，输出问题而不修改输入。
+行为模型生成与补全则为本文提供上游应用场景。Wang 等研究 LLM 生成模型及反馈，de Biase 等研究从“给定—当—则”（Given–When–Then）需求补全状态机。[^wang2025][^gwt] Abdulkarim 等比较从非结构化文本生成 UML 状态机的结构驱动与事件驱动提示策略，King 与 Vyatkin 用 LLM 按安全约束迭代修订既有有限状态机，Walter 等从结构化需求导出可执行状态机；协议领域也有从 RFC 文本提取协议状态机的方法与基准。[^structure_event][^king_vyatkin][^walter2019][^rfcnlp][^psmbench] 这些工作生成或修改模型，本文接收这些流程可能产生的既有模型，输出问题而不修改输入。
 
 ## 3. 问题定义与分析范围
 
@@ -69,11 +69,11 @@ $M=(S,H,\iota,F,E,V,\nu_0,T,A)$。
 
 运行配置（configuration）写为 $c=(q,\nu)$，其中 $q$ 为当前活动状态及其祖先形成的控制配置，$\nu$ 为变量赋值。运行时依据活动层次、事件输入和守卫选择迁移，并按规定顺序执行相关动作；一个可观察的宏步（macro-step）记为 $c\xrightarrow{u}_M c'$，$u$ 为本步事件输入。宏步也涵盖未发生迁移时适用的驻留处理。由此得到的有限轨迹（finite trace）是 $c_0,u_0,c_1,\ldots,u_{k-1},c_k$。有限控制只要求 $S$ 有限，不要求变量取值域有限；有界验证（bounded verification）针对明确的宏步上界编码和求解。
 
-PlantUML 是本文的案例研究：当前实现提供 PlantUML 适配器，它保留声明范围内的层次、事件、变量、守卫和动作。适配器将不支持的时钟（clock）、时间事件（time event）、正交区域（orthogonal region）、历史伪状态（history pseudostate）和分叉/汇合（fork/join）记录为能力限制。方法的其余环节只依赖 FCSTM 与来源映射，不依赖 PlantUML 语法；接入另一种源语言需要相应适配器给出支持片段、来源归属和失败处置，并完成独立评测。本文的实证范围因此限定为 PlantUML 片段，方法定义则不限于此。
+PlantUML 是本文的案例研究：当前实现提供 PlantUML 适配器，它按 PlantUML 状态图语法保留声明范围内的层次、事件、变量、守卫和动作。[^plantuml]适配器将不支持的时钟（clock）、时间事件（time event）、正交区域（orthogonal region）、历史伪状态（history pseudostate）和分叉/汇合（fork/join）记录为能力限制。方法的其余环节只依赖 FCSTM 与来源映射，不依赖 PlantUML 语法；接入另一种源语言需要相应适配器给出支持片段、来源归属和失败处置，并完成独立评测。本文的实证范围因此限定为 PlantUML 片段，方法定义则不限于此。
 
 ### 3.3 投影与来源归属
 
-适配器将源制品投影为 FCSTM，并维护来源映射 $\pi:\ \mathrm{Elem}(M)\to 2^{\mathrm{Loc}(m)}$，把每个分析对象映回其源位置集合。转换中补出的辅助元素与源元素分别标记；报告引用源位置，执行记录同时保存用于求值的工作表示及其范围。这样，复核者可以区分源模型中的行为与表示转换引入的现象。
+适配器将源制品投影为 FCSTM，并维护来源映射 $\pi:\ \mathrm{Elem}(M)\to 2^{\mathrm{Loc}(m)}$，把每个分析对象映回其源位置集合。转换中补出的辅助元素与源元素分别标记；报告引用源位置，执行记录同时保存用于求值的工作表示及其范围。这样，复核者可以区分源模型中的行为与表示转换引入的现象；模型转换测试研究同样要求把转换缺陷与源模型缺陷分开定位。[^troya]
 
 投影失败、对象绑定缺失或执行未完成产生分析诊断（analysis diagnostic），方法仍保存已有候选和证据。这些诊断用于说明检查未闭合的原因；只有回溯后建立了源事实与描述义务的冲突，才能形成针对源制品的问题报告。
 
@@ -93,7 +93,7 @@ PlantUML 是本文的案例研究：当前实现提供 PlantUML 适配器，它�
 
 源记法与投影结果也可能存在差异：解析器可能将自由文本标签中的动作识别为触发事件，将复合标签识别为一个事件。方法因此同时保留源索引并检查两种表示的分歧。候选需说明分歧怎样影响描述义务，避免把一次规范化本身当成缺陷。
 
-事实提取和后续执行使用既有图分析、仿真（simulation）及可满足性模理论（satisfiability modulo theories，SMT）求值能力。Stateflow、Sismic 和状态图可扩展标记语言（State Chart XML，SCXML）等工具或标准同样提供状态机分析与执行基础。[^baier_katoen][^stateflow][^sismic][^scxml] 本方法的作用在于把这些能力生成的事实与描述解释、候选和报告连通，检查事实消融用于检验这种接入对发现覆盖的影响。
+事实提取和后续执行使用既有图分析、仿真（simulation）及可满足性模理论（satisfiability modulo theories，SMT）求值能力。Stateflow、Sismic 和状态图可扩展标记语言（State Chart XML，SCXML）等工具或标准同样提供状态机分析与执行基础，CoCoSim 则展示了对 Stateflow 模型的自动形式分析。[^baier_katoen][^stateflow][^sismic][^scxml][^cocosim] 本方法的作用在于把这些能力生成的事实与描述解释、候选和报告连通，检查事实消融用于检验这种接入对发现覆盖的影响。
 
 ### 4.3 结构化中间引导
 
@@ -107,11 +107,28 @@ PlantUML 是本文的案例研究：当前实现提供 PlantUML 适配器，它�
 
 ### 4.4 类型化谓词与执行反馈
 
-类型化谓词规定可检查命题的参数、对象类型和求值范围，把候选中原本只有来源定位的主张升级为可执行、可重放的证据。LLM 选择谓词并绑定状态、迁移、事件或行为窗口；程序核对来源引用与实例身份，再编译和执行查询。当前接口包括结构检查（structural check）、拓扑检查（topological check）、轨迹检查（trace check）和有界验证四类，共 12 种谓词，定义依据包括 UML 元模型（metamodel）与性质模式。[^uml251][^dwyer]
+类型化谓词规定可检查命题的参数、对象类型和求值范围，把候选中原本只有来源定位的主张升级为可执行、可重放的证据。LLM 选择谓词并绑定状态、迁移、事件或行为窗口；程序核对来源引用与实例身份，再编译和执行查询。当前接口包括结构检查（structural check）、拓扑检查（topological check）、轨迹检查（trace check）和有界验证四类，共 12 种谓词，定义依据包括 UML 元模型（metamodel）与性质模式。[^uml251][^dwyer] 表 1 列出 12 种谓词的名称、族、语义、输入参数与领域来源；每条谓词的检查义务由标准、性质模式或形式化文献界定，实例的具体对象、范围与期望值由当前描述和源制品绑定给出，执行范围以方法实现为准。
+
+**表 1：12 种类型化谓词及其领域来源。族对应四类检查接口；输入参数为 LLM 绑定时需提供的类型化参数；领域来源给出定义该检查义务的标准或文献。**
+
+| 编号 | 谓词 | 族 | 语义 | 输入参数 | 领域来源 |
+| --- | --- | --- | --- | --- | --- |
+| S1 | `element_exists` | 结构 | 指定种类的具名元素属于封闭的声明清单 | kind, element, scope | UML 2.5.1 顶点与迁移端点元模型 [^uml251] |
+| S2 | `transition_exists` | 结构 | 指定源与目标之间存在迁移 | source, target, scope | UML 2.5.1 §14.5.11 迁移端点 [^uml251] |
+| S3 | `trigger_set_equals` | 结构 | 迁移的解析触发集等于要求的触发集 | transition, triggers | UML 2.5.1 §13.3.3 触发；层次状态需求一致性 [^uml251][^heimdahl] |
+| S4 | `state_action_attached` | 结构 | 指定动作挂接在指定状态的指定生命周期阶段 | state, phase, action | UML 2.5.1 §14.2.3.4 进入、驻留与退出行为 [^uml251] |
+| S5 | `transition_guard_equals` | 结构 | 迁移的解析守卫等于要求的守卫 | transition, guard | UML 2.5.1 §14.5.11.6 守卫约束 [^uml251] |
+| G1 | `may_reach` | 拓扑 | 从源集合到目标集合存在有限图路径 | source, target | 性质模式 Existence [^dwyer] |
+| G2 | `must_reach` | 拓扑 | 在声明的图补全下，从源出发的每条路径最终到达目标 | source, target | 全路径最终可达 `A<>` 与有界完备性 [^uppaal][^biere2006] |
+| G3 | `coaccessible_to` | 拓扑 | 每个根可达节点沿有限路径可达标记节点 | roots, marked | 共可达性与非阻塞 [^fabian1998][^mohajerani2016] |
+| R1 | `event_consumed` | 轨迹 | 精确事件在声明宏步内发生并被消费 | scenario, event, step | UML 2.5.1 §14.2.3.9 事件处理；需求一致性 [^uml251][^heimdahl] |
+| R2 | `state_reached_after` | 轨迹 | 目标状态在声明轨迹窗口的尾段处于活动 | scenario, stimulus, state, window | UML 2.5.1 活动配置；性质模式 Response [^uml251][^dwyer] |
+| R3 | `state_retained` | 轨迹 | 目标状态在闭区间的每个记录点保持活动 | scenario, state, interval | 性质模式 Universality 与 Absence [^dwyer] |
+| V1 | `deadlock_free` | 有界验证 | 每个可达、稳定、非终止配置允许模型进展 | initial_scope | 死锁定义与 UML 状态机形式化综述 [^uppaal][^uml_survey] |
 
 结构检查用于元素存在性、迁移、触发、动作挂接和守卫关系；拓扑检查分析图上的路径与进展；轨迹检查观察声明刺激下的事件消费、状态到达和保持；有界验证分析指定窗口内的行为。对于图 1，`may_reach(Halt, {Idle})` 返回 false，表明所检查拓扑中不存在返回路径；精确迁移存在性检查则返回 true，反驳“缺少 Stop 迁移”的同一主张。拓扑上的路径存在只说明连接关系，不能单独保证守卫可行。
 
-执行返回值（verdict）为 true、false 或 unknown。true 表示绑定命题成立，方法据此排除与它相反的同一缺陷主张，这是执行反馈提高报告精确率的直接途径；false 表示该命题不满足，语义复核继续判断它是否违反描述义务；unknown、超时或不支持表示尚未取得确定结果。具有充分来源依据的报告可以保留为 W1，而无需把执行未完成解释为问题。
+执行返回值（verdict）为 true、false 或 unknown，与一致性测试中通过、失败、不确定的三值裁决划分一致；反例作为证据的解释边界见模型检查反例综述。[^tretmans][^debbi]true 表示绑定命题成立，方法据此排除与它相反的同一缺陷主张，这是执行反馈提高报告精确率的直接途径；false 表示该命题不满足，语义复核继续判断它是否违反描述义务；unknown、超时或不支持表示尚未取得确定结果。具有充分来源依据的报告可以保留为 W1，而无需把执行未完成解释为问题。
 
 满足 W2 要求的执行回执（execution receipt）保存模型和计划身份、参数、来源引用、分析范围、返回值及可用轨迹。复核者据此能够在同一工作表示上重复查询。抽象和有界窗口限制了证据含义：执行成立的是绑定命题，完整报告仍包含义务解释与来源归属。[^clarke_cegar] 第 6.5 节通过固定上游候选、屏蔽执行反馈的比较，分析这些结果对最终报告的作用。
 
@@ -137,11 +154,11 @@ RQ1 和 RQ2 评价完整方法；RQ3、RQ4、RQ5 分别对应 C-1、C-2、C-3，
 
 ### 5.2 数据集与模型配置
 
-输入来自 Wang 等公开的行为模型生成研究。我们按固定阶段选择经过上游反馈的状态机；语义反馈输出缺失时，采用已登记的生成回退。一个描述要求当前适配器不支持的并发与时间行为，因此排除它对应的六个制品。最终语料包含九个描述簇（description cluster），每簇六个上游模型制品，共 54 个输入对；上游参考模型不进入发现方法。[^wang2025]
+输入来自 Wang 等公开的行为模型生成研究。我们按固定阶段选择经过上游反馈的状态机；语义反馈输出缺失时，采用已登记的生成回退。一个描述要求当前适配器不支持的并发与时间行为，因此排除它对应的六个制品。最终语料包含九个描述簇（description cluster），每簇六个上游模型制品，共 54 个输入对；上游参考模型不进入发现方法。[^wang2025] 现有公开模型语料如 ModelSet 与 SLNET 提供大量模型制品，但不附带成对的自然语言描述和逐条问题标注，因此本文自行构建参考问题集合。[^modelset][^slnet]
 
-语料涉及汽车、轨道交通、泵控制、设备操作模式、微波炉和无人机集群。博士生基于描述与源制品人工标注 145 条参考问题（reference issue），保存逐条来源定位、分类和依据。问题分布在 46 对制品上，其余八对仍参与全部实验。参考问题除问题层级外还记录缺陷状态（defect status）：D2 表示关键事实与违反义务均成立且没有证据相容的合法替代解释，D1 表示仍存在这样的解释；第 5.4 节用同一组标签判定已发布报告。参考集合用于衡量已知问题覆盖，集合外报告则单独判断有效性。表 1 汇总语料规模和模型结构，图 2 给出制品规模与参考问题的分布。
+语料涉及汽车、轨道交通、泵控制、设备操作模式、微波炉和无人机集群。博士生基于描述与源制品人工标注 145 条参考问题（reference issue），保存逐条来源定位、分类和依据。问题分布在 46 对制品上，其余八对仍参与全部实验。参考问题除问题层级外还记录缺陷状态（defect status）：D2 表示关键事实与违反义务均成立且没有证据相容的合法替代解释，D1 表示仍存在这样的解释；第 5.4 节用同一组标签判定已发布报告。参考集合用于衡量已知问题覆盖，集合外报告则单独判断有效性。表 2 汇总语料规模和模型结构，图 2 给出制品规模与参考问题的分布。
 
-**表 1：评价语料与人工标注参考集合。结构统计基于全部 54 个制品；层级深度按归档的结构统计口径计算。**
+**表 2：评价语料与人工标注参考集合。结构统计基于全部 54 个制品；层级深度按归档的结构统计口径计算。**
 
 | 项目 | 数量或范围 | 中位数 |
 | --- | ---: | ---: |
@@ -167,9 +184,9 @@ RQ1 和 RQ2 评价完整方法；RQ3、RQ4、RQ5 分别对应 C-1、C-2、C-3，
 
 ### 5.3 基线与消融条件
 
-直接发现基线通过单次提示（prompt）生成定位报告，不使用工具或独立复核循环。实验只使用同模型直接发现基线：现有受控自然语言检查器需要改变输入形式，模型内部检查工具则不直接回答自由文本与既有 PlantUML 制品之间的问题，因此都不构成本实验的可运行同任务基线。Full 使用完整流程。三项消融分别关闭检查事实、中间引导和末端执行反馈，保留范围见表 2。
+直接发现基线通过单次提示（prompt）生成定位报告，不使用工具或独立复核循环。实验只使用同模型直接发现基线：现有受控自然语言检查器需要改变输入形式，模型内部检查工具则不直接回答自由文本与既有 PlantUML 制品之间的问题，因此都不构成本实验的可运行同任务基线。Full 使用完整流程。三项消融分别关闭检查事实、中间引导和末端执行反馈，保留范围见表 3。
 
-**表 2：比较条件与干预范围。各条件共享描述和源制品。无检查事实仅在 gpt-5.6-luna 上运行，其余条件覆盖四种模型配置。**
+**表 3：比较条件与干预范围。各条件共享描述和源制品。无检查事实仅在 gpt-5.6-luna 上运行，其余条件覆盖四种模型配置。**
 
 | 条件 | 发现输入与组织 | 谓词执行 | 最终语义复核 | 回答问题 |
 | --- | --- | --- | --- | --- |
@@ -187,7 +204,7 @@ RQ1 和 RQ2 评价完整方法；RQ3、RQ4、RQ5 分别对应 C-1、C-2、C-3，
 
 ### 5.4 报告判定
 
-报告评价同时考察源事实、违反义务的依据及参考关系。报告的缺陷状态沿用第 5.2 节的 D2 与 D1 定义，并增加 D0 表示违反义务未建立或设计解释正当。A0 标记关键源事实不成立。参考关系分为充分匹配（full match，FULL）、部分匹配（partial match，PARTIAL）和无匹配（no match，NO）。FULL 要求能够识别同一问题，PARTIAL 表示有关联但不足以建立完整命中，NO 表示未建立关系。
+报告评价同时考察源事实、违反义务的依据及参考关系。报告的缺陷状态沿用第 5.2 节的 D2 与 D1 定义，并增加 D0 表示违反义务未建立或设计解释正当；D1 所要求的“证据相容的合法替代解释”对应可废止推理与消除式论证中的反驳者。[^pollock][^sei_defeaters]A0 标记关键源事实不成立。参考关系分为充分匹配（full match，FULL）、部分匹配（partial match，PARTIAL）和无匹配（no match，NO）。FULL 要求能够识别同一问题，PARTIAL 表示有关联但不足以建立完整命中，NO 表示未建立关系。
 
 这一评价采用 MCeT 的同根因问题匹配与新增真实问题思路，并参考静态分析工具评测（Static Analysis Tool Exposition，SATE）对相关发现、真实缺陷和不完备参考真值（ground truth）的区分。[^mcet][^sate] 据此，本文使用已知有效报告（valid known report，K）、集合外有效报告（valid novel report，N）和无效报告（invalid report，I）作为操作化类别。N 不因未进入参考集合而成为误报，也不等同于去重后的新缺陷数；W 等级不参与关系匹配门槛，基线定位报告可以获得 FULL。
 
@@ -197,7 +214,7 @@ RQ1 和 RQ2 评价完整方法；RQ3、RQ4、RQ5 分别对应 C-1、C-2、C-3，
 
 **Figure 3. Report adjudication under the frozen relation-first policy. The evaluator records reference matching and semantic status separately. The execution-feedback ablation first applies its frozen accounting rules, then uses the same evaluator for residual reports.**
 
-外部评价器（external evaluator）固定为 gpt-5.6-luna，按冻结协议进行两次判读和分歧仲裁；语义判断与参考匹配的调用角色及输入材料分开。人工构建参考数据集与逐报告评价是两个过程：历史 gpt-5.6-luna Full 的 903 份报告已有作者确认，新增实验的逐报告人工确认数为 0。本文报告的新增结果来自该固定评价协议，统计复算保持原标签。
+外部评价器（external evaluator）固定为 gpt-5.6-luna，按冻结协议进行两次判读和分歧仲裁；LLM 作为软件工程制品评价者的偏差与一致性风险已有系统梳理，固定协议、多读与仲裁即针对这些风险。[^judge]语义判断与参考匹配的调用角色及输入材料分开。人工构建参考数据集与逐报告评价是两个过程：历史 gpt-5.6-luna Full 的 903 份报告已有作者确认，新增实验的逐报告人工确认数为 0。本文报告的新增结果来自该固定评价协议，统计复算保持原标签。
 
 执行反馈消融还使用已冻结的核算规则。3675 份报告中，130 份重新发布原 true 候选的同一缺陷主张，按规则计 I；3240 份与 Full 内容等价（content equivalent），复用原标签；305 份交由同一评价协议新判。原 true 可能只确认完整主张中的较窄命题，因此这些指定为 I 的报告并非全部经过独立语义反证。RQ5 的精确率以该政策为条件，不将其扩大为完整谓词系统的端到端因果效果。
 
@@ -207,21 +224,21 @@ RQ1 和 RQ2 评价完整方法；RQ3、RQ4、RQ5 分别对应 C-1、C-2、C-3，
 
 $\mathrm{hit@1}=\frac{\sum_{j=1}^{3}|H_j|}{3|\mathcal{E}|},\qquad \mathrm{hit@3}=\frac{|H_1\cup H_2\cup H_3|}{|\mathcal{E}|},\qquad \mathrm{hit@all}=\frac{|H_1\cap H_2\cap H_3|}{|\mathcal{E}|}$。
 
-它们的分母分别为 435、145、145。分层平均覆盖的 L0/L1/L2 分母为 213/105/117。令 $\mathcal{R}^{\ast}$ 为全部发布报告的集合，即各输入对与轮次的 $\mathcal{R}$ 之并；$k,n,i$ 为其中的 K/N/I 计数，$\ell(x)$ 和 $D(x)$ 分别为报告 $x$ 的外部类别和缺陷状态。普通报告精确率与严格报告精确率（strict precision）定义为：
+它们的分母分别为 435、145、145。以参考问题命中而非报告数衡量发现能力，与需求检查方法比较实验按检出缺陷计数的做法一致。[^porter]分层平均覆盖的 L0/L1/L2 分母为 213/105/117。令 $\mathcal{R}^{\ast}$ 为全部发布报告的集合，即各输入对与轮次的 $\mathcal{R}$ 之并；$k,n,i$ 为其中的 K/N/I 计数，$\ell(x)$ 和 $D(x)$ 分别为报告 $x$ 的外部类别和缺陷状态。普通报告精确率与严格报告精确率（strict precision）定义为：
 
 $P=\frac{k+n}{k+n+i},\qquad P_{\mathrm{strict}}=\frac{\sum_{x\in\mathcal{R}^{\ast}}\mathbf{1}[\ell(x)\in\{K,N\}\land D(x)\in\{D1,D2\}]}{|\mathcal{R}^{\ast}|}$。
 
 两种精确率均以全部发布报告为分母。结果先合并三轮计数再计算比例，同时报告有效数量、无效数量和覆盖，避免将少报造成的较高比例理解为发现能力提高。零报告运行仍保留，其单次精确率未定义。W2 的报告比例与参考问题命中比例分别计算，根报告与子主张的证据也分别统计。
 
-比较按同模型、同制品、同轮次配对。同一描述下的制品和重复运行存在相关性，因此整体比较和中间引导分析采用九个描述簇的配对簇重采样（paired cluster bootstrap），并检查逐轮结果。95% 区间反映当前案例集的簇间不确定性；本文不将报告数当作独立样本量。末端重放没有额外重复随机化，本文据合并结果描述其效应方向和幅度。
+比较按同模型、同制品、同轮次配对。同一描述下的制品和重复运行存在相关性，因此整体比较和中间引导分析采用九个描述簇的配对簇重采样（paired cluster bootstrap），并检查逐轮结果。95% 区间反映当前案例集的簇间不确定性；本文不将报告数当作独立样本量。重复运行与区间报告参照对随机化评测方法的方法学建议。[^klees]末端重放没有额外重复随机化，本文据合并结果描述其效应方向和幅度。
 
 ## 6. 结果
 
 ### 6.1 RQ1：完整方法的有效性
 
-表 3 给出 gpt-5.6-luna 上直接发现基线与 Full 的完整比较。Full 的平均覆盖从基线的 225/435（51.72%）提高到 323/435（74.25%），增加 22.53 个百分点；三轮并集覆盖从 105/145 提高到 130/145，三轮稳定覆盖从 47/145 提高到 82/145。按描述簇重采样，平均覆盖差值的 95% 区间为 16.67 至 28.33 个百分点。
+表 4 给出 gpt-5.6-luna 上直接发现基线与 Full 的完整比较。Full 的平均覆盖从基线的 225/435（51.72%）提高到 323/435（74.25%），增加 22.53 个百分点；三轮并集覆盖从 105/145 提高到 130/145，三轮稳定覆盖从 47/145 提高到 82/145。按描述簇重采样，平均覆盖差值的 95% 区间为 16.67 至 28.33 个百分点。
 
-**表 3：gpt-5.6-luna 上直接发现基线与完整方法的完整结果。覆盖类指标给出分子/分母；Δ 为 Full 减基线的百分点。L0/L1/L2 的 hit@1 分母为 213/105/117，hit@3 与 hit@all 分母为 71/35/39。**
+**表 4：gpt-5.6-luna 上直接发现基线与完整方法的完整结果。覆盖类指标给出分子/分母；Δ 为 Full 减基线的百分点。L0/L1/L2 的 hit@1 分母为 213/105/117，hit@3 与 hit@all 分母为 71/35/39。**
 
 | 指标 | 基线 | Full | Δ（pp） |
 | --- | ---: | ---: | ---: |
@@ -241,13 +258,13 @@ $P=\frac{k+n}{k+n+i},\qquad P_{\mathrm{strict}}=\frac{\sum_{x\in\mathcal{R}^{\as
 
 **Figure 4. Mean coverage by problem level and model. Each panel compares the direct-discovery baseline with Full on the same inputs. Denominators for L0, L1, and L2 are 213, 105, and 117 issue-round units. Lines connect the paired conditions.**
 
-gpt-5.6-luna 的普通精确率从 83.40% 变为 84.05%，严格精确率从 78.71% 降至 75.08%（表 3）。完整方法在这组配置上的主要优势因而是覆盖，尤其是 L2 覆盖。它产生的 323 个命中单位中，127 个由根报告提供 W2，计入子主张后为 137 个；报告级 W2 为 267/903。执行证据支持一部分发现，其余报告依靠来源定位与语义依据。
+gpt-5.6-luna 的普通精确率从 83.40% 变为 84.05%，严格精确率从 78.71% 降至 75.08%（表 4）。完整方法在这组配置上的主要优势因而是覆盖，尤其是 L2 覆盖。它产生的 323 个命中单位中，127 个由根报告提供 W2，计入子主张后为 137 个；报告级 W2 为 267/903。执行证据支持一部分发现，其余报告依靠来源定位与语义依据。
 
 ### 6.2 RQ2：跨模型适用性
 
-表 4 给出四种模型配置上直接发现基线与完整方法的配对结果，图 5 与图 6 分别展示覆盖与精确率。
+表 5 给出四种模型配置上直接发现基线与完整方法的配对结果，图 5 与图 6 分别展示覆盖与精确率。
 
-**表 4：四种模型的基线与完整方法结果。R 为报告数；P 和 P_strict 为普通与严格精确率。hit@1 分母为 435，hit@3 和 hit@all 分母为 145。每个模型内部的两行构成配对比较。**
+**表 5：四种模型的基线与完整方法结果。R 为报告数；P 和 P_strict 为普通与严格精确率。hit@1 分母为 435，hit@3 和 hit@all 分母为 145。每个模型内部的两行构成配对比较。**
 
 | 模型 | 条件 | R | K/N/I | hit@1 | hit@3 | hit@all | P | P_strict |
 | --- | --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
@@ -274,9 +291,9 @@ gpt-5.6-luna 的普通精确率从 83.40% 变为 84.05%，严格精确率从 78.
 
 ### 6.3 RQ3：模型检查事实的作用
 
-表 5 与图 7 给出关闭模型检查事实后 gpt-5.6-luna 的结果。
+表 6 与图 7 给出关闭模型检查事实后 gpt-5.6-luna 的结果。
 
-**表 5：关闭模型检查事实后 gpt-5.6-luna 的结果。Δ 为无检查事实减 Full 的百分点；条件的保留范围见第 5.3 节。**
+**表 6：关闭模型检查事实后 gpt-5.6-luna 的结果。Δ 为无检查事实减 Full 的百分点；条件的保留范围见第 5.3 节。**
 
 | 指标 | Full | 无检查事实 | Δ（pp） |
 | --- | ---: | ---: | ---: |
@@ -301,9 +318,9 @@ gpt-5.6-luna 的普通精确率从 83.40% 变为 84.05%，严格精确率从 78.
 
 ### 6.4 RQ4：结构化中间引导的作用
 
-表 6 与图 8 给出移除结构化中间引导后四种模型的结果。
+表 7 与图 8 给出移除结构化中间引导后四种模型的结果。
 
-**表 6：移除结构化中间引导后四种模型的结果。R 为报告数；hit@3 与 hit@all 分母为 145。每个模型内部的两行构成配对比较，条件的保留范围见第 5.3 节。**
+**表 7：移除结构化中间引导后四种模型的结果。R 为报告数；hit@3 与 hit@all 分母为 145。每个模型内部的两行构成配对比较，条件的保留范围见第 5.3 节。**
 
 | 模型 | 条件 | R | K/N/I | hit@1 | hit@3 | hit@all | P | P_strict |
 | --- | --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
@@ -318,7 +335,7 @@ gpt-5.6-luna 的普通精确率从 83.40% 变为 84.05%，严格精确率从 78.
 
 ![Ablation of structured intermediate guidance](./figures/rq4_guidance.svg)
 
-**Figure 8. Removing structured intermediate guidance on four model configurations: (a) hit@1, (b) precision P, (c) strict precision P_strict. Full values equal those in Table 4.**
+**Figure 8. Removing structured intermediate guidance on four model configurations: (a) hit@1, (b) precision P, (c) strict precision P_strict. Full values equal those in Table 5.**
 
 移除中间引导后，四种模型的平均覆盖和有效报告数全部下降，四模型三轮的 12 组逐轮覆盖比较也均下降。模型等权平均覆盖从 71.67% 降至 48.45%，有效报告总数从 3106 降至 1669。该总数反映四种配置的报告产出，相同参考问题可以在不同模型中重复出现。
 
@@ -330,9 +347,9 @@ qwen3.8-27b 的变化说明为什么需要同时考察比例与产出：其严�
 
 ### 6.5 RQ5：执行反馈对报告精确率的作用
 
-表 7 与图 9 给出固定上游候选并屏蔽执行反馈后四种模型的结果。
+表 8 与图 9 给出固定上游候选并屏蔽执行反馈后四种模型的结果。
 
-**表 7：屏蔽执行反馈后四种模型的结果。R 为报告数；每个模型内部的两行构成配对比较，核算政策见第 5.4 节。**
+**表 8：屏蔽执行反馈后四种模型的结果。R 为报告数；每个模型内部的两行构成配对比较，核算政策见第 5.4 节。**
 
 | 模型 | 条件 | R | K/N/I | hit@1 | P | P_strict |
 | --- | --- | ---: | --- | ---: | ---: | ---: |
@@ -425,3 +442,75 @@ qwen3.8-27b 的变化说明为什么需要同时考察比例与产出：其严�
 [^knapp]: Alexander Knapp and Till Mossakowski. “Multi-view Consistency in UML.” In *Graph Transformation, Specifications, and Nets*, LNCS 10800, 2018. https://doi.org/10.1007/978-3-319-75396-6_3. Author manuscript: https://arxiv.org/abs/1610.03960.
 
 [^femmer]: Henning Femmer, Daniel Méndez Fernández, Stefan Wagner, and Sebastian Eder. “Rapid Quality Assurance with Requirements Smells.” *Journal of Systems and Software*, 123:190–213, 2017. https://doi.org/10.1016/j.jss.2016.02.047.
+
+[^sultan2024]: Bastien Sultan and Ludovic Apvrille. “AI-Driven Consistency of SysML Diagrams.” *MODELS*, 2024, pp. 149--159. https://doi.org/10.1145/3640310.3674079. MODELS 2024 Distinguished Paper; conference predecessor of the SoSyM 2026 article.
+
+[^sultan]: Bastien Sultan, Ludovic Apvrille, and Sophie Coudert. “On the Consistency of State Machines, Use Cases and Block Diagrams Using Dependency Graphs and Large Language Models.” *Software and Systems Modeling*, 2026, online first. https://doi.org/10.1007/s10270-026-01388-4.
+
+[^liu]: Tianhai Liu, Shmuel Tyszberowicz, and Bernhard Beckert. “Observable Consistency Checking across Requirements and Models.” *ENASE*, 2026. https://doi.org/10.5220/0014719400004015.
+
+[^carl]: Vincenzo Gervasi and Didar Zowghi. “Reasoning about Inconsistencies in Natural Language Requirements.” *ACM TOSEM*, 14(3):277--330, 2005. https://doi.org/10.1145/1072997.1072999.
+
+[^arsenal]: Shalini Ghosh, Daniel Elenius, Wenchao Li, Patrick Lincoln, Natarajan Shankar, and Wilfried Steiner. “ARSENAL: Automatic Requirements Specification Extraction from Natural Language.” *NFM 2016*, LNCS 9690. https://doi.org/10.1007/978-3-319-40648-0_4.
+
+[^spider]: Sascha Konrad and Betty H. C. Cheng. “Facilitating the Construction of Specification Pattern-Based Properties.” *RE 2005*. https://doi.org/10.1109/RE.2005.29. The SPIDER toolchain (structured-English property templates over UML models, Hydra/Promela, SPIN) is described in the MoDELS 2005 satellite volume, LNCS 3844, https://doi.org/10.1007/11663430_6.
+
+[^vared]: Julia Badger, David Throop, and Charles Claunch. “VARED: Verification and Analysis of Requirements and Early Designs.” *RE 2014*. https://doi.org/10.1109/RE.2014.6912279.
+
+[^torre2018]: Damiano Torre, Yvan Labiche, Marcela Genero, and Maged Elaasar. “A Systematic Identification of Consistency Rules for UML Diagrams.” *Journal of Systems and Software*, 144:121--142, 2018. https://doi.org/10.1016/j.jss.2018.06.029. Rule counts differ between the publisher highlights and indexing services; verify before quoting a number.
+
+[^engels]: Gregor Engels, Jan Hendrik Hausmann, Reiko Heckel, and Stefan Sauer. “Testing the Consistency of Dynamic UML Diagrams.” *IDPT*, 2002.
+
+[^hilken]: Frank Hilken, Philipp Niemann, Martin Gogolla, and Robert Wille. “Towards a Catalog of Structural and Behavioral Verification Tasks for UML/OCL Models.” In *Modellierung 2016*, LNI P-254, Gesellschaft für Informatik, Bonn, 2016, pp. 117--124. https://dl.gi.de/items/9249e678-d63e-46bf-acee-7606155b1ac8 (no DOI assigned).
+
+[^nl2postcond]: Madeline Endres, Sarah Fakhoury, Saikat Chakraborty, and Shuvendu K. Lahiri. “Can Large Language Models Transform Natural Language Intent into Formal Method Postconditions?” *Proceedings of the ACM on Software Engineering*, FSE 2024. https://doi.org/10.1145/3660791.
+
+[^clover]: Chuyue Sun, Ying Sheng, Oded Padon, and Clark Barrett. “Clover: Closed-Loop Verifiable Code Generation.” *SAIV*, 2024. https://doi.org/10.1007/978-3-031-65112-0_7; arXiv:2310.17807.
+
+[^zhou2026]: Zhou, Towey, and Chen. “LLM-Based Static Verification of Code Against Natural-Language Requirements: An Industrial Experience Report.” arXiv:2605.17926, 2026. https://arxiv.org/abs/2605.17926. Preprint, not peer-reviewed; cited from title and abstract only as of 2026-09-02.
+
+[^structure_event]: Samer Abdulkarim et al. “Structure- and Event-Driven Frameworks for State Machine Modeling with Large Language Models.” arXiv:2604.00275v1, 2026. https://arxiv.org/abs/2604.00275. Preprint, not peer-reviewed as of 2026-09-02.
+
+[^king_vyatkin]: Akira King and Valeriy Vyatkin. “LLM-based Iterative Refinement of Finite-State Machines with STPA Controller Constraints and Generation of IEC 61499 Code.” *ETFA*, 2025. https://doi.org/10.1109/ETFA65518.2025.11205687.
+
+[^walter2019]: B. Walter, J. Martin, J. Schmidt, H. Dettki, and S. Rudolph. “Executable State Machines Derived from Structured Textual Requirements.” *MODELSWARD 2019*. https://doi.org/10.5220/0007236601930200. Industrial AOLC case: 47 states, 256 transitions.
+
+[^rfcnlp]: Maria Leonor Pacheco, Max von Hippel, Ben Weintraub, Dan Goldwasser, and Cristina Nita-Rotaru. “Automated Attack Synthesis by Extracting Finite State Machines from Protocol Specification Documents.” *IEEE S&P 2022*, pp. 51--68. https://doi.org/10.1109/SP46214.2022.9833673.
+
+[^psmbench]: Z. Shen, X. Luo, I. Karim, and E. Bertino. “PSMBench: A Benchmark and Dataset for Evaluating LLMs Extraction of Protocol State Machines from RFC Specifications.” *NeurIPS 2025 Datasets and Benchmarks Track*. https://openreview.net/forum?id=5HGBErIHuV. 14 protocols, 108 states, 297 transitions (Table 1).
+
+[^ieee1044]: IEEE Std 1044-2009. *IEEE Standard Classification for Software Anomalies*. https://doi.org/10.1109/IEEESTD.2010.5399061.
+
+[^krogstie]: John Krogstie, Odd Ivar Lindland, and Guttorm Sindre. “Defining Quality Aspects for Conceptual Models.” *IFIP ISCO3*, Springer, 1995. https://doi.org/10.1007/978-0-387-34870-4_22.
+
+[^plantuml]: PlantUML Language Reference Guide, State Diagram chapter (composite state scoping, transition label syntax `trigger [guard] / effect`, `[*]` initial and final pseudostates). https://plantuml.com/state-diagram. Accessed 2026-09-04.
+
+[^troya]: Javier Troya, Sergio Segura, Lola Burgueño, and Manuel Wimmer. “Model Transformation Testing and Debugging: A Survey.” *ACM Computing Surveys*, 55(4), 2022. https://doi.org/10.1145/3523056.
+
+[^cocosim]: Hamza Bourbouh, Pierre-Loïc Garoche, Christophe Garion, Arie Gurfinkel, Temesghen Kahsai, and Xavier Thirioux. “Automated Analysis of Stateflow Models.” *LPAR-21*, EPiC Series in Computing 46:144--161, 2017. 77 Stateflow models, no natural-language descriptions.
+
+[^tretmans]: Jan Tretmans. “An Overview of OSI Conformance Testing.” Note, Formal Methods & Tools group, University of Twente, 25 January 2001, 14 pp. §3.3 (three verdicts), §3.5 (`inconclusive`). Copy: https://homes.cs.aau.dk/~kgl/TOV03/iso9646.pdf.
+
+[^debbi]: Hichem Debbi. “Counterexamples in Model Checking -- A Survey.” *Informatica (Slovenia)*, 42(2):145--166, 2018. http://www.informatica.si/index.php/informatica/article/view/1442 (no DOI assigned by the publisher).
+
+[^modelset]: José Antonio Hernández López, Javier Luis Cánovas Izquierdo, and Jesús Sánchez Cuadrado. “ModelSet: a dataset for machine learning in model-driven engineering.” *Software and Systems Modeling*, 21:967--986, 2022. https://doi.org/10.1007/s10270-021-00929-3. The state-machine count (127 of 5,120 UML models; 152 state-machine diagrams versus 32,584 class diagrams) is our own query over the released `analysis.db` (v0.9.4), not a number reported in the paper.
+
+[^slnet]: Sohil Lal Shrestha, Shafiul Azam Chowdhury, and Christoph Csallner. “SLNET: A Redistributable Corpus of 3rd-party Simulink Models.” *MSR 2022*. https://doi.org/10.1145/3524842.3528001. Verbatim: “Stateflow is out of scope and our metrics do not count the Stateflow-contents of a Simulink block.”
+
+[^pollock]: John L. Pollock. “Defeasible Reasoning.” *Cognitive Science*, 11(4):481--518, 1987.
+
+[^sei_defeaters]: John B. Goodenough, Charles B. Weinstock, and Ari Z. Klein. *Eliminative Argumentation: A Basis for Arguing Confidence in System Properties*. CMU/SEI-2015-TR-005, 2015.
+
+[^judge]: Wang et al. “LLM-as-a-Judge in Software Engineering.” *ISSTA*, 2025. https://doi.org/10.1145/3728963.
+
+[^porter]: Adam A. Porter, Lawrence G. Votta, and Victor R. Basili. “Comparing Detection Methods for Software Requirements Inspections: A Replicated Experiment.” *IEEE TSE*, 21(6), 1995. https://doi.org/10.1109/32.391380.
+
+[^klees]: George Klees, Andrew Ruef, Benji Cooper, Shiyi Wei, and Michael Hicks. “Evaluating Fuzz Testing.” *CCS*, 2018. https://doi.org/10.1145/3243734.3243804.
+
+[^uppaal]: UPPAAL. “Symbolic Query Semantics.” *UPPAAL Documentation*. https://docs.uppaal.org/language-reference/query-semantics/symb_queries/. Accessed 2026-09-02.
+
+[^biere2006]: Armin Biere, Keijo Heljanko, Tommi Junttila, Timo Latvala, and Viktor Schuppan. “Linear Encodings of Bounded LTL Model Checking.” *Logical Methods in Computer Science*, 2(5), 2006. https://doi.org/10.2168/LMCS-2(5:5)2006.
+
+[^fabian1998]: Martin Fabian. *On Object Oriented Nondeterministic Supervisory Control*. PhD thesis, Chalmers University of Technology, 1998. https://research.chalmers.se/publication/1126/file/1126_Fulltext.pdf.
+
+[^mohajerani2016]: Sahar Mohajerani, Robi Malik, and Martin Fabian. “A Framework for Compositional Nonblocking Verification of Extended Finite-State Machines.” *Discrete Event Dynamic Systems*, 26(1):33--84, 2016. https://doi.org/10.1007/s10626-015-0217-y.
