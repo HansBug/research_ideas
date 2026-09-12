@@ -1,0 +1,11 @@
+flowchart LR
+    NL["NL description<br/>'return to Idle after Stop'"] --> OB["Obligation extraction and completion (LLM)<br/>o1: after Stop, Idle must be reachable"]
+    SM["Source machine<br/>Idle -Start-> Running -Stop-> Halt"] --> IF["Projection and inspection (rule)<br/>Halt has no outgoing edge; may_reach(Halt, Idle) = false"]
+    OB --> DV["Multi-view discovery (LLM)<br/>c1: no return path after Stop<br/>c3: Stop transition missing"]
+    IF --> DV
+    IF --> INV["Deterministic supplements (rule)<br/>c2: dead-end inventory candidate for Halt<br/>probe: may_reach(Halt, {Idle})"]
+    DV --> BD["Typed binding (LLM) and compile/execute (rule)<br/>c1, c2 -> G1 may_reach(Halt, {Idle}) = false<br/>c3 -> S2 transition_exists(Running, Halt) = true; S3 trigger_set_equals(Running->Halt, {Stop}) = true"]
+    INV --> BD
+    BD --> RV["Candidate review and correction (LLM)<br/>c1 kept: obligation applies, no alternative reading<br/>c2 folded into c1 as a subclaim<br/>c3 discarded: contradicted by verified facts"]
+    RV -->|bounded revision| DV
+    RV --> PB["Publish and deduplicate (rule)<br/>root report with W2 receipt; budget or stop condition reached"]

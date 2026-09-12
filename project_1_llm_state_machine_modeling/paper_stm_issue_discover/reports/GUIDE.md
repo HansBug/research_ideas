@@ -183,6 +183,7 @@ git blame --date=iso -- <source-file>
 5. 不静默删除被替代报告；应在 SUMMARY 中标注 `superseded_by`。
 6. 不允许只有 Markdown 内部交叉引用而没有上游 machine/corpus evidence anchor。
 7. 不允许把 `confidence=unknown` 的内容放进核心结论；只能放进风险、限制或后续工作。
+- ⛔ 报告中对评价装置（judge、评价器模型、两读仲裁、人工确认数）的描述是内部事实，不得抄入论文；论文对外口径见 [story/README.md](../story/README.md) 的铁律与 [terminology_policy.md](../story/terminology_policy.md) 的口径映射表，机械门为 `story/check_paper_wording.py`。
 
 ## 10. dry-run 审查要求
 
