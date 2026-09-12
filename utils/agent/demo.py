@@ -6,11 +6,10 @@ import math
 import operator
 from datetime import datetime
 from pathlib import Path
-from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
 import click
-from pydantic import BaseModel
+from pydantic import AwareDatetime, BaseModel
 
 from utils.agent import AgentApp, AgentError, AgentSpec
 from utils.llm import load_llm_registry
@@ -18,9 +17,9 @@ from utils.llm import load_llm_registry
 
 class DemoAnswer(BaseModel):
     summary: str
-    base_time: str
+    base_time: AwareDatetime
     offset_hours: float
-    target_time: str
+    target_time: AwareDatetime
     evidence_ids: list[str]
 
 
@@ -153,16 +152,11 @@ def cli(
         limits=limits or None,
         require_tool_call=True,
     )
-    endpoint_host = (urlsplit(selected.base_url or "https://api.openai.com").hostname or "").lower()
-    # The framework default is stream_usage=True.  Known OpenAI-compatible
-    # proxies/DeepSeek endpoints may reject stream_options, so the real demo
-    # explicitly opts out for those transports while retaining streaming.
-    stream_usage = endpoint_host == "api.openai.com"
     app = AgentApp.from_config(
         spec,
         selected,
         profile=profile,
-        model_options={"streaming": True, "stream_usage": stream_usage, "max_retries": 0},
+        model_options={"streaming": True, "max_retries": 0},
     )
     compact_value: float | None
     if compact_trigger_ratio.strip().lower() in {"none", "0"}:
@@ -196,16 +190,11 @@ def cli(
     ):
         raise click.ClickException("demo tool/model validation failed")
     answer = result.require_output()
-    try:
-        base_time = datetime.fromisoformat(answer.base_time.strip().replace("Z", "+00:00"))
-        target_time = datetime.fromisoformat(answer.target_time.strip().replace("Z", "+00:00"))
-        delta_hours = (target_time - base_time).total_seconds() / 3600
-    except ValueError as exc:
-        raise click.ClickException(f"demo structured output validation failed: timestamps must be ISO-8601: {exc}") from exc
+    base_time = answer.base_time
+    target_time = answer.target_time
+    delta_hours = (target_time - base_time).total_seconds() / 3600
     if (
         not answer.summary.strip()
-        or not answer.base_time.strip()
-        or not answer.target_time.strip()
         or base_time.tzinfo is None
         or target_time.tzinfo is None
         or not math.isclose(answer.offset_hours, 51.25, rel_tol=0, abs_tol=1e-9)

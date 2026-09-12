@@ -1,0 +1,2067 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0035",
+  "ledger": [
+    {
+      "ledger_id": "EIS-0035-01",
+      "pair": "0035",
+      "D": "D2",
+      "L": "L0",
+      "summary": "全模型没有任何 `[*] -->` 边——作者用 `:2 state DoorShut as \"Door Shut\" <<initial>>` 的一个构造型代替了初始伪状态边，于是 `DoorShut` 从上电起不可达，而 NL 第 1 句明写微波炉从 DoorShut 开始。",
+      "detail": "NL 第 1 句逐字为「The microwave starts in the DoorShut state.」。\n\n制品在 `:2` 写 `state DoorShut as \"Door Shut\" <<initial>>`。`<<initial>>` 是一个构造型标注（stereotype），在 PlantUML 里它只是给状态框加一个装饰性的标记文字，不会产生任何初始伪状态，也不会建立任何边。全文（`:1`-`:18`）检索不到任何 `[*]`。\n\n后果是这台机器没有起点：投影时在根状态合成了一个 `UnspecifiedInitial` 占位状态和一条通向它的合成迁移，而 `DoorShut` 从上电起不可达。\n\n根因是用一个语义标注冒充了结构。这与用 `<<submachine>>` 冒充复合结构（pair 0010 的 EIS-0010-02）是同一类错误：构造型在 UML 里是有含义的，但它不会替你把结构建出来。\n\n正确写法是 `[*] --> DoorShut`。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 1 句「The microwave starts in the DoorShut state」。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法——`<<initial>>` 在 PlantUML 里不产生初始伪状态，这是确定的解析事实；投影结果也确认根状态的初始目标是合成的占位状态而不是 `DoorShut`。反驳不存活。",
+      "L_basis": "判 L0。陈述这条错误只需检索全文有没有 `[*] -->` 这种形式的行，发现一条都没有。这是纯词法层面的存在性检查，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "transition",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0035-02",
+      "pair": "0035",
+      "D": "D2",
+      "L": "L0",
+      "summary": "NL 第 2 句明写「The door can be closed to return to the DoorShut state」，而制品里没有任何从 `DoorOpen` 回到 `DoorShut` 的边——`:5` 那个位置被一条 `DoorOpen --> DoorOpen : Item Removed` 自环占据了。",
+      "detail": "NL 第 2 句逐字为「When the Door Opened action occurs in the DoorShut state, the system transitions to the DoorOpen state. The door can be closed to return to the DoorShut state.」。后半句是一条显式的关系义务：从 DoorOpen 关门要能回到 DoorShut。\n\n制品建了去程 `:4 DoorShut --> DoorOpen : Door Opened`，没有建回程。检索以 `DoorOpen` 为源的边，只有 `:5 DoorOpen --> DoorOpen : Item Removed` 与 `:6 DoorOpen --> DoorOpenWithItem : Item Placed` 两条，都不通向 `DoorShut`。\n\n`:5` 那条自环本身也可疑：在 `DoorOpen`（门开、炉内无物）状态下移除物品，本来就没有物品可移除。对照 NL 第 3 句「In the DoorOpen state, placing an item inside the microwave transitions the system to DoorOpenWithItem. If the item is removed, the system returns to DoorOpen.」——移除物品这个动作的正确位置是从 `DoorOpenWithItem` 回到 `DoorOpen`，制品在 `:7` 已经正确建了那一条。所以 `:5` 是把回程边的位置占掉了。\n\n后果是空炉状态下关门这条最基本的通路不存在：门一旦打开且炉内无物，就只能放东西进去，关不上。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 2 句后半「The door can be closed to return to the DoorShut state」。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法——以 `DoorOpen` 为源的两条边目标分别是它自己和 `DoorOpenWithItem`，没有任何一条通向 `DoorShut`，也没有任何结构可以被解释成承载了这条回程。反驳不存活。",
+      "L_basis": "判 L0。陈述这条错误只需检索以 `DoorOpen` 为源、以 `DoorShut` 为目标的迁移，发现没有。这是一次词项层面的存在性比对，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "transition",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0035-03",
+      "pair": "0035",
+      "D": "D1",
+      "L": "L1",
+      "summary": "`:8 DoorOpenWithItem --> DoorShutWithItem : Door Closed` 既没有守卫也没在事件名里点出零时，于是在已经输入烹饪时间的情形下关门仍会落到 `DoorShutWithItem`——NL 第 4 句把这个去向限定在「with zero time set」。",
+      "detail": "NL 第 4 句逐字为「From DoorOpenWithItem, the system can transition to DoorShutWithItem if the door is closed with zero time set or to ReadytoCook if cooking time is entered.」，给出的是一个二选一的依赖关系。\n\n制品建了两条：`:8` 目标 `DoorShutWithItem`、触发 `Door Closed`；`:9` 目标 `ReadytoCook`、触发 `Cooking Time Entered`。前一条既没有 `[...]` 形式的守卫，事件名里也没有零时这个条件。\n\n于是关门这个动作无论时间设没设，结果都一样，NL 那条依赖关系在模型里消失了。\n\n本条与 pair 0025 的 EIS-0025-01 同形同判。",
+      "D_basis": "判 D1，两读并立。第一种读法把 NL 第 4 句的 `if` 读作排他条件：只有零时才去 DoorShutWithItem，`:8` 缺守卫就是把限定丢了。第二种读法基于一个 NL 没有回答的问题：`:13 ReadytoCook --> DoorOpenWithItem : Door Opened` 之后，此前已经输入的烹饪时间究竟保留还是被清零，NL 通篇没有说明。若读作被清零，那么从 `DoorOpenWithItem` 出发时时间本就是零，`:8` 无守卫并不覆盖非零情形——也就是说状态本身已经吸收了零时这个条件。两种读法都与结构事实相容，故判 D1。",
+      "L_basis": "判 L1。陈述这条错误的对象是守卫层面的一个静态事实：`:8` 这条边上没有任何守卫，因而它在「时间已设」的情形下同样可发。这属于从模型结构导出的静态判断（issue #189 §1.3.1 把守卫层面的这类判断明列为 L1），只涉及单个系统状态上的一次可发性检查，不需要构造执行序列，故不到 L2。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "guard",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0035-04",
+      "pair": "0035",
+      "D": "D1",
+      "L": "L0",
+      "summary": "NL 第 5、6 句要求显示与更新 cooking time，而制品全篇 18 行只有状态与触发，零变量声明、零迁移 effect、零动作段，这条数据侧语义没有载体。",
+      "detail": "NL 里有四处提到计时与烹饪时间，需要先按建模对象边界切分。建模对象是 $M = (S, E, V, Tr, A)$，不含时钟变量与不变式，所以 NL 第 7 句「where the timer starts」与第 8 句「opening the door stops the timer」属时间语义、在界外，不计入本条。NL 第 5 句「where the cooking time is displayed and updated」与第 6 句「canceling or updating the cooking time」要求的是用户设定的一个普通数据变量上的读写与取消／更新动作，落在 $V$ 与 $A$ 里，属界内。\n\n制品对界内这部分零表达。全文 `:1`-`:18` 没有任何变量声明；`:3`-`:17` 全部十五条迁移的标签冒号后只有一个事件名，没有 `/` 引出的效果；文件里没有任何状态体，因此也没有动作段。\n\n所以无论怎么求值都问不出 cooking time 现在是多少、被谁改过。\n\n根因是制品统一停在「状态加触发」这一层控制骨架的粒度上。`:16 Cooking --> DoorShutWithItem : Timer Expired` 是这种处理的典型：计时部件被当作产生事件的外部环境接进来，模型自己不持有任何量。\n\n本条与 pair 0005 的 EIS-0005-03、pair 0015 的 EIS-0015-01、pair 0025 的 EIS-0025-02 是同一份 NL 上的同一个缺口，四条同判 D1。",
+      "D_basis": "判 D1，两读并立。第一种读法：NL 第 5、6 句点名的 cooking-time 显示与更新属界内的变量与动作，制品零变量零 effect，义务落空。第二种读法：全图统一采用纯控制骨架的粒度，`Timer Expired` 被作为外部事件接入，进入与离开 `Cooking`、`ReadytoCook` 这些状态的语义也可以抽象地承载设备与人机界面行为。这个读法与结构相容且是全图一以贯之的，但不足以反驳全部界内义务（显示与更新要求的是可被观察的量），故判 D1。另需说明本条最初的记录把界外与界内两类主张捆在了一起（NL 第 7、8 句的 timer 启停属时钟语义、在界外），现按界内那一半判。",
+      "L_basis": "判 L0。陈述这条错误只需把 NL 第 5、6 句点名的那样东西（cooking time 这个量及其显示 / 更新动作）拿去模型里找，发现全文没有变量声明、没有 effect、没有动作段。这是一次词项层面的存在性比对，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "effect",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:unreachable_component:DoorShut",
+          "claims": [
+            "Source component 'DoorShut' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0035.DoorShut"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:DoorShut:facet:bb7020d50879"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_component:DoorOpen",
+          "claims": [
+            "Source component 'DoorOpen' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0035.DoorOpen"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:DoorOpen:facet:39f5626f26ea"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_component:DoorOpenWithItem",
+          "claims": [
+            "Source component 'DoorOpenWithItem' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0035.DoorOpenWithItem"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:DoorOpenWithItem:facet:5622f95ce076"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_component:DoorShutWithItem",
+          "claims": [
+            "Source component 'DoorShutWithItem' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0035.DoorShutWithItem"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:DoorShutWithItem:facet:9ae4e836e4a3"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_component:ReadytoCook",
+          "claims": [
+            "Source component 'ReadytoCook' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0035.ReadytoCook"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:ReadytoCook:facet:9ae4e836e4a3"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_component:Cooking",
+          "claims": [
+            "Source component 'Cooking' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0035.Cooking"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:Cooking:facet:14907aa49107"
+          ]
+        },
+        {
+          "finding_id": "source:initial_contract:llms_emp_feedback_final_0035",
+          "claims": [
+            "Source composite 'llms_emp_feedback_final_0035' has no initial transition to required child 'DoorShut'.",
+            "No source-graph path reaches target 'DoorShut' from the exact root entry 'llms_emp_feedback_final_0035'."
+          ],
+          "locations": [
+            "NL1",
+            "F17",
+            "llms_emp_feedback_final_0035",
+            "llms_emp_feedback_final_0035.DoorShut",
+            "llms_emp_feedback_final_0035.UnspecifiedInitial"
+          ],
+          "obligations": [
+            "llms_emp_feedback_final_0035 must initially enter DoorShut.",
+            "The microwave starts in DoorShut.",
+            "The microwave must be able to reach DoorShut from the machine entry.",
+            "The microwave must be able to reach DoorShut from the root initial entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:initial_contract:llms_emp_feedback_final_0035:facet:06cd2f0665bb",
+            "source:initial_contract:llms_emp_feedback_final_0035:facet:34b6354c0425"
+          ]
+        },
+        {
+          "finding_id": "source:transition:DoorOpenWithItem:the door is closed with zero time set:DoorShutWithItem",
+          "claims": [
+            "The required DoorOpenWithItem -> DoorShutWithItem transition under the door is closed with zero time set is absent or loses its condition."
+          ],
+          "locations": [
+            "NL4"
+          ],
+          "obligations": [
+            "DoorOpenWithItem must transition directly to DoorShutWithItem under the door is closed with zero time set."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:DoorOpenWithItem:the door is closed with zero time set:DoorShutWithItem:facet:28155c2215bd"
+          ]
+        },
+        {
+          "finding_id": "source:transition:DoorOpen:the door can be closed:DoorShut",
+          "claims": [
+            "Source has no matching transition from 'DoorOpen' to 'DoorShut' under 'the door can be closed'."
+          ],
+          "locations": [
+            "NL2"
+          ],
+          "obligations": [
+            "DoorOpen must transition directly to DoorShut under the door can be closed."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:DoorOpen:the door can be closed:DoorShut:facet:64ca57b93201"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:cf919a5b7f84ca04",
+          "claims": [
+            "The authored machine may fail to establish DoorShut as the initial target because entry is routed through UnspecifiedInitial."
+          ],
+          "locations": [
+            "NL1",
+            "F17",
+            "llms_emp_feedback_final_0035.UnspecifiedInitial"
+          ],
+          "obligations": [
+            "The microwave starts in DoorShut."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:cf919a5b7f84ca04:facet:75b2a2ff3359"
+          ]
+        },
+        {
+          "finding_id": "source:transition:DoorOpen:Door Closed:DoorShut",
+          "claims": [
+            "Source has no matching transition from 'DoorOpen' to 'DoorShut' under 'Door Closed'."
+          ],
+          "locations": [
+            "NL2",
+            "PUML:L5",
+            "PUML:L4",
+            "tr_0003",
+            "tr_0004"
+          ],
+          "obligations": [
+            "The door can be closed from DoorOpen to return to DoorShut."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:DoorOpen:Door Closed:DoorShut:facet:c5830f39b347"
+          ]
+        },
+        {
+          "finding_id": "source:guard_presence:DoorOpenWithItem:DoorShutWithItem",
+          "claims": [
+            "The DoorOpenWithItem-to-DoorShutWithItem transition may lack the independent zero-time qualifier required by NL4.",
+            "The selected authored transition tr_0006 has the Door Closed event label but no exact formal guard for the additional zero-time qualifier."
+          ],
+          "locations": [
+            "NL4",
+            "PUML:L8",
+            "F23",
+            "tr_0006"
+          ],
+          "obligations": [
+            "Closing with zero time set must be represented as a qualified transition condition.",
+            "The zero-time door-close condition must be represented as a guard on the DoorOpenWithItem to DoorShutWithItem transition."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:guard_presence:DoorOpenWithItem:DoorShutWithItem:facet:89ea0729f214",
+            "source:guard_presence:DoorOpenWithItem:DoorShutWithItem:facet:58bface113ab"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:Cooking:during:timer starts",
+          "claims": [
+            "State 'Cooking' lacks required state_action 'timer starts' in the during phase."
+          ],
+          "locations": [
+            "Cooking"
+          ],
+          "obligations": [
+            "State 'Cooking' must own required state_action 'timer starts' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:Cooking:during:timer starts:facet:f8dd400c3076"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:Cooking:exit:stops the timer",
+          "claims": [
+            "State 'Cooking' lacks required state_action 'stops the timer' in the exit phase."
+          ],
+          "locations": [
+            "Cooking"
+          ],
+          "obligations": [
+            "State 'Cooking' must own required state_action 'stops the timer' in the exit phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:Cooking:exit:stops the timer:facet:ecb2c2f53ff9"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:ReadytoCook:during:cooking time is displayed",
+          "claims": [
+            "State 'ReadytoCook' lacks required output_signal 'cooking time is displayed' in the during phase."
+          ],
+          "locations": [
+            "ReadytoCook"
+          ],
+          "obligations": [
+            "State 'ReadytoCook' must own required output_signal 'cooking time is displayed' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:ReadytoCook:during:cooking time is displayed:facet:f9ab26457917"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:ReadytoCook:during:cooking time is updated",
+          "claims": [
+            "State 'ReadytoCook' lacks required state_action 'cooking time is updated' in the during phase."
+          ],
+          "locations": [
+            "ReadytoCook"
+          ],
+          "obligations": [
+            "State 'ReadytoCook' must own required state_action 'cooking time is updated' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:ReadytoCook:during:cooking time is updated:facet:25d58d4d4375"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:ReadytoCook:during:canceling or updating the cooking time",
+          "claims": [
+            "State 'ReadytoCook' lacks required state_action 'canceling or updating the cooking time' in the during phase."
+          ],
+          "locations": [
+            "ReadytoCook"
+          ],
+          "obligations": [
+            "State 'ReadytoCook' must own required state_action 'canceling or updating the cooking time' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:ReadytoCook:during:canceling or updating the cooking time:facet:e2cfed55b8de"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:unreachable_component:DoorShut",
+          "claims": [
+            "Source component 'DoorShut' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0035.DoorShut"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:DoorShut:facet:bb7020d50879"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_component:DoorOpen",
+          "claims": [
+            "Source component 'DoorOpen' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0035.DoorOpen"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:DoorOpen:facet:39f5626f26ea"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_component:DoorOpenWithItem",
+          "claims": [
+            "Source component 'DoorOpenWithItem' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0035.DoorOpenWithItem"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:DoorOpenWithItem:facet:26490e23de3e"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_component:DoorShutWithItem",
+          "claims": [
+            "Source component 'DoorShutWithItem' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0035.DoorShutWithItem"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:DoorShutWithItem:facet:9ae4e836e4a3"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_component:ReadytoCook",
+          "claims": [
+            "Source component 'ReadytoCook' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0035.ReadytoCook"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:ReadytoCook:facet:9ae4e836e4a3"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_component:Cooking",
+          "claims": [
+            "Source component 'Cooking' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0035.Cooking"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:Cooking:facet:59d807aae43a"
+          ]
+        },
+        {
+          "finding_id": "source:transition:DoorOpen:the door can be closed:DoorShut",
+          "claims": [
+            "Source has no matching transition from 'DoorOpen' to 'DoorShut' under 'the door can be closed'."
+          ],
+          "locations": [
+            "NL2"
+          ],
+          "obligations": [
+            "DoorOpen must transition directly to DoorShut under the door can be closed."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:DoorOpen:the door can be closed:DoorShut:facet:64ca57b93201"
+          ]
+        },
+        {
+          "finding_id": "source:transition:DoorOpenWithItem:the door is closed with zero time set:DoorShutWithItem",
+          "claims": [
+            "The required DoorOpenWithItem -> DoorShutWithItem transition under the door is closed with zero time set is absent or loses its condition."
+          ],
+          "locations": [
+            "NL4"
+          ],
+          "obligations": [
+            "DoorOpenWithItem must transition directly to DoorShutWithItem under the door is closed with zero time set."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:DoorOpenWithItem:the door is closed with zero time set:DoorShutWithItem:facet:28155c2215bd"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:101823b28fa82e0d",
+          "claims": [
+            "The authored FCSTM has a generated UnspecifiedInitial entry instead of an initial edge to DoorShut, so the required default entry may be missing."
+          ],
+          "locations": [
+            "NL1",
+            "F17",
+            "F11",
+            "DoorShut"
+          ],
+          "obligations": [
+            "The microwave must start in DoorShut."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:101823b28fa82e0d:facet:6b8735983ecf"
+          ]
+        },
+        {
+          "finding_id": "source:transition:DoorOpen:Door Closed:DoorShut",
+          "claims": [
+            "Source has no matching transition from 'DoorOpen' to 'DoorShut' under 'Door Closed'."
+          ],
+          "locations": [
+            "NL2",
+            "PUML:L5",
+            "DoorOpen",
+            "tr_0003"
+          ],
+          "obligations": [
+            "The DoorOpen state must transition to DoorShut when the door is closed."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:DoorOpen:Door Closed:DoorShut:facet:bfed281c0dd3"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:ReadytoCook:during:canceling or updating the cooking time",
+          "claims": [
+            "State 'ReadytoCook' lacks required state_action 'canceling or updating the cooking time' in the during phase."
+          ],
+          "locations": [
+            "ReadytoCook"
+          ],
+          "obligations": [
+            "State 'ReadytoCook' must own required state_action 'canceling or updating the cooking time' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:ReadytoCook:during:canceling or updating the cooking time:facet:e2cfed55b8de"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:ReadytoCook:during:cooking time is displayed and updated",
+          "claims": [
+            "State 'ReadytoCook' lacks required output_signal 'cooking time is displayed and updated' in the during phase."
+          ],
+          "locations": [
+            "ReadytoCook"
+          ],
+          "obligations": [
+            "State 'ReadytoCook' must own required output_signal 'cooking time is displayed and updated' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:ReadytoCook:during:cooking time is displayed and updated:facet:f58bbd1c9159"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:Cooking:entry:timer starts",
+          "claims": [
+            "State 'Cooking' lacks required state_action 'timer starts' in the entry phase."
+          ],
+          "locations": [
+            "Cooking"
+          ],
+          "obligations": [
+            "State 'Cooking' must own required state_action 'timer starts' in the entry phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:Cooking:entry:timer starts:facet:a66e28b5f1e3"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:Cooking:exit:stops the timer",
+          "claims": [
+            "State 'Cooking' lacks required state_action 'stops the timer' in the exit phase."
+          ],
+          "locations": [
+            "Cooking"
+          ],
+          "obligations": [
+            "State 'Cooking' must own required state_action 'stops the timer' in the exit phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:Cooking:exit:stops the timer:facet:ecb2c2f53ff9"
+          ]
+        },
+        {
+          "finding_id": "source:initial_contract:llms_emp_feedback_final_0035",
+          "claims": [
+            "No source-graph path reaches target 'DoorShut' from the exact root entry 'llms_emp_feedback_final_0035'.",
+            "Source composite 'llms_emp_feedback_final_0035' has no initial transition to required child 'DoorShut'."
+          ],
+          "locations": [
+            "NL1",
+            "deterministic_frontier:source:unreachable_component:DoorShut",
+            "F17",
+            "llms_emp_feedback_final_0035.DoorShut",
+            "llms_emp_feedback_final_0035.DoorOpen",
+            "llms_emp_feedback_final_0035.DoorOpenWithItem",
+            "llms_emp_feedback_final_0035.DoorShutWithItem",
+            "llms_emp_feedback_final_0035.ReadytoCook",
+            "llms_emp_feedback_final_0035.Cooking",
+            "F11",
+            "DoorShut"
+          ],
+          "obligations": [
+            "DoorShut must be reachable from the machine's root entry.",
+            "The microwave behavior must be reachable from the root through DoorShut.",
+            "The microwave starts in DoorShut."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:initial_contract:llms_emp_feedback_final_0035:facet:34b6354c0425",
+            "source:initial_contract:llms_emp_feedback_final_0035:facet:06cd2f0665bb"
+          ]
+        },
+        {
+          "finding_id": "source:guard_presence:DoorOpenWithItem:DoorShutWithItem",
+          "claims": [
+            "The authored transition selected for the zero-time case has no formal guard binding for the zero-time qualifier."
+          ],
+          "locations": [
+            "NL4",
+            "PUML:L8",
+            "F23",
+            "tr_0006"
+          ],
+          "obligations": [
+            "The qualified Door Closed transition from DoorOpenWithItem to DoorShutWithItem requires zero cooking time."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:guard_presence:DoorOpenWithItem:DoorShutWithItem:facet:58bface113ab"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:unreachable_component:DoorShut",
+          "claims": [
+            "Source component 'DoorShut' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0035.DoorShut"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:DoorShut:facet:bb7020d50879"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_component:DoorOpen",
+          "claims": [
+            "Source component 'DoorOpen' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0035.DoorOpen"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:DoorOpen:facet:39f5626f26ea"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_component:DoorOpenWithItem",
+          "claims": [
+            "Source component 'DoorOpenWithItem' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0035.DoorOpenWithItem"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:DoorOpenWithItem:facet:16355b6f0b7c"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_component:DoorShutWithItem",
+          "claims": [
+            "Source component 'DoorShutWithItem' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0035.DoorShutWithItem"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:DoorShutWithItem:facet:9ae4e836e4a3"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_component:ReadytoCook",
+          "claims": [
+            "Source component 'ReadytoCook' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0035.ReadytoCook"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:ReadytoCook:facet:9ae4e836e4a3"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_component:Cooking",
+          "claims": [
+            "Source component 'Cooking' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0035.Cooking"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:Cooking:facet:14907aa49107"
+          ]
+        },
+        {
+          "finding_id": "source:initial_contract:llms_emp_feedback_final_0035",
+          "claims": [
+            "Source composite 'llms_emp_feedback_final_0035' has no initial transition to required child 'DoorShut'."
+          ],
+          "locations": [
+            "NL1",
+            "F17",
+            "llms_emp_feedback_final_0035",
+            "DoorShut"
+          ],
+          "obligations": [
+            "llms_emp_feedback_final_0035 must initially enter DoorShut.",
+            "The microwave must have DoorShut as its initial target."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:llms_emp_feedback_final_0035:facet:06cd2f0665bb"
+          ]
+        },
+        {
+          "finding_id": "source:transition:DoorOpen:the door can be closed:DoorShut",
+          "claims": [
+            "Source has no matching transition from 'DoorOpen' to 'DoorShut' under 'the door can be closed'."
+          ],
+          "locations": [
+            "NL2"
+          ],
+          "obligations": [
+            "DoorOpen must transition directly to DoorShut under the door can be closed."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:DoorOpen:the door can be closed:DoorShut:facet:64ca57b93201"
+          ]
+        },
+        {
+          "finding_id": "source:transition:DoorOpenWithItem:the door is closed with zero time set:DoorShutWithItem",
+          "claims": [
+            "The required DoorOpenWithItem -> DoorShutWithItem transition under the door is closed with zero time set is absent or loses its condition."
+          ],
+          "locations": [
+            "NL4"
+          ],
+          "obligations": [
+            "DoorOpenWithItem must transition directly to DoorShutWithItem under the door is closed with zero time set."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:DoorOpenWithItem:the door is closed with zero time set:DoorShutWithItem:facet:28155c2215bd"
+          ]
+        },
+        {
+          "finding_id": "source:transition:DoorOpen:Door Closed:DoorShut",
+          "claims": [
+            "Source has no matching transition from 'DoorOpen' to 'DoorShut' under 'Door Closed'."
+          ],
+          "locations": [
+            "NL2",
+            "DoorOpen",
+            "DoorShut",
+            "tr_0003",
+            "tr_0004"
+          ],
+          "obligations": [
+            "DoorOpen must transition to DoorShut when the door is closed."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:DoorOpen:Door Closed:DoorShut:facet:f658660591b5"
+          ]
+        },
+        {
+          "finding_id": "source:guard_presence:DoorOpenWithItem:DoorShutWithItem",
+          "claims": [
+            "The authored DoorOpenWithItem-to-DoorShutWithItem edge may encode only Door Closed and omit the required zero-time guard qualifier."
+          ],
+          "locations": [
+            "NL4",
+            "tr_0006",
+            "F23"
+          ],
+          "obligations": [
+            "The Door Closed transition from DoorOpenWithItem must include the zero-time qualifier."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:guard_presence:DoorOpenWithItem:DoorShutWithItem:facet:58bface113ab"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:ReadytoCook:during:cooking time is displayed",
+          "claims": [
+            "State 'ReadytoCook' lacks required output_signal 'cooking time is displayed' in the during phase."
+          ],
+          "locations": [
+            "ReadytoCook"
+          ],
+          "obligations": [
+            "State 'ReadytoCook' must own required output_signal 'cooking time is displayed' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:ReadytoCook:during:cooking time is displayed:facet:87bd07424783"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:ReadytoCook:during:cooking time is updated",
+          "claims": [
+            "State 'ReadytoCook' lacks required state_action 'cooking time is updated' in the during phase."
+          ],
+          "locations": [
+            "ReadytoCook"
+          ],
+          "obligations": [
+            "State 'ReadytoCook' must own required state_action 'cooking time is updated' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:lifecycle_action:ReadytoCook:during:cooking time is updated:facet:042cfa0113a3",
+            "source:lifecycle_action:ReadytoCook:during:cooking time is updated:facet:df5ef991d9c2"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:Cooking:entry:timer starts",
+          "claims": [
+            "State 'Cooking' lacks required state_action 'timer starts' in the entry phase."
+          ],
+          "locations": [
+            "Cooking"
+          ],
+          "obligations": [
+            "State 'Cooking' must own required state_action 'timer starts' in the entry phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:Cooking:entry:timer starts:facet:3205946be7b9"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:Cooking:exit:timer stops",
+          "claims": [
+            "State 'Cooking' lacks required state_action 'timer stops' in the exit phase."
+          ],
+          "locations": [
+            "Cooking"
+          ],
+          "obligations": [
+            "State 'Cooking' must own required state_action 'timer stops' in the exit phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:Cooking:exit:timer stops:facet:61c16ef8adf7"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:ReadytoCook:during:cooking time is canceled",
+          "claims": [
+            "State 'ReadytoCook' lacks required state_action 'cooking time is canceled' in the during phase."
+          ],
+          "locations": [
+            "ReadytoCook"
+          ],
+          "obligations": [
+            "State 'ReadytoCook' must own required state_action 'cooking time is canceled' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:ReadytoCook:during:cooking time is canceled:facet:acead940b463"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "缺少“烹饪时间为零”的条件约束。",
+          "reason": "规格要求只有在关门且已设置时间为零时，才能从 DoorOpenWithItem 转移到 DoorShutWithItem；模型对任意 Door Closed 都执行该转移，因此允许非零时间设置下错误地进入 DoorShutWithItem。",
+          "where": "DoorOpenWithItem --> DoorShutWithItem : Door Closed"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "未建模烹饪时间的显示和更新行为。",
+          "reason": "规格明确要求进入 ReadytoCook 后显示并更新烹饪时间；模型只表示进入该状态，没有相应的显示、更新时间或相关动作。",
+          "where": "ReadytoCook 状态及其相关转移"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "未表达 Cancel 对烹饪时间的取消或更新动作。",
+          "reason": "规格要求 Cancel 返回 DoorShutWithItem 时取消或更新烹饪时间；模型仅表示状态转移，没有该动作语义。",
+          "where": "ReadytoCook --> DoorShutWithItem : Cancel"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "未表达 Start 后启动计时器。",
+          "reason": "规格要求执行 Start 后进入 Cooking 且计时器开始运行；模型只有 Start 转移，没有启动计时器的动作。",
+          "where": "ReadytoCook --> Cooking : Start 及 Cooking 状态"
+        },
+        {
+          "finding_id": "baseline_issue_5",
+          "issue": "未表达开门时停止计时器。",
+          "reason": "规格要求 Cooking 状态开门会停止计时器后转入 DoorOpenWithItem；模型仅表示状态转移，没有停止计时器动作。",
+          "where": "Cooking --> DoorOpenWithItem : Door Opened"
+        },
+        {
+          "finding_id": "baseline_issue_6",
+          "issue": "在无物品的 DoorOpen 状态中增加了 Item Removed 自循环。",
+          "reason": "规格仅规定 DoorOpen 中放入物品进入 DoorOpenWithItem，并未规定在 DoorOpen 状态处理 Item Removed；该转移不是规格所定义的行为，且语义上从无物品状态移除物品不应产生有效事件。",
+          "where": "DoorOpen --> DoorOpen : Item Removed"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "DoorShut 状态缺少“保持在 DoorShut”之外的明确语义问题：模型已建模 Cancel 自环，符合规格。",
+          "reason": "该部分与规格第1条一致，不构成非符合项。",
+          "where": "DoorShut --> DoorShut : Cancel"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "DoorOpen 状态缺少“门关闭后返回 DoorShut”的转换。",
+          "reason": "规格第2条明确要求门可以关闭并返回 DoorShut，但模型没有 DoorOpen --> DoorShut : Door Closed。",
+          "where": "DoorOpen 状态的出边"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "DoorOpenWithItem 到 DoorShutWithItem 的转换未表达“零时间设定”的条件。",
+          "reason": "规格第4条限定只有在关门且 cooking time 为零时才能进入 DoorShutWithItem；模型将任意 Door Closed 都导向该状态，可能错误覆盖已设置烹饪时间的情况。",
+          "where": "DoorOpenWithItem --> DoorShutWithItem : Door Closed"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "DoorOpen 状态包含规格未定义的 `Item Removed` 自循环转移。",
+          "reason": "规格只规定 DoorOpen 中放入物品进入 DoorOpenWithItem，以及关门返回 DoorShut；未规定 DoorOpen 状态可执行或处理 Item Removed。该额外行为不符合给定规格。",
+          "where": "`DoorOpen --> DoorOpen : Item Removed`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "DoorOpenWithItem 到 DoorShutWithItem 的转移缺少“零时间设定”条件。",
+          "reason": "规格明确要求“门关闭且时间设定为零”时才能进入 DoorShutWithItem。模型仅以 Door Closed 作为触发条件，因此允许在已有非零烹饪时间时关门也进入该状态，行为约束比规格宽松。",
+          "where": "`DoorOpenWithItem --> DoorShutWithItem : Door Closed`"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0035",
+    "ledger_assessments": [
+      {
+        "ledger_id": "EIS-0035-01",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "hypothesis:cf919a5b7f84ca04",
+            "source:initial_contract:llms_emp_feedback_final_0035"
+          ],
+          "reason": "两个 finding 都直接主张 DoorShut 未被根初始入口选为目标。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "hypothesis:101823b28fa82e0d",
+            "source:initial_contract:llms_emp_feedback_final_0035"
+          ],
+          "reason": "两个 finding 都直接主张缺少根到 DoorShut 的初始迁移。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:llms_emp_feedback_final_0035"
+          ],
+          "reason": "初始契约 finding 直接主张根没有到 DoorShut 的初始迁移。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该轮没有主张根初始迁移到 DoorShut。",
+          "confidence": "low"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该轮没有主张根初始迁移到 DoorShut。",
+          "confidence": "low"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该轮没有主张根初始迁移到 DoorShut。",
+          "confidence": "low"
+        }
+      },
+      {
+        "ledger_id": "EIS-0035-02",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:transition:DoorOpen:Door Closed:DoorShut",
+            "source:transition:DoorOpen:the door can be closed:DoorShut"
+          ],
+          "reason": "两个独立迁移 finding 都指向 DoorOpen 到 DoorShut 的缺失回程。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:transition:DoorOpen:Door Closed:DoorShut",
+            "source:transition:DoorOpen:the door can be closed:DoorShut"
+          ],
+          "reason": "两个独立迁移 finding 都指向同一缺失回程。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:transition:DoorOpen:Door Closed:DoorShut",
+            "source:transition:DoorOpen:the door can be closed:DoorShut"
+          ],
+          "reason": "两个迁移 finding 都指向 DoorOpen 关门返回 DoorShut 的缺失。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该轮没有主张 DoorOpen 到 DoorShut 的回程迁移缺失。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_2"
+          ],
+          "reason": "明确指出 DoorOpen 缺少关门返回 DoorShut 的转换。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该轮只指出 DoorOpen 的多余自环和另一条条件缺失。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0035-03",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:guard_presence:DoorOpenWithItem:DoorShutWithItem",
+            "source:transition:DoorOpenWithItem:the door is closed with zero time set:DoorShutWithItem"
+          ],
+          "reason": "迁移和 guard findings 均指向该边的零时间限定缺失。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:guard_presence:DoorOpenWithItem:DoorShutWithItem",
+            "source:transition:DoorOpenWithItem:the door is closed with zero time set:DoorShutWithItem"
+          ],
+          "reason": "guard 和 transition findings 均指向同一零时间限定缺失。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:guard_presence:DoorOpenWithItem:DoorShutWithItem",
+            "source:transition:DoorOpenWithItem:the door is closed with zero time set:DoorShutWithItem"
+          ],
+          "reason": "guard 和 transition findings 均指向同一边及其零时间限定缺失。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "明确指出 DoorOpenWithItem 到 DoorShutWithItem 缺少零时间条件。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_3"
+          ],
+          "reason": "明确指出同一迁移未表达零时间设定条件。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_2"
+          ],
+          "reason": "明确指出同一迁移仅有 Door Closed、缺少零时间条件。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0035-04",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:lifecycle_action:ReadytoCook:during:canceling or updating the cooking time",
+            "source:lifecycle_action:ReadytoCook:during:cooking time is displayed",
+            "source:lifecycle_action:ReadytoCook:during:cooking time is updated"
+          ],
+          "reason": "ReadytoCook 的显示、更新、取消或更新动作 findings 共同覆盖台账界内数据语义。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:lifecycle_action:ReadytoCook:during:canceling or updating the cooking time",
+            "source:lifecycle_action:ReadytoCook:during:cooking time is displayed and updated"
+          ],
+          "reason": "ReadytoCook 的取消或更新 finding 与显示并更新 finding 覆盖台账主张。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:lifecycle_action:ReadytoCook:during:cooking time is canceled",
+            "source:lifecycle_action:ReadytoCook:during:cooking time is displayed",
+            "source:lifecycle_action:ReadytoCook:during:cooking time is updated"
+          ],
+          "reason": "ReadytoCook 的取消、显示和更新 findings 分别覆盖台账的三个界内数据要求。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_2",
+            "baseline_issue_3"
+          ],
+          "reason": "显示、更新以及 Cancel 时的 cooking time 动作缺失均覆盖台账的数据侧主张。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该轮只报告初始语义、DoorOpen 回程和零时间条件，没有 cooking time 数据表达问题。",
+          "confidence": "low"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该轮只报告多余自环和零时间条件，没有 cooking time 显示、更新或取消动作缺失。",
+          "confidence": "high"
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "method_run1",
+        "emitted_id": "hypothesis:cf919a5b7f84ca04",
+        "matched_ledger_ids": [
+          "EIS-0035-01"
+        ],
+        "false_positive": false,
+        "reason": "指向 DoorShut 未作为根初始目标，正是缺少初始进入 DoorShut 的同一位置与缺失性质。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:guard_presence:DoorOpenWithItem:DoorShutWithItem",
+        "matched_ledger_ids": [
+          "EIS-0035-03"
+        ],
+        "false_positive": false,
+        "reason": "指向 DoorOpenWithItem 到 DoorShutWithItem 边缺少零时间守卫，位置和守卫缺失性质一致。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:initial_contract:llms_emp_feedback_final_0035",
+        "matched_ledger_ids": [
+          "EIS-0035-01"
+        ],
+        "false_positive": false,
+        "reason": "明确主张根没有到 DoorShut 的初始迁移，覆盖初始边缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:lifecycle_action:Cooking:during:timer starts",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 Cooking 状态计时器启动动作缺失，台账 EIS-0035-04 只覆盖 cooking time 显示、更新和取消，不覆盖计时器启动。",
+        "confidence": "low"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:lifecycle_action:Cooking:exit:stops the timer",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 Cooking 状态退出时停止计时器，属于台账明确排除的时钟启停语义。",
+        "confidence": "low"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:lifecycle_action:ReadytoCook:during:canceling or updating the cooking time",
+        "matched_ledger_ids": [
+          "EIS-0035-04"
+        ],
+        "false_positive": false,
+        "reason": "指向 ReadytoCook 中 cooking time 的取消或更新动作缺失，与台账数据侧缺口同处同性质。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:lifecycle_action:ReadytoCook:during:cooking time is displayed",
+        "matched_ledger_ids": [
+          "EIS-0035-04"
+        ],
+        "false_positive": false,
+        "reason": "指向 ReadytoCook 中 cooking time 显示缺失，正是台账要求的可观察数据语义。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:lifecycle_action:ReadytoCook:during:cooking time is updated",
+        "matched_ledger_ids": [
+          "EIS-0035-04"
+        ],
+        "false_positive": false,
+        "reason": "指向 ReadytoCook 中 cooking time 更新动作缺失，与台账同处同性质。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:transition:DoorOpen:Door Closed:DoorShut",
+        "matched_ledger_ids": [
+          "EIS-0035-02"
+        ],
+        "false_positive": false,
+        "reason": "明确主张 DoorOpen 在 Door Closed 下没有到 DoorShut 的迁移。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:transition:DoorOpen:the door can be closed:DoorShut",
+        "matched_ledger_ids": [
+          "EIS-0035-02"
+        ],
+        "false_positive": false,
+        "reason": "明确主张 DoorOpen 关门返回 DoorShut 的迁移缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:transition:DoorOpenWithItem:the door is closed with zero time set:DoorShutWithItem",
+        "matched_ledger_ids": [
+          "EIS-0035-03"
+        ],
+        "false_positive": false,
+        "reason": "指向同一条 DoorOpenWithItem 到 DoorShutWithItem 迁移，并主张零时间条件丢失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:unreachable_component:Cooking",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 Cooking 不可达这一一般可达性问题，台账没有该状态的不可达条目。",
+        "confidence": "low"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:unreachable_component:DoorOpen",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 DoorOpen 不可达，不是台账所要求的 DoorOpen 到 DoorShut 回程边缺失。",
+        "confidence": "low"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:unreachable_component:DoorOpenWithItem",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 DoorOpenWithItem 不可达，性质不同于台账的零时间守卫缺失。",
+        "confidence": "low"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:unreachable_component:DoorShut",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 DoorShut 一般不可达，而非直接主张根初始迁移缺失；台账要求的是迁移槽位缺失。",
+        "confidence": "low"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:unreachable_component:DoorShutWithItem",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 DoorShutWithItem 不可达，未主张台账中的零时间条件缺失。",
+        "confidence": "low"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:unreachable_component:ReadytoCook",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 ReadytoCook 不可达，未主张其 cooking time 数据表达缺失。",
+        "confidence": "low"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:101823b28fa82e0d",
+        "matched_ledger_ids": [
+          "EIS-0035-01"
+        ],
+        "false_positive": false,
+        "reason": "主张生成的初始入口没有把系统送入 DoorShut，覆盖初始迁移缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:guard_presence:DoorOpenWithItem:DoorShutWithItem",
+        "matched_ledger_ids": [
+          "EIS-0035-03"
+        ],
+        "false_positive": false,
+        "reason": "主张同一迁移缺少零时间形式守卫。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:initial_contract:llms_emp_feedback_final_0035",
+        "matched_ledger_ids": [
+          "EIS-0035-01"
+        ],
+        "false_positive": false,
+        "reason": "明确主张根到 DoorShut 的初始迁移不存在。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:lifecycle_action:Cooking:entry:timer starts",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "是 Cooking 计时器启动语义，台账数据缺口不包含时钟启停。",
+        "confidence": "low"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:lifecycle_action:Cooking:exit:stops the timer",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "是 Cooking 停止计时器语义，属于台账明确排除的界外时钟语义。",
+        "confidence": "low"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:lifecycle_action:ReadytoCook:during:canceling or updating the cooking time",
+        "matched_ledger_ids": [
+          "EIS-0035-04"
+        ],
+        "false_positive": false,
+        "reason": "覆盖 ReadytoCook 中 cooking time 取消或更新动作缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:lifecycle_action:ReadytoCook:during:cooking time is displayed and updated",
+        "matched_ledger_ids": [
+          "EIS-0035-04"
+        ],
+        "false_positive": false,
+        "reason": "同一 ReadytoCook 数据位置同时主张显示和更新缺失，均属台账 EIS-0035-04。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:transition:DoorOpen:Door Closed:DoorShut",
+        "matched_ledger_ids": [
+          "EIS-0035-02"
+        ],
+        "false_positive": false,
+        "reason": "主张 DoorOpen 关门到 DoorShut 的迁移缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:transition:DoorOpen:the door can be closed:DoorShut",
+        "matched_ledger_ids": [
+          "EIS-0035-02"
+        ],
+        "false_positive": false,
+        "reason": "主张同一 DoorOpen 到 DoorShut 回程迁移缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:transition:DoorOpenWithItem:the door is closed with zero time set:DoorShutWithItem",
+        "matched_ledger_ids": [
+          "EIS-0035-03"
+        ],
+        "false_positive": false,
+        "reason": "主张同一迁移的零时间限定丢失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:unreachable_component:Cooking",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "一般不可达主张不对应四条台账中的位置与性质。",
+        "confidence": "low"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:unreachable_component:DoorOpen",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "DoorOpen 不可达不是 DoorOpen 到 DoorShut 边缺失。",
+        "confidence": "low"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:unreachable_component:DoorOpenWithItem",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "DoorOpenWithItem 不可达不是零时间守卫缺失。",
+        "confidence": "low"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:unreachable_component:DoorShut",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "一般不可达性质不等于初始迁移槽位缺失。",
+        "confidence": "low"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:unreachable_component:DoorShutWithItem",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "未主张台账所述迁移或守卫问题。",
+        "confidence": "low"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:unreachable_component:ReadytoCook",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "ReadytoCook 不可达未主张 cooking time 数据表达缺失。",
+        "confidence": "low"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:guard_presence:DoorOpenWithItem:DoorShutWithItem",
+        "matched_ledger_ids": [
+          "EIS-0035-03"
+        ],
+        "false_positive": false,
+        "reason": "同一 DoorOpenWithItem 到 DoorShutWithItem 边缺少零时间限定。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:initial_contract:llms_emp_feedback_final_0035",
+        "matched_ledger_ids": [
+          "EIS-0035-01"
+        ],
+        "false_positive": false,
+        "reason": "主张根没有到 DoorShut 的初始迁移。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:lifecycle_action:Cooking:entry:timer starts",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张时钟启动，台账 EIS-0035-04 不包含界外时钟语义。",
+        "confidence": "low"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:lifecycle_action:Cooking:exit:timer stops",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张时钟停止，台账明确将该类语义排除。",
+        "confidence": "low"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:lifecycle_action:ReadytoCook:during:cooking time is canceled",
+        "matched_ledger_ids": [
+          "EIS-0035-04"
+        ],
+        "false_positive": false,
+        "reason": "覆盖 ReadytoCook 中 cooking time 取消动作缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:lifecycle_action:ReadytoCook:during:cooking time is displayed",
+        "matched_ledger_ids": [
+          "EIS-0035-04"
+        ],
+        "false_positive": false,
+        "reason": "覆盖 ReadytoCook 中 cooking time 显示缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:lifecycle_action:ReadytoCook:during:cooking time is updated",
+        "matched_ledger_ids": [
+          "EIS-0035-04"
+        ],
+        "false_positive": false,
+        "reason": "覆盖 ReadytoCook 中 cooking time 更新缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:transition:DoorOpen:Door Closed:DoorShut",
+        "matched_ledger_ids": [
+          "EIS-0035-02"
+        ],
+        "false_positive": false,
+        "reason": "主张 DoorOpen 关门到 DoorShut 的迁移缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:transition:DoorOpen:the door can be closed:DoorShut",
+        "matched_ledger_ids": [
+          "EIS-0035-02"
+        ],
+        "false_positive": false,
+        "reason": "主张同一 DoorOpen 到 DoorShut 回程迁移缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:transition:DoorOpenWithItem:the door is closed with zero time set:DoorShutWithItem",
+        "matched_ledger_ids": [
+          "EIS-0035-03"
+        ],
+        "false_positive": false,
+        "reason": "主张同一迁移的零时间限定丢失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:unreachable_component:Cooking",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "一般不可达问题不对应台账条目。",
+        "confidence": "low"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:unreachable_component:DoorOpen",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "不可达性质不同于 DoorOpen 到 DoorShut 回程缺失。",
+        "confidence": "low"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:unreachable_component:DoorOpenWithItem",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "不可达性质不同于零时间守卫缺失。",
+        "confidence": "low"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:unreachable_component:DoorShut",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "不可达性质不同于初始迁移槽位缺失。",
+        "confidence": "low"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:unreachable_component:DoorShutWithItem",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "未主张台账中的迁移条件缺失。",
+        "confidence": "low"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:unreachable_component:ReadytoCook",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "不可达未主张 cooking time 数据表达缺失。",
+        "confidence": "low"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0035-03"
+        ],
+        "false_positive": false,
+        "reason": "明确指向同一条 DoorOpenWithItem 到 DoorShutWithItem 迁移及零时间条件缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "EIS-0035-04"
+        ],
+        "false_positive": false,
+        "reason": "明确指向 ReadytoCook 的 cooking time 显示和更新缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [
+          "EIS-0035-04"
+        ],
+        "false_positive": false,
+        "reason": "明确指向 Cancel 时 cooking time 取消或更新动作缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "指向 Start 后计时器启动，属于台账排除的时钟启停语义。",
+        "confidence": "low"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_5",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "指向开门时停止计时器，属于台账排除的时钟启停语义。",
+        "confidence": "low"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_6",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 DoorOpen 中多余的 Item Removed 自环，台账没有该多余迁移条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出明确说模型符合规格，不主张任何台账缺陷。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "EIS-0035-02"
+        ],
+        "false_positive": false,
+        "reason": "明确指向 DoorOpen 关门返回 DoorShut 的迁移缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [
+          "EIS-0035-03"
+        ],
+        "false_positive": false,
+        "reason": "明确指向同一迁移缺少零时间条件。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 DoorOpen 中多余的 Item Removed 自环，台账未覆盖该多余行为。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "EIS-0035-03"
+        ],
+        "false_positive": false,
+        "reason": "明确指向 DoorOpenWithItem 到 DoorShutWithItem 缺少零时间条件。",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "已对四条冻结台账逐一评审六个输出格，并对 required_emission_keys_exactly_once 中的每个 emitted issue 恰好给出一次对应或 false-positive 判定；计时器启停及一般状态不可达等未与台账的界内同性质主张强行合并。"
+  },
+  "status": "ok",
+  "attempts": 2
+}

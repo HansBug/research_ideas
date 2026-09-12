@@ -1,0 +1,1594 @@
+--- Page 1 ---
+Vol:.(1234567890)Formal Methods in System Design (2021) 59:136–169
+https://doi.org/10.1007/s10703-022-00397-5
+1 3
+Automated repair for timed systems
+Martin Kölbl1  · Stefan Leue1  · Thomas Wies2 
+Received: 21 May 2021 / Accepted: 13 September 2022 / Published online: 5 October 2022 
+© The Author(s) 2022
+Abstract
+We present algorithms and techniques for the repair of timed system models, given as 
+networks of timed automata (NTA). The repair is based on an analysis of timed diagnostic 
+traces (TDTs) that are computed by real-time model checking tools, such as UPPAAL, 
+when they detect the violation of a timed safety property. We present an encoding of 
+TDTs in linear real arithmetic and use the MaxSMT capabilities of the SMT solver Z3 
+to suggest a minimal number of possible syntactic repairs of the analyzed model. The 
+suggested repairs include modified values for clock bounds in location invariants and 
+transition guards, adding or removing clock resets, etc. We then present an admissibility 
+criterion, called functional equivalence, which ensures that the proposed repair preserves 
+the functional behavior of the considered NTA. We discuss a proof-of-concept tool called 
+TarTar that we have developed, implementing the repair and admissibility analysis, and 
+give insights into its design and architecture. We evaluate the proposed repair technique on 
+faulty mutations generated from a diverse suite of case studies taken from the literature. We 
+show that TarTar can admissibly repair for 69– 88% of the seeded errors in the considered 
+system models.
+Keywords Timed automata · Automated repair · Admissibility of repair · TarTar tool
+1 Introduction
+The analysis of system design models using model checking technology is an important 
+step in the system design process. It enables the automated verification of system 
+properties against given design models. The automated nature of model checking facilitates 
+the integration of the verification step into the design process since it requires no further 
+ * Martin Kölbl 
+ martin.koelbl@uni-konstanz.de
+ Stefan Leue 
+ stefan.leue@uni-konstanz.de
+ Thomas Wies 
+ wies@cs.nyu.edu
+1 University of Konstanz, Konstanz, Germany
+2 New York University, New York, USA
+
+--- Page 2 ---
+137 Formal Methods in System Design (2021) 59:136–169 
+1 3
+intervention of the designer once the model has been formulated and the property has been 
+specified.
+Often it is sufficient to abstract from real time aspects when checking system properties, 
+in particular when the focus is on functional aspects of the system. However, in certain 
+domains, non-functional properties of the system such as response times or the timing of 
+periodic behavior play an important role. In such cases, it is necessary to incorporate real 
+time aspects into the models and the specification, as well as to use specialized real-time 
+model checking tools, such as UPPAAL [10], Kronos [44] or opaal [16] during the verifi-
+cation step.
+Next to the automatic nature of model checking, the ability to return counterexamples, 
+in real-time model checking often referred to as timed diagnostic traces (TDT), is a further 
+practical benefit of the use of model checking technology. A TDT describes a timed 
+sequence of steps that lead the design model from the initial state of the system into a 
+state violating a real-time property. However, a TDT alone neither constitutes a causal 
+explanation of the property violation, nor does it provide hints as to how to correct the 
+model.
+We present an automated method that computes proposals for possible repairs of a net-
+work of timed automata (NTA) that avoid the violation of a timed safety property. Con-
+sider the TDT depicted as a time annotated sequence diagram [9] in Fig.  1c. This scenario 
+describes a simple message exchange where the process client  sends a message req 
+to the process db which, after some processing steps returns a message ser to client . 
+Assume a requirement on the system stating that the time from sending req to receiving 
+ser is not to be more than 4 time units. Further assume that the timing interval annota-
+tions on the sequence diagram represent the minimum and maximum time for the message 
+transmission and processing steps that the NTA, from which the diagram has been derived, 
+permits. It is then easy to see that it is possible to execute the system in such a way that this 
+property is violated.
+Various changes to the underlying NTA model depicted in Fig.  1 may avoid this 
+property violation. We present analyses that can suggest a whole range of repairs in 
+addition to clock bound variation, such as modifying clock bounds, comparison operators 
+in constraints, clock references, clock resets, and location urgency. Examples of repairs 
+computed for the model in Fig. 1 are:
+– Reducing the maximum time it takes to transmit ser message to be at most 1 time unit 
+by exchanging z<=2 with z<=1.
+Fig. 1  Network of timed automata—running example
+
+--- Page 3 ---
+138 Formal Methods in System Design (2021) 59:136–169
+1 3
+– Exchanging the comparison operator in the constraint w≥1 to w<1 ensures that the time 
+to send a request is below 1 time unit.
+– An exchange of clock z  in z≤2 with clock y  restricts the time of processing and receiving 
+the response to at most 2 time units.
+– To reset the clock y  on the previous transition instead ensures that the time for sending and 
+processing the request is below 1 time unit.
+– Making the location serReceiving urgent reduces the time to receive a response to 0.
+Proposing such changes to the model may either serve to correct clerical mistakes made 
+during the editing of the model, or point to necessary changes in the dimensioning of its time 
+resources, thus contributing to improved design space exploration.
+The repair method described in this paper relies on an encoding of a TDT as a constraint 
+system in linear real arithmetic. This encoding provides a symbolic abstract semantics for the 
+TDT by constraining the sojourn time of the NTA in the locations visited along the trace. The 
+constraint system is then augmented by auxiliary model variation variables which represent 
+syntactic changes to the NTA model, for instance, the variation of a location invariant 
+condition or a transition guard. We assert that the thus modified constraint system implies the 
+non-reachability of a violation. At the same time, we assert that the model variation variables 
+have a value that implies that no change of the NTA model will occur, for instance, by setting a 
+clock bound variation variable to 0. This renders the resulting constraint system unsatisfiable.
+In order to compute a repair, we derive a partial MaxSMT instance by turning the 
+constraints that disable any repair into soft constraints. We solve this MaxSMT instance using 
+the SMT solver Z3 [18]. If the MaxSMT instance admits a solution, the resulting model 
+provides values of the model variation variables. These values indicate a repair of the NTA 
+model which entails that along the sequence of locations represented by the TDT, the property 
+violation will no longer be reachable.
+In a next step it is necessary to check whether the computed repair is an admissible repair 
+in the context of the full NTA. This is important since the repair was computed locally with 
+respect to only a single given TDT. Thus, it is necessary to define a notion of admissibility 
+that is reasonable and helpful in this setting. To this end, we propose the notion of functional 
+equivalence which states that as a result of the computed repair, neither erstwhile existing 
+functional behavior will be eliminated, nor will new functional behavior be added. Functional 
+behavior in this sense is represented by the languages accepted by the untimed automata of the 
+unrepaired and the repaired NTAs. Functional equivalence is then defined as equivalence of 
+the languages accepted by these automata. We propose a zone-based automaton construction 
+for implementing the functional equivalence test that is efficient in practice.
+We have implemented our proposed method in a proof-of-concept tool called TarTar. Our 
+evaluation of TarTar is based on several non-trivial NTA models taken from the literature, 
+including the frequently considered pacemaker model [29]. For each model, we automatically 
+generated mutants by injecting syntactic modifications which we then model checked using 
+UPPAAL and repaired using TarTar. The evaluation shows that our technique is able to 
+compute an admissible repair 69– 88% of the detected faults.
+1.1  Related work
+There are relatively few results available on a formal treatment of TDTs. The zone-based 
+approach to real-time model checking, which relies on a constraint-based abstraction of 
+the state space, is proposed in [23]. The use of constraint solving to perform reachability 
+
+--- Page 4 ---
+139 Formal Methods in System Design (2021) 59:136–169 
+1 3
+analysis for NTAs is described in [45]. This approach ultimately lead to the on-the-fly 
+reachability analysis algorithm used in UPPAAL [12]. Henning et  al. [17] defines the 
+notion of a time-concrete UPPAAL counterexample. Work documented in [40] describes 
+the computation of concrete delays for symbolic TDTs. The above cited approaches address 
+neither fault analysis nor repair for TDTs. Our use of MaxSMT solvers for computing 
+minimal repairs is inspired by the use MaxSAT solvers for fault localization in C programs, 
+which was first explored in the BugAssist tool [28]. We present an approach that uses a 
+counterexample to prevent bad behavior while the technique in [11] computes repairs to 
+ensure missing expected behavior. The algorithm presented in [19] repairs a TA by adding 
+time constraints, whereas the approach in this paper modifies existing time constraints. 
+Our approach also shares some similarities with syntax-guided synthesis [2, 41], which 
+has also been deployed in the context of program repair [35]. One key difference is how 
+we determine the admissibility of a repair in the overall system, which takes advantage of 
+the semantic restrictions imposed by timed automata. The modification of time constraints 
+by extra variables can also be interpreted as a parametric timed automata (PTA). A 
+PTA is used in [1] to repair a TA that does not behave according to an oracle. Each of 
+the generated repairs can only prevent a finite number of explicit timed traces whereas 
+the repairs generated by our approach can prevent an infinite number of symbolically 
+encoded traces. The algorithm in [22] checks whether a synthesized TA exists for a given 
+set of properties. If this automaton does not exist, mixed integer linear programming is 
+used to modify bounds in the specified properties such that a TA can be synthesized. The 
+modifications of bounds in STL specifications is a different goal than the modification of 
+bounds in the TA that we propose.
+1.2  Contributions
+We augment in this work the original publications in [31] and [32] on computing syntactic 
+repairs for timed systems. More examples in this work illustrate the approach. We also 
+added proofs for the theorems, extended the definitions given in the preliminaries and 
+harmonized the presentation.
+1.3  Structure of the paper
+We will introduce the automata and real-time concepts needed in our analysis in Sect.  2. In 
+Sect.  3, we present the logical formalization of TDTs. The repair and admissibility analyses 
+are presented in Sect.  4 and  5, respectively. We present the implementation in the tool 
+TarTar in Sect.  6. In Sect.  7, we report on experimental evaluation and case studies. We 
+provide a conclusion and perspectives for future research in Sect. 8.
+2  Preliminaries
+The timed automaton model that we use in this paper is adapted from [12]. Given a set of 
+clocks C, we denote by B(C) the set of all clock constraints over C, which are conjunctions 
+of atomic clock constraints of the form c∼n , where c∈C , ∼∈ {<, ≤,=,≥,>} and n∈ℕ . 
+For the remainder of this section, we fix a finite set of clocks C.
+
+--- Page 5 ---
+140 Formal Methods in System Design (2021) 59:136–169
+1 3
+Definition 1  (Timed Automaton (TA) [12]) A Timed Automaton T is a tuple 
+T=(L,l0,/u1D6F4,/u1D6E9,I) where L is a finite set of locations, l0∈L is an initial location, /u1D6F4 is a 
+finite set of actions, 𝛩⊆L×B(C )×𝛴×2C×L is the transition relation, and I∶L→B(C ) 
+denotes a labeling of locations with clock constraints, referred to as location invariants. For 
+/u1D703∈/u1D6E9 with /u1D703=(l,g,a,r,l�) , we refer to g as the guard of /u1D703 and to r as its clock resets.
+The operational semantics of T is given by a timed transition system (TTS) in 
+Definition  2. A clock valuation u is a function C→ℝ≥0 . For a clock constraint b, 
+we write u⊧b iff b evaluates to true in u. There are two types of transitions. An action 
+transition models the execution of an action whose guard is satisfied. These transitions are 
+instantaneous and reset the specified clocks. The passing of time in a location is modeled 
+by delay transitions. Both types of transitions guarantee that location invariants are 
+satisfied in the pre and post state.
+Definition 2  (Timed Transition System (TTS) [6]) For a Timed Automaton (L,l0,/u1D6F4,/u1D6E9,I) , a 
+timed transition system is a tuple H=(S,s0,/u1D6F4,→) where S= {(l ,u)∈L ×RC
+≥0∣u⊧I(l)} , 
+s0 is the initial state (l0,u0) such that u0 maps all clocks to 0, and a transition (l,u)t⟶(l�,u�) 
+is in → iff
+– (action transition) t=(l,g,a,r,l�)∈/u1D6E9  , u⊧I(l)∧g , u�⊧I(l�) and for all clocks c∈C , 
+u�(c)=0  if c∈r and u�(c)=u(c)  otherwise; or
+– (delay transition) t∈ℝ≥0 , l=l� , u⊧I(l) , u�⊧I(l) and u�=u+t.
+An urgent location is a location that has to be left again without taking a delay transi-
+tion [6 ]. Urgent locations are syntactic sugar of Uppaal and can be expressed as an addi-
+tional clock p  which is reset with entering the location and a location invariant p=0.
+A run [ 12] of a TTS with initial state s0 is a sequence of states and actions of the 
+form s0t1� ������ →a1� ������� → s1t2� ������ →a2� ������� →… with si=(li,ui) where every ti is in ℝ≥0 with (li,ui)ti� ����� →(li,ui+1) 
+in → , and every ai is in /u1D6F4 with (li,ui+1)(li,g,ai,r,li+1)
+� ���������������������������������������� → (li+1,ui+1) in → . A timed trace [ 12] is 
+a sequence of timed actions /u1D709=(t�
+1,a1),(t�
+2,a2),… that is generated by a run of a TTS 
+associated with a TA, where t�
+i=∑
+0< j≤itj . We capture families of timed traces that  
+perform the same sequence of action transitions but differ in their delay transitions by 
+the notion of a symbolic timed trace.
+Definition 3  (Symbolic Timed Trace (STT)) A symbolic timed trace (STT) of T is 
+a sequence of actions Y=/u1D7030,…, /u1D703n−1 . A realization of Y is a sequence of delay values 
+/u1D6FF0,…,/u1D6FFn such that there exists states s0,…,sn,sn+1 with si/u1D6FFi⟶/u1D703i⟶ si+1 for all i∈[0,n) and 
+sn/u1D6FFn⟶sn+1 . We say that a STT is feasible if it has at least one realization.
+The timed language for a TA T  is the set of all its timed traces, which we denote 
+by LT(T) . The untimed language of T  consists of words over T ’s alphabet /u1D6F4 so that 
+there exists at least one timed trace of T  forming this word. Formally, for a timed trace 
+/u1D709=(t1,a1),(t2,a2)… , the untime operator /u1D707(/u1D709) returns an untimed trace /u1D709/u1D707=a1a2...  . 
+We define the untimed language L/u1D707(T) of the TA T  as L/u1D707(T)={ /u1D707(/u1D709)∣/u1D709∈LT(T)} . We 
+represent a finite untimed language using a Nondeterministic Finite Automaton and an 
+infinite untimed language using a Nondeterministic Büchi Automaton.
+
+--- Page 6 ---
+141 Formal Methods in System Design (2021) 59:136–169 
+1 3
+Definition 4  (Nondetermistic Finite Automaton (NFA) [6]) A nondeterministic finite 
+automaton is a tuple M=(S,/u1D6F4,→,S0,F) where S denotes a finite set of states, /u1D6F4 denotes 
+an alphabet, →⊆ S×𝛴×S denotes a transition relation, S0⊆S denotes the set of initial 
+states, and F⊆S denotes the set of acceptance states. We write sa⟶s/uni2032.var when (s,a,s�)∈→ . 
+An execution of M is a sequence s0a0⟶s1…an−1⟶sn such that s0∈S0 and sn∈F . A run 
+s0,s1,…,sn of M is the projection of an execution s0a0⟶s1…an−1⟶sn on the state sequence. 
+M accepts a word w=a0,a1,…,an−1 when an execution s0a0⟶s1…an−1⟶sn exists. The lan-
+guage Lf(M) recognized by M is the set of (finite length) words accepted by M.
+Definition 5  (Nondeterministic Büchi Automaton (NBA) [6]) An NFA 
+B=(S,/u1D6F4,→,S0,F) is called a Büchi automaton in case it is used with an accept-
+ance condition for infinite input sequences. For an infinite sequence r of states, let 
+inf(r)={ s∈S∣ri=sfor inﬁnitely many i} . An NBA B accepts an infinite word 
+w=a1a2… , w∈/u1D6F4/u1D714 , iff B has an infinite run r=s0s1… of states on w such that s0∈S0 , 
+inf(r)∩F≠� and ∀i∈ℕ+
+0,(si,ai+1,si+1)∈→ . The language L(B)⊆𝛴𝜔 recognized by an 
+NBA B is the set of infinite words accepted by B. pref (L(B)) denotes the set of all finite 
+prefixes of words in L(B).
+For a given NFA or NBA M , the closure cl(M) denotes the automaton obtained 
+from M by turning every state into an accepting state. We call M  closed iff M=cl(M) . 
+Notice that an NBA accepts a safety language if and only if it is closed [5 ].
+We use zones as given in Definition  6 in order to abstract an infinite-state TTS into a 
+finite-state Zone Automaton, c.f. Definition 7 .
+Definition 6  (Zone [6]) A diagonal constraint is an extended clock constraint of the form 
+x−y∼n with two clocks x and y. For a finite set C of clocks, let [[𝜑]]C={u∈ℝC
+≥0/uni007C.varu⊧𝜑} 
+denote the set of clock evaluations u satisfying a conjunction /u1D711 of diagonal clock con-
+straints. A subset z⊆ℝC
+≥0 is called a zone if there exists /u1D711 for which z= [[/u1D711]]C.
+Definition 7  (Zone Automaton (adapted from [6])) Assume a Timed Automaton 
+T=(L,l0,/u1D6F4,/u1D6E9,I) . We define the zone automaton [[T]]Z=(SZ,s0
+Z,/u1D6F4Z,/u1D6E9Z) for T such that 
+SZ= {(l ,z)∣l∈L,z⊆ℝC
+≥0is a zone } , s0
+Z=(l0,{u0}) , /u1D6F4Z=/u1D6F4∪{/u1D6FF} and a transition rela-
+tion 𝛩Z⊆SZ×𝛴Z×SZ . Let z↑={u+d∣u∈z,d∈𝖱+
+0} , and let z[r] denote the clock 
+reset for a clock set r in a zone z such that in the resulting zone every clock in r evaluates 
+to 0. We write la⇝l/uni2032.var for a transition (l,a,l�)∈/u1D6E9Z . The transition relation /u1D6E9Z is the smallest 
+relation that satisfies the following rules: 
+1. If (l,z)∈ SZ , then (l,z)/u1D6FF⇝(l,z↑∩ [[I(l) ]]C).
+2. If l/u1D711,a ,r� ���������������� → l�∈/u1D6E9 , then (l,z)a⇝(l�,(z∩ [[/u1D711]]C)[r]∩[ [ I(l�) ]]C).
+A trace a0…an is a trace of /u1D6E9Z iff for 0≤i≤n , liai⇝li+1 exists and l0=l0 . We call a 
+trace of /u1D6E9Z a symbolic trace.
+LT( [[T]]Z) denotes the set of timed traces with time delays that satisfy the zones of at 
+least one symbolic trace of [[T]]Z.
+
+--- Page 7 ---
+142 Formal Methods in System Design (2021) 59:136–169
+1 3
+2.1  Property specification
+We focus on the analysis of timed safety properties, which we characterize by an 
+invariant formula that has to hold for all reachable states of a TA. These properties state, 
+for instance, that there are certain locations in which the value of a clock variable is not 
+above, equal to or below a certain (integer) bound. Formally, let T=(L,l0,C,/u1D6F4,/u1D6E9,I) be 
+a TA. A timed safety property /u1D6F1 is a Boolean combination of atomic clock constraints 
+and location predicates @ l where l∈L . A location predicate @l  holds in a state (l�,u) 
+of T iff l�=l . We say that an STT Y  witnesses a violation of /u1D6F1 in T  if there exists a 
+realization of Y  whose induced final state does not satisfy /u1D6F1 . We refer to such an STT as 
+a timed diagnostic trace (TDT) of T  for /u1D6F1.
+T satisfies /u1D6F1 iff all its reachable states satisfy /u1D6F1 . This problem can be decided using 
+model checking tools such as Kronos [44] and UPPAAL [10]. UPPAAL in particular 
+computes a finite abstraction of the state space of an NTA using zones for the graph 
+construction. Reachability analysis is then performed by an on-the-fly search of the 
+zone graph. If the property is violated, the tool generates a feasible TDT that witnesses 
+the violation. The objective of our work is to analyze TDTs and to propose repairs for 
+the property violation that they represent. We use TDTs generated by the UPPAAL tool 
+in our implementation, but we maintain that our results can be adapted to any other tool 
+producing TDTs.
+We further note that UPPAAL takes a network of timed automata (NTA) as input, 
+which is a CCS [38] style parallel composition of timed automata T1∣…∣ Tn , yielding 
+a TA. Since our analysis and repair techniques focus on timing-related errors rather than 
+synchronization errors, we use TAs rather than NTAs in our formalization. However, our 
+repair analysis can be directly applied to the TA obtained by the parallel composition 
+and the implementation in TarTar works directly on NTAs.
+Example 1 The running example that we use throughout the paper consists of an NTA 
+containing two timed automata, depicted in Fig.  1. As alluded to in the introduction, the 
+TAs client and db synchronize via the exchange of messages modeled by the pairs 
+of send and receive actions req! and req? as well as ser! and ser?, respectively. 
+The transmission time of the req message is controlled by the clock variable w and can 
+range between 1 and 2 time units. This is achieved by the location invariant /u1D6A0<=/u1D7F8 on the 
+reqReceived  location in db together with the transition guard /u1D6A0>=/u1D7F7 on the transition 
+from reqReceived to reqProcessing . A similar mechanism using clock variable 
+z is used to constrain the timing of the transfer of message ser to be within 1 and 2 time 
+units. The processing time in db is constrained to exactly 1 time unit by the location invari-
+ant /u1D6A2<=/u1D7F7 and the transition guard /u1D6A2>=/u1D7F7 . In client , a transition to location timeout  
+can be triggered when the guard z==2 is satisfied in location serReceiving . The clock 
+variable x, which is not reset until the next req message is sent, is recording the time that 
+has elapsed since sending req and is used in location serReceiving in order to verify 
+if more than 4 time units have passed since req was sent. Every transition in the system is 
+labeled with an action /u1D70F . The timed safety property that we will consider for our example 
+is /u1D6F1= ¬@/u1D68C/u1D695/u1D692/u1D68E/u1D697/u1D69D./u1D69C/u1D68E/u1D69B/u1D681/u1D68E/u1D68C/u1D68E/u1D692/u1D69F/u1D692/u1D697/u1D690 ∨(x≤4). For the violation of this property, UPPAAL 
+produces the TDT S=/u1D7030…/u1D7033 where
+
+--- Page 8 ---
+143 Formal Methods in System Design (2021) 59:136–169 
+1 3
+3  Logical encoding of timed diagnostic traces
+We present a logical formalization of the concept of Timed Diagnostic Traces (TDTs) gen-
+erated by a real-time model checking tool. Practical model checking tools generate these 
+traces in a textual format. In the case of UPPAAL, which we use for generating the traces 
+used in the analysis in this paper, symbolic TDTs are stored in an XML formatted file. 
+The formalization that we develop will enable a logic encoding and automated analysis of 
+TDTs.
+3.1  Timed diagnostic trace (TDT)
+A TDT is a linear data structure that represents steps from an initial state of the system 
+leading into a property violating state of an NTA. Given an NTA N and property /u1D6F1 this 
+means that the final state in the TDT is violating /u1D6F1 . Figure  2 represents an excerpt of 
+a TDT obtained from the UPPAAL tool and illustrates the violation of the property 
+𝛱= ¬@/u1D68C/u1D695/u1D692/u1D68E/u1D697/u1D69D./u1D69C/u1D68E/u1D69B/u1D681/u1D68E/u1D68C/u1D68E/u1D692/u1D69F/u1D692/u1D697/u1D690 ∨(x<4) by the NTA in Fig. 1.
+The TDT contains information regarding the locations, location invariants, transition 
+guards and reset operations affected by the execution of transitions. It also contains a rep-
+resentation of the difference bound matrices (DBMs) that are attached to every location in 
+the NTA. The TDTs that we consider are symbolic in the sense that they do not give con-
+crete time values at which certain locations are reached, but rather constraints on the clock 
+values that need to be met for the property violating state to be reachable. For instance, 
+consider the DBM table entry </u1D68C/u1D695/u1D698/u1D68C/u1D694/u1D68B/u1D698/u1D69E/u1D697/u1D68D/u1D68C/u1D695/u1D698/u1D68C/u1D694/u1D7F7 =ε/u1D69C/u1D6A2/u1D69C./u1D6A1ε  clock2="sys.t(0)"  
+bound="5"  /u1D68C/u1D698/u1D696/u1D699 =ε<= ε∕ > in Fig.  2 which represents the constraint on x in the state 
+serReceiving  as x≤5 . In other words, no concrete value of x when entering the vio-
+lating state is given.
+The objective of our analysis is to identify possible syntactic changes to the NTA model 
+in order to propose repairs for the violation of timed reachability properties. The symbolic 
+representation of the valid clock assignments per location in the TDT given by DBMs, 
+as is done for instance by UPPAAL, is not useful for this purpose. This is due to the fact 
+that DBMs perform operations and optimizations on the constraints when they construct 
+zones [12]. As a result, bound values in the UPPAAL code can not necessarily be directly 
+associated with bound entries in the DBM. It is therefore necessary to define our own logic 
+representation of the TDT. This representation is based on the following observations:
+– The TDT represents an equivalence class of runs of the NTA in the sense that all runs 
+in this class traverse the same sequence of action transitions. This yieds a sequence 
+l0...ln of NTA locations that are reached during the execution of the TDT.
+– For every location lj , there is a corresponding sojourn time in this location that we 
+denote using a positive real valued delay variable /u1D6FFj./u1D7030= ((/u1D692/u1D697/u1D692/u1D69D/u1D692/u1D68A/u1D695 ,/u1D69B/u1D68E/u1D69A/u1D670/u1D6A0/u1D68A/u1D692/u1D69D/u1D692/u1D697/u1D690 ),�,/u1D70F,{x},(/u1D69B/u1D68E/u1D69A/u1D672/u1D69B/u1D68E/u1D68A/u1D69D/u1D68E ,/u1D69B/u1D68E/u1D69A/u1D670/u1D6A0/u1D68A/u1D692/u1D69D/u1D692/u1D697/u1D690 ))
+/u1D7031= ((/u1D69B/u1D68E/u1D69A/u1D672/u1D69B/u1D68E/u1D68A/u1D69D/u1D68E ,/u1D69B/u1D68E/u1D69A/u1D670/u1D6A0/u1D68A/u1D692/u1D69D/u1D692/u1D697/u1D690 ),�,/u1D70F,{w}, (/u1D69B/u1D68E/u1D69A/u1D682/u1D68E/u1D697/u1D69D ,/u1D69B/u1D68E/u1D69A/u1D681/u1D68E/u1D68C/u1D68E/u1D692/u1D69F/u1D68E/u1D68D ))
+/u1D7032= ((/u1D69B/u1D68E/u1D69A/u1D682/u1D68E/u1D697/u1D69D ,/u1D69B/u1D68E/u1D69A/u1D681/u1D68E/u1D68C/u1D68E/u1D692/u1D69F/u1D68E/u1D68D ),{w≥1},/u1D70F,{y}, (/u1D69B/u1D68E/u1D69A/u1D682/u1D68E/u1D697/u1D69D ,/u1D69B/u1D68E/u1D69A/u1D67F/u1D69B/u1D698/u1D68C/u1D68E/u1D69C/u1D69C/u1D692/u1D697/u1D690 ))
+/u1D7033= ((/u1D69B/u1D68E/u1D69A/u1D682/u1D68E/u1D697/u1D69D ,/u1D69B/u1D68E/u1D69A/u1D67F/u1D69B/u1D698/u1D68C/u1D68E/u1D69C/u1D69C/u1D692/u1D697/u1D690 ),{y≥1},/u1D70F,{z},(/u1D69C/u1D68E/u1D69B/u1D681/u1D68E/u1D68C/u1D68E/u1D692/u1D69F/u1D692/u1D697/u1D690 ,/u1D69B/u1D68E/u1D69A/u1D670/u1D6A0/u1D68A/u1D692/u1D69D/u1D692/u1D697/u1D690 )).
+
+--- Page 9 ---
+144 Formal Methods in System Design (2021) 59:136–169
+1 3
+– The value of every clock variable c in location lj , which we denote by cj , is constrained 
+by the value of cj when entering the location plus the delay /u1D6FFj and any location invariant 
+constraint that refers to c in location lj . Notice that we need to be able to refer to the 
+values of clocks in individual location, which is why we choose a Static Single Assign-
+ment form encoding of the clock variables.
+– For any clock c in the successor location lj+1 , the value cj+1 is determined by the value 
+cj plus the sojourn time /u1D6FFj , if the clock is not being reset during the transition from lj to 
+lj+1 , or 0 otherwise.
+– The sojourn time /u1D6FFj in a location lj is constrained by the clock invariant conditions of 
+the NTA component TAs that perform the computation step triggering the transition 
+into location lj+1 . This means that the clock value cj plus /u1D6FFj are bounded by any clock 
+constraint that refers to a clock variable c. For instance, in the TDT in Fig.  2, the 
+location LocVec4  contains the TA location reqProcessing  with the invariant 
+/u1D6A2<=/u1D7F7 . Hence, the sojourn time in LocVec4  is constrained by y4+/u1D6FF4≤1.
+– The transition from location lj to location lj+1 is guarded by clock constraints on 
+some of the clocks c , if at least one is given, and otherwise by true. This means Fig. 2  Excerpt from the XML representation of a symbolic TDT generated by UPPAAL
+
+--- Page 10 ---
+145 Formal Methods in System Design (2021) 59:136–169 
+1 3
+that the time when entering location lj as well as the time elapsing while in 
+location lj are constrained by these guards. We represent this by adding constraints 
+of the form cj+/u1D6FFj∼/u1D6FD with /u1D6FD∈ℕ to the symbolic constraint system. Notice 
+that only the transition guards of the component TAs that performed the step 
+leading to the step in the TDT need to be taken into account. In case the step 
+performs a synchronization, the conjunctions of the transition guards for all clock 
+variables on the sending and the receiving transitions need to be considered. To 
+illustrate this point consider the </u1D69D/u1D69B/u1D68A/u1D697/u1D69C/u1D692/u1D69D/u1D692/u1D698/u1D697/u1D68F/u1D69B/u1D698/u1D696 =ε/u1D682/u1D69D/u1D68A/u1D69D/u1D68E/u1D7FAε/u1D69D/u1D698 =ε/u1D682/u1D69D/u1D68A/u1D69D/u1D68E/u1D7FBε  
+/u1D68E/u1D68D/u1D690/u1D68E/u1D69C =ε/u1D68C/u1D695/u1D692/u1D68E/u1D697/u1D69D./u1D674/u1D68D/u1D690/u1D68E/u1D7F9/u1D68D/u1D68B./u1D674/u1D68D/u1D690/u1D68E/u1D7F9ε∕ > entry in the TDT in Fig.  2 which 
+specifies that both the client and db component TAs are executing a 
+step. The synchronization is indicated by the </u1D69C/u1D6A2/u1D697/u1D68C>/u1D69C/u1D68E/u1D69B!<∕/u1D69C/u1D6A2/u1D697/u1D68C > and 
+</u1D69C/u1D6A2/u1D697/u1D68C>/u1D69C/u1D68E/u1D69B?<∕/u1D69C/u1D6A2/u1D697/u1D68C > entries which refer to edges in the transition graph of the 
+TAs engaged in this synchronous communication step. The </u1D690/u1D69E/u1D68A/u1D69B/u1D68D >/u1D7F7<∕/u1D690/u1D69E/u1D68A/u1D69B/u1D68D > 
+and </u1D690/u1D69E/u1D68A/u1D69B/u1D68D >/u1D6A2>=/u1D7F7<∕/u1D690/u1D69E/u1D68A/u1D69B/u1D68D > entries in these edges imply that this transition 
+needs to be guarded by the condition true∧y≥1 , where the true corresponds to the 
+transition guard in the client TA and y≥1 is the guard in the db TA.
+– When a location lj is labeled as urgent, lj has to be left immediately and we 
+constrain the delay /u1D6FFj in this location to have value 0.
+3.2  TDT formalization
+Our analysis relies on a logical encoding of TDTs in the theory of quantifier-free linear 
+real arithmetic. For the remainder of this paper, we fix a TA T=(L,l0,C,/u1D6F4,/u1D6E9,I) with a 
+safety property /u1D6F1 and assume that Y =/u1D7030,…,/u1D703n−1 is an STT of T . We use the following 
+notation for our logical encoding where j∈[0,n+1] is a position in a realization of Y 
+and c∈C is a clock:
+– lj denotes the location of the pre state of /u1D703j for j<n and the location of the post state 
+of /u1D703j−1 for j=n.
+– cj denotes the value of clock variable c  when reaching the state at position j .
+– /u1D6FFj denotes the delay of the delay transition leaving the state at position j≤n.
+– resetj denotes the set of clock variables that are being reset by action /u1D703j for j<n.
+– ibounds (c,l) denotes the set of pairs (/u1D6FD,∼) such that the atomic clock constraint c∼/u1D6FD 
+appears in the location invariant I (l).
+– gbounds(c, /u1D703) denotes the set of pairs (/u1D6FD,∼) such that the atomic clock constraint 
+c∼/u1D6FD appears in the guard of action /u1D703.
+– urgent  denotes the set of indices of those locations lj , 1≤j≤n , which are marked as 
+urgent in the TA model from which Y  has been derived.
+To illustrate the use of ibounds  , assume location l  to be labeled with invariants 
+x>2∧x≤4∧y≤1 , then ibounds (x,l) = {(2, >),(4,≤)}. The usage of gbounds  is 
+accordingly.
+Definition 8  The timed diagnostic trace constraint system (TDTCS) associated with STT 
+Y is the conjunction T of the following constraints:
+
+--- Page 11 ---
+146 Formal Methods in System Design (2021) 59:136–169
+1 3
+Let further /u1D6F7≡/u1D6F1[cn+1∕c] where /u1D6F1[cn+1∕c] is obtained from /u1D6F1 by substituting every 
+occurrence of a clock c∈C by cn+1 . For instance, for the property /u1D6F1 used in Example  1 we 
+have 𝛷= ¬@client .serReceiving ∨x5<4 . Then, the /u1D6F1-extended TDTCS associated with 
+Y is defined as T/u1D6F1=T∧¬/u1D6F7.
+A satisfying assignment of a TDTCS T is a variable assignment to every clock cj and 
+delay variable /u1D6FFj in T that satisfies every constraint in T . A satisfying assignment of T 
+induces a realization /u1D6FF0.../u1D6FFn of Y. T is a correct formalization of Y when any assignment 
+of T contains a realization of Y  and any realization r  in Y  is part of an assignment of T.
+Theorem 1 When a TDTCS T is created for an STT Y by Definition  8, then /u1D6FFc
+0,…,/u1D6FFc
+n is 
+a realization of Y iff there exists a satisfying variable assignment /u1D704 for T such that for all 
+j∈[0,n],/u1D704(/u1D6FFj)=/u1D6FFc
+j.
+Proof Assume an STT Y=/u1D7030, ...., /u1D703n−1 of a TA, a TDTCS T of Y and an arbitrary delay 
+sequence /u1D6FF=/u1D6FF0,…,/u1D6FFn . We need to prove that /u1D6FF either satisfies Y and T or none of both. 
+We show by induction over the delays that after each delay /u1D6FFj the clocks values are equiva-
+lent in Y and T , and satisfy the same clock constraints.
+Base Case: In the initial state, no delay has yet occurred. The value of every clock in Y 
+is 0, which is also ensured in T by C0.
+Induction Step: It holds that the clock values in Y and T are equivalent for /u1D6FF0.../u1D6FFj−1 . We 
+assume that after a time delay /u1D6FFj a transition /u1D703j transits from a location lj to a location lj+1 . A 
+constraint in Y or T is not satisfied for /u1D6FFj in one of the following cases:
+– When /u1D6FFj is negative, it violates the semantics of Y  but also violates the constraints in 
+A of T.
+– After /u1D6FFj , a guard ci∼/u1D6FD of a clock ci is not enabled. The clock value of ci was equiva-
+lent by assumption in Y and T before /u1D6FFj , and so is equivalent after /u1D6FFj . Since the guard C0≡/uni22C0.s1
+c∈Cc0=0 (clock initialization)
+A≡/uni22C0.s1
+j∈[0, n]/u1D6FFj≥0 (time advancement)
+R≡/uni22C0.s1
+c∈resetj,cj+1=0 (clock resets)
+D≡/uni22C0.s1
+c∉resetjcj+1=cj+/u1D6FFj (sojourn time)
+I≡/uni22C0.s1
+(/u1D6FD,∼)∈ ibounds (c,lj)cj∼/u1D6FD∧cj+/u1D6FFj∼/u1D6FD (location invariants)
+G≡/uni22C0.s1
+(/u1D6FD,∼)∈ gbounds (c,/u1D703j)cj+/u1D6FFj∼/u1D6FD (transition guards)
+U≡/uni22C0.s1
+j∈urgent/u1D6FFj=0 (urgent location)
+L≡@ln∧/uni22C0.s1
+l≠ln¬@l (location predicates)
+
+--- Page 12 ---
+147 Formal Methods in System Design (2021) 59:136–169 
+1 3
+is by construction of T encoded in Y  and T and the clock value of ci is equivalent, 
+the guard is not enabled in Y  and T.
+– After /u1D6FFj , a clock ci does not satisfy a location invariant ci∼/u1D6FD in lj . Since the invariant 
+is by construction encoded in Y and T and the clock value of ci is equivalent as shown 
+above, ci+/u1D6FFj is violated in Y and T.
+– A clock ci does not satisfy a location invariant ci∼/u1D6FD in lj+1 . By construction of T , the 
+invariant is encoded in Y and T . The clock value of ci is either ci+/u1D6FFj when ci is reset 
+or 0. By the construction of T , ci is reset in T exactly when it is reset by /u1D703j in Y. Thus, 
+ci∼/u1D6FD in lj+1 is not satisfied in Y and T.
+– /u1D6FFj is not 0 even lj is an urgent location. By construction of T , lj is in U and so only /u1D6FFj=0 
+is an assignment of T . Thus, Y and T are not satisfied.
+– With any other value of /u1D6FFj , the time constraints in Y and T are satisfied.
+As we see, the clock values in Y and T are equivalent after each delay, and also equivalently 
+satisfy the clock constraints in Y and T . In consequence, /u1D6FF satisfies Y and T , or none of 
+both.   ◻
+Theorem  1 ensures that an assignment of T and the contained realization of Y satisfy the 
+same time constraints and location predicates. Consequently, they also equivalently violate 
+or satisfy the time constraints and location predicates of which an invariant property /u1D6F1 
+exists. This allows us to infer Corollary  1 because the conjunction of T and /u1D6F1 is a /u1D6F1
+-extended TDTCS T/u1D6F1 . A modification of T/u1D6F1 that turns the formula unsatisfiable is also a 
+potential repair in the underlying TA since it prevents the property violation. We will use 
+this insight in the next section to compute a repair.
+Corollary 1 An STT Y witnesses a violation of /u1D6F1 in a TA iff T/u1D6F1 is satisfiable.
+Proof We know by Theorem  1 that a realization r of an STT exists iff a satisfying assign-
+ment /u1D704 of the STT exists. r and /u1D704 satisfy equivalent location predicates and clock constraints 
+and, thus, r and /u1D704 equivalently hold or violate /u1D6F1 .   ◻
+4  Repair computation
+We propose a repair technique that analyzes the responsibility of syntactic elements 
+occurring in a single TDT for causing the violation of a specification /u1D6F1 . We first present 
+the formalization of different syntactic modifications of a TDT that can potentially remedy 
+causes for property violations and then present the algorithm to compute a set of such 
+syntactic modifications that are possible repairs. The question of admissibility of the 
+computed repairs will be addressed in Sect.  5. Throughout this section, we assume that Y is 
+a TDT for T and /u1D6F1.
+4.1  Formal modification of syntactic elements
+We introduce variation variables v that represent correction values of syntactic 
+elements of the TA for which Y is produced and which characterize the proposed repair. 
+For instance, to modify clock bounds for a transition in a TA, a fresh variation variable 
+is added to every clock bound occurring in location invariants and transition guards 
+involved in this transition. The values of the variation variables are computed so that 
+
+--- Page 13 ---
+148 Formal Methods in System Design (2021) 59:136–169
+1 3
+none of the realizations of Y  in the modified automaton leads to a violation of /u1D6F1 . This is 
+done by defining a new constraint system that captures the conditions on the variable v 
+under which the violation of /u1D6F1 will not occur in the corresponding trace of the modified 
+automaton. Using this constraint system, we then define a MaxSMT problem so that its 
+solution minimizes the number of changes to T  that are needed to achieve the repair.
+4.1.1  Clock bound variation
+Recall that the clock bounds occurring in location invariants and in transition guards 
+are represented by the I and G sets defined for the TDT Y . We then introduce bound 
+variation variables vbv
+i describing the possible static variation in the TA code for a clock 
+bound /u1D6FD with an index i  in the set ibounds ∪gbounds  , and modify the TDT constraint 
+system accordingly. A variation of the bounds only affects the location invariant con-
+straints I and the transition guard constraints G . We thus define an appropriate invariant 
+variation constraint Ibv and guard variation constraint Gbv that capture the clock bound 
+modifications:
+We also need constraints ensuring that the modified clock bounds remain positive:
+Putting all of this together, we obtain the bound variation TDT constraint system
+which captures all realizations of Y in TAs Tbv that are obtained from T by modifying the 
+clock bounds by some syntactically consistent variations vbv
+i.
+As an example, consider the bound variation for the guard y≥1 of transition /u1D6E93 in 
+Example  1. The modified guard constraint, a conjunct in Gbv , is y3+/u1D6FF3≥1+vbv
+i . The 
+corresponding non-negativity constraint in Zbv is 1+vbv
+i≥0.
+4.1.2  Operator variation
+This type of variation is motivated by the assumption that a wrong comparison operator 
+in a location invariant or transition guard may cause a property violation. We assume 
+for the repair encoding that the operators ∼ are indexed according to their order in the 
+sequence ⟨<,≤,=,≥,>⟩ . The possible repairs are encoded by a fresh variation variable 
+vov
+i where the value of vov
+i is the index of the corresponding comparison operator. For 
+instance, the use of the < comparison operator as a repair is indicated by setting vov
+i=1.
+We define operator variation constraints Iov and Gov with the help of an n-ary 
+exclusive or operation ⨁
+i=0…nfi which is satisfied iff exactly one of the formulas fi is true:Ibv≡/uni22C0.s1
+(c∼/u1D6FD)∈iboundsc∼(/u1D6FD+vbv
+i)∧c+/u1D6FFj∼(/u1D6FD+vbv
+i)
+Gbv≡/uni22C0.s1
+(c∼/u1D6FD)∈gboundsc+/u1D6FFj∼(/u1D6FD+vbv
+i)
+Zbv≡/uni22C0.s1
+(c∼/u1D6FD)∈ibounds ∪gbounds/u1D6FD+vbv
+i≥0
+Tbv≡C0∧A∧R∧D∧Ibv∧Gbv∧Zbv∧U∧L
+
+--- Page 14 ---
+149 Formal Methods in System Design (2021) 59:136–169 
+1 3
+Now, we construct an operator variation TDT constraint system 
+Tov≡C0∧A∧R∧D∧Iov∧Gov∧U∧L.
+As an example for the operator variation encoding, consider the guard w>=1 of transition 
+/u1D7032 in Fig.  1b. The Gov contains the constraint w2>=1∧(vov
+i=0)⨁...⨁w2>1∧(vov
+i=5)
+.
+4.1.3  Clock reference variation
+This variation aims to repair property violations resulting from errors that can be traced back 
+to the unintended use of a wrong clock variable. We uniquely identify every clock in the repair 
+encoding by an index k . We introduce a fresh variation variable vcv
+i for every constraint with a 
+clock c. Its assigned value k  indicates that in the constraint, the clock ck is to be used instead of 
+c. For example, if y≤2 is a repaired constraint, where clock y  has index k=1 , then vcv
+i=1.
+We define the appropriate clock variation constraints Icv and Gcv:
+From this we obtain the clock reference variation TDT constraint system 
+Tcv≡C0∧A∧R∧D∧Icv∧Gcv∧U∧L.
+An example for the clock reference repair encoding is given by 
+the guard y≥1 of transition /u1D7033 in Fig.  1b. Gcv contains the constraint 
+(y3+/u1D6FF3≥1)∧( vcv
+i=0)⨁...⨁(z3+/u1D6FF3≥1)∧( vcv
+i=4).
+4.1.4  Reset clock variation
+This variation aims to repair a property violation by adding or removing clock resets. We 
+introduce a variation variable vrv
+c,/u1D703 for the transition /u1D703 leaving location lj and every clock c in the 
+TDT. The reset status in the extended constraint system is inverted when vrv
+c,/u1D703≠0 : if c was not 
+reset before, it will now be reset, and vice versa. This is encoded by the clock reset variation 
+constraints Rrv and Drv:
+As a result we obtain the reset clock variation TDT constraint system 
+Trv≡C0∧A∧Rrv∧Drv∧I∧G∧U∧L.Iov≡/uni22C0.s1
+(c∼/u1D6FD)∈ibounds/uni2A01.s1
+0≤k≤5c∼k/u1D6FD∧c+/u1D6FFj∼k/u1D6FD∧vov
+i=k.
+Gov≡/uni22C0.s1
+(c∼/u1D6FD)∈gbounds/uni2A01.s1
+0≤k≤5c+/u1D6FFj∼k/u1D6FD∧vov
+i=k.
+Icv≡/uni22C0.s1
+(c∼/u1D6FD)∈ibounds/uni2A01.s1
+0≤k≤/uni007C.varC/uni007C.var(ck∼/u1D6FD)∧( ck+/u1D6FFj∼/u1D6FD)∧( vcv
+i=k)
+Gcv≡/uni22C0.s1
+(c∼/u1D6FD)∈gbounds/uni2A01.s1
+0≤k≤/uni007C.varC/uni007C.var(ck+/u1D6FFj∼/u1D6FD)∧( vcv
+i=k)
+Rrv≡/uni22C0.s1
+c∈reset(/u1D703j)cj+1=/braceleft.s4
+0, if vrv
+c,/u1D703=0
+c+/u1D6FFj, otherwise.
+Drv≡/uni22C0.s1
+c∉reset(/u1D703j)cj+1=/braceleft.s4
+c+/u1D6FFj, if vrv
+c,/u1D703=0
+0, otherwise.
+
+--- Page 15 ---
+150 Formal Methods in System Design (2021) 59:136–169
+1 3
+To illustrate the clock reset repair encoding, consider the clock reset y∶=0 on transition /u1D7032 
+in Fig. 1 b. Rrv contains the constraint ((y3=0)∧( vrv
+y,/u1D7032=0)) ∨ ((y3=y2+/u1D6FF2)∧( vrv
+y,/u1D7032≠0)).
+4.1.5  Urgent location variation
+Here we aim to repair cases where a faulty usage of urgent locations causes a property 
+violation. Urgency of a location is modeled in the TDT constraint system by setting the 
+location delay /u1D6FFj to 0. We define a fresh variation variable vuv
+i for a location lj . For vuv
+i≠0 , 
+the urgency for a location lj is inverted. We encode this idea using the following urgency 
+variation constraint Uuv:
+We construct the urgent location variation TDT constraint system 
+Tuv≡C0∧A∧R∧D∧I∧G∧Uuv∧L.
+As an example for the urgent location repair encoding, consider the location serRe-
+ceiving reached by /u1D7033 in Fig. 1 a. Uuv contains the constraint (vuv
+i≠0)→(/u1D6FF4=0).
+4.2  Repair by variation analysis
+The objective of the variation analysis is to provide hints to the system designer regarding 
+which minimal syntactic changes to the considered model might prevent the violation of 
+property /u1D6F1 . Minimality here is considered with respect to the number of syntactic modifi-
+cations that need to be performed in the considered TA model.
+For the analysis, we first choose one of the variation TDTCS described before and 
+denote it with T∗ . We implement an analysis by using T∗ to derive an instance of the partial 
+MaxSMT problem whose solutions yield candidate repairs for the timed automaton T. The 
+partial MaxSMT problem takes as input a finite set of assertion formulas belonging to a 
+fixed first-order theory. These assertions are partitioned into hard and soft assertions. The 
+hard assertions F∗
+H are assumed to hold and the goal is to find a maximal subset F�⊆F∗
+S of 
+the soft assertions such that F�∪F∗
+H is satisfiable in the given theory.
+For the purpose of our analysis, the hard assertions are formed by the conjunction
+Note that the free variables of F∗
+H are exactly the variation variables v∗
+i . Given a satisfying 
+assignment /u1D704 for F∗
+H , let T/u1D704 be the timed automaton obtained from T by modifying a clock 
+bound according to the variation value /u1D704(v∗
+i) and let Y/u1D704 be the TDT corresponding to Y in T/u1D704 . 
+Then F∗
+H guarantees that 
+1. Y/u1D704 is feasible, and
+2. Y/u1D704 has no realization that witnesses a violation of /u1D6F1 in T/u1D704.
+We refer to such an assignment /u1D704 as a local clock repair for T and Y. To obtain a minimal 
+local clock repair, we use the soft assertions given by the conjunctionUuv≡/uni22C0.s1
+lj∈urgent(vuv
+i=0⟹ /u1D6FFj=0)∧/uni22C0.s1
+lj∉urgent(vuv
+i≠0⟹ /u1D6FFj=0).
+F∗
+H≡(∃/u1D6FFj,cj.T∗) ∧ (∀/u1D6FFj,cj.T∗⇒/u1D6F7).
+
+--- Page 16 ---
+151 Formal Methods in System Design (2021) 59:136–169 
+1 3
+Clearly, F∗
+H∧F∗
+S is unsatisfiable because T∗∧F∗
+S is equisatisfiable with T , and T∧¬/u1D6F7 is 
+satisfiable by assumption. However, if there exists at least one local clock repair for T  and 
+Y, then F∗
+H alone is satisfiable. In this case, the MaxSMT instance F∗
+H∪F∗
+S has at least one 
+solution. Every satisfying assignment of such a solution corresponds to a local repair that 
+minimizes the number of syntactic modifications that need to be performed on T , and hence 
+on the considered TA. Note that hard and soft assertions remain within a decidable logic. 
+Using an SMT solver such as Z3, we enumerate all the optimal solutions for the partial 
+MaxSMT instance and obtain a minimal local clock bound repair from each of them.
+Example 2 We have applied the bound variation repair analysis to the TDT from Exam-
+ple 1. The following repairs exist: 
+1. vbv
+z,l5=− 1 . This corresponds to a variation of the location invariant regarding clock z in 
+location 5 of the TDT, corresponding to location client.serReceiving, to read 
+z≤1 instead of z≤2 . This indicates that the violation of the bound on the total duration 
+of the transaction, as indicated by a return to the serReceiving location and a value 
+greater than 4 for clock x , can be avoided by ensuring that the time taken for transmitting 
+the ser message to the client is constrained to take exactly 1 time unit.
+2. A further computed repair is vbv
+w,l2=− 1 . Interpreting this variation in the context of 
+Example  1 means that location db.reqReceived will be left when the clock w  has 
+value 1. In other words, the transmission of the message req to the db takes exactly 
+one time unit, not between 1 and 2 time units as in the unrepaired model.
+3. Another computed repair is vbv
+y,l3=− 1 and vbv
+y,/u1D7033=− 1 , which reduce the time delay in 
+location db.reqProcessing by 1 time unit.
+4. No further minimal repair exists.
+Examples of repairs according to the other analyses for the TDT in Fig.  1c include the 
+following. The operator repair analysis returns, among others, a repair vov
+w,/u1D7032=1 , which 
+suggests to exchange the operator in the transition guard w≥1 by < and to reduce the time 
+for receiving the message req to be less than one time unit. The reference clock analysis 
+returns a repair vcv
+z,l4=y . The repair exchanges the clock z in the clock constraint z≤2 by y, 
+which implies that the model has to receive the message ser in less than one time unit 
+since the guard y≥1 is satisfied when entering location serReceiving. The reset clock 
+analysis returns a repair vrv
+x,/u1D7032=true , which indicates to reset clock x during the transition 
+leading into location reqProcessing . The urgent location analysis returns a repair 
+vuv
+serReceiving=true which suggests to turn serReceiving  into an urgent location. This 
+repair reduces the time for receiving message ser to zero.
+4.2.1  Complexity considerations
+The tool Z3 [46] computes a repair for partial MaxSMT instances without quantifiers. The 
+repair analysis first executes quantifier elimination on F∗
+H , which has a double exponential 
+worst-case complexity in the number of quantifier variables [15]. The number of quantified 
+variables in F∗
+H rises linearly with the length of the TDT. Afterwards, every repair analysis F∗
+S≡/uni22C0.s1
+v∗
+iv∗
+i=0.
+
+--- Page 17 ---
+152 Formal Methods in System Design (2021) 59:136–169
+1 3
+solves a MaxSMT problem for quantifier-free linear real arithmetic constraints. The com-
+plexity of the repair computation is determined by the number of time constraints in the 
+TDT which increases with the length of the TDT. The complexity of quantifier-free linear 
+real arithmetic is polynomial [30, 33]. The MaxSMT problem can be reduced in polyno-
+mial time to a MaxSAT problem, and a MaxSAT problem is an optimization problem in 
+the complexity class NP [34]. We conclude that the quantifier elimination is the most com-
+plex computation in the analysis, which means that the overall complexity is in the worst 
+case double exponential in the length of the TDT.
+5  Admissibility of repair
+The synthesized repairs that lead to a TA T/u1D704 change the original TA T in fundamental ways, 
+both syntactically and semantically. This brings up the question whether the synthesized 
+repairs are admissible. In fact, one of the key questions is what notion of admissibility is 
+meaningful in this context.
+5.1  Admissibility criteria
+From a syntactic point of view, the repair obtained from a satisfying assignment /u1D704 of 
+the MaxSMT instance ensures that T/u1D704 is a syntactically valid TA model, for instance, by 
+placing non-negativity constraints on repaired clock bounds. In case repairs alter right hand 
+sides of clock constraints to rational numbers, this can easily be transformed to integers by 
+normalizing all clock constraints in the TA.
+From a semantic perspective, the impact of the repairs is more profound. Since the 
+repairs affect time bounds in location invariants and transition guards, as well as clock 
+resets, the behavior of T/u1D704 may be fundamentally different from the behavior of T.
+– The computed repair for one property /u1D6F1 may render another property /u1D6F1/uni2032.var violated. To 
+check admissibility of the synthesized repair with respect to the set of all properties /uni0302.s1/u1D6F1 
+in the system specification, a full re-checking of /uni0302.s1/u1D6F1 is necessary.
+– A repair may have introduced zenoness and timelock [8] into T/u1D704 . As discussed in [8], 
+there exist both an over-approximating static test for zenoness as well as a model check -
+ing based precise test for timelocks that can be used to verify whether the repair is 
+admissible in this regard.
+– Due to changes in the possible assignment of time values to clocks, reachable locations 
+in the TA T may become unreachable in T/u1D704 , and vice versa. On the one hand, this means 
+that some functionalities of the system may no longer be provided since part of the 
+actions in T will no longer be executable in T/u1D704 , and vice versa. Further, a reduction 
+in the set of reachable locations in T/u1D704 compared to T may mean that certain locations 
+with property violations in T are no longer reachable in T/u1D704 , which implies that certain 
+property violations are masked by a repair instead of being fixed. On the other hand, 
+the repair leading to locations becoming reachable in T/u1D704 that were unreachable in T may 
+have the effect that previously unobserved property violations become visible and that 
+T/u1D704 possesses functionality that T does not have, which may or may not be desirable.
+
+--- Page 18 ---
+153 Formal Methods in System Design (2021) 59:136–169 
+1 3
+It should be pointed out that we assess admissibility of a repair leading to T/u1D704 with respect 
+to a given TA model T, and not with respect to a correct TA model T∗ satisfying /u1D6F1 . Before 
+we define an admissibility test based on functional equivalence, we introduce some neces-
+sary foundation.
+5.2  Functional equivalence
+While various variants of semantic admissibility may be considered, we are focusing on 
+a notion of admissibility that ensures that a repair does not unduly change the functional 
+behavior of the modeled system while adhering to the timing constraints of the repaired 
+system. We refer to this as functional equivalence. The functional capabilities of a timed 
+system manifest themselves in the sets of action or transition traces that the system can 
+execute. For TAs T and T/u1D704 this means that we need to consider the languages over the action 
+or transition alphabets that these TAs define. Considering the timed languages of T and 
+T/u1D704 , we can state that LT(T)≠LT(T/u1D704) since the repair forces at least one timed trace to be 
+purged from LT(T) . This means that equivalence of the timed languages cannot be an 
+admissibility criterion ensuring functional equivalence.
+At the other end of the spectrum we may relate the de-timed languages of T and T/u1D704 . The 
+de-time operator /u1D6FC(T) is defined such that it omits all timing constraints and resets from 
+any TA T. Requiring L(/u1D6FC(T)) =L(/u1D6FC(T/u1D704)) is tempting since it states that when eliminating 
+all timing related features from T and from the repaired T/u1D704 , the resulting action languages 
+will be identical. However, this admissibility criterion would be flawed, since the repair 
+in T/u1D704 may imply that unreachable locations in T will be reachable in T/u1D704 , and vice versa. 
+This may have an impact on the untimed languages, and even though L(/u1D6FC(T)) =L(/u1D6FC(T/u1D704)) , 
+it may be that L/u1D707(T)≠L/u1D707(T/u1D704) . To illustrate this point, consider the running example in 
+Fig.  1a and assume the invariant in location client.serReceiving  to be modified 
+from z≤2 to z≤1 in the repaired TA T/u1D704 . Applying the de-time operator to T/u1D704 implies that 
+the location client.timeout , which is unreachable in T/u1D704 , becomes reachable in the 
+de-timed model. Since client.timeout  is reachable in T, the TAs T and T/u1D704 are not 
+functionally equivalent, even though their de-timed languages are identical. Notice that 
+for the untimed languages it holds that L/u1D707(T)≠L/u1D707(T/u1D704) since no timed trace in LT(T/u1D704) 
+reaches location timeout , even though such a timed trace exists in LT(T) . In particular, 
+L/u1D707(T) contains the untimed trace /u1D6E90/u1D6E91/u1D6E92/u1D6E93/u1D6E94 , where /u1D6E94 is the transition towards the 
+location client.timeout , which is missing in L/u1D707(T/u1D704) . As a consequence, we resort 
+to considering the untimed languages of T and T/u1D704 when assessing functional equivalence 
+and require L/u1D707(T)=L/u1D707(T/u1D704) . It is easy to see that L/u1D707(T)=L/u1D707(T/u1D704)⇒L(/u1D6FC(T)) =L(/u1D6FC(T/u1D704)) . 
+In conclusion, the equivalence of the untimed languages ensures functional equivalence.
+5.3  Admissibility test
+Designing an algorithmic admissibility test for functional equivalence is challenging due 
+to the computational complexity of determining the equivalence of the untimed languages 
+L/u1D707(T) and L/u1D707(T/u1D704) . While language equivalence is decidable for languages defined by 
+NBAs, it is undecidable for timed languages [4]. For untimed languages, however, this 
+problem is again decidable [4]. The algorithmic implementation of the test for functional 
+equivalence that we propose proceeds in two steps.
+
+--- Page 19 ---
+154 Formal Methods in System Design (2021) 59:136–169
+1 3
+– First, the untimed languages L/u1D707(T) and L/u1D707(T/u1D704) are constructed. This requires an untime 
+transformation of T and T/u1D704 yielding NBAs representing L/u1D707(T) and L/u1D707(T/u1D704) . While the 
+standard untime transformation for TAs [4] relies on a region construction, we propose 
+a transformation that relies on a zone construction [23]. This will provide a more suc-
+cinct representation of the resulting untimed languages and, hence, a more efficient 
+equivalence test.
+– Second, it needs to be determined whether L/u1D707(T)=L/u1D707(T/u1D704) . As we shall see, the 
+obtained NBAs are closed. Hence, we can reduce the equivalence problem for these /u1D714
+-regular languages to checking equivalence of the regular languages obtained by taking 
+the finite prefixes of the traces in L/u1D707(T) and L/u1D707(T/u1D704) . This allows us to interpret the 
+NBAs obtained in the first step as NFAs, for which the language equivalence check is a 
+standard construction [24].
+5.4  Automata for untimed languages
+The construction of an automaton representing an untimed language, here referred to as an 
+untime construction, has so far been proposed based on a region abstraction [4]. The region 
+abstraction is known to be relatively inefficient since the number of regions is, among 
+other things, exponential in the number of clocks [8]. We therefore propose an untime 
+construction based on the construction of a zone automaton [23], which in the worst case is 
+of the same complexity as the region automaton, but is more succinct in practice [12].
+Definition 9  (Untimed Nondeterministic Büchi Automaton) Assume a TA T and the cor -
+responding zone automaton [[T]]Z=(SZ,s0
+Z,/u1D6F4Z, /u1D6E9Z) . We define the untimed Nondetermin-
+istic Büchi automaton as the closed NBA BT=(S,/u1D6F4,→,S0,F) obtained from [[T]]Z such 
+that S=SZ , /u1D6F4=/u1D6F4Z⧵{/u1D6FF} , S0={s0
+Z} and F=S . For every transition in /u1D6E9Z with a label 
+a∈/u1D6F4 , we add a transition to → created by the rule (l,z)/u1D6FF⇝(l,z↑)a⇝(l�,z�)
+(l,z)a� ���� → (l�,z�) with 
+z↑={ v+/u1D6FF∈I(l)∣v∈z,/u1D6FF∈ℝ≥0} . In addition, we add self-transitions (l,z)/u1D70F� ���� →(l,z) to 
+every state (l,z)∈ SB.
+The following observations justify this definition:
+– A timed trace of T may remain forever in the same location after a finite number of 
+action transitions. In order to enable BT to accept this trace, we add a self-transition 
+labeled with /u1D70F to → for each state s∈S in BT , and later define s as accepting. These /u1D70F
+-self-transitions extend every finite timed trace t leading to a state in S/u1D70F to an infinite 
+trace t./u1D70F/u1D714.
+– The construction of the acceptance set F  is more intricate. Convergent traces are often 
+excluded from consideration in real-time model checking [8 ]. As a consequence, 
+in the untime construction proposed in [4 ], only a subset of the states in S  may be 
+included in F . A repair may render a subgraph of the location graph of T  that is only 
+reachable by divergent traces, into a subgraph in T/u1D704 that is only reachable by con-
+vergent traces. However, excluding convergent traces is only meaningful when con-
+sidering unbounded liveness properties, but not when analyzing timed safety prop-
+erties, which in effect are safety properties. As argued in [12], unbounded liveness 
+properties appear to be less important than timed safety properties in timed systems. 
+
+--- Page 20 ---
+155 Formal Methods in System Design (2021) 59:136–169 
+1 3
+This is due to the observation that divergent traces reflect unrealistic behavior in the 
+limit, but finite prefixes of infinite divergent traces, which only need to be considered 
+for timed safety properties, correspond to realistic behavior. This observation is also 
+reflected in the way in which, e.g., UPPAAL treats reachability by convergent traces. 
+In conclusion, this argument justifies our choice to define the zone automaton in the 
+untime construction as a closed BA, i.e., F=S.
+We will now prove Theorem  2 and Theorem  3 to show that our admissibility test is cor -
+rect. Theorem 2  states that the zone based untimed NBA construction actually preserves 
+the untimed languages. In particular, we show that for a given TA T , L(BT)=L/u1D707(T) . For 
+the proof, we use Untimed Bisimulation in order to replace the concrete time delay in T 
+by the empty word /u1D716 , and to establish the desired language equality.
+Definition 10  (Untimed Bisimulation (adapted from [12])) For a TTS H=(S,s0,/u1D6F4,→) , let 
+→/u1D716 be the relation obtained from → by replacing all delay transitions (s1,/u1D6FF,s2) by (s1,/u1D716,s2) . 
+Then, a TTS H=(S,s0,/u1D6F4,→) is said to untimed simulate another TTS H�=(S�,s�
+0,/u1D6F4,→�) 
+if there exists a relation R⊆S×S� such that (1) (s0,s�
+0)∈R  and (2) for all (s1,s�
+1)∈R  , 
+s2∈S , and a∈/u1D6F4∪{/u1D716} it holds that if s1a� ���� →s2∈→/u1D716 , then there exists s/uni2032.var
+2 with s�
+1a� ���� →s�
+2∈→�
+/u1D716 
+and (s2,s�
+2)∈R  . H and H/uni2032.var are untimed bisimilar if in addition H/uni2032.var untimed simulates H.
+The proof of Theorem  2 is based on the insight from Lemma  1 that two untimed 
+bisimilar TTSs have equivalent untimed languages.
+Lemma 1 Given two TTS H1 and H2 , if H1 untimed simulates H2 , then L𝜇(H1)⊆L𝜇(H2).
+Proof Assume that TTS H1=(S,s0,/u1D6F4,→) untimed simulates a TTS H2=(S�,s�
+0,/u1D6F4,→�) 
+with a simulation relation R. For any word v in L/u1D707(H1) , we know that a timed trace 
+/u1D709=(t1,a1)… exists in L(H1) . We show that v is also in L/u1D707(H2) by inductively construct-
+ing a timed trace /u1D709�=(t�
+1,a�
+1)… in L(H2) with /u1D707(/u1D709)=/u1D707(/u1D709�) . The induction iterates over the 
+timed actions (ti,ai) in /u1D709.
+Base Case: Initially, no timed action is taken in /u1D709 . The relation (s0,s�
+0) is in R. For the 
+induction step, we assume helper variables t0=0 and t�
+0=0.
+Induction Step: For a timed action (ti+1,ai+1) in /u1D709 and (si,s�
+i) in R, we now construct a 
+timed action (t�
+i+1,a�
+i+1) in /u1D709/uni2032.var.
+For (ti+1,ai+1) , a state s∗ exists in H1 such that a delay transition (si,t,s∗) with t=ti+1−ti 
+and an action transition (s∗,ai+1,si+1) are in → . The untimed bisimulation replaces delay 
+transitions by /u1D716 , and defines →/u1D716 and →/uni2032.var
+/u1D716 . Since (si,s�
+i) is in R and (si,/u1D716,s∗)∈→/u1D716 , a state s�
+∗ 
+has to exist with (s�
+i,/u1D716,s�
+∗)∈→�
+/u1D716 and (s∗,s�
+∗)∈R  . (s�
+i,/u1D716,s�
+∗) exists only since a delay transi-
+tion (s�
+i,t�,s�
+∗) exists in →/uni2032.var . We construct t�
+i+1=t�
+i+t� . Because (s∗,ai+1,si+1) is in →/u1D716 and 
+(s∗,s�
+∗)∈R  , a state s�
+i+1 in H2 has to exist such that (si+1,s�
+i+1)∈R and (s�
+∗,ai+1,s�
+i+1)∈→�
+/u1D716 . 
+We conclude a�
+i+1=ai+1 . Hence, we constructed the timed action (t�
+i+1,a�
+i+1) of /u1D709/uni2032.var and 
+(si+1,s�
+i+1)∈R holds.
+In conclusion, we can construct for every timed word /u1D709 in L(H1) , a timed word /u1D709/uni2032.var in 
+L(H2) , such that /u1D707(/u1D709)=/u1D707(/u1D709�) .   ◻
+
+--- Page 21 ---
+156 Formal Methods in System Design (2021) 59:136–169
+1 3
+Additionally, the proof of Theorem  2 relies on the assumption that the timed lan-
+guage of the zone automaton [[T]]Z is identical to the timed language of T , which we 
+state in the following lemma.
+Lemma 2 (Zone Language Equivalence) Let [[T]]Z be a zone automaton derived from a TA 
+T, then LT( [[T]]Z)=LT(T).
+Proof The proof of this lemma can be derived from the proofs of Theorem 1 and Theo-
+rem 2 given in the full version of [45], which together prove that the reachable states in 
+the transition system of T are also reachable in [[T]]Z , and vice versa. The proofs rely on an 
+induction over the length of the traces of T and [[T]]Z and imply an equivalence of the sets 
+of traces of T and [[T]]Z . This implies LT( [[T]]Z)=LT(T) .   ◻
+Theorem 2 (Correctness of Untimed NBA Construction) For an untimed NBA BT derived 
+from a TA T according to Definition 9 it holds that L(BT)=L/u1D707(T).
+Proof Assume a zone automaton [[T]]Z=(SZ,s0
+Z,/u1D6F4Z,/u1D6E9Z) for a TA T and let 
+BT=(SB,/u1D6F4B,→,S0
+B, F) be the associated untimed NBA obtained according to Definition  9 
+with [[T]]Z.
+Lemma  2 permits us to prove Theorem  2 by showing L(BT)=L/u1D707( [[T]]Z) . We prove the 
+conjecture by proving the stricter condition that the zone automaton [[T]]Z and the untimed 
+NBA BT are untimed bisimilar. We may then conclude language equivalence by Lemma  1 
+and bisimilarity. It is appropriate to compare an untimed NBA BT to a zone automaton 
+[[T]]Z by untimed bisimulation since BT is an untimed automaton, in particular, an untimed 
+zone automaton.
+We now show that R= {((l ,zZ),(l,zB))/uni007C.varz↑
+Z=z↑
+B∧(l,zZ)∈SZ∧(l,zB)∈SB} is an 
+untimed bisimulation relation. R is an untimed bisimulation relation for the alphabet 
+/u1D6F4=(/u1D6F4B⧵{/u1D70F} )∪( /u1D6F4Z⧵{/u1D6FF}) , where the delay transitions /u1D6FF and /u1D70F are removed by the con-
+struction of the untimed bisimulation.
+We show for an arbitrary ((l ,zZ),(l,zB)) ∈ R that ((l�,z�
+Z),(l�,z�
+Z)) ∈ R for all actions 
+a∈/u1D6F4 . zB⊆zZ holds by construction of BT since transitions in BT reach a state after taking 
+an action transition. Hence, there are two cases to be considered in order to determine 
+whether z↑
+Z=z↑
+B : 
+1. If zZ=zB , then the untime construction creates a transition (l,zB)a⇝(l�,z�
+Z)∈→ i ff 
+(l,zZ)/u1D6FF� ���� →(l,z↑
+Z)a� ���� →(l�,z�
+Z)∈/u1D6E9Z exists.
+2. If zZ=z↑
+B , then the untime construction creates a transition (l,zB)a⇝(l�,z�
+Z)∈→ i ff 
+(l,zZ)a� ���� →(l�,z�
+Z)∈/u1D6E9Z exists.
+In both cases it holds that ((l�,z�
+Z),(l�,z�
+Z)) ∈ R . Thus, R is a bisimulation relation. The 
+tuple ((l0,z0),(l0,z0)) of the initial states of [[T]]Z and BT is in R , since S0
+B={s0
+Z} holds by 
+the definition of the untime construction, and trivially z↑
+0=z↑
+0 . This implies that BT and 
+[[T]]Z are untimed bisimilar and L(BT)=L/u1D707( [[T]]Z) holds.   ◻
+
+--- Page 22 ---
+157 Formal Methods in System Design (2021) 59:136–169 
+1 3
+5.5  Equivalence check for untimed languages
+Given that the zone automaton construction delivers closed NBAs we can reduce the 
+admissibility test L/u1D707(T)=L/u1D707(T/u1D704) defined over infinite languages to an equivalence test 
+over the finite prefixes of these languages, represented by interpreting the zone automata 
+as NFAs. The following theorem justifies this reduction.
+Theorem  3 (Language Equivalence of Closed NBAs) Given closed NBAs B and B/uni2032.var , if 
+Lf(B)=Lf(B�) then L(B)=L (B�).
+Proof For a closed NBA B, it is easy to see that Lf(B)=pref (L(B)) . Assume 
+Lf(B)=Lf(B�) and L(B)≠L(B�) . This means that, w.l.o.g., (∃v)(v ∈L(B)∧ v∉L(B�)) . 
+This implies that there is no accepting run on some v in B/uni2032.var . Since B/uni2032.var is closed, the only way 
+of not accepting v is that B/uni2032.var blocks when reading a finite prefix ̂v=v1,…,vn of v. Hence, 
+̂v∈Lf(B)∧ ̂v∉Lf(B�) , which contradicts Lf(B)=Lf(B�) . Therefore, L(B)=L (B�) .   ◻
+5.6  Complexity of the admissibility test
+In order to test admissibility, we generate the state space of the original TA and the TA 
+to which we apply the repair. The computation of the state space uses real-time model 
+checking which is in PSPACE [3]. Afterwards, we interpret the two state spaces as NFAs 
+and perform a language equivalence test. Checking language equivalence of two NFAs is 
+decidable in NP [21]. The overall complexity of the admissibility test is thus in PSPACE.
+5.7  Discussion
+One may want to adapt the admissibility test so that it only considers divergent traces, 
+e.g., in cases where only unbounded liveness properties need to be preserved by a repair. 
+This can be accomplished as follows. First, an overapproximating non-zenoness test [8] 
+can be applied to T and T/u1D704 . If it shows non-zenoness, then one knows that the respective 
+TA does not include convergent traces. If this test fails, a more expensive test needs to 
+be developed. It requires a construction of the untimed NBA using the approach from 
+[4], and subsequently a language equivalence test of the untimed languages accepted by 
+the untimed NBAs using, for instance, the automata-theoretic constructions proposed in 
+[13]. Checking language equivalence of two NBAs is in the complexity of PSPACE [14]. 
+Creating the untimed NBA, which is the input to the equivalence check, is also in PSPACE. 
+So the overall complexity of this analysis remains in PSPACE.
+6  Tool implementation
+We implemented the repair computations and the admissibility test in the tool TarTar. The 
+software architecture of TarTar is depicted in Fig.  3b. The orange rectangles in the fig-
+ure represent external tools that TarTar calls in the course of the repair analysis. Uppaal 
+is a state-of-the-art and closed-source model checking tool, which TarTar uses to com-
+pute a TDT for a given model and property. The SMT solver Z3 [18] is used to solve the 
+
+--- Page 23 ---
+158 Formal Methods in System Design (2021) 59:136–169
+1 3
+generated partial MaxSMT problems. In order to check the admissibility of a repair, Tar-
+Tar uses opaal and the AutomataLib component of LearnLib [25] since they conveniently 
+provide functionality used in the implementation of the admissibility test.
+6.1  Data flow architecture
+TarTar consists of many computation steps. For example, a TDT is parsed internally and 
+stored as a Trace. This Trace is then modified and exported as SMT-LIB2 [7] code. We 
+define a computation step of TarTar as the computation transforming input into result 
+artifacts. This focus on artifacts ensures a highly cohesive architecture and clear interfaces 
+between any two computation steps. Computation steps with identical objectives are 
+grouped into a project. This results in four projects depicted by blue rectangles in Fig. 3b.
+– HMI denotes the user interfaces of TarTar. The user inputs a timed model. TarTar 
+then calls the project Repair Computation using a faulty timed model as a parameter. In 
+case that the model is correct, TarTar calls the project Modification Seeding.
+– Modification Seeding seeds modifications into a correct model and then repairs the 
+resulting faulty models by computing repairs using Repair Computation. We use this 
+analysis in Sect. 7 in order to benchmark the Repair Computation analyses.
+– Repair Computation computes candidate repairs for a faulty timed model, applies these 
+repairs to the model and finally automatically calls the Admissibility Test.
+– Admissibility Test checks for every repaired model whether the computed repair is 
+admissible.
+6.2  Control flow architecture
+TarTar computes iteratively a set of repairs for a given faulty Uppaal model and a given 
+property /u1D6F1 using the following steps: 
+0. Counterexample Creation . TarTar calls Uppaal to verify the model against /u1D6F1 . In case 
+/u1D6F1 is violated, it stores a shortest symbolic TDT witnessing the violation in XML format.
+Fig. 3  TarTar Tool
+
+--- Page 24 ---
+159 Formal Methods in System Design (2021) 59:136–169 
+1 3
+1. Diagnostic Trace Creation . TarTar parses the model and the TDT into a data structure 
+Trace . To add potential repairs, TarTar copies the trace and replaces the constraints 
+that will potentially be subject to a repair by their modified variants. The modified trace 
+is then translated to a logic constraint system T∗ , represented in SMT-LIB2 code.
+2. Repair Computation. Z3 [ 18] then solves a MaxSMT problem on the modified trace 
+constraint system, computing a repair in which the number of unmodified constraints on 
+the variation variables of the form v∗=0 is maximized. Since Z3 can solve a MaxSMT 
+problem only for quantifier-free linear real arithmetic, TarTar first runs a quantifier 
+elimination on the constraint system ∀/u1D6FFj,cj.T∗⇒/u1D6F7 of F∗
+H.
+3. It then solves the MaxSMT problem with soft constraints requiring v∗=0 for all 
+variation variables. In case no solution is found, TarTar terminates. Otherwise, TarTar 
+applies the repair to the faulty model and returns a repaired model.
+4. Admissibility Test. TarTar checks the admissibility of a repair and compares the untimed 
+languages of the faulty and repaired models. TarTar calls the model checker opaal in 
+order to compute the timed transition systems (TTS) of the original and the repaired 
+Uppaal model. We modified the opaal model checker in such a way that it returns the 
+TTS for a model. TarTar then checks whether the two TTS have equivalent untimed 
+languages, in which case the repair is admissible. This check is implemented using 
+the library AutomataLib. In case the two TTS are not equivalent, the admissibility test 
+returns a trace as a witness for the difference.
+5. Iteration. TarTar enumerates all repairs, i.e., every combination of the same kind of 
+constraint modifications that corrects the TDT. The repairs are iteratively enumerated 
+starting with the ones that require the smallest number of modifications to the model. 
+After a repair is computed, the combination of modified variables that has been found 
+is prevented from being reconsidered for future repairs by setting these modification 
+variables to 0 using hard asserts. TarTar then proceeds with attempting to compute 
+further, previously unconsidered repairs.
+6.3  Component architecture
+We implemented TarTar with the general infrastructure depicted in Fig.  4. The interface 
+Job provides a general abstraction for an algorithm and specifies the necessary input and 
+result values of the algorithm by the class Description. TarTar contains a Job for the pro-
+jects Modification Seeding, Repair Computations and Admissibility Test. The class Ses-
+sion executes a Job and derivations of Session provide the different interfaces to the user. 
+With this infrastructure, the analysis implementation in TarTar is independent from the 
+Fig. 4  TarTar component architecture
+
+--- Page 25 ---
+160 Formal Methods in System Design (2021) 59:136–169
+1 3
+implementation of the user interfaces, thus reducing coupling and improving modifiability 
+of the code.
+6.4  Implementation details
+We implemented the different projects that constitute TarTar in Java and use the build-
+management tool maven [37] to manage the dependencies between the projects. TarTar 
+interacts differently with the external tools that are needed for different purposes. It calls 
+Uppaal via the command-line interface in order to generate a TDT, calls Z3 via its API 
+to compute a repair. For the admissibility test, it calls opaal using a command-line script 
+and the AutomataLib as an included Java library. For the implementation of the TarTar 
+analyses the following two details are essential.
+– We modify constraints in an Uppaal model in order to apply a repair or to seed a fault. 
+Since neither clock constraints nor transitions possess explicit unique identifiers in 
+an Uppaal model, it is not obvious which constraint to change. We therefore uniquely 
+identify a constraint by traversing the constraints in the sequence stored in the Uppaal 
+model file and use the constraint index in this sequence as its identifier.
+– The complexity of the algorithms for solving quantifier elimination and the MaxSMT 
+problem rise with the number of variables in the SMT model. We therefore reduce the 
+number of variables by exploiting implied equality constraints. For example, a vari-
+able cj is created for every clock c in every step j of the TDT. We eliminate cj explicitly 
+before quantifier elimination by replacing it with the term ∑
+i∈r…jdi , where di is the 
+time delay at step i in the trace and r is the last step before j where c was reset.
+7  Case studies and experimental evaluation
+We evaluate the repair analyses by applying TarTar to the database model in Example  1 
+and to more complex case studies of different sizes.
+7.1  Database model repairs
+We applied TarTar to the database model in Fig.  1. TarTar finds two admissible clock 
+bound repairs. A replacement of w≤2 by w≤1 and a replacement of y≤1 by y≤0 and 
+y≥1 by y≥0 repairs the database model. With operator variation repair analysis, TarTar 
+finds two admissible repairs that replace the operator in the clock constraint w>=1 by < 
+or <= , respectively. With clock reference repair analysis, TarTar finds 13 admissible clock 
+reference modification repairs, each involving two modifications. Nine repairs replace y in 
+the constraints y≤1 and y≥1 by a selection from the set of clocks z, x and w. Four repairs 
+replace y in the constraint y≤1 by w or x, and w in the constraint w≥1 by y or z. Applying 
+the reset repair analysis, TarTar finds four admissible repairs. One repair removes the reset 
+of clock y, another removes the reset of clock z, and two repairs add a reset of clock x either 
+on the transitions towards the location reqProcessing or the transition towards the loca-
+tion serReceiving. Applying the urgency location repair analysis, TarTar finds only two 
+
+--- Page 26 ---
+161 Formal Methods in System Design (2021) 59:136–169 
+1 3
+inadmissible and no admissible repairs, one setting the location reqAwaiting and the other 
+the location serReceiving to urgent.
+The computed repairs are reasonable and we expected them. We remain to evaluate 
+whether TarTar can analyze more complex models.
+7.2  Evaluation strategy
+In order to perform an experimental evaluation of the repair analyses both qualitatively 
+and quantitatively, we need a set of timed automata models that violate given properties. 
+Such models are not publicly available in significant numbers and to the best of our 
+knowledge, no benchmark suite for property violating timed automata models exists. As a 
+consequence, the evaluation of our analyses is based on ideas taken from mutation testing 
+[26]. Mutation testing evaluates a test set by systematically modifying the program code 
+to be tested and computing the ratio of modifications that are detected by the test set. In 
+adopting this strategy, we seed modifications in existing models and check whether those 
+can be successfully repaired by our automated repair analyses. Thereby, we evaluate the 
+quality of our repair technique.
+7.2.1  Modification seeding
+modifies a given TA model syntactically in one of the following ways:
+– Replacing the comparison operator in a clock constraint by {<,≤,=,≥,>},
+– Swapping a clock name referenced in a clock constraint or invariant with some other 
+clock name occurring in the original model,
+– Modifying the set of clocks that are reset in any given transition,
+– switching for any location whether it is urgent or not,
+– Or modifying the bound of a single clock constraint by an amount selected from the 
+set {−10, −1,+1,+0.1M ,+M} , where M is the maximal clock bound occurring in a 
+given model. Our observation was that making either a small modification that is close 
+to the bound value or a modification in the order of the maximal bound value M often 
+introduces a property violation in the considered models.
+The result is a modified TA that contains a single modification. TarTar automatically 
+checks for every modified TA whether it violates a given property, in which case a TDT is 
+generated.
+7.2.2  Experimental procedure
+TarTar applies modification seeding to several models used for experimentation and 
+generates a set of TDTs by performing model checking for a given property on each of the 
+modified models. For every computed TDT, TarTar performs the above defined repair 
+analyses one after another, and measures the ratio of TDTs for which the analyses compute 
+at least one repair.
+
+--- Page 27 ---
+162 Formal Methods in System Design (2021) 59:136–169
+1 3
+7.3  Experiments
+We have applied this evaluation strategy to eight UPPAAL models (see Table  1). Not all of 
+the models that we considered have been published with a property that can be violated by 
+mutating a clock constraint. For those models, we manually identify a suitable timed safety 
+property specifying an invariant condition which can then be violated by some of the pro-
+posed mutations. In particular, we add a property to the Bando [43] model which ensures 
+that, for as long as the sender is active, its clock never exceeds the value of 28, 116 time Table 1  Experimental results according to model
+Model db rep. csma Elevator Viking Bando Pacemaker SBR FDDI
+Source [27] [42] [39] [43] [29] [36] [43]
+#Location 8 10 9 24 77 104 21 16
+#Transition 9 22 12 25 144 223 23 20
+#Seed 110 191 88 310 1,955 1,187 353 314
+#TDT 13 10 5 9 40 12 50 36
+TimeUP 0.016 0.012 0.011 0.015 0.111 0.022 0.027 0.014
+Length 4 2 1 18 279 9 84 11
+#Repair 229 70 7 9 4,061 62 751 166
+#Admissible 138 26 5 7 209 19 660 105
+#Solved 9 8 4 5 21 10 31 34
+TimeQE 89.346 0.049 0.049 86.539 31.555 0.663 117.057 29.859
+#Timeout 2 0 0 21 46 20 86 51
+TimeRepair 0.911 0.023 0.020 1.436 4.922 0.325 2.686 3.074
+MemRepair 14.53 0.58 0.53 20.07 20.86 2.59 37.16 9.70
+#Variable 30 16 6 120 1,156 116 765 116
+#Constraint 91 72 28 180 8,144 988 1,211 272
+TimeAdm 2.080 1.825 1.665 1.952 19.57 1.994 138.004 2.241
+MemAdm 45 75 17 543 1,251 206 211 128
+Table 2  Experimental results according to type of repair
+Repair Bound mod. Operator var. Clock ref. Reset clock Urgent loc.
+#Repair 533 3,929 693 45 155
+#Admissible 364 96 625 37 47
+#Solved 85 (48%) 51 (29%) 35 (20%) 13 (7%) 37 (21%)
+TimeQE 15.209 117.057 33.282 89.346 0.107
+#Timeout 8 44 61 113 0
+TimeRepair 4.922 2.686 3.074 0.911 0.135
+MemRepair 20.86 37.16 14.13 14.53 3.16
+#Variable 1,156 996 1,120 996 1,120
+#Constraint 2,498 8,144 5,355 2,836 2,502
+TimeAdm 138.004 59.117 116.944 2.051 58.551
+MemAdm 525 543 206 45 1,251
+
+--- Page 28 ---
+163 Formal Methods in System Design (2021) 59:136–169 
+1 3
+units. In the FDDI token ring protocol [43], the property that we use checks whether the 
+first member of the ring never remains in any given state for more than 140 time units. The 
+Viking model is taken from the set of test models of opaal [39]. For this model we use a 
+property that checks whether one of the Viking processes can only enter a safe state during 
+the first 60 time units. Note that all of these properties are satisfied by the original models 
+prior to modification seeding.
+We applied modification seeding to the models given in Table  1 and analyzed the 
+obtained TDTs using the above described repair analyses implemented in TarTar. All 
+analyses were performed on a computer with an i7-6700K CPU (4.00GHz), 60GB of RAM 
+and a 64 bit Linux operating system. We summarize the results of this experiment per 
+considered model (Table  1) and per type of considered repair (Table  2). In Table  3, we give 
+insight into a subset of the repair analysis results for the cases where the repair analysis was 
+of the same type as the seeded modification.
+In Table  1, we give in the first three rows the source of the model as well as its number 
+of locations and transitions. In every model, we modify the time constraints as described 
+above, which results in a number #Seed of modifications and the same number of modified 
+models. Uppaal analyzes each modified model and finds #TDT property-violating models. 
+TimeUP is the maximal time that Uppaal needs to create a TDT for the property violating 
+models, and the longest TDT has a length of Length. Overall, TarTar computed a number 
+#Repair of repairs for the TDTS, of which #Admissible are admissible. We say a TDT is 
+solved when at least one admissible repair is computed by a repair analysis. #Solved states 
+the number of solved TDTs. The computation effort for a repair analysis is given by the 
+time TimeQE for successful quantifier elimination, the number of timeouts #Timeout that 
+occurred during quantifier elimination after 10 minutes, the average time TimeRepair  to 
+compute a repair, and the memory consumption MemRepair  for the overall analysis. The 
+constraint system that Z3 solves has the count #Variable of variables and #Constraint 
+of constraints. The effort for the admissibility test is given in time TimeAdm and memory 
+MemAdm . All times are given in seconds and memory consumption in MB. Notice that Table 3  Subset of experimental results where type of repair corresponds to type of seeded modification
+Seed/repair Bound mod. Operator var. Clock ref. Reset clock Urgent loc.
+#Seed 1,385 1,385 578 891 269
+#TDT 60 72 27 8 8
+TimeUP 0.111 0.083 0.093 0.027 0.021
+Length 279 248 279 84 18
+#Repair 314 3,508 383 6 11
+#Admissible 226 68 380 6 2
+#Solved 53 (88%) 38 (52%) 9 (33%) 1 (12%) 1 (12%)
+TimeQE 15.209 31.858 25.392 43.922 0.027
+#Timeout 3 8 10 7 0
+TimeRepair 4.922 1.436 2.525 0.558 0.049
+MemRepair 20.86 12.12 13.01 10.88 0.71
+#Variable 1,156 996 1,120 25 90
+#Constraint 2,498 8,144 5,355 57 279
+TimeAdm 18.045 52.749 116.944 2.051 19.570
+MemAdm 525 543 205 33 1,251
+
+--- Page 29 ---
+164 Formal Methods in System Design (2021) 59:136–169
+1 3
+we omit the lines pertaining to the modification seeding and TDT computation in Table  2 
+since they are irrelevant there.
+We illustrate the evaluation procedure using an instance of the pacemaker case study, 
+which is a real world model of realistic size. One of the seeded bound modifications 
+increases a location invariant of this model which controls the minimal heart period 
+to remain within a range from 400 to 1,  600 time units. The modification allows the 
+pacemaker to delay an induced ventricular beat for too long so that this violates the 
+property that the time between two ventricular beats of a heart is never longer than the 
+maximal heart period of 1, 000. TarTar finds three repairs. The first repair reduces the 
+maximal time delay between two articular heartbeats such that the pacemaker cannot and 
+no longer needs to trigger the articular heartbeat. The second repair reduces the maximal 
+time delay between two ventricular heartbeats such that the pacemaker cannot trigger the 
+first ventricular heartbeat. Both repairs changes the heart behavior and removes functional 
+behavior of the pacemaker and, hence, are classified as inadmissible. In the model context, 
+this appears to be reasonable since the repairs restrict the environment of the pacemaker, 
+and not the pacemaker itself. The third repair is admissible and reduces the bound modified 
+during the seeding of bound modifications by 1199.5. The minimal heart period is then 
+also below or equal to the maximal heart period of 1000.
+Overall, TarTar seeded 4508 modifications. This resulted in 175 TDTs in total. 60 
+TDTs were due to bound modification, 72 were due to operator variation, 27 were due to 
+changing the clock reference, 8 were due to complementing the reset of clocks and 8 were 
+due to the switching of urgent locations (see Table  3). TarTar found in total 5355 repairs, 
+out of which 1,169 were admissible. It found at least one admissible repair for 122 (69%) 
+of the 175 TDTs. The maximal number of modified constraints in an admissible repair 
+computed for a single TDT using all types of repair analysis was 25. A total of 4222 repairs 
+were of the same type as the seeded modification. Out of these same type repairs, 682 were 
+admissible. At least one admissible same type repair exists for 102 (58%) of the 175 TDTs.
+7.4  Result interpretation
+7.4.1  Pacemaker instance results
+Our repair strategy minimizes the number of repairs but does not optimize the computed 
+value. For instance, in the pacemaker model the computed repair of 1199.5 time units 
+would be a correct and admissible repair even if the value was reduced by 600 time units, 
+which would be the minimal possible repair value.
+7.4.2  Modification seeding results
+Few of the seeded modifications resulted in a property violation. TarTar seeded 4,508 
+faults, which led to 175 TDTs, thus only 3.9% of these modifications result in a TDT. This 
+supports the hypothesis that, in practice, often times only few time constraints impact the 
+satisfaction of a checked property.
+
+--- Page 30 ---
+165 Formal Methods in System Design (2021) 59:136–169 
+1 3
+7.4.3  Repair results where the seeded modification is of arbitrary type
+TarTar computes at least one admissible repair by bound modification for 85 (48%), by 
+operator variation for 51 (29%), by clock reference for 35 (20%), by clock reset for 13 (7%) 
+and by urgent location for 37 (21%) of the 175 TDTs. Every analysis on its own computes 
+less admissible repairs than the combination of all repair analyses, which solves 122 (69%) 
+of the 175 TDTs. The largest number of constraints that an admissible repair modified was 
+25, which is less than anticipated. This low number of modified constraints allow us to 
+infer that only few constraints have an impact on whether a property is violated or not.
+TarTar does not find an admissible repair for every TDT. For instance, TarTar finds 
+an admissible repair for 53 TDT of the 60 TDTs created by bound modification, but only 3 
+analyses result in a timeout (Table  3). Hence, there exist 4 TDTs for which no admissible 
+repair was computed even though they did not result in a timeout. There are two reasons 
+for this phenomenon. Notice that a TDT is caused by modification seeding in which a 
+constraint c in a model is modified. First, the seeding of a modification in the model may 
+enable or disable transitions and, as a consequence, change the functional behavior of the 
+unmodified model. A repair computed by TarTar may not precisely undo the modification, 
+and therefore it cannot be guaranteed that the repaired model is functionally consistent 
+with the unmodified model. Second, even if the modified model is functionally consistent 
+with the unmodified model, the computed repair may not undo the modification and at the 
+same time be inadmissible.
+7.4.4  Computational effort
+A comparison of TQE and TR in every table confirms that the computational effort for the repair 
+computation is largely determined by the quantifier elimination step, as we also concluded 
+from the complexity analysis for the repair analysis. Only the urgent location repair consumes 
+more computation time during the repair computation than during the quantifier elimination 
+step. We expect that in light of the observed 226 timeouts, a more efficient quantifier elimina-
+tion procedure would lead to a significantly higher number of repairs that could be computed 
+without encountering a timeout. Furthermore, the number of timeouts, and thus the computa-
+tion time needed for the repair, seems to correlate with the length of the analyzed TDT. With 
+86 the SBR model includes the largest number of timeouts and the third longest TDT with a 
+length of 84 steps. The bando model has the third most timeouts (46) and the longest TDT. 
+Obviously, the longer the TDT, the larger the resulting constraint system, leading to increased 
+computational effort. With 1, 156 variables and 8, 144 constraints, the bando model yields 
+the largest constraint system. The SBR model has the second largest constraint system with 
+765 variables and 1, 211 constraints. The model FDDI has a shorter TDT with a length of 11 
+transitions and a much smaller constraint system with 116 variables and 272 constraints. In 
+order to provide some statistical evidence for the impact of the TDT length and the intrinsic 
+model complexity on the computational effort we analyzed the statistical relationship between 
+the length of the TDT and the computation time for a repair ( Tr = TQE + TR ) as well as the 
+relationship between #Variable and Tr , both by estimating Kendall’s tau [20] for every TDT. 
+Kendall’s tau is a measure for the ordinal association between two measured quantities. A cor -
+relation computed by Kendall’s tau estimation approach is considered significant if the prob-
+ability p that there is actually no correlation in a larger data set is below a certain threshold. 
+We use the commonly applied significance threshold of 0.05. The length of a TDT is signifi-
+cantly related ( /u1D70F1=0.521  , p<.001 ) to Tr . Also #Variable is significantly related ( /u1D70F2=0.496  , 
+
+--- Page 31 ---
+166 Formal Methods in System Design (2021) 59:136–169
+1 3
+p<.001 ) to Tr . From this we conclude that the complexity of a repair depends not only on the 
+TDT length, but also on the intrinsic complexity of the model as expressed by the number of 
+variables occurring in the model.
+We also observe that the admissibility test requires more computational resources than 
+the repair computation. The maximum amount of memory used for the admissibility test was 
+1, 251MB  in contrast to 37.16MB  for the repair computation. This is in line with our expecta-
+tion since the admissibility test involves searches of the state space of the full NTA, while the 
+repair analyses only consider a single TDT.
+Modifying states from urgent to non-urgent during modification seeding resulted in only 8 
+TDTs. This low number is due to the observation that the considered models contain only very 
+few urgent states. Modifying non-urgent states to urgent ones, however, did not lead to a single 
+property violation resulting in a TDT. The rationale is that urgency ensures to leave a state 
+immediately without a delay which leads to a restriction rather than a relaxation regarding the 
+time budget spent along an execution trace. As a consequence, making a state urgent does not 
+cause a property violation in many models since the type of the checked properties is typically 
+time bounded reachability, and a restricted time budget does not make it more likely that the 
+property is violated.
+7.4.5  Results of repairs that have the same type as the seeded modification
+Recall that we seed different types of modifications that correspond to the different 
+types of repair analyses that we propose. For every type of a repair analysis, we now 
+compare the probability to compute an admissible repair when the seeded modificaton is 
+of the same type as the repair (see Table  3) with the case when the seeded modification 
+is of arbitrary type (see Table  2). Bound modification analysis repairs with a higher 
+probability (88% to 48% ) a TDT with a seeded bound modification than a modification 
+of an arbitrary type. Also, operator modification analysis ( 52% to 29% ), clock reference 
+analysis ( 33% to 20% ) and clock reset analysis ( 12% to 7% ) compute a repair with a 
+higher probability for the same type of seeded fault as a modification of an arbitrary 
+type. Only the urgent location analysis computes a repair with a lower probability ( 12% 
+to 21% ) for a TDT with a seeded urgent location modification than for a modification 
+of arbitrary type. In summary, with the exception of the urgent repair analysis, an 
+admissible repair is computed with a higher probability if the repair analysis is of the 
+same type as the seeded modification.
+We finally observe that the repair computations of a seeded modification of an 
+arbitrary type (Table  2) and repair computations of the same type as the seeded 
+modification (Table  3) require similar computational effort in terms of time and 
+memory consumption. We conclude that the computational effort of a repair analysis is 
+independent of the type of a seeded modification that it repairs.
+8  Conclusion
+We have presented an approach to derive minimal repairs for timed reachability 
+properties of NTA models from TDTs returned as counterexamples during model 
+checking. The objective of this repair synthesis is to facilitate fault localization 
+and debugging of such models during the design process. Our approach includes a 
+
+--- Page 32 ---
+167 Formal Methods in System Design (2021) 59:136–169 
+1 3
+formalization of TDTs using linear real arithmetic, a repair strategy based on MaxSMT 
+solving, the definition of an admissibility criterion and test for the computed repairs, the 
+development of an analysis and repair tool, and the application of the proposed method 
+to a number of case studies of realistic complexity. To the best of our knowledge, this 
+is the first rigorous treatment of counterexamples in real-time model checking. We have 
+nonetheless observed that our analysis computes a significant number of admissible 
+repairs within realistic computation time bounds and memory consumption.
+In future work we plan to explore the interplay between different repairs that 
+are computed for a repaired system that still violates a property, and develop refined 
+strategies to select promising repairs from a repair set. A further generalization of the 
+analysis is to not only compute clock constraint modifications for faulty models but 
+also to compute possible relaxations of clock constraints for correct models in order to 
+support design space exploration.
+Acknowledgements We wish to thank Nikolaj Bjorner and Zvonimir Pavlinovic for advice on the use of Z3. 
+We are grateful to Sarah Stoll for helping us with the statistical evaluation of the experimental results. This 
+work was in part supported by the National Science Foundation (NSF) under grant CCF-1350574.
+Funding Open Access funding enabled and organized by Projekt DEAL. This work was in part supported 
+by the National Science Foundation (NSF) under Grant CCF-1350574.
+Availability of data and material The source code and part of the UPPAAL models are available from the github 
+site https:// github. com/ sen- uni- kn/ tartar . Further sources of UPPAAL models are referenced in the manuscript.
+Declarations 
+ Conflict of interest The authors declare that they have no conflict of interest.
+ Consent to participate All authors consent to participate in the research described in this manuscript.
+ Consent for publication All authors and the institutions that they are affiliated with consent to the publication 
+of the results contained in this manuscript.
+Code availability See above. The tool TarTar was successful in the artefact evaluation of the CAV 2020 
+conference, c.f. [32].
+Open Access This article is licensed under a Creative Commons Attribution 4.0 International License, which 
+permits use, sharing, adaptation, distribution and reproduction in any medium or format, as long as you give 
+appropriate credit to the original author(s) and the source, provide a link to the Creative Commons licence, 
+and indicate if changes were made. The images or other third party material in this article are included in the 
+article’s Creative Commons licence, unless indicated otherwise in a credit line to the material. If material is 
+not included in the article’s Creative Commons licence and your intended use is not permitted by statutory 
+regulation or exceeds the permitted use, you will need to obtain permission directly from the copyright 
+holder. To view a copy of this licence, visit http:// creat iveco mmons. org/ licen ses/ by/4. 0/.
+References
+ 1. André É, Arcaini P, Gargantini A, Radavelli M (2019) Repairing timed automata clock guards through 
+abstraction and testing. In: Beyer D, Keller C (eds) Tests and Proofs - 13th international conference, 
+TAP@FM 2019, Porto, Portugal, October 9-11, 2019, Proceedings, volume 11823 of Lecture notes in 
+computer science, pp 129–146. Springer
+ 2. Alur R, Bodík R, Dallal E, Fisman D, Garg P, Juniwal G, Kress-Gazit H, Madhusudan P, Martin Milo 
+MK, Mukund R, Shambwaditya S, Seshia SA, Singh R, Solar-Lezama A, Torlak E, Udupa A (2015) 
+
+--- Page 33 ---
+168 Formal Methods in System Design (2021) 59:136–169
+1 3
+Syntax-guided synthesis. In: Dependable software systems engineering, volume 40 of NATO Science for 
+peace and security series, D: information and communication security, pp 1–25. IOS Press
+ 3. Alur R, Courcoubetis C, Dill DL (1993) Model-checking in dense real-time. Inf Comput 104(1):2–34
+ 4. Alur R, Dill DL (1994) A theory of timed automata. Theor Comput Sci 126(2):183–235
+ 5. Alpern B, Schneider FB (1987) Recognizing safety and liveness. Distrib Comput 2(3):117–126
+ 6. Bouyer P, Fahrenberg U, Larsen KG, Markey N, Ouaknine J, Worrell J (2018) Model checking real-time sys-
+tems. Handbook of model checking. Springer, Berlin, pp 1001–1046
+ 7. Barrett C, Fontaine P, Tinelli C (2017) SMT-lib, http:// smtlib. cs. uiowa. edu/ langu age. shtml
+ 8. Baier C, Katoen J-P (2008) Principles of model checking. MIT Press, Cambridge
+ 9. Ben-Abdallah H, Leue S (1997) Timing constraints in message sequence chart specifications. In: FORTE, 
+volume 107 of IFIP conference proceedings, pp 91–106. Chapman and Hall
+ 10. Bengtsson J, Larsen KG, Larsson F, Pettersson P, Yi W (1995) Uppaal - a tool suite for automatic veri-
+fication of real-time systems. In: Hybrid systems, volume 1066 of Lecture notes in computer science, pp 
+232–243. Springer, Berlin
+ 11. Bendík J, Sencan A, Gol EA, Cerná I (2021) Timed automata relaxation for reachability. In: Groote JF, 
+Larsen KG (eds) Tools and algorithms for the construction and analysis of systems - 27th international 
+conference, TACAS 2021, Held as Part of the European Joint Conferences on Theory and Practice of Soft-
+ware, ETAPS 2021, Luxembourg City, Luxembourg, March 27–April 1, 2021, Proceedings, Part I, volume 
+12651 of Lecture notes in computer science, pp 291–310. Springer
+ 12. Bengtsson J, Yi W (2003) Timed automata: semantics, algorithms and tools. In: Lectures on concurrency 
+and petri nets, volume 3098 of Lecture notes in computer science, pp 87–124. Springer
+ 13. Clarke EM, Draghicescu IA, Kurshan RP (1993) A unified approach for showing language inclusion and 
+equivalence between various types of omega-automata. Inf Process Lett 46(6):301–308
+ 14. Czerbo DB (1992) Handbook of theoretical computer science: van leeuwen J (ed), vol. A: algorithms and 
+complexity, vol. B: formal methods and semantics (Elsevier, Amsterdam, 1990), p 2296, hardcover, dfl. 
+555.00. Artif Intell Medicine 4(4):309
+ 15. Davenport JH, Heintz J (1988) Real quantifier elimination is doubly exponential. J Symb Comput 
+5(1/2):29–35
+ 16. Dalsgaard AE, Hansen RR, Jørgensen KY, Larsen KG, Olesen MC, Olsen P, Srba J (2011) opaal: A lattice 
+model checker. In: NASA formal methods, volume 6617 of Lecture notes in computer science, pp 487–493. 
+Springer
+ 17. Dierks H, Kupferschmid S, Larsen KG (2007) Automatic abstraction refinement for timed automata. In 
+FORMATS, volume 4763 of Lecture notes in computer science, pp 114–129. Springer
+ 18. de Moura LM, Bjørner N (2008) Z3: an efficient SMT solver. In: TACAS , volume 4963 of Lecture Notes in 
+Computer Science, pp 337–340. Springer
+ 19. Ergurtuna M, Yalcinkaya B, Gol EA (2022) An automated system repair framework with signal temporal 
+logic. Acta Inf 59(2):183–209
+ 20. Field A (2013) Discovering statistics using IBM SPSS statistics: and sex and drugs and rock ’n’ roll, 4th 
+Edition. Sage
+ 21. Garey MR, Johnson DS (1979) Computers and intractability: a guide to the theory of NP-Completeness. 
+W. H. Freeman
+ 22. Ghosh S, Sadigh D, Nuzzo P, Raman V, Donzé A, Sangiovanni-Vincentelli AL, Sastry SS, Seshia SA 
+(2016) Diagnosis and repair for synthesis from signal temporal logic specifications. In: Abate A, Fainekos 
+G (eds) Proceedings of the 19th international conference on hybrid systems: computation and control, 
+HSCC 2016, Vienna, Austria, April 12–14, 2016, pp 31–40. ACM
+ 23. Henzinger TA, Nicollin X, Sifakis J, Yovine S (1994) Symbolic model checking for real-time systems. Inf 
+Comput 111(2):193–244
+ 24. Hopcroft JE, Ullman JD (2000) Introduction to automata theory, languages and computation, 2nd edn. 
+Addison-Wesley, Boston
+ 25. Isberner M, Howar F, Steffen B (2015) The open-source learnlib - A framework for active automata learn-
+ing. In: CAV (1), volume 9206 of Lecture notes in computer science, pp 487–495. Springer
+ 26. Jia Y, Harman M (2011) An analysis and survey of the development of mutation testing. IEEE Trans 
+Softw Eng 37(5):649–678
+ 27. Jensen HE, Larsen KG, Skou A (1996) Modelling and analysis of a collision avoidance protocol using spin 
+and uppaal. In: The Spin verification system, volume 32 of DIMACS series in discrete mathematics and 
+theoretical computer science, pp 33–50. DIMACS/AMS
+ 28. Jose M, Majumdar R (2011) Bug-assist: assisting fault localization in ANSI-C programs. In: CAV , volume 
+6806 of Lecture notes in computer science, pp 504–509. Springer,
+
+--- Page 34 ---
+169 Formal Methods in System Design (2021) 59:136–169 
+1 3
+ 29. Jiang Z, Pajic M, Moarref S, Alur R, Mangharam R (2012) Modeling and verification of a dual cham-
+ber implantable pacemaker. In: TACAS , volume 7214 of Lecture notes in computer science, pp 188–203. 
+Springer
+ 30. Karmarkar N (1984) A new polynomial-time algorithm for linear programming. In: Proceedings of the 
+sixteenth annual ACM symposium on Theory of computing, pp 302-311
+ 31. Kölbl M, Leue S, Wies T (2019) Clock bound repair for timed systems. In: CAV (1), volume 11561 of 
+Lecture notes in computer science, pp 79–96. Springer
+ 32. Kölbl M, Leue S, Wies T (2020) Tartar: a timed automata repair tool. CoRR, arXiv: 2002. 02760. Also 
+available from URL https:// www. sen. uni- konst  anz. de/ publi catio ns
+ 33. Kroening D, Strichman O (2016) Decision procedures - an algorithmic point of view, Second Edition. 
+Texts in theoretical computer science. An EATCS Series. Springer
+ 34. Korte B, Vygen J (2012) Combinatorial optimization: theory and algorithms. Algorithms and combinato-
+rics. Springer, Berlin Heidelberg
+ 35. Le X-BD, Chu D-H, Lo D, Le GC, Visser W (2017) S3: syntax- and semantic-guided repair synthesis 
+via programming by examples. In: Proceedings of the 2017 11th joint meeting on foundations of software 
+engineering, ESEC/FSE 2017, pp 593–604. ACM
+ 36. Liu S (2018) Analysing timed traces using SMT solving. Master’s thesis, University of Konstanz
+ 37. Apache Software Foundation (2019) Maven, https:// maven. apache. org/
+ 38. Milner R(1980) A calculus of communicating systems, volume 92 of Lecture notes in computer science. 
+Springer
+ 39. opaal (2011). opaal test folder. http:// opaal- model check  er. com/ opaal- ltsmin/. Accessed: 2018-11-08
+ 40. Polsen DB, van Vliet J (2010) Concrete delays for symbolic traces. Master’s thesis, Department of Com-
+puter Science, Aalborg University. Available from https:// proje kter. aau. dk/ proje kter/ files/ 32183 338/ report.  
+pdf
+ 41. Reynolds A, Kuncak V, Tinelli C, Barrett C, Deters M (2017) Refutation-based synthesis in smt. Formal 
+methods in system design, Feb
+ 42. Brito T (2015) Uppaal elevator example. https:// github. com/ tfbri to/ UPPAAL. Accessed: 2019-01-20
+ 43. Uppaal (2017) Uppaal benchmarks. http:// www. it. uu. se/ resea rch/ group/ darts/ uppaal/ bench marks/# bench  
+marks. Accessed: 2019-01-20
+ 44. Yovine S (1997) KRONOS: a verification tool for real-time systems. STTT 1(1–2):123–133
+ 45. Yi W, Pettersson P, Daniels M (1994) Automatic verification of real-time communicating systems by con-
+straint-solving. In: FORTE, volume 6 of IFIP conference proceedings, pp 243–258. Chapman and Hall. 
+Full version of the paper is available from http:// www. it. uu. se/ resea rch/ group/ darts/ papers/ texts/ wpd- forte  
+94- full. pdf
+ 46. Microsoft Research (2019) The Z3 Theorem Prover. https:// github. com/ Z3Pro  ver/ z3
+Publisher’s Note Springer Nature remains neutral with regard to jurisdictional claims in published maps and 
+institutional affiliations.

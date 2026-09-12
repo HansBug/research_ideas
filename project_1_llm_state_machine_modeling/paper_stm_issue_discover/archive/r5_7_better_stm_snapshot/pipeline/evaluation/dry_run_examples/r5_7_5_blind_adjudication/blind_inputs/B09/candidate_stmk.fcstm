@@ -1,0 +1,68 @@
+def int dist_to_front = 0;
+def int extra_lane = 0;
+state llms_emp_kimi_autonomous_collision named "llms-emp-kimi-autonomous-collision" {
+    [*] -> start;
+    event front_inactive_rear_inactive_pedestrian_inactive named "front_inactive && rear_inactive && pedestrian_inactive";
+    event pedestrian_detected_dist_to_rear_5_vel_30_dist_to_front_15_in_HighwayMode_dist_to_front_10_in_UrbanMode named "pedestrian_detected || (dist_to_rear<5 && vel>30) || (dist_to_front<15 in HighwayMode || dist_to_front<10 in UrbanMode)";
+    pseudo state start named "start";
+    state collision_avoidance_deactive named "collision_avoidance_deactive";
+    state collision_avoidance_active named "collision_avoidance_active";
+    state AutonomousMode named "AutonomousMode" {
+        [*] -> startAutonomousMode;
+        event auto_finished_true named "auto_finished=true";
+        event high_way_true named "high_way=true";
+        event urban_way_true named "urban_way=true";
+        pseudo state startAutonomousMode named "startAutonomousMode";
+        state InitialState named "InitialState";
+        state FinishState named "FinishState";
+        state HighwayMode named "HighwayMode" {
+            [*] -> startHighwayMode;
+            event dist_to_exit_2 named "dist_to_exit<2";
+            event lane_change_completed named "lane change completed";
+            pseudo state startHighwayMode named "startHighwayMode";
+            state enter_hwy named "enter_hwy";
+            state cruise named "cruise";
+            state lane_change named "lane_change";
+            state endHighwayMode named "endHighwayMode";
+            startHighwayMode -> enter_hwy;
+            enter_hwy -> cruise;
+            cruise -> lane_change : if [dist_to_front < 25 && extra_lane == 1];
+            cruise -> endHighwayMode : dist_to_exit_2;
+            cruise -> lane_change : if [dist_to_front < 25 && extra_lane == 1];
+            lane_change -> cruise : lane_change_completed;
+            lane_change -> endHighwayMode : dist_to_exit_2;
+        }
+        state UrbanMode named "UrbanMode" {
+            [*] -> startUrbanMode;
+            event dist_to_exit_0_7 named "dist_to_exit<0.7";
+            event intersection_true named "intersection=true";
+            event lane_change_complete named "lane change complete";
+            event road_ahead_is_clear named "road ahead is clear";
+            pseudo state startUrbanMode named "startUrbanMode";
+            state enter_urban named "enter_urban";
+            state lane_change_urban named "lane_change_urban";
+            state straight named "straight";
+            state intersection named "intersection";
+            state exit_urban named "exit_urban";
+            startUrbanMode -> enter_urban;
+            enter_urban -> lane_change_urban : if [dist_to_front < 15 && extra_lane == 1];
+            enter_urban -> straight : road_ahead_is_clear;
+            enter_urban -> intersection : intersection_true;
+            lane_change_urban -> straight : lane_change_complete;
+            lane_change_urban -> exit_urban : dist_to_exit_0_7;
+            straight -> intersection : intersection_true;
+            straight -> lane_change_urban : if [dist_to_front < 15 && extra_lane == 1];
+        }
+        ! * -> HighwayMode : high_way_true;
+        ! * -> UrbanMode : urban_way_true;
+        startAutonomousMode -> InitialState;
+        InitialState -> HighwayMode : high_way_true;
+        InitialState -> UrbanMode : urban_way_true;
+        HighwayMode -> FinishState : auto_finished_true;
+        UrbanMode -> FinishState : auto_finished_true;
+    }
+    start -> AutonomousMode;
+    start -> collision_avoidance_deactive;
+    collision_avoidance_deactive -> collision_avoidance_active : pedestrian_detected_dist_to_rear_5_vel_30_dist_to_front_15_in_HighwayMode_dist_to_front_10_in_UrbanMode;
+    collision_avoidance_active -> collision_avoidance_deactive : front_inactive_rear_inactive_pedestrian_inactive;
+}

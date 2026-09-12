@@ -1,0 +1,51 @@
+{
+  "case": "0042",
+  "nl_group": "NL09",
+  "diffs": [
+    {
+      "verdict": "problem",
+      "ref": "[*] --> Off（无触发）",
+      "gen": "[*] --> Off : keyOff",
+      "reason": "良构性问题：初始迁移带触发事件（fcstm: `[*] -> Off : /keyOff`）。初始伪状态出边不得带触发，否则 keyOff 到达之前机器没有合法初始配置。语义上也是反的：NL 第2句把 keyOff 定义为\"turned off\"信号，把它当作\"进入初始 Off 态\"的触发，等于要求先关机才能开始运行。NL 第1句 \"Once the device is powered on, the system enters the `Operate` state\" 与第2句都没有为初始入口点名任何触发。属口径 3 明列的\"带触发的初始边\"。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "Operate --> Off: shutOff",
+      "gen": "Operate --> Off : keyOff",
+      "reason": "NL 第2句 \"The system can be turned on with the `start` signal and turned off with the `keyOff` signal\" 明确要求关机信号是 keyOff。生成方用 keyOff 关闭运行态，与 NL 一致。参考侧存疑：参考在这条边上用了 NL 中不存在的 `shutOff`，而把 keyOff 用在 `Off --> [*]`，即把 NL 的\"关机\"语义挪到了\"从关机态终止\"，与 NL 第2句不完全吻合，故不以参考为基准判生成方。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "Off --> [*]: keyOff",
+      "gen": "（全模型无 final 伪状态）",
+      "reason": "NL 三句都没有描述系统的最终终止（\"turned off\" 已由 Operate --> Off 承载），参考补一条到 final 属比 NL 更具体的部分，按口径 2 不算生成方问题。生成方 Off 仍有 `Off --> Operate : start` 出边，不构成死端。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "Braking --> AcceleratingorCruising: releaseBrake",
+      "gen": "Braking --> AcceleratingOrCruising : accelerate",
+      "reason": "NL 第3句 \"the system transitions between different substates depending on actions like accelerating, braking, or stopping\" 列出的动作里有 accelerating 而没有 releaseBrake。生成方用 accelerate 离开 Braking 属 NL 列举范围内的说得通读法，参考的 releaseBrake 属 NL 之外的更具体命名。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "（参考无 AcceleratingorCruising --> Idle 直接边，只能经 Braking --> Idle: stopped）",
+      "gen": "AcceleratingOrCruising --> Idle : stop",
+      "reason": "NL 第1句 \"based on user actions, it transitions between `Idle`, `Accelerating or Cruising`, and `Braking` states\" 与第3句的 \"stopping\" 都授权在这三个子态之间按用户动作迁移，因此从巡航直接 stop 回 Idle 不违反 NL，也不属\"NL 与参考都没有\"的凭空新增（NL 第3句点名了 stopping）。判 similar。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "state Operate { [*] --> Idle ; Idle --> AcceleratingorCruising: accelerate ; AcceleratingorCruising --> Braking: engageBrake ; Braking --> Idle: stopped } ；Off --> Operate: start",
+      "gen": "state Operate { [*] --> Idle ; Idle --> AcceleratingOrCruising : accelerate ; AcceleratingOrCruising --> Braking : brake ; Braking --> Idle : stop } ；Off --> Operate : start",
+      "reason": "NL 第1句点名的三个子态、第2句的 start 信号、第3句的 accelerating/braking/stopping 迁移两侧一一对应，Operate 复合态有无触发默认子态 Idle，层次结构一致。仅 engageBrake/brake、stopped/stop、大小写 AcceleratingorCruising/AcceleratingOrCruising 的命名差异，按口径 1 判 correct。",
+      "out_of_scope": null
+    }
+  ],
+  "problem_count": 1,
+  "extra_count": 0,
+  "notes": "拆分粒度原则：一条 diff = 一个可独立修复的现象；命名级差异（brake/engageBrake、stop/stopped、大小写）合并成一条 correct，不逐条拆。\n\nNL 逐句核对：\n1 \"Once the device is powered on, the system enters the `Operate` state, and based on user actions, it transitions between `Idle`, `Accelerating or Cruising`, and `Braking` states\"：满足——Off --start--> Operate，Operate 内三个子态齐备并互相可达。\n2 \"The system can be turned on with the `start` signal and turned off with the `keyOff` signal\"：满足，且 keyOff 用在 Operate --> Off 上比参考更贴 NL；但 keyOff 又被额外贴到初始边上（计 problem）。\n3 \"Within the `Operate` state, the system transitions between different substates depending on actions like accelerating, braking, or stopping\"：满足（accelerate / brake / stop 全部出现）。\n\n良构性检查（生成方）：除初始边带触发外，Operate 有默认子态 Idle；Off、Idle、AcceleratingOrCruising、Braking 均有出边，无死端、无不可达、无无标签 completion 边。\n参考侧存疑位置：(a) `Operate --> Off: shutOff` 使用 NL 未定义的 shutOff，而把 NL 第2句的 keyOff 挪到 `Off --> [*]`；(b) 参考没有 AcceleratingorCruising --> Idle 的直接停车路径，需先经 Braking。"
+}

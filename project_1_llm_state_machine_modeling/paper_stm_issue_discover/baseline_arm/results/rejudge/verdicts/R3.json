@@ -1,0 +1,50 @@
+{
+  "judged_by": "R3",
+  "positions": {
+    "EIS-0029-01|run2/0029-claude": {
+      "hit": false,
+      "argument": "台账 EIS-0029-01 的命题是「AutonomousMode 未被打开为复合态，InitialState 未成为其子态，层次结构丢失」。本格 6 条已发布 issue 分别关于 HighwayMode 默认初始态([1])、enter_hwy 同触发多目标不可区分([2])、cruise 的 dist_to_exit<2 目标错误([3])、UrbanMode 默认初始态([4])、UrbanMode.FinishState 未声明([5])、事件被融合([6])，无一涉及 AutonomousMode 与 InitialState 的包含关系。断言表中与该处相关的两条 AST-REQ-001-1(initial_target:root:AutonomousMode) 与 AST-REQ-002-1(occupancy_after:AutonomousMode:initial:InitialState) 结果均为 True，本格没有任何 containment:AutonomousMode:InitialState 一类的 False 断言可承载命中。"
+    },
+    "EIS-0029-02|run3/0029-claude": {
+      "hit": true,
+      "equivalence_form": "直接对应",
+      "carrier": "issue",
+      "argument": "台账 EIS-0029-02 的命题是「两个互斥目标共享逐字相同的条件、无可区分守卫」，锚在作者源 enter_hwy --> cruise 与 enter_hwy --> lane_change 这两条同标签 dist_to_front<25 & extra_lane=true 的语句上。本格已发布 issue [4]（ISSUE-enter_hwy-nondeterministic-choice）逐字指出 enter_hwy 上两条出边触发相同且均无守卫、guard_distinguishable=false，并把修复指向为两条候选出边加互斥守卫或拆开触发条件——与台账指向作者源同一处编辑，仅措辞不同。配套断言 AST-REQ-011-1(guard_distinguishable:enter_hwy:dist_to_front_25_extra_lane_true)=False 亦为同一命题。"
+    },
+    "EIS-0029-03|run3/0029-gpt": {
+      "hit": true,
+      "equivalence_form": "直接对应",
+      "carrier": "issue",
+      "argument": "台账 EIS-0029-03 的命题是「cruise 在 dist_to_exit<2 下应走局部退出 exit_hwy（与 lane_change 一致），生成侧却直接接到 FinishState，把局部退出与全局完成混为一谈」，锚在作者源 cruise --> FinishState : dist_to_exit<2 这一条语句上。本格已发布 issue [4]（ISSUE-REQ015-CruiseExitTarget）逐字说 cruise 中 dist_to_exit<2 跳转到 FinishState 而不是本地 exit_hwy，指向的是同一条作者语句、同一个缺陷事实；断言 AST-REQ-015-1(occupancy_after:cruise:dist_to_exit_2:exit_hwy)=False 与 AST-REQ-015-2(edge_declared:cruise:dist_to_exit_2:exit_hwy)=False 同向佐证。"
+    },
+    "EIS-0026-01|run2/0026-claude": {
+      "hit": false,
+      "argument": "台账 EIS-0026-01 的命题是「NL 第 2 句要求搜索期间有三个不同状态区域，而模型只有一个区域，三个兄弟态是搜索/编队/攻击三种模式而非三个搜索区域」。本格 3 条已发布 issue 分别关于 TargetSearchingState 在任务完成边界前无法持续保持([1])、uav_count 变量未声明([2])、Attack_Completed 转移缺负向效应([3])，无一主张三个兄弟态被误当作三个搜索区域。断言表中唯一涉及数目的 AST-REQ-001-1(cardinality:SearchingState:3)=True，恰恰是台账所说「为真但理由完全错误」那一条，True 断言按 §3.1 不承载命中；其余 False 断言（AST-REQ-002-1 持续性、AST-REQ-008-0/008E-0/008E-1/008V-1 变量与效应）均指向别的对象。"
+    },
+    "EIS-0026-01|run2/0026-gpt": {
+      "hit": false,
+      "argument": "台账 EIS-0026-01 的命题是「搜索期间应有三个不同状态区域，模型把三种模式（搜索/编队/攻击）当成了三个区域」。本格 2 条已发布 issue 分别是缺少 Flight 状态([1]，对应 NL 第 4 句 During flight 的承载上下文)与缺少 number_of_UAVs_in_the_swarm 变量([2])，都不是同一处失误。断言表中 AST-REQ-005-1(cardinality:SearchingState:3)=True 不承载命中；为 False 的 AST-REQ-010-1、AST-REQ-013-1（Flight 状态未声明）与 AST-REQ-015-1、AST-REQ-016-1（UAV 数量变量未声明）分别关于 Flight 上下文与变量，与三个搜索区域无蕴含关系。"
+    },
+    "EIS-0026-03|run1/0026-claude": {
+      "hit": false,
+      "argument": "台账 EIS-0026-03 的命题是「FormationAdjustmentState 是吸收态：一旦被拦截即无出边，永远回不到搜索、也不能攻击或完成任务」。本格只发布 1 条 issue（ISSUE-uav_count-missing），主张模型未声明 uav_count 变量、Attack_Completed 处缺负向效应，与 FormationAdjustmentState 的出边缺失无关。断言表中仅有的两条 False（AST-REQ-011-1、AST-REQ-014-0）都是 variable_declared:uav_count；关于 FormationAdjustmentState 的 AST-REQ-005-1(state_declared) 与 AST-REQ-012-1/012-2（进入该态的占据与边）全部为 True，本格没有任何主张触及该态的出边或后续可达性。"
+    },
+    "EIS-0026-03|run3/0026-claude": {
+      "hit": false,
+      "argument": "台账 EIS-0026-03 的命题是「FormationAdjustmentState 为吸收态导致被拦截后无法回到搜索、无法攻击或完成任务」。本格只发布 1 条 issue（ISSUE-uav_count-missing），全部围绕 uav_count 变量与 Attack_Completed 的负向效应，与该态出边缺失无关。断言表里为 False 的还有 AST-REQ-005-1(terminates:TargetSearchingState:Mission_Completed)，但它表达的是「Mission_Completed 未能从 TargetSearchingState 结束运行」，锚点是 TargetSearchingState 的终止行为（且本格自陈其触及编译器插入的 FinalWaittr_0006），与 FormationAdjustmentState 是否有出边不是同一处作者编辑，也不构成蕴含；其余 False（AST-REQ-013-1/014-1/014-2/015-1）均为变量与效应类。"
+    },
+    "EIS-0027-01|run2/0027-gpt": {
+      "hit": false,
+      "argument": "台账 EIS-0027-01 的命题是「进入 ActiveState 后被永久困住：junction2/junction3/InitialState 均为死端、ActiveState 无任何外出迁移、DetectingState 再不可达，缺少返回边」。本格 2 条已发布 issue（ISSUE-missing-frontend-event、ISSUE-missing-pedestrian-event）主张的都是三类碰撞检测事件被融合、独立事件未声明，属进入侧触发的事件粒度问题。断言表中为 False 的 AST-REQ-002A-1、AST-REQ-002C-1、AST-REQ-003A-1、AST-REQ-003C-1 都是 event_declared，AST-REQ-003A-3、AST-REQ-003C-3 是 DetectingState→ActiveState 的 edge_declared，方向与对象均与「ActiveState 无出边、无法解除激活」不同，也不蕴含之。"
+    },
+    "EIS-0027-01|run3/0027-claude": {
+      "hit": false,
+      "argument": "台账 EIS-0027-01 的命题是「ActiveState 无任何外出迁移、三区末端全为死端、DetectingState 不可达、缺少 InitialState --> DetectingState 返回边」。本格 issue [1]（ISSUE-fused-collision-event）是关于三类碰撞事件被融合的进入侧触发问题；issue [2]（ISSUE-activestate-cardinality，断言 AST-REQ-001-1 cardinality:ActiveState:3=False）主张的是 ActiveState 直接非伪子状态数目不等于 3，虽同样点到 ActiveState 与 InitialState，但它是「子态计数」命题，正落在 §2.2「不同缺陷共用状态名」所禁止的对齐形态上：按它建议的修法（把伪节点/junction 收敛或删去多余的 InitialState 声明）并不恢复返回边，也不使 ActiveState 产生外出迁移，二者不构成任一方向的蕴含。断言表中其余 False（AST-REQ-002A/B/C-1、AST-REQ-003A/B/C-0、AST-REQ-003A/B/C-1）均为事件声明与 ActiveState 上消费独立事件的 edge_declared，与困死无关。"
+    },
+    "EIS-0050-01|run2/0050-claude": {
+      "hit": false,
+      "argument": "按撤回后的判据，EIS-0050-01 的命题是「NL 以 in (auto final) 点名的 auto final 子状态在模型中根本不存在，AutonomousMode 内只有 SubState1/2/3 三个无语义占位名」；原先关于三条件被压成一个标签、无法单独触发接管的归因已被裁定放弃，不得据以判命中。本格 2 条已发布 issue 恰恰落在被放弃的那一侧或别处：[1] ISSUE-front_distance-var-missing 关于变量 front_distance 未声明；[2] ISSUE-fused-events-not-split 关于 human_steering_cmd 与 brake_pressed 被融合、未作为独立事件声明——正是被撤回的融合归因。断言表中为 False 的 AST-REQ-004b-1（变量）、AST-REQ-005a-1/005b-1/005c-0/005d-0（event_declared）无一主张 AutonomousMode 缺少 auto final 子状态；AST-REQ-002-1(state_declared:AutonomousMode:composite)=True 且为 True 断言，不承载命中。"
+    }
+  },
+  "note": "0050 一位按材料内明示的撤回后判据（auto final 子状态不存在）判定，未采用被放弃的融合/析取归因。0027 run3-claude 的 cardinality issue 与台账的 ActiveState 困死虽共用 ActiveState 与 InitialState 两个名字，但按 §2.2 第一项判为不成立。"
+}

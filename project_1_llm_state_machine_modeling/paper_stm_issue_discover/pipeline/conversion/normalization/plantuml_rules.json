@@ -1,0 +1,139 @@
+{
+  "schema_version": "r3.1.plantuml_normalization_rules.v0",
+  "scope": "PlantUML pre-SCXML normalization only; canonical STM must still come from official PlantUML -tscxml SCXML.",
+  "rules": [
+    {
+      "rule_id": "PUML.NORM.alias_multiword_endpoint",
+      "description_zh": "对未加引号且含空格的 transition endpoint 生成 PlantUML state alias，并把 transition endpoint 改为 alias。",
+      "semantic_risk": "low_medium",
+      "risk_tier": "low_risk",
+      "main_eligibility_default": true,
+      "loss_types": [
+        "syntax"
+      ],
+      "claim_policy": "可进入 low_risk_scxml_pass，前提是不与高风险规则组合。"
+    },
+    {
+      "rule_id": "PUML.NORM.alias_quoted_endpoint",
+      "description_zh": "对 quoted transition endpoint 生成 PlantUML state alias，保留原显示 label。",
+      "semantic_risk": "low_medium",
+      "risk_tier": "low_risk",
+      "main_eligibility_default": true,
+      "loss_types": [
+        "syntax"
+      ],
+      "claim_policy": "可进入 low_risk_scxml_pass，前提是不与高风险规则组合。"
+    },
+    {
+      "rule_id": "PUML.NORM.alias_embedded_pseudostate_marker",
+      "description_zh": "对含有内嵌 [*] 伪状态标记的 transition endpoint 生成 PlantUML state alias；例如 `Closed [*]` 或 `Final [*]`。",
+      "semantic_risk": "high",
+      "risk_tier": "high_risk",
+      "main_eligibility_default": false,
+      "loss_types": [
+        "semantic"
+      ],
+      "claim_policy": "只作为 all-rules 技术上界 / manual-review；不得进入主 eligibility，因为 [*] 在 PlantUML 中具有初始/终止伪状态语义，alias 化可能把伪状态误降级为普通状态名。"
+    },
+    {
+      "rule_id": "PUML.NORM.alias_bracket_endpoint",
+      "description_zh": "对非 `[*]` 的 bracket endpoint 生成 PlantUML state alias，保留原显示 label；`[*]` 初始/终止伪状态不改写。",
+      "semantic_risk": "low_medium",
+      "risk_tier": "low_risk",
+      "main_eligibility_default": true,
+      "loss_types": [
+        "syntax"
+      ],
+      "claim_policy": "可进入 low_risk_scxml_pass，前提是不与高风险规则组合；必须证明未误改 `[*]` 伪状态。"
+    },
+    {
+      "rule_id": "PUML.NORM.transition_when_label",
+      "description_zh": "将 `SRC --> TGT when : guard` 这类 LLM 伪语法规范化为 PlantUML transition label，并保留 `when` 线索。",
+      "semantic_risk": "low_medium",
+      "risk_tier": "low_risk",
+      "main_eligibility_default": true,
+      "loss_types": [
+        "syntax"
+      ],
+      "claim_policy": "可进入 low_risk_scxml_pass；后续 guard 语义只能作为 label/guard-like cue 使用，不得宣称完成正式 guard 恢复。"
+    },
+    {
+      "rule_id": "PUML.NORM.remove_empty_transition_label",
+      "description_zh": "删除 transition 末尾空 label 冒号，例如 `A --> B:` 规范化为 `A --> B`。",
+      "semantic_risk": "low",
+      "risk_tier": "low_risk",
+      "main_eligibility_default": true,
+      "loss_types": [
+        "syntax"
+      ],
+      "claim_policy": "空 label 不含可见语义内容；可进入 low_risk_scxml_pass，前提是不与高风险规则组合。"
+    },
+    {
+      "rule_id": "PUML.NORM.remove_stm_heading",
+      "description_zh": "注释非 PlantUML 的 stm heading，让剩余状态图交给官方 PlantUML 检查。",
+      "semantic_risk": "medium",
+      "risk_tier": "low_risk",
+      "main_eligibility_default": true,
+      "loss_types": [
+        "syntax"
+      ],
+      "claim_policy": "仅对无块边界 heading 视作低风险；带 block 的 stm 进入 stm_block_to_state 高风险规则。"
+    },
+    {
+      "rule_id": "PUML.NORM.stm_block_to_state",
+      "description_zh": "将 stm X { 近似改写为 PlantUML state block。",
+      "semantic_risk": "medium_high",
+      "risk_tier": "high_risk",
+      "main_eligibility_default": false,
+      "loss_types": [
+        "hierarchy"
+      ],
+      "claim_policy": "仅 supplementary / manual-review；不得默认进入主 repair eligibility。"
+    },
+    {
+      "rule_id": "PUML.NORM.comment_orphan_when",
+      "description_zh": "注释无法归属 transition 的 when 行。",
+      "semantic_risk": "high",
+      "risk_tier": "high_risk",
+      "main_eligibility_default": false,
+      "loss_types": [
+        "guard"
+      ],
+      "claim_policy": "只作为 all-rules 技术上界；不得进入主 repair eligibility。"
+    },
+    {
+      "rule_id": "PUML.NORM.comment_dependency_arrow",
+      "description_zh": "注释 <.. / ..> dependency-like 非状态迁移线。",
+      "semantic_risk": "medium_high",
+      "risk_tier": "high_risk",
+      "main_eligibility_default": false,
+      "loss_types": [
+        "structure"
+      ],
+      "claim_policy": "只作为 all-rules 技术上界；不得进入主 repair eligibility。"
+    },
+    {
+      "rule_id": "PUML.NORM.entry_do_exit_rewrite_or_loss",
+      "description_zh": "注释 entry/do/exit action 行；当前不声明无损重写。",
+      "semantic_risk": "medium_high",
+      "risk_tier": "high_risk",
+      "main_eligibility_default": false,
+      "loss_types": [
+        "action"
+      ],
+      "claim_policy": "只作为 all-rules 技术上界；不得进入主 repair eligibility，除非未来单独证明无损子条件。"
+    },
+    {
+      "rule_id": "PUML.NORM.fork_join_decl_to_state",
+      "description_zh": "将 fork/join pseudo-state declaration 降级为普通 state declaration。",
+      "semantic_risk": "high",
+      "risk_tier": "high_risk",
+      "main_eligibility_default": false,
+      "loss_types": [
+        "semantic"
+      ],
+      "concurrency_degraded": true,
+      "claim_policy": "必须标注 concurrency_degraded=true；仅 supplementary / failure analysis，不进入主 repair / verification statistics。"
+    }
+  ]
+}

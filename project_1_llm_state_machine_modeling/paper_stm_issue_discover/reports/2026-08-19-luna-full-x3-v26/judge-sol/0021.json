@@ -1,0 +1,151 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0021",
+  "ledger": [],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:extraneous_transition:tr_0006",
+          "claims": [
+            "Exact source transition 'tr_0006' is present but forbidden."
+          ],
+          "locations": [
+            "tr_0006",
+            "NL2"
+          ],
+          "obligations": [
+            "Every authored transition must be semantically authorized by the NL contract that governs its source and behavior role."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:extraneous_transition:tr_0006:facet:49a4e9c9cf72"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "ok",
+      "findings": []
+    },
+    {
+      "cell": "method_run3",
+      "status": "ok",
+      "findings": []
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型增加了“夹钳释放”后从 ClampingState 返回 BrakingState 的迁移。",
+          "reason": "规范只规定进入制动状态后转移到制动钳夹紧状态，没有规定夹钳释放事件，也没有规定由夹紧状态返回制动状态；该额外行为不属于规范描述。",
+          "where": "ClampingState --> BrakingState : Clamping Released"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "模型允许 BrakingState 直接因“Signal Feedback Sent”返回 InitialState。",
+          "reason": "规范表述为“Once the signal feedback is sent, it returns to the initial state”，其语境是信号传输失败后进入 operational state 的路径；模型同时为 BrakingState 添加了相同反馈回初始状态的路径，使正常制动/夹紧路径也可绕过 ClampingState 返回初始状态。规范明确要求进入制动状态后转到夹钳夹紧状态，因此该直接迁移造成未规定的绕行行为。",
+          "where": "BrakingState --> InitialState : Signal Feedback Sent"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型额外增加了“制动钳夹紧状态 → 制动状态：Clamping Released”转移。",
+          "reason": "规格只规定进入制动状态后转入制动钳夹紧状态，没有规定制动钳释放后返回制动状态的行为。该转移属于规格未定义的额外行为，可能使状态机产生规格不允许的路径。",
+          "where": "PlantUML中的 `ClampingState --> BrakingState : Clamping Released`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "模型将“信号反馈发送后返回初始状态”扩展到了制动状态。",
+          "reason": "规格表述的上下文是：信号传输失败后进入运行状态，并且一旦发送信号反馈则返回初始状态；明确的运行状态反馈返回路径应为运行状态 → 初始状态。规格没有规定制动状态直接因信号反馈返回初始状态，因此该额外转移不符合已给出的行为约束。",
+          "where": "PlantUML中的 `BrakingState --> InitialState : Signal Feedback Sent`"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型增加了“制动钳夹紧状态”返回“制动状态”的“夹紧释放”转移。",
+          "reason": "规格只规定进入制动状态后转移到制动钳夹紧状态，没有规定制动钳释放后返回制动状态的行为。该额外转移使模型允许规格未定义的状态路径，且在“夹紧释放”后仍处于制动流程中，不能由给定规格推出。",
+          "where": "`ClampingState --> BrakingState : Clamping Released`"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0021",
+    "ledger_assessments": [],
+    "emission_assessments": [
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:extraneous_transition:tr_0006",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出主张 tr_0006 是规范禁止的多余迁移，但冻结台账为空，没有同处同性质的台账条目可对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出指认 ClampingState 到 BrakingState 的 Clamping Released 迁移为未获规范授权的额外行为，但冻结台账中没有任何条目可与之对齐。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出指认 BrakingState 到 InitialState 的 Signal Feedback Sent 迁移为规范未规定的额外绕行，但冻结台账中没有任何条目可与之对齐。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出指认 ClampingState 到 BrakingState 的 Clamping Released 迁移为额外迁移，但冻结台账为空，无法匹配任何 ledger id。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出指认 BrakingState 到 InitialState 的 Signal Feedback Sent 迁移被错误扩展到制动状态，但冻结台账为空，无法匹配任何 ledger id。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出指认 ClampingState 到 BrakingState 的 Clamping Released 迁移为规范未定义的额外路径，但冻结台账中没有对应条目。",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "冻结台账为空，因此不存在任何可被六个输出格覆盖的预期条目。所有实际输出虽提出了具体的额外迁移主张，但在本 pair 的冻结预期集合中均无可语义对齐的 ledger id，故全部判为 false positive；无台账条目需要逐格命中评估。"
+  },
+  "status": "ok",
+  "attempts": 1
+}

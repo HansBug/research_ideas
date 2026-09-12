@@ -1,0 +1,284 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0006",
+  "ledger": [
+    {
+      "ledger_id": "EIS-0006-02",
+      "pair": "0006",
+      "D": "D2",
+      "L": "L0",
+      "summary": "NL 第 4 句要求「攻击完成后蜂群中的无人机数量相应减少」，而 `:19 AttackingTarget --> Searching : Attack Complete` 这条迁移上只有触发事件，没有任何 effect、守卫或计数相关文本，递减语义在制品里完全不存在。",
+      "detail": "NL 第 4 句逐字为「During flight, if task assignment information is received, it enters the attack state. After completing the attack, the number of UAVs in the swarm decreases accordingly.」。后半句给出的是一个状态变化要求：攻击完成这个事件要伴随一次数量的减少。\n\n在状态机里表达「某个量发生变化」有确定的位置——迁移的 effect（动作）部分，或目标状态的 entry 动作，前提是模型里有一个承载这个量的变量。\n\n制品里这三样一样都没有。`:19` 逐字为 `AttackingTarget --> Searching : Attack Complete`，冒号后只有触发事件名，既没有 `/` 引出的 effect，也没有 `[...]` 形式的守卫。全文（`:1`-`:27`）没有声明任何变量，也没有任何提到数量、计数、count、number 的文本。`:18 AttackingTarget : Performing Attack` 与 `:25 Attack : Entered Attack State` 都只是状态的描述文字。\n\n所以这不是「表达方式不同」而是「这条语义根本没有被建出来」：把制品交给任何求值器，都无法回答「攻击完成后蜂群数量变了没有」。\n\n根因是 NL 第 4 句里两件事被处理得不一样。前半句「收到任务分配信息则进入攻击态」是一条控制流要求，制品在 `:8 Searching --> Attack : Task Assignment Received` 完整实现了；后半句是一条数据流要求，需要引入变量才能表达，制品跳过了它。逐句直译在遇到「需要新建变量」的句子时容易整句落空。\n\n这条与第一版台账的记录 EXP-0006-EA-001 是同一条。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 4 句后半「After completing the attack, the number of UAVs in the swarm decreases accordingly」。三个独立判读臂都认定成立，且都没能找到站得住的第二种读法——制品里既没有变量、也没有 effect、也没有任何与计数有关的文本，没有任何结构可以被解释成「递减语义已经在这里了」。反驳不存活。",
+      "L_basis": "判 L0。陈述这条错误只需把 NL 第 4 句点名的那样东西（无人机数量这个量）拿去模型里找，发现找不到——没有对应变量、`:19` 的迁移上也没有对应 effect。这是一次词项层面的存在性比对，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "effect",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "ok",
+      "findings": []
+    },
+    {
+      "cell": "method_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:transition:UAVSwarmStateMachine.Searching:the UAV swarm is intercepted:UAVSwarmStateMachine.FormationAdjustment",
+          "claims": [
+            "Source has no matching transition from 'UAVSwarmStateMachine.Searching' to 'UAVSwarmStateMachine.FormationAdjustment' under 'the UAV swarm is intercepted'."
+          ],
+          "locations": [
+            "NL3",
+            "PUML7",
+            "FCSTM F24"
+          ],
+          "obligations": [
+            "UAVSwarmStateMachine.Searching must transition directly to UAVSwarmStateMachine.FormationAdjustment under the UAV swarm is intercepted.",
+            "The interception-triggered transition must target formation adjustment."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:UAVSwarmStateMachine.Searching:the UAV swarm is intercepted:UAVSwarmStateMachine.FormationAdjustment:facet:c805da527207"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_component:UAVSwarmStateMachine",
+          "claims": [
+            "Source component 'UAVSwarmStateMachine' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "NL2",
+            "F23",
+            "F28",
+            "F19"
+          ],
+          "obligations": [
+            "The target-search state must be reachable from the root before mission completion."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:UAVSwarmStateMachine:facet:81dbc221b4ec"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "failed",
+      "findings": []
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "未建模无人机数量在攻击完成后的相应减少。",
+          "reason": "规格明确要求攻击完成后无人机群数量减少；模型仅返回 Searching，没有任何数量减少动作、变量或状态变化的表示。",
+          "where": "复合状态 Attack 内的 `AttackingTarget --> Searching : Attack Complete` 转移。"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "未表示搜索任务在任务完成前持续执行的约束。",
+          "reason": "规格要求在任务完成前持续进行目标搜索。模型没有任务完成事件、任务完成状态或相应守卫，因此既无法表达“任务完成前”的条件，也没有体现持续搜索的生命周期约束。",
+          "where": "`Searching` 状态及其转移。"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "未建模搜索期间的三个不同状态区域。",
+          "reason": "规格明确指出搜索过程中运行于三个不同的状态区域；模型只定义了一个 `Searching` 状态，未拆分或嵌套表示三个状态区域，也没有它们之间的转换。",
+          "where": "`Searching` 状态。"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "攻击完成后没有表示蜂群无人机数量相应减少",
+          "reason": "规格明确要求攻击完成后蜂群中的无人机数量减少。该转移只有返回Searching的状态变化，没有任何数量更新、动作或条件，模型无法表达这一要求。",
+          "where": "Attack复合状态中的“AttackingTarget --> Searching : Attack Complete”转移"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "拦截事件的转移结构不一致且引入了未在规格中要求的独立状态",
+          "reason": "规格要求“当蜂群被拦截时，转移到编队调整状态”。模型先进入顶层Intercepted状态，再通过无事件标注的转移进入FormationAdjustment，因此拦截后并非直接转入编队调整状态，而是额外停留/经过一个Interception状态；这与规定的目标状态不一致，且该中间状态没有必要的行为语义。",
+          "where": "“Searching --> Intercepted : Interception Detected”、顶层“Intercepted : UAV Swarm Intercepted”和“Intercepted --> FormationAdjustment”"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "未建模攻击完成后无人机数量相应减少",
+          "reason": "规格明确要求攻击完成后蜂群中的无人机数量相应减少。模型仅从攻击返回搜索，没有数量变量、动作或状态转移来表达无人机数量递减，因此遗漏了该规定的状态行为。",
+          "where": "`Attack` 状态及 `AttackingTarget --> Searching : Attack Complete` 转移"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "未体现任务执行期间的三个不同状态区域",
+          "reason": "规格指出任务完成前持续执行目标搜索，并且运行于三个不同的状态区域。模型没有明确表示或标注这三个状态区域，也无法从图中确定三个区域的边界或语义；现有状态层级中 `FormationAdjustment` 和 `Attack` 作为复合状态、`Searching` 作为简单状态，结构上也没有清晰对应三个状态区域。",
+          "where": "顶层状态结构，仅定义 `Searching`、`Intercepted`、`Attack` 以及嵌套的 `FormationAdjustment`"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0006",
+    "ledger_assessments": [
+      {
+        "ledger_id": "EIS-0006-02",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格没有输出 finding，未提出攻击完成迁移缺失无人机数量递减 effect 的主张。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "两条输出分别指向 Searching 遇拦截时的目标状态错误和整个源组件不可达；均未指向 Attack Complete 迁移上的数量递减语义缺失。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格运行失败且没有输出 finding，因此没有可计入的末端 issue 覆盖此台账条目。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "baseline_issue_1 明确定位复合状态 Attack 内的 AttackingTarget --> Searching : Attack Complete 迁移，并主张规格要求的无人机数量减少没有变量、动作或状态变化表示；与台账同处且同为递减 effect 缺失。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "baseline_issue_1 指向同一 Attack Complete 迁移，并明确主张没有任何数量更新或动作来表示攻击完成后的蜂群数量减少；与台账的位置和缺失性质一致。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "baseline_issue_1 定位 Attack 状态及 AttackingTarget --> Searching : Attack Complete 迁移，主张缺少数量变量或递减动作；核心缺陷与台账完全一致。",
+          "confidence": "high"
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0006-02"
+        ],
+        "false_positive": false,
+        "reason": "同一 Attack Complete 迁移上缺失攻击后无人机数量递减的变量或动作，直接对应唯一台账条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 主张 Searching 缺少任务完成前持续执行的生命周期约束；冻结台账没有这一条，且它不是 Attack Complete 迁移上的数量递减 effect 缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 主张 Searching 未建模三个不同状态区域，位置和缺陷性质均不同于唯一台账条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0006-02"
+        ],
+        "false_positive": false,
+        "reason": "明确指出同一 Attack Complete 迁移缺少攻击后蜂群数量更新动作，覆盖唯一台账条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 指向拦截事件经由额外 Intercepted 状态而非直接进入 FormationAdjustment 的结构错位；不对应攻击完成后的数量递减缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0006-02"
+        ],
+        "false_positive": false,
+        "reason": "明确定位 Attack Complete 迁移并主张缺少无人机数量变量及递减动作，与台账同处同性质。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 主张顶层状态结构未体现三个不同状态区域，冻结台账无此项，且与数量递减 effect 缺失无关。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:transition:UAVSwarmStateMachine.Searching:the UAV swarm is intercepted:UAVSwarmStateMachine.FormationAdjustment",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 指认 Searching 在拦截事件下没有直接迁移到 FormationAdjustment，属于另一迁移的目标错位，不是 Attack Complete 迁移缺少数量递减动作。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:unreachable_component:UAVSwarmStateMachine",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 主张整个源组件从根入口不可达，属于可达性问题；与唯一台账所述特定迁移上的 effect 缺失不同处且不同性质。",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "冻结台账仅包含攻击完成迁移缺失蜂群无人机数量递减语义这一项。baseline 三轮的 baseline_issue_1 均同时指向同一迁移（AttackingTarget --> Searching : Attack Complete）及同一种缺失（无数量变量或递减动作），构成命中；其余输出分别主张拦截迁移错位、组件不可达、搜索持续约束缺失或三个状态区域缺失，均与台账不同处或不同性质。"
+  },
+  "status": "ok",
+  "attempts": 1
+}

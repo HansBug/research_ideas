@@ -1,0 +1,65 @@
+{
+  "case": "0006",
+  "nl_group": "NL03",
+  "diffs": [
+    {
+      "verdict": "problem",
+      "ref": "state Raster_Scanning { [*] -> Fly_Along_the_Path ... -- ... [*] -> Fly_Along_the_Path_2 ... -- ... [*] -> Search_for_the_Target ... }",
+      "gen": "state \"UAV Swarm State Machine\" as UAVSwarmStateMachine { [*] --> Searching ... }  (无任何 `--` 分隔符，单一顺序区域)",
+      "reason": "NL 第2句明确写 \"during which it operates within three different state areas\"，即点名了 3 个状态区域。参考用 3 个 `--` 分隔的区域实现。生成方整个模型只有一个顺序区域，三条业务线（编队调整 / 打击 / 重新选目标）被压成同一区域内的互斥状态。这属于 NL 点名的元素（三个区域）数量缺失，按口径 4 的说明，\"NL 说有三个 X 而模型只有一个\" 是数量/结构问题，属范围内。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "Strike_the_Target: exit/ NumberofCru--",
+      "gen": "（无任何变量、无任何 exit/do 动作，Attack/AttackingTarget 只有文字标签 \"Performing Attack\"）",
+      "reason": "NL 第4句后半句明确写 \"After completing the attack, the number of UAVs in the swarm decreases accordingly\"，点名了\"数量递减\"这一动作。参考用 `exit/ NumberofCru--` 承载。生成方全模型没有任何变量声明和任何动作，NL 点名的递减语义完全丢失（不是命名差异，而是没有对应元素）。递减动作是普通 action，不属时间/并发范围外项。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "Raster_Scanning --> [*]: when (NumberofCru == 0)",
+      "gen": "（全模型无 final 伪状态、无任何离开 UAVSwarmStateMachine 的迁移）",
+      "reason": "NL 第2句 \"Before the mission is completed, the UAV swarm continuously performs target search tasks\" 预设存在\"任务完成\"这一终止条件，参考以 `when (NumberofCru == 0)` 出到 final 实现。生成方没有任何终止出口，任务永不结束，NL 隐含但明确的\"mission is completed\"边界无对应元素。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "[*] --> Raster_Scanning（顶层区域有默认入口）",
+      "gen": "@startuml / state \"UAV Swarm State Machine\" as UAVSwarmStateMachine { [*] --> Searching ... } / @enduml —— 唯一的 `[*]` 位于复合态内部，顶层区域没有初始迁移",
+      "reason": "良构性问题：生成方 puml 中顶层区域没有任何 `[*] -->`，唯一的初始伪状态在 UAVSwarmStateMachine 内部，因此顶层无默认入口、整个 UAVSwarmStateMachine 不可达（机器无法启动）。参考的 `[*] --> Raster_Scanning` 写在顶层。fcstm 投影同样只能注入 `[*] -> UnspecifiedInitial` 而无法进入该复合态，佐证该复合态不可达。属口径 3 的\"不可达\"良构性类。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "extra",
+      "ref": "（参考中 Intercepted 只是迁移触发 `Intercepted_by_UAV_interception`，不是状态）",
+      "gen": "Intercepted : UAV Swarm Intercepted\nIntercepted --> FormationAdjustment",
+      "reason": "生成方把 NL 第3句的\"被拦截\"这一事件额外物化成一个状态 Intercepted，NL 与参考都没有该状态（NL 第3句是 \"When the UAV swarm is intercepted, it transitions to the formation adjustment state\"，拦截是触发而非状态）。其出边 `Intercepted --> FormationAdjustment` 无触发，是 completion 边，进入即离开，使该状态永不可驻留，属纯多余元素；净行为仍等于 NL 第3句，故记 extra 而非 problem。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "Raster_Scanning: do / Target_search",
+      "gen": "Searching : Target Search Task（与其他状态同级的叶状态）",
+      "reason": "NL 第2句把\"持续执行目标搜索\"描述为在三个区域内运行期间的持续活动，参考挂成复合态的 do 活动。生成方改成一个同级叶状态承载，语义上仍表达\"处于搜索任务中\"，只是承载位置不同，按口径 1 属写法差异，不计问题。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "Fly_Along_the_Path_2 --> Strike_the_Target : Mission_assignment_information_of_loitering_munition",
+      "gen": "Searching --> Attack : Task Assignment Received",
+      "reason": "NL 第4句前半句 \"During flight, if task assignment information is received, it enters the attack state\"。两侧都实现了该迁移，触发名与状态名不同（Strike_the_Target vs Attack）但语义一致，按口径 1 判 correct。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "uncertain",
+      "ref": "[*] -> Search_for_the_Target / Search_for_the_Target --> Search_for_the_Target / Search_for_the_Target: do/Determine_a_new_target；以及区域 1/2 中重复出现的 Fly_Along_the_Path 与 Fly_Along_the_Path_2",
+      "gen": "（无对应内容）",
+      "reason": "参考侧存疑：区域 3 的 `Search_for_the_Target --> Search_for_the_Target` 是无标签 completion 自环，按 UML 语义会即发无限自触发（活锁），无法作为可靠的语义基准；同时参考把同一概念状态在区域 1/2 中复制成 Fly_Along_the_Path 与 Fly_Along_the_Path_2 以规避跨区域重名，这些都是参考自身的建模瑕疵。NL 第2句只说存在三个区域，没有规定第三个区域的内容，因此无法判定生成方缺少\"重新选目标\"区域内容是否构成独立问题（区域数量缺失已在第 1 条计入）。卡点：NL 未给出三区域各自的职责。",
+      "out_of_scope": null
+    }
+  ],
+  "problem_count": 4,
+  "extra_count": 1,
+  "notes": "拆分粒度原则：一条 diff = 一个可独立修复的现象（一次修复动作能同时消掉的缺陷合成一条，需要不同修复动作的拆开）。例如\"三个区域缺失\"与\"缺少递减动作\"分开；而 5 条同类无标签边只算一条。\n\nNL 逐句核对：\n1 \"describes the state transitions of a UAV swarm\"：满足（整体建模 UAV 集群状态迁移）。\n2 \"Before the mission is completed, the UAV swarm continuously performs target search tasks, during which it operates within three different state areas\"：前半句（持续目标搜索）以 `Searching : Target Search Task` 部分满足；\"before the mission is completed\"隐含的终止条件未满足（无 final、无退出边）；\"three different state areas\"未满足（单区域）。\n3 \"When the UAV swarm is intercepted, it transitions to the formation adjustment state\"：满足（Searching --Interception Detected--> Intercepted --> FormationAdjustment），净效果与 NL 一致，但多出中间状态。\n4 \"During flight, if task assignment information is received, it enters the attack state\"：满足（Searching --> Attack）。\"After completing the attack, the number of UAVs in the swarm decreases accordingly\"：不满足（无变量、无递减动作）。\n\n附加良构性观察：生成方顶层无初始迁移，UAVSwarmStateMachine 不可达（已计 problem）。FormationAdjustment 与 Attack 两个复合态均有默认子态且都能回到 Searching，无死端。\n参考侧存疑位置：区域 3 无标签自环（活锁）、Fly_Along_the_Path_2 的重名复制、`Formation_Adjustment --> Fly_Along_the_Path` 亦为无标签 completion 边。"
+}

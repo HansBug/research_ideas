@@ -1,0 +1,59 @@
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B10",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "codex-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "not_better",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "The NL and STM artifacts describe discrete states, events, and a predicate front_distance > 10, with no real-duration timed-automata requirement. This is an in-scope T0 protocol case.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "Both canonical and candidate STMs are present in the packet, and the mechanical check reports candidate_parse_status=parse_ok. Parse success is only auditability, not semantic evidence of improvement.",
+      "evidence_references": ["candidate STM_k"]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "The change is attributable to a non-identical canonical-to-candidate delta, with change ledger, target instance ledger, and hash chain reported complete. No provenance-invalid fail-closed condition applies.",
+      "evidence_references": ["canonical STM_0", "candidate STM_k"]
+    },
+    "G3": {
+      "status": "fail",
+      "reason": "The candidate removes NL-supported hierarchy: autonomous mode is required to have sub-states and be represented by a submachine state, but candidate flattens Autonomous into a simple state. It also drops the canonical Power_Off event and any Power_Off transition to FinalState, and changes the human steering/brake return path from Autonomous -> startHumanDriving into Autonomous -> InitialState.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G4": {
+      "status": "partial",
+      "reason": "The candidate makes the Front Distance > 10 condition explicit as guard syntax using front_distance > 10, which is locally aligned with the NL predicate. However, this improvement is outweighed by deleted power-off behavior and lost autonomous submachine structure, so it cannot support a better verdict.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G5": {
+      "status": "fail",
+      "reason": "Semantically, the candidate is not faithful to the NL because it loses the autonomous sub-state/submachine requirement and the power-off-to-final behavior. A clearer guard on one transition does not compensate for these structural and behavioral regressions.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "This output keeps dry-run eligibility disabled, cites only the supplied blind packet artifacts, does not claim repair effectiveness, and records the no-regression failures that drive the not_better verdict.",
+      "evidence_references": ["this JSON output"]
+    }
+  },
+  "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k", "mechanical_checks", "provenance_checks"],
+  "rationale": "Candidate STM_k has one visible local improvement by converting the Front Distance > 10 label into an explicit guard over front_distance. But it flattens away the NL-required autonomous submachine/sub-state structure, removes the Power Off event and transition to FinalState, and changes the return from autonomous on human steering/brake into InitialState rather than clearly returning to human driving mode. These are key NL-supported regressions, so candidate STM_k is not better than canonical STM_0.",
+  "observed_anti_gaming_risk_flags": ["guard_extraction_with_structural_regression", "hierarchy_loss", "deleted_power_off_final_transition", "trace_loss_for_return_to_human_driving"],
+  "forbidden_claims": ["This blind dry-run is not repair effectiveness evidence."],
+  "confidence": "high",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "The packet contains mechanical/provenance facts and blind artifacts, but no expected verdict, source case id, oracle mapping, target closure summary, or case-specific adjudication hint."
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B09",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "claude-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "better",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "NL and STM content concern discrete numeric/boolean conditions (distance thresholds, lane availability, event flags) with no seconds/ms duration or continuous-time semantics, and no periodic tick/timer cue requiring counter abstraction. This is a plain T0 in-scope case.",
+      "evidence_references": [
+        "NL items 3,5,7,9",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "candidate_parse_status=parse_ok per mechanical checks; candidate declares def int guard variables and is structurally well-formed and auditable.",
+      "evidence_references": [
+        "mechanical_checks",
+        "candidate STM_k"
+      ]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true, and candidate differs from canonical (candidate_same_as_canonical_stm0=false). The change is attributable: two folded event labels (dist_to_front_25_extra_lane_true, dist_to_front_15_extra_lane_true) are consistently replaced with explicit guard syntax `if [dist_to_front < 25 && extra_lane == 1]` / `if [dist_to_front < 15 && extra_lane == 1]` at every occurrence (2 uses in HighwayMode, 2 uses in UrbanMode), rather than a generic normalization or format conversion.",
+      "evidence_references": [
+        "provenance_checks",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G3": {
+      "status": "pass",
+      "reason": "All states, pseudo-states, hierarchy (AutonomousMode/HighwayMode/UrbanMode nesting), transitions, other events (dist_to_exit_2, lane_change_completed, intersection_true, road_ahead_is_clear, dist_to_exit_0_7, lane_change_complete, high_way_true, urban_way_true, auto_finished_true), collision-avoidance sub-machine, and cross-region '! * ->' transitions are preserved identically. No NL-supported state/transition/trace is deleted.",
+      "evidence_references": [
+        "NL",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G4": {
+      "status": "pass",
+      "reason": "NL items 3, 5, 7, 9 explicitly phrase the lane-change trigger as an explicit numeric/boolean condition (dist_to_front<25 && extra_lane=true / dist_to_front<15 && extra_lane=true). Canonical STM_0 folds this condition entirely into an opaque event label name; candidate STM_k converts it into explicit guard syntax over declared typed variables, improving guard explicitness/traceability for this target while preserving the underlying trigger semantics and transition direction.",
+      "evidence_references": [
+        "NL items 3,5,7,9",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G5": {
+      "status": "pass",
+      "reason": "The guard-extraction change is applied completely and consistently to every occurrence of the same underlying condition family (both HighwayMode instances and both UrbanMode instances), with no partial/inconsistent application, no other topology change, and no introduced opaque/unlabeled instrumentation variables (dist_to_front, extra_lane are directly traceable to NL condition names). This satisfies the 'complete local guard extraction' allowance rather than being blocked by no-regression or anti-gaming rules.",
+      "evidence_references": [
+        "NL",
+        "raw STM_0",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "Verdict reported as better with fixed dry-run eligibility flags (headline_eligible=false, repair_effectiveness_eligible=false, real_repair_run_id=null) per protocol; no leakage detected in the input packet.",
+      "evidence_references": [
+        "this JSON output"
+      ]
+    }
+  },
+  "evidence_references": [
+    "NL items 3, 5, 7, 9",
+    "raw STM_0 cruise/lane_change and enter_urban/straight transitions",
+    "canonical STM_0 event dist_to_front_25_extra_lane_true / dist_to_front_15_extra_lane_true",
+    "candidate STM_k explicit guard syntax and def int declarations",
+    "provenance_checks and mechanical_checks"
+  ],
+  "rationale": "Candidate consistently and completely converts two NL-supported compound conditions (dist_to_front<25/15 && extra_lane=true), which canonical STM_0 had folded opaquely into event label names, into explicit typed guard syntax referencing traceable, NL-derived variable names (dist_to_front, extra_lane). This transformation is applied uniformly at every occurrence of each condition (both HighwayMode and both UrbanMode transitions), with no state, transition, hierarchy, or other event/trace deleted, and no unrelated or opaque instrumentation introduced. This matches the fail-closed allowance for complete local guard extraction and constitutes a strictly attributable, NL-supported improvement in guard explicitness without regression, so the case is judged better under this dry-run protocol.",
+  "observed_anti_gaming_risk_flags": [],
+  "forbidden_claims": [
+    "This blind dry-run is not repair effectiveness evidence."
+  ],
+  "confidence": "medium",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "No hidden answer key, expected verdict, source slug, or case-specific semantic/target-closure cue observed in the input packet; only mechanical/provenance facts and modeling conventions were provided."
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "schema_version": "reconstruction-v1",
+  "provenance": {
+    "why": "The frozen ledger at .omx/specs/autoresearch-paper1-llms-emp-60-expected-issues/ledger.json was lost in the 2026-07-29 machine rebuild. It was never tracked by git and is not recoverable from the repository, the published matrix-v11 bundle (which preserves verdicts but not eval_assert texts), or the filesystem.",
+    "authority": "Issue #166 '[paper1] LLMS-EMP 60 例 expected issue 开放式分类与严格分布' carries the authoritative inventory: which pairs have expected issues, their ids, and a natural-language statement of each defect. Its per-pair rows reproduce exactly what the lost ledger reported for these four pairs (0000 x1, 0006 x1, 0029 mixed x3, 0050 no_supported_finding x0).",
+    "what_was_rebuilt": "Only the machine-checkable form: the model paths and trigger events each expected issue is about. Every path below was resolved against the pair's own fcstm.fcstm in this repository and is quoted with the defective edge it concerns, so a reader can re-derive it.",
+    "one_surviving_original": "EXP-0006-EA-001's eval_assert text survived in a session transcript and is reproduced verbatim. The other four are reconstructions.",
+    "calibration": "The reconstruction is not accepted on plausibility. It must reproduce matrix-v11's known verdicts (10 hits / 0 misses over the eight cells) when run against the restored v11 audit bundle; see tests in eval/discover_matrix. A path set that does not reproduce them is wrong, because the hit criterion is sensitive to exactly which paths an expected issue names -- the no-trigger branch requires every named state to be bound.",
+    "scope": "Four pairs only (0000, 0006, 0029, 0050) -- the eight-cell matrix. The other 56 pairs are not reconstructed; running them needs the real ledger.",
+    "reconstructed_at": "2026-07-29"
+  },
+  "cases": [
+    {"case_id": "0000", "llm": "GPT-4o", "domain": "high-level driving module", "status": "expected_issues_found", "expected_issue_ids": ["EXP-0000-IT-001"], "expected_issue_count": 1},
+    {"case_id": "0006", "llm": "GPT-4o", "domain": "UAV swarm state machine diagram", "status": "expected_issues_found", "expected_issue_ids": ["EXP-0006-EA-001"], "expected_issue_count": 1},
+    {"case_id": "0029", "llm": "Llama", "domain": "autonomous mode", "status": "mixed", "expected_issue_ids": ["EXP-0029-GC-001", "EXP-0029-IT-001", "EXP-0029-SH-001"], "expected_issue_count": 3},
+    {"case_id": "0050", "llm": "Claude", "domain": "high-level driving module", "status": "no_supported_finding", "expected_issue_ids": [], "expected_issue_count": 0}
+  ],
+  "findings": [
+    {
+      "issue_id": "EXP-0000-IT-001",
+      "category": "IT",
+      "issue_166_statement": "Power Off 错从初始伪状态发出，而不是终止活动驾驶模式。",
+      "defective_edge_in_model": "line 21: `[*] -> FinalState : /Power_Off;` -- the only Power_Off edge leaves the pseudo-initial, so no running mode is terminated by it.",
+      "reconstruction_note": "Written as the positive proposition the correct model satisfies: from the running mode, Power_Off reaches FinalState. HumanDrivingMode is the mode the NL names first and the one both matrix-v11 cells bound; AutonomousMode is deliberately not listed, because listing it would demand a requirement bind both and the criterion's state overlap only needs one when the trigger is pinned.",
+      "eval_assert": "occupancy_after(source='llms_emp_feedback_final_0000.HumanDrivingMode', event='llms_emp_feedback_final_0000.Power_Off', target='llms_emp_feedback_final_0000.FinalState')",
+      "required_function_families": ["simulation", "fbmcq"]
+    },
+    {
+      "issue_id": "EXP-0006-EA-001",
+      "category": "EA",
+      "issue_166_statement": "攻击完成后必须产生 UAV 数量下降的结构化 effect。",
+      "defective_edge_in_model": "line 17: `AttackingTarget -> [*] : /Attack_Complete effect { R45RouteToken = 7; };` -- the only effect on that edge sets the converter's route token; no author-owned variable decreases, and the model declares none.",
+      "reconstruction_note": "VERBATIM ORIGINAL, not a reconstruction: this eval_assert text survived in a session transcript.",
+      "eval_assert": "any(delta < 0 for _, delta in effect_deltas(source='llms_emp_feedback_final_0006.UAVSwarmStateMachine.Attack.AttackingTarget', event='llms_emp_feedback_final_0006.Attack_Complete', target='[*]'))",
+      "required_function_families": ["effect", "simulation"]
+    },
+    {
+      "issue_id": "EXP-0029-GC-001",
+      "category": "GC",
+      "issue_166_statement": "完全相同的高速条件同时指向 cruise 和 lane_change。",
+      "defective_edge_in_model": "lines 34-35: `enter_hwy -> cruise : /dist_to_front_25_extra_lane_true;` and `enter_hwy -> lane_change : /dist_to_front_25_extra_lane_true;` -- one trigger, two targets, no discriminating guard on either.",
+      "reconstruction_note": "The trigger pins identity; the states are the shared source and the two rival targets.",
+      "eval_assert": "guard_distinguishable(source='llms_emp_feedback_final_0029.HighwayMode.enter_hwy', event='llms_emp_feedback_final_0029.dist_to_front_25_extra_lane_true', targets=['llms_emp_feedback_final_0029.HighwayMode.cruise', 'llms_emp_feedback_final_0029.HighwayMode.lane_change'])",
+      "required_function_families": ["relation", "fbmcq"]
+    },
+    {
+      "issue_id": "EXP-0029-IT-001",
+      "category": "IT",
+      "issue_166_statement": "cruise 的高速出口被错误合并为整体 FinishState。",
+      "defective_edge_in_model": "line 37: `cruise -> FinishState : /dist_to_exit_2;` -- the sibling edge at line 39 shows the intended shape, `lane_change -> exit_hwy : /dist_to_exit_2;`, so cruise's exit was merged into the overall finish instead of the local exit.",
+      "reconstruction_note": "The trigger `dist_to_exit_2` is shared with the correct sibling edge, so the states distinguish this from that one: source cruise and the local target exit_hwy.",
+      "eval_assert": "occupancy_after(source='llms_emp_feedback_final_0029.HighwayMode.cruise', event='llms_emp_feedback_final_0029.dist_to_exit_2', target='llms_emp_feedback_final_0029.HighwayMode.exit_hwy')",
+      "required_function_families": ["simulation", "fbmcq"]
+    },
+    {
+      "issue_id": "EXP-0029-SH-001",
+      "category": "SH",
+      "issue_166_statement": "InitialState、HighwayMode、UrbanMode 未归属 AutonomousMode。",
+      "defective_edge_in_model": "line 96: `state AutonomousMode` is declared as a leaf with no braces, and lines 97/17/54 declare InitialState, HighwayMode and UrbanMode as its siblings at root level; line 105 `AutonomousMode -> InitialState : /initial;` is a transition where containment was required.",
+      "reconstruction_note": "Structural, so no trigger -- and the criterion's no-trigger branch demands every named state be bound, which makes the state set load-bearing. It names the parent and one required child rather than all three: matrix-v11's credited finding bound exactly {AutonomousMode, InitialState}, and a three-child set would have scored that hit as a miss. The two sibling claims are the same defect and are covered by the same containment obligation.",
+      "eval_assert": "'llms_emp_feedback_final_0029.InitialState' in {row.path for row in states(parent='llms_emp_feedback_final_0029.AutonomousMode', recursive=False)}",
+      "required_function_families": ["structure", "relation"]
+    }
+  ]
+}

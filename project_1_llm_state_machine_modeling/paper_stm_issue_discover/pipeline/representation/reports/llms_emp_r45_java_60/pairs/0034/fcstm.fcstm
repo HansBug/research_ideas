@@ -1,0 +1,40 @@
+state llms_emp_feedback_final_0034 named "llms_emp_feedback_final_0034" {
+    event Closed_SendDeparted named "Closed/SendDeparted";
+    event Arrived_Stop_Send_Arrived named "Arrived/Stop, Send Arrived";
+    event Obstacle_Detected named "Obstacle Detected";
+    event Obstacle_Cleared named "Obstacle Cleared";
+    event Reached_Cruising_Cruise named "Reached Cruising/Cruise";
+    event Approached_Decelerate named "Approached/Decelerate";
+    event Ready_to_Stop named "Ready to Stop";
+    event Destination_Missed named "Destination Missed";
+    state DoorsClosing named "DoorsClosing" {
+        enter abstract Accelerate;
+    }
+    state InMotion named "InMotion";
+    state Stopping named "Stopping";
+    state EmergencyStopping named "EmergencyStopping" {
+        enter abstract EmergencyStop;
+    }
+    state Accelerating named "Accelerating" {
+        enter abstract Accelerate;
+    }
+    state Cruising named "Cruising" {
+        enter abstract Cruise;
+    }
+    state Approaching named "Approaching" {
+        enter abstract Decelerate;
+    }
+    [*] -> DoorsClosing;
+    DoorsClosing -> InMotion : /Closed_SendDeparted;
+    InMotion -> Stopping : /Arrived_Stop_Send_Arrived;
+    InMotion -> EmergencyStopping : /Obstacle_Detected;
+    EmergencyStopping -> [*] : /Obstacle_Cleared;
+    InMotion -> Accelerating;
+    Accelerating -> Cruising : /Reached_Cruising_Cruise;
+    Accelerating -> Approaching : /Approached_Decelerate;
+    InMotion -> Cruising;
+    Cruising -> Approaching : /Approached_Decelerate;
+    InMotion -> Approaching;
+    Approaching -> Stopping : /Ready_to_Stop;
+    Approaching -> [*] : /Destination_Missed;
+}

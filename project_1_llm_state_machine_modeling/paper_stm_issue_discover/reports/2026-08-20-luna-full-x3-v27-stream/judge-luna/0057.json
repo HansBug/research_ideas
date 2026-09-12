@@ -1,0 +1,708 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0057",
+  "ledger": [
+    {
+      "ledger_id": "EIS-0057-01",
+      "pair": "0057",
+      "D": "D2",
+      "L": "L0",
+      "summary": "`CA`（:2-:20）有三个子状态却没有任何默认入口边——`:22` 把系统送进 CA 之后落到合成的占位状态，`FCIdle`/`RCIdle`/`PCIdle` 三路控制全部不可达。",
+      "detail": "`:2` 开 `state \"Collision Avoidance\" as CA {`，块内直接放了三个具名复合态：`:3 state Frontend {`、`:9 state RearEnd {`、`:15 state Pedestrian {`。三者之间没有 `--` 分隔符，因此它们是同一个区域里的三个顺序子状态。\n\n这一层没有默认入口：`:3`-`:19` 之间除了三个块本身，没有任何 `[*] -->`。三条 `[*]`（`:4`、`:10`、`:16`）都写在各自块的内部，比这一层低一层。\n\n后果是 `:22 [*] --> CA : Possible collision detected` 把系统送进 `CA` 之后不知道该落到哪一个子状态；投影为此合成了一个占位的未指定初始状态。三个控制的待机态 `FCIdle`、`RCIdle`、`PCIdle` 因此全部不可达——用一句话说就是「子机被激活了，但没有任何避撞控制被激活」。\n\n这与 NL 第 2 句「This sub-machine becomes active when a possible frontend collision, rear-end collision or collision with pedestrian is detected」和第 3 句「The orthogonal regions of the active mode of collision avoidance allow for concurrent activation different of collision avoidance controls」都冲突。\n\n需要说明这条与并发议题可分开判定：本条主张的是「进入 CA 之后落点未定义、三路控制不可达」，这在顺序语义下就成立，不依赖它们本该是不是并发区。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 2、3 句要求避撞控制能被激活。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法——`CA` 这一层确实没有 `[*] -->`，三条 `[*]` 的层级由花括号配对唯一确定；而三个子状态之间也没有任何迁移可以充当替代入口。反驳不存活。",
+      "L_basis": "判 L0。陈述这条错误只需读 `state \"Collision Avoidance\" as CA { }` 这一层，数它直接包含几个子状态（三个）、这一层有没有 `[*] -->`（没有）。这是纯词法层面的检查，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "transition",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "INS-0057-01",
+      "pair": "0057",
+      "D": "D2",
+      "L": "L0",
+      "summary": "整台机器唯一的根初始迁移 `:22 [*] --> CA : Possible collision detected` 带了触发事件，而 UML 规定初始伪状态的出边不得带触发——事件不来就不进入任何状态。",
+      "detail": "`:22` 是全文唯一的根层初始边，冒号后带了 `Possible collision detected`。\n\nUML 2.5.1 规定从初始伪状态出发的迁移不得带触发事件也不得带守卫。后果是这台机器没有无条件的起点。\n\n此处标签的角色没有争议余地：`Possible collision detected`（检测到可能的碰撞）是明确的发生态措辞，描述的是「某件事发生了」，不可能读成一个要执行的动作。诊断统计的「带条件的初始边」计数为 1，与作者源一字不差，没有区域展平参与。\n\n因果链上还需说明一点洁净性：投影确实在 `CA` 内部合成了一个未指定初始状态（那是 EIS-0057-01 记录的另一条缺陷），但本条的落点在**根层**，与那个合成元素无关。\n\n本条与 pair 0017 的 VU-0017-01 情形不同：那一份制品完全没有根初始边、也没有任何入边，因此存在「本图是子机摘录、入口由图外父机提供」这个称职读法，判了 D1；本条的作者已经在图内用这条边承载了激活条件，外部入口读法推翻不了它的语言违规。",
+      "D_basis": "判 D2。被违反的义务来自建模语言：UML 2.5.1 规定初始伪状态的出边不得带触发或守卫，这条规定对任何层级的初始伪状态都适用，「本图是子机摘录」不提供豁免。`Possible collision detected` 是环境产生的检测触发，发生态措辞没有称职的 effect 读法。判读中出现过的「子机摘录加 «create» 例外」读法在检测类事件上不成立——作者已经在图内用这条边承载了激活条件。反驳不存活。",
+      "L_basis": "判 L0。陈述这条错误只需就地读 `:22` 这一行，看 `[*] -->` 后面的冒号有没有跟内容——纯词法层面的模式匹配，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "trigger",
+        "defect_qualifier": "extraneous",
+        "defect_logic_kind": null,
+        "defect_reference": "language"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:initial_contract:CA",
+          "claims": [
+            "Source composite 'CA' has no initial transition for its exact entry scope despite direct children ['CA.Frontend', 'CA.RearEnd', 'CA.Pedestrian']; the compiler records the exact fail-closed entry consequence at 'CA.Frontend.FCIdle'."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0057.CA.Frontend.FCIdle",
+            "llms_emp_feedback_final_0057.CA.Frontend.FCActive",
+            "llms_emp_feedback_final_0057.CA.RearEnd.RCIdle",
+            "llms_emp_feedback_final_0057.CA.RearEnd.RCActive",
+            "llms_emp_feedback_final_0057.CA.Pedestrian.PCIdle",
+            "llms_emp_feedback_final_0057.CA.Pedestrian.PCActive"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:CA:facet:77ddf1c190ed"
+          ]
+        },
+        {
+          "finding_id": "source:entry_deadlock:CA",
+          "claims": [
+            "Source composite 'CA' is reachable but has no default child entry or inherited continuation; its exact compiler fail-closed state is deadlocked."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0057.CA.UnspecifiedInitial"
+          ],
+          "obligations": [
+            "A reachable non-final behavior must admit a continuation or valid termination."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:entry_deadlock:CA:facet:77ddf1c190ed"
+          ]
+        },
+        {
+          "finding_id": "source:initial_contract:__root__",
+          "claims": [
+            "Initial pseudostate scope '__root__' has 1 outgoing edge(s) carrying a trigger or guard (llms_emp_feedback_final_0057.puml:line:22); the declared UML initial-transition profile forbids a trigger and guard on an initial pseudostate outgoing edge."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0057"
+          ],
+          "obligations": [
+            "An initial pseudostate outgoing transition must not carry a trigger or guard."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:__root__:facet:eb2ae377d7d7"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:7c44242116905a87",
+          "claims": [
+            "The source has three composite children under CA, but the inspect inventory reports no concurrent regions, so the required orthogonal-region structure may be absent."
+          ],
+          "locations": [
+            "NL3",
+            "CA",
+            "CA.Frontend",
+            "CA.RearEnd",
+            "CA.Pedestrian",
+            "metrics.concurrent_regions=[]"
+          ],
+          "obligations": [
+            "The collision-avoidance mode must expose three orthogonal operating regions, rather than merely three nested composite states."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L1",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:7c44242116905a87:facet:a8f0d8ef662b"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:initial_contract:CA",
+          "claims": [
+            "Source composite 'CA' has no initial transition for its exact entry scope despite direct children ['CA.Frontend', 'CA.RearEnd', 'CA.Pedestrian']; the compiler records the exact fail-closed entry consequence at 'CA.Frontend.FCIdle'."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0057.CA.Frontend.FCIdle",
+            "llms_emp_feedback_final_0057.CA.Frontend.FCActive",
+            "llms_emp_feedback_final_0057.CA.RearEnd.RCIdle",
+            "llms_emp_feedback_final_0057.CA.RearEnd.RCActive",
+            "llms_emp_feedback_final_0057.CA.Pedestrian.PCIdle",
+            "llms_emp_feedback_final_0057.CA.Pedestrian.PCActive"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:CA:facet:61c60ddfb0a9"
+          ]
+        },
+        {
+          "finding_id": "source:entry_deadlock:CA",
+          "claims": [
+            "Source composite 'CA' is reachable but has no default child entry or inherited continuation; its exact compiler fail-closed state is deadlocked."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0057.CA.UnspecifiedInitial"
+          ],
+          "obligations": [
+            "A reachable non-final behavior must admit a continuation or valid termination."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:entry_deadlock:CA:facet:61c60ddfb0a9"
+          ]
+        },
+        {
+          "finding_id": "source:initial_contract:__root__",
+          "claims": [
+            "Initial pseudostate scope '__root__' has 1 outgoing edge(s) carrying a trigger or guard (llms_emp_feedback_final_0057.puml:line:22); the declared UML initial-transition profile forbids a trigger and guard on an initial pseudostate outgoing edge."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0057"
+          ],
+          "obligations": [
+            "An initial pseudostate outgoing transition must not carry a trigger or guard."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:__root__:facet:eb2ae377d7d7"
+          ]
+        },
+        {
+          "finding_id": "source:transition:llms_emp_feedback_final_0057:Possible collision detected:CA",
+          "claims": [
+            "The single root activation transition may under-specify the required disjunctive activation behavior by providing only one activation trigger."
+          ],
+          "locations": [
+            "NL2",
+            "tr_0010",
+            "@initial:__root__",
+            "CA"
+          ],
+          "obligations": [
+            "The collision-avoidance sub-machine becomes active for each of the three stated collision-detection alternatives."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:llms_emp_feedback_final_0057:Possible collision detected:CA:facet:eb0978a916c5"
+          ]
+        },
+        {
+          "finding_id": "source:root_target_unreachable:CA.Frontend.FCIdle",
+          "claims": [
+            "No source-graph path reaches target 'CA.Frontend.FCIdle' from the exact root entry 'llms_emp_feedback_final_0057'."
+          ],
+          "locations": [
+            "NL2",
+            "llms_emp_feedback_final_0057.CA.Frontend.FCIdle",
+            "llms_emp_feedback_final_0057.CA.UnspecifiedInitial",
+            "W_UNREACHABLE_STATE",
+            "W_COMPOSITE_INIT_INCOMPLETE"
+          ],
+          "obligations": [
+            "Collision-avoidance control behavior required by the active sub-machine must be reachable after root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:root_target_unreachable:CA.Frontend.FCIdle:facet:7664f7838e8b"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:initial_contract:CA",
+          "claims": [
+            "Source composite 'CA' has no initial transition for its exact entry scope despite direct children ['CA.Frontend', 'CA.RearEnd', 'CA.Pedestrian']; the compiler records the exact fail-closed entry consequence at 'CA.Frontend.FCIdle'."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0057.CA.Frontend.FCIdle",
+            "llms_emp_feedback_final_0057.CA.Frontend.FCActive",
+            "llms_emp_feedback_final_0057.CA.RearEnd.RCIdle",
+            "llms_emp_feedback_final_0057.CA.RearEnd.RCActive",
+            "llms_emp_feedback_final_0057.CA.Pedestrian.PCIdle",
+            "llms_emp_feedback_final_0057.CA.Pedestrian.PCActive"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:CA:facet:77ddf1c190ed"
+          ]
+        },
+        {
+          "finding_id": "source:entry_deadlock:CA",
+          "claims": [
+            "Source composite 'CA' is reachable but has no default child entry or inherited continuation; its exact compiler fail-closed state is deadlocked."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0057.CA.UnspecifiedInitial"
+          ],
+          "obligations": [
+            "A reachable non-final behavior must admit a continuation or valid termination."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:entry_deadlock:CA:facet:77ddf1c190ed"
+          ]
+        },
+        {
+          "finding_id": "source:initial_contract:__root__",
+          "claims": [
+            "Initial pseudostate scope '__root__' has 1 outgoing edge(s) carrying a trigger or guard (llms_emp_feedback_final_0057.puml:line:22); the declared UML initial-transition profile forbids a trigger and guard on an initial pseudostate outgoing edge."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0057"
+          ],
+          "obligations": [
+            "An initial pseudostate outgoing transition must not carry a trigger or guard."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:__root__:facet:eb2ae377d7d7"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:04962d146c51f41c",
+          "claims": [
+            "CA has three direct child composite states, but the FCSTM inventory records no concurrent regions, so the required orthogonal-region structure may be absent."
+          ],
+          "locations": [
+            "NL1",
+            "NL3",
+            "F7",
+            "F8",
+            "F15",
+            "F22"
+          ],
+          "obligations": [
+            "The active collision-avoidance mode must provide three orthogonal regions for concurrent control activation."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L1",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:04962d146c51f41c:facet:cfcf5ff14e2c"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "未将Collision Avoidance内部的三个区域声明为正交区域，无法明确表示三个碰撞避免控制可并发激活。",
+          "reason": "规范第3条明确要求活动模式的正交区域允许不同碰撞避免控制并发激活。PlantUML中虽然列出了三个嵌套state，但没有使用明确的正交区域建模结构（例如并行分隔符/并行区域），因此模型语义上不能保证它们是可并发执行的正交区域。",
+          "where": "Collision Avoidance复合状态内的 Frontend、RearEnd、Pedestrian 三个state声明及其区域结构"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "Collision Avoidance的激活触发条件没有分别覆盖三类碰撞检测事件。",
+          "reason": "规范第2条要求在检测到可能的前端碰撞、追尾碰撞或行人碰撞时激活子机器。模型只提供一个笼统的“Possible collision detected”触发，没有明确表示这三个具体条件，因而未能准确表达规范所列的三种激活来源。",
+          "where": "[*] --> CA : Possible collision detected"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "外层碰撞避免子机器的激活触发条件过于笼统，未区分并覆盖规格列出的三类可能碰撞。",
+          "reason": "规格明确要求在检测到可能的前端碰撞、追尾碰撞或行人碰撞时激活该子机器。模型只有一个未分类的 `Possible collision detected` 触发，无法表达这三类具体检测事件，也没有明确保证每一类事件都能激活 `CA`。",
+          "where": "`[*] --> CA : Possible collision detected`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "三个区域没有被明确建模为正交（并发）区域。",
+          "reason": "规格要求活动模式的正交区域允许不同碰撞避免控制并发激活。模型虽然在 `CA` 内声明了三个嵌套状态，但未使用 PlantUML 的正交区域分隔符（例如 `--`）或其他明确语法表示它们是并发区域；按普通复合状态语义，它们可能被解释为同一区域内的互斥子状态，因此不能保证并发激活。",
+          "where": "`state \"Collision Avoidance\" as CA { ... state Frontend { ... } state RearEnd { ... } state Pedestrian { ... } }`"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "进入碰撞规避子机的触发条件过于笼统，未区分三类碰撞检测事件。",
+          "reason": "规格明确要求在检测到可能的前端碰撞、追尾碰撞或行人碰撞时激活该子机。模型只定义了一个泛化的“可能碰撞检测”触发标签，没有明确表达这三类条件，因而无法保证三类检测事件均按规格触发。",
+          "where": "顶层初始状态到 Collision Avoidance 的转移：`[*] --> CA : Possible collision detected`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "三类碰撞规避控制未建模为可并发激活的正交区域。",
+          "reason": "规格要求活动模式中的正交区域允许不同碰撞规避控制并发激活。模型虽然包含三个内部状态块，但没有使用PlantUML正交区域所需的明确并发区域建模方式（例如区域分隔符），因此不能表示或保证 `FCActive`、`RCActive` 和 `PCActive` 可同时处于活动状态。",
+          "where": "`Collision Avoidance` 内部的 `Frontend`、`RearEnd`、`Pedestrian` 三个状态块及其组合方式"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0057",
+    "ledger_assessments": [
+      {
+        "ledger_id": "EIS-0057-01",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:CA",
+            "source:entry_deadlock:CA"
+          ],
+          "reason": "CA 初始契约和入口死锁两个 issue 都直接指认 CA 入口作用域没有默认子状态入口，并给出未指定/死锁及控制不可达后果。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:CA",
+            "source:entry_deadlock:CA",
+            "source:root_target_unreachable:CA.Frontend.FCIdle"
+          ],
+          "reason": "CA 初始契约和入口死锁直接覆盖缺失默认入口；root_target_unreachable issue 还明确指认由此造成 CA.Frontend.FCIdle 从根入口不可达。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:CA",
+            "source:entry_deadlock:CA"
+          ],
+          "reason": "CA 初始契约与入口死锁直接指认同一 CA 层缺失默认子状态入口及其 fail-closed 后果。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格只有正交区域缺失和三类触发事件未分别表达；没有主张 CA 层缺少默认入口，也没有主张初始伪状态出边的触发器违反规则。",
+          "confidence": null
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格只报告 CA 的并发区域结构和激活触发条件细分问题，未覆盖 CA 层默认入口缺失。",
+          "confidence": null
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格只报告三类事件未区分及正交区域未建模，未主张 CA 没有默认入口。",
+          "confidence": null
+        }
+      },
+      {
+        "ledger_id": "INS-0057-01",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:__root__"
+          ],
+          "reason": "source:initial_contract:__root__ 直接定位根初始伪状态，并主张其出边携带触发器违反 UML 初始迁移约束。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:__root__"
+          ],
+          "reason": "source:initial_contract:__root__ 直接覆盖 :22 根初始迁移携带触发器的多余记法问题。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:__root__"
+          ],
+          "reason": "source:initial_contract:__root__ 直接指认根初始伪状态出边的触发器及其语言违规。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出没有报告根初始边携带触发器违反 UML 初始迁移规则，只报告触发条件过于笼统。",
+          "confidence": null
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出将问题定义为事件分类和覆盖不足，而不是根初始伪状态出边的多余触发器。",
+          "confidence": null
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出没有主张初始伪状态出边禁止触发器这一记法问题；其触发条件 issue 的性质是事件细分不足。",
+          "confidence": null
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "method_run1",
+        "emitted_id": "hypothesis:7c44242116905a87",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该问题主张缺少正交区域/并发结构，定位于 CA 内三个子状态的区域组织；冻结台账两条分别是 CA 层缺少默认入口和根初始迁移带触发器，性质与位置均不一致。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:entry_deadlock:CA",
+        "matched_ledger_ids": [
+          "EIS-0057-01"
+        ],
+        "false_positive": false,
+        "reason": "直接指认可达的 CA 没有默认子状态入口，且落入合成未指定状态；这与台账关于 CA 层无默认入口并导致控制不可达的同处同性质主张一致。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:initial_contract:CA",
+        "matched_ledger_ids": [
+          "EIS-0057-01"
+        ],
+        "false_positive": false,
+        "reason": "直接指认 CA 的精确入口作用域没有初始迁移，并说明进入后的 fail-closed 后果，覆盖台账的 CA 层缺失默认入口主张。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:initial_contract:__root__",
+        "matched_ledger_ids": [
+          "INS-0057-01"
+        ],
+        "false_positive": false,
+        "reason": "直接指认根初始伪状态出边带有触发器，并引用禁止该记法的初始迁移规则，正对应台账对 :22 的 extraneous trigger 主张。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:entry_deadlock:CA",
+        "matched_ledger_ids": [
+          "EIS-0057-01"
+        ],
+        "false_positive": false,
+        "reason": "直接指认 CA 没有默认子状态入口且进入后死锁，覆盖 CA 层缺失默认入口及其不可达/未指定落点后果。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:initial_contract:CA",
+        "matched_ledger_ids": [
+          "EIS-0057-01"
+        ],
+        "false_positive": false,
+        "reason": "直接指认 CA 入口作用域缺少初始迁移，位置和缺失性质均与台账一致。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:initial_contract:__root__",
+        "matched_ledger_ids": [
+          "INS-0057-01"
+        ],
+        "false_positive": false,
+        "reason": "直接指认根初始伪状态的出边携带触发器，并主张语言规则禁止该触发器，覆盖 INS 台账。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:root_target_unreachable:CA.Frontend.FCIdle",
+        "matched_ledger_ids": [
+          "EIS-0057-01"
+        ],
+        "false_positive": false,
+        "reason": "直接指认 CA.Frontend.FCIdle 从根入口不可达，并将原因定位到 CA 未完成复合初始进入；这是台账所述 CA 缺失默认入口导致控制待机态不可达的后果性表述。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:transition:llms_emp_feedback_final_0057:Possible collision detected:CA",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该问题主张一个触发器没有细分覆盖三类碰撞事件，属于激活条件表达不足；台账 INS 主张的是初始伪状态出边不应带任何触发器，性质相反。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "hypothesis:04962d146c51f41c",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该问题主张 CA 缺少正交区域并发建模，既非 CA 层缺失默认入口，也非根初始迁移的多余触发器。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:entry_deadlock:CA",
+        "matched_ledger_ids": [
+          "EIS-0057-01"
+        ],
+        "false_positive": false,
+        "reason": "直接指认 CA 无默认子状态入口并进入死锁状态，覆盖台账的 CA 入口缺失主张。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:initial_contract:CA",
+        "matched_ledger_ids": [
+          "EIS-0057-01"
+        ],
+        "false_positive": false,
+        "reason": "直接指认 CA 精确入口作用域没有初始迁移，和台账的同一层级、同一缺失性质一致。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:initial_contract:__root__",
+        "matched_ledger_ids": [
+          "INS-0057-01"
+        ],
+        "false_positive": false,
+        "reason": "直接指认根初始伪状态出边携带触发器且违反初始迁移约束，覆盖 INS 台账。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张三个 CA 子状态未声明为正交区域，属于并发/层次结构问题，不是台账中的缺失默认入口或根初始触发器问题。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张根到 CA 的单一触发条件未分别覆盖三类事件，属于激活事件覆盖不足；不是初始伪状态出边携带触发器这一语言记法问题。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 CA 内三个区域未明确建模为正交并发区域，和两条台账的缺失入口及多余初始触发器性质都不相同。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 CA 内部状态缺少正交区域分隔，定位和性质均不是 CA 层默认入口缺失或根初始边触发器多余。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张进入 CA 的触发条件过于笼统、未区分三类事件，不能对应初始伪状态出边禁止携带触发器的台账性质。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张三个碰撞控制未建模为可并发激活的正交区域，属于并发结构问题，不对应任一冻结台账条目。",
+        "confidence": null
+      }
+    ],
+    "pair_reason": "两条冻结台账分别要求覆盖 CA 层缺失默认入口及根初始迁移的多余触发器。三个方法轮次均覆盖两条台账；method_run2 另以不可达目标 issue 表述 CA 入口缺失的后果。baseline 三轮只报告并发区域缺失和触发条件过于笼统，未覆盖任一台账条目的精确性质；这些输出均为 false positive。"
+  },
+  "status": "ok",
+  "attempts": 1
+}

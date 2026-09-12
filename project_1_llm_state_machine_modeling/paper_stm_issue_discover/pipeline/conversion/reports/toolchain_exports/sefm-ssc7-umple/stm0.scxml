@@ -1,0 +1,77 @@
+<!--  EXPERIMENTAL SCXML OUTPUT, NOT READY FOR USE -->
+<?xml version="1.0" encoding="utf-8"?>
+<scxml name="sm" xmlns="https://www.w3.org/2005/07/scxml" xmlns:xi="https://www.w3.org/2001/XInclude" version="1.0">
+<state id="Ready">
+<transition event="scanBarcode" cond="isValidBarcode" target="SecurityCheck"/>
+<transition event="scanBarcode" cond="!isValidBarcode" target="Ready">
+<script>
+showError();
+</script>
+</transition>
+<transition event="enterCode" cond="isValidCode" target="WeighingItem"/>
+<transition event="enterCode" cond="!isValidCode" target="Ready">
+<script>
+showError();
+</script>
+</transition>
+<transition event="weighBag" target="WeighingBag"/>
+<transition event="pay" cond="hasItems" target="Payment"/>
+<transition event="timeout" target="Timeout"/>
+</state>
+<state id="WeighingItem">
+<transition event="weightReceived" target="SecurityCheck"/>
+<transition event="cancel" target="Ready"/>
+<transition event="requestCancel" target="Override"/>
+</state>
+<state id="WeighingBag">
+<transition event="weightReceived" target="Ready">
+<script>
+updateBagCount();
+</script>
+</transition>
+<transition event="cancel" target="Ready"/>
+</state>
+<state id="SecurityCheck">
+<transition event="weightMatch" target="Ready"/>
+<transition event="weightMismatch" target="Override"/>
+<transition event="requestCancel" target="Override"/>
+</state>
+<state id="Payment">
+<transition event="success" target="Ready">
+<script>
+printBill();
+</script>
+</transition>
+<transition event="failure" target="Ready">
+<script>
+showError();
+</script>
+</transition>
+<transition event="cancel" target="Ready"/>
+</state>
+<state id="Override">
+<onentry>
+<script>
+turnLightOn();
+</script>
+</onentry>
+<transition event="enterCode" cond="isValidStaffCode" target="Ready">
+<script>
+turnLightOff();
+</script>
+</transition>
+<transition event="enterCode" cond="!isValidStaffCode" target="Override">
+<script>
+showError();
+</script>
+</transition>
+</state>
+<state id="Timeout">
+<transition event="continue" target="Ready"/>
+<transition event="timeoutTimeoutToReady" target="Ready">
+<script>
+clearAll();
+</script>
+</transition>
+</state>
+</scxml>

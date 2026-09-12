@@ -1,0 +1,782 @@
+--- Page 1 ---
+Repairing Timed Automata Clock Guards
+through Abstraction and Testing
+´Etienne Andr´ e1,2,3, Paolo Arcaini3, Angelo Gargantini4,
+and Marco Radavelli4(B)
+1Universit´ e Paris 13, LIPN, CNRS, UMR 7030, 93430 Villetaneuse, France
+2JFLI, CNRS, Tokyo, Japan
+3National Institute of Informatics, Tokyo, Japan
+4University of Bergamo, Bergamo, Italy
+marco.radavelli@unibg.it
+Abstract. Timed automata (TAs) are a widely used formalism to spec-
+ify systems having temporal requirements. However, exactly specifying
+the system may be diﬃcult, as the user may not know the exact clock
+constraints triggering state transitions. In this work, we assume the useralready speciﬁed a TA, and (s)he wants to validate it against an ora-
+cle that can be queried for acceptance. Under the assumption that the
+user only wrote wrong guard transitions (i.e., the structure of the TAis correct), the search space for the correct TA can be represented by a
+Parametric Timed Automaton (PTA), i.e., a TA in which some constants
+are parametrized. The paper presents a process that (i) abstracts the ini-tial (faulty) TA ta
+initin a PTA pta; (ii) generates some test data (i.e.,
+timed traces) from pta; (iii) assesses the correct evaluation of the traces
+with the oracle; (iv) uses the IMITATOR tool for synthesizing some con-
+straints ϕon the parameters of pta; (v) instantiate from ϕaT A tarepas
+ﬁnal repaired model. Experiments show that the approach is successfully
+able to partially repair the initial design of the user.
+1 Introduction
+Timed automata (TA) [ 4] represent a widely used formalism for modeling and
+verifying concurrent timed systems. A common usage is to develop a TA describ-
+ing the running system and then apply analysis techniques to it (e.g., [ 15]). How-
+ever, exactly specifying the system under analysis may be diﬃcult, as the user
+may not know the exact clock constraints that trigger state transitions, or mayperform errors at design time. Therefore, validating the produced TA against the
+real system is extremely important to be sure that we are analyzing a faithful
+representation of the system. Diﬀerent testing techniques have been proposed fortimed automata, based on diﬀerent coverage criteria as, e.g., transition cover-
+age [25] and fault-based coverage [ 2,3], and they can be used for TA validation.
+This work is partially supported by ERATO HASUO Metamathematics for Systems
+Design Project (No. JPMJER1603), JST and by the ANR national research program
+PACS (ANR-14-CE28-0002).
+c/circlecopyrtSpringer Nature Switzerland AG 2019
+D. Beyer and C. Keller (Eds.): TAP 2019, LNCS 11823, pp. 129–146, 2019.https://doi.org/10.1007/978-3-030-31157-5
+_9
+
+--- Page 2 ---
+130 ´E. Andr´ ee ta l .
+However, once some failing tests have been identiﬁed, it remains the problem of
+detecting and removing ( repair ) the fault from the TA under validation. How
+to do this in an automatic way is challenging. One possible solution could be to
+use mutation-based approaches [ 2,3] in which mutants are considered as possible
+repaired versions of the original TA; however, due to the continuous nature oftimed automata, the number of possible mutants (i.e., repair actions) is too big
+also for small TAs and, therefore, such approaches do not appear to be feasible.
+We here propose to use a symbolic representation of the possible repaired TAs
+and we reduce the problem of repairing to ﬁnding an assignment of this symbolic
+representation.
+Contribution. In this work, we address the problem of testing/validating TAs
+under the assumption that only clock guards may be wrong, that is, we assume
+that the structure (states and transitions) is correct. Moreover, we assume tohave an oracle that we can query for acceptance of timed traces, but whose
+internal structure is unknown: this oracle can be a Web-service, a medical device,
+a protocol, etc. In order to symbolically represent the search space of possiblerepaired TAs, we use the formalism of parametric timed automata (PTAs) [ 6]a s
+an abstraction to represent all possible behaviors under all possible clock guards.
+We propose a framework for automatic repair of TAs that takes as input a
+TAta
+initto repair and an oracle . The process works as follows: (i)starting from
+tainit,w eb u i l daP T A ptawhere to look for the repaired TA; (ii)we build a
+symbolic representation of the language accepted by ptain terms of an extended
+parametric zone graph EPZG ;(iii)we then generate some test data TDfrom
+EPZG ;(iv)we assess the correct evaluation of TDby querying the oracle ,s o
+building the test suite TS;(v)we feed the tests TSto the IMITATOR [10]t o o l
+that ﬁnds some constraints ϕthat restrict ptaonly to those TAs that correctly
+evaluate all the tests in TS;(vi)as the number of TAs that are correct repairs
+may be inﬁnite, we try to obtain, using a constraint solver based on local search,
+the TA tarepclosest to the initial TA tainit. Note that trying to modify as less
+as possible the initial TA is reasonable if we assume the competent programmerhypothesis [ 22].
+To evaluate the feasibility of the approach, we performed some preliminary
+experiments showing that the approach is able to (partially) repair a faulty TA.
+Outline. Section 2explains the deﬁnitions we need in our approach. Then Sect. 3
+presents the process we propose that combines model abstraction, test gener-ation, constraint generation, and constraint solving. Section 4describes experi-
+ments we performed to evaluate our process. Finally, Sect. 5reviews some related
+work, and Sect. 6concludes the paper.
+2 Deﬁnitions
+Atimed word [4] over an alphabet of actions Σis a possibly inﬁnite sequence of
+the form ( a0,d0)(a1,d1)···such that, for all integer i≥0,ai∈Σanddi≤di+1.
+A timed language is a (possibly inﬁnite) set of timed words.
+
+--- Page 3 ---
+Repairing TA Clock Guards through Abstraction and Testing 131
+/lscript1 /lscript2 /lscript3
+/lscript4 /lscript5x≤4
+x≤3
+x≤6x≤3
+ax=3 ∧y≥4
+b
+x>2
+a
+y:= 0y>1∧x>4
+c
+(a) A TA to be repaired/lscript1 /lscript2 /lscript3
+/lscript4 /lscript5x≤4
+x≤p3
+x≤6x≤p3
+ax=p3∧y≥4
+b
+x>p2
+a
+y:= 0y>1∧x>p4
+c
+(b) An abstract PTA
+Fig. 1. Running example
+We assume a set X={x1,...,x H}ofclocks , i.e., real-valued variables that
+evolve at the same rate. A clock valuation is μ:X→ R≥0. We write 0for the
+clock valuation assigning 0 to all clocks. Given d∈R≥0,μ+dis s.t. ( μ+d)(x)=
+μ(x)+d, for all x∈X.G i v e n R⊆ X, we deﬁne the reset of a valuation μ,
+denoted by [ μ]R, as follows: [ μ]R(x)=0i f x∈R, and [ μ]R(x)=μ(x) otherwise.
+We assume a set P={p1,...,p M}ofparameters . A parameter valuation vis
+v:P→ Q+. We assume ⊿/triangleleft∈{<,≤,=,≥,>}.Aclock guard gis a constraint over
+X∪Pdeﬁned by a conjunction of inequalities of the form x⊿ /triangleleft/summationtext
+1≤i≤Mαipi+d,
+withpi∈P,a n dαi,d∈Z.G i v e n g, we write μ|=v(g) if the expression obtained
+by replacing each xwithμ(x) and each pwithv(p)i ngevaluates to true.
+2.1 Parametric Timed Automata
+Deﬁnition 1 (PTA). AP T A Ais a tuple A=(Σ,L,/lscript 0,F, X,P,I,E),w h e r e :
+(i)Σis a ﬁnite set of actions, (ii) Lis a ﬁnite set of locations, (iii) /lscript0∈Lis the
+initial location, (iv) F⊆Lis the set of accepting locations, (v) Xis a ﬁnite set
+of clocks, (vi) Pis a ﬁnite set of parameters, (vii) Iis the invariant, assigning to
+every /lscript∈La clock guard I(/lscript), (viii) Eis a ﬁnite set of edges e=(/lscript,g,a,R,/lscript/prime)
+where /lscript,/lscript/prime∈Lare the source and target locations, a∈Σ,R⊆ Xis a set of
+clocks to be reset, and gis a clock guard.
+Given e=(/lscript,g,a,R,/lscript/prime), we deﬁne Act(e)=a.
+Example 1. Consider the PTA in Fig. 1b, containing two clocks xandyand
+three parameters p2,p3andp4. The initial location is /lscript1.
+Given v, we denote by v(A) the non-parametric structure where all occur-
+rences of a parameter pihave been replaced by v(pi). We denote as a timed
+automaton any such structure v(A).
+Thesynchronous product (using strong broadcast, i.e., synchronization on a
+given set of actions), or parallel composition , of several PTAs gives a PTA (see [ 8]
+for a common formal deﬁnition).
+Deﬁnition 2 (Concrete semantics of a TA). Given a PTA A=
+(Σ,L,/lscript 0,F, X,P,I,E), and a parameter valuation v, the semantics of v(A)is
+given by the timed transition system (TTS) (S,s 0,→),w i t h
+
+--- Page 4 ---
+132 ´E. Andr´ ee ta l .
+–S={(/lscript,μ)∈L×RH
+≥0|μ|=v(I(/lscript))},s0=(/lscript0,0),
+–→consists of the discrete and (continuous) delay transition relations: (i)
+discrete transitions: (/lscript,μ)e/mapsto→(/lscript/prime,μ/prime),i f(/lscript,μ),(/lscript/prime,μ/prime)∈S, and there exists e=
+(/lscript,g,a,R,/lscript/prime)∈E, such that μ/prime=[μ]R,a n d μ|=v(g). (ii) delay transitions:
+(/lscript,μ)d/mapsto→(/lscript,μ+d),w i t h d∈R≥0,i f∀d/prime∈[0,d],(/lscript,μ+d/prime)∈S.
+Moreover we write ( /lscript,μ)(e,d)−→(/lscript/prime,μ/prime) for a combination of a delay and discrete
+transition if ∃μ/prime/prime:(/lscript,μ)d/mapsto→(/lscript,μ/prime/prime)e/mapsto→(/lscript/prime,μ/prime).
+Given a TA v(A) with concrete semantics ( S,s 0,→), we refer to the states
+ofSas the concrete states ofv(A). Arunofv(A) is an alternating sequence of
+concrete states of v(A) and pairs of edges and delays starting from the initial
+states0of the form s0,(e0,d0),s1,···withi=0,1,...,ei∈E,di∈R≥0and
+si(ei,d i)−→si+1.T h eassociated timed word is (Act(e0),d0)(Act(e1),/summationtext
+0≤i≤1di)···.
+Ar u ni s maximal if it is inﬁnite or cannot be extended by any discrete action.
+The (timed) language of a TA, denoted by L(v(A)), is the set of timed words
+associated with maximal runs of v(A). Given s=(/lscript,μ), we say that sis reachable
+inv(A)i fsappears in a run of v(A). By extension, we say that /lscriptis reachable
+inv(A); and by extension again, given a set Tof locations, we say that Tis
+reachable if there exists /lscript∈Tsuch that /lscriptis reachable in v(A).
+Example 2. Consider the TA Ain Fig. 1a. Consider the following run ρofA:
+/parenleftBig
+/lscript1,/parenleftbiggx=0
+y=0/parenrightbigg/parenrightBig(a,2.5)−→/parenleftBig
+/lscript4,/parenleftbiggx=2.5
+y=0/parenrightbigg/parenrightBig(c,2)−→/parenleftBig
+/lscript5,/parenleftbiggx=4.5
+y=2/parenrightbigg/parenrightBig
+We write “ x=2.5” instead of “ μsuch that μ(x)=2 .5”. The associated
+timed word is ( a,2.5)(c,4.5).
+2.2 Symbolic Semantics
+Let us now recall the symbolic semantics of PTAs (see e.g., [ 9,18,19]).
+Constraints. We ﬁrst need to deﬁne operations on constraints. A linear term
+over X∪Pis of the form/summationtext
+1≤i≤Hαixi+/summationtext
+1≤j≤Mβjpj+d, with xi∈X,pj∈P,
+andαi,β j,d∈Z.Aconstraint C(i.e., a convex polyhedron) over X∪Pis a
+conjunction of inequalities of the form lt⊿/triangleleft0, where ltis a linear term.
+Given a parameter valuation v,v(C) denotes the constraint over Xobtained
+by replacing each parameter pinCwithv(p). Likewise, given a clock valua-
+tionμ,μ(v(C)) denotes the expression obtained by replacing each clock xinv(C)
+withμ(x). We say that vsatisﬁes C, denoted by v|=C, if the set of clock valu-
+ations satisfying v(C) is nonempty. Given a parameter valuation vand a clock
+valuation μ, we denote by μ|vthe valuation over X∪Psuch that for all clocks
+x,μ|v(x)=μ(x) and for all parameters p,μ|v(p)=v(p). We use the notation
+μ|v|=Cto indicate that μ(v(C)) evaluates to true. We say that Cissatisﬁable
+if∃μ,vs.t.μ|v|=C.
+
+--- Page 5 ---
+Repairing TA Clock Guards through Abstraction and Testing 133
+s1 s2 s3
+s4 s5e1 e2
+e3e4s1=(/lscript1,0≤x=y≤4∧p2≥0∧p3≥0∧p4≥0)
+s2=( /lscript2,0≤x=y≤p3∧p2≥0∧p3≥0∧p4≥0)
+s3=( /lscript3,x=y≥p3∧p2≥0∧p3≥4∧p4≥0)
+s4=( /lscript4,p2<x≤6∧y≥0∧p2<x−y≤4∧4>p2≥0∧p3≥0∧p4≥0)
+s5=( /lscript5,p2<x∧p4<x∧y>1∧p2<x−y≤4∧4>p2≥0∧p3≥0∧6>p 4≥0)
+Fig. 2. Parametric zone graph of Fig. 1b
+We deﬁne the time elapsing ofC, denoted by C/arrownortheast, as the constraint over X
+and Pobtained from Cby delaying all clocks by an arbitrary amount of time.
+That is, μ/prime|v|=C/arrownortheastiﬀ∃μ:X→ R+,∃d∈R+s.t.μ|v|=C∧μ/prime=μ+d.G i v e n
+R⊆X, we deﬁne the reset ofC, denoted by [ C]R, as the constraint obtained
+fromCby resetting the clocks in R, and keeping the other clocks unchanged.
+We denote by C↓Pthe projection of Conto P, i.e., obtained by eliminating the
+variables not in P(e.g., using Fourier-Motzkin [ 24]).⊥denotes the constraint
+over Prepresenting the empty set of parameter valuations.
+Deﬁnition 3 (Symbolic semantics). Given a PTA A=(Σ,L,/lscript 0,F, X,
+P,I,E), the symbolic semantics of Ais the labeled transition system called para-
+metric zone graph PZG =(E,S,s0,⇒),w i t h
+–S={(/lscript,C)|C⊆I(/lscript)},s0=/parenleftbig
+/lscript0,(/logicalandtext
+1≤i≤Hxi=0 )/arrownortheast∧I(/lscript0)/parenrightbig
+,a n d
+–/parenleftbig
+(/lscript,C),e,(/lscript/prime,C/prime)/parenrightbig
+∈⇒ife=(/lscript,g,a,R,/lscript/prime)∈EandC/prime=/parenleftbig
+[(C∧g)]R∧
+I(/lscript/prime)/parenrightbig/arrownortheast∧I(/lscript/prime)withC/primesatisﬁable.
+That is, in the parametric zone graph, nodes are symbolic states, and arcs are
+labeled by edges of the original PTA. A symbolic state is a pair ( /lscript,C) where /lscript∈L
+is a location, and Cits associated constraint. In the successor state computation
+in Deﬁnition 3, the constraint is intersected with the guard, clocks are reset, the
+resulting constraint is intersected with the target invariant, then time elapsing is
+applied, and ﬁnally intersected again with the target invariant. This graph is (ingeneral) inﬁnite and, in contrast to the zone graph of timed automata, no ﬁnite
+abstraction can be built for properties of interest; this can be put in perspective
+with the fact that most problems are undecidable for PTAs [ 7].
+Example 3. Consider again the PTA Ain Fig. 1b. The parametric zone graph
+ofAis given in Fig. 2, where e
+1is the edge from /lscript1to/lscript2in Fig. 1b,e2is the
+edge from /lscript2to/lscript3,e3is the edge from /lscript1to/lscript4,a n d e4is the edge from /lscript4to/lscript5.
+The inequalities of the form 0 ≤x=y≤4 come from the fact that clocks are
+initially both equal to 0, evolve at the same rate, and are constrained by the
+invariant.
+2.3 Reachability Synthesis
+We will use reachability synthesis to solve the problem in Sect. 3. This proce-
+dure, called EFsynth , takes as input a PTA Aand a set of target locations T,
+
+--- Page 6 ---
+134 ´E. Andr´ ee ta l .
+and attempts to synthesize all parameter valuations vfor which Tis reachable
+inv(A).EFsynth (A,T) was formalized in e.g., [ 19] and is a procedure that tra-
+verses the parametric zone graph of A;EFsynth may not terminate (because
+of the inﬁnite nature of the graph), but computes an exact result (sound and
+complete) if it terminates.
+Example 4. Consider again the PTA Ain Fig. 1b.EFsynth (A,{/lscript5}) returns 0 ≤
+p2<4∧0≤p4≤6∧p3≥0. Intuitively, this corresponds to all parameter
+constraints in the parametric zone graph in Fig. 2associated to symbolic states
+with location /lscript5(there is a single such state).
+3 A Repairing Process Using Abstraction and Testing
+In this paper, we address the guard-repair problem of timed automata. Given a
+reference TA tainita n da no r a c l e Oknowing an unknown timed language TL,
+our goal is to modify (“repair”) the timing constants in the clock guards of A
+such that the repaired automaton matches the timed language TL. The setting
+assumes that the oracle Ocan be queried for acceptance of timed words by TL;
+that is, Ocan decide whether a timed word belongs to TL, but the internal
+structure of the object leading to TL(e.g., an unknown timed automaton) is
+unknown. This setting makes practical sense when testing black-box systems.
+guard-repair problem:
+Input : an initial TA tainit , an unknown timed language TL
+Problem : Repair the constants in the clock guards of tainit so as to obtain
+aT A tarep such that L(tarep)= TL
+While the ultimate goal is to solve this problem, in practice the best we can
+hope for is to be as close as possible to the unknown oracle TA, notably due
+to the undecidability of language equivalence of timed automata [ 4] (e.g., if TL
+was generated by another TA).
+3.1 Overview of the Method
+From now on, we describe the process we propose to automatically repair an
+initial timed automaton tainit. Figure 3describes the approach:
+Step ➀aP T A ptais generated starting from the initial TA tainit.
+Step ➁the extended parametric zone graph EPZG (an extension of PZG)i s
+built.
+Step ➂a test generation algorithm generates relevant test data TDfrom
+EPZG .
+Step ➃TDis evaluated using the oracle, therefore building the test suite TS.
+Step ➄some constraints ϕare generated, restricting ptato the TAs that eval-
+uate correctly the generated tests TS.
+Step ➅one possible TA satisfying the constraints ϕis obtained.
+
+--- Page 7 ---
+Repairing TA Clock Guards through Abstraction and Testing 135
+Fig. 3. Automatic repair process
+Algorithm 1. Automatic repair process Repair (tainit,O)
+input :tainit: initial timed automaton to repair
+input :O: an oracle assessing the correct evaluation of timed words
+output :ϕ: set of valuations repairing tainit
+1pta←AbstractInPta (tainit)
+2EPZG ← BuildEpzg (pta)
+3TD←GenerateTestData (EPZG ); /* Generate test data from EPZG */
+4TS←LabelTests (TD,O); /* A test is a pair (trace, assessment) */
+5return ϕ←GenConstraints (pta,TS)
+Function GenConstraints( pta,TS)
+1MBA ←{w|(w,true) ∈TS}; /* Tests that must be accepted */
+2MBR ←{w|(w,false) ∈TS}; /* Tests that must be rejected */
+3return/logicalandtext
+w∈MBAReplayTW (pta,w)∧/logicalandtext
+w∈MBR¬ReplayTW (pta,w)
+Algorithm 1formalizes steps ➀–➄for which we can provide some theoretical
+guarantees (i.e., the non-emptiness of the returned valuation set, and its inclusionofTL). For step ➅, instead, diﬀerent approaches could be adopted: in the paper,
+we discuss a possible one. We emphasize that, with the exception of Step ➀,o u r
+process is entirely automated. We describe each phase in details in the followingsections.
+3.2 Step ➀: Abstraction
+Starting from the initial ta
+init, through abstraction , the user obtains a PTA pta
+that generalizes tainitin all the parts that can be possibly changed in order to
+repair tainit(line 1 in Algorithm 1). For instance, a clock guard with a constant
+value can be parametrized. Therefore, ptarepresents the set of all the TAs that
+can be obtained when repairing tainit.ptais built on the base of the domain
+knowledge of the developer who has a guess of the guards that may be faulty.
+Example 5. Consider again the TA in Fig. 1a. A possible abstraction of this TA is
+the PTA in Fig. 1b, where we chose to abstract some of the timing constants with
+
+--- Page 8 ---
+136 ´E. Andr´ ee ta l .
+parameters. Note that not all timing constants must necessarily be substituted
+with parameters; also note that a same parameter can be used in diﬀerent places(this is the case of p
+3).
+Assumption. We deﬁne below an important assumption for our method; we will
+discuss in Sect. 3.9how to lift it.
+Assumption 1. We here assume that pta is a correct abstraction, i.e., it con-
+tains a TA that precisely models the oracle. That is, there exists vOsuch that
+L(vO(pta)) =TL.
+Note that this assumption is trivially valid if faults lay in the clock guards
+(which is the setting of this work), and if all constants used in clock guards are
+turned to parameters.
+3.3 Step ➁: Construction of the Extended Parametric Zone Graph
+Starting from pta, we build a useful representation of its computations in terms
+of anextended parametric zone graph EPZG (line 2 in Algorithm 1). This original
+data structure will be used for test generation. In the following, we describe how
+we build EPZG fromPZG. We extend the parametric zone graph PZG with
+the two following pieces of information:
+the parameter constraint characterizing each symbolic state: from a
+state ( /lscript,C), the parameter constraint is C↓Pand gives the exact set of
+parameter valuations for which there exists an equivalent concrete run in
+the automaton. That is, a state ( /lscript,C) is reachable in v(A)i ﬀv|=C(see [19]
+for details).
+the minimum and maximum arrival times: that is, we compute the mini-
+mum ( mi) and maximum ( M i) over all possible parameter valuations of the
+possible absolute times reaching this symbolic state.
+While the construction of the ﬁrst information is standard, the second one is
+original to our work and requires more explanation. We build for each state a
+(possibly unbounded) interval that encodes the absolute minimum and maxi-
+mum arrival time. This can be easily obtained from the parametric zone graph
+by adding an extra clock never reset (that encodes the absolute time), and pro-jecting the obtained constrained on this extra clock, thus giving minimum and
+maximum times over all possible parameter valuations.
+Example 6. Consider again the PTA Ain Fig. 1b and its parametric zone graph
+in Fig. 2. The parameter constraints associated to each of the symbolic states,
+and the possible absolute reachable times, are given in Table 1.
+Remark 1. If all locations of the original PTA contain an invariant with at least
+one inequality of the form x/triangleleftporx/triangleleftd, with /triangleleft∈{<,≤}, and if the parameters are
+bounded, then the maximum arrival time in each symbolic state will always be
+
+--- Page 9 ---
+Repairing TA Clock Guards through Abstraction and Testing 137
+Table 1. Description of the states of the extended parametric zone graph
+Symbolic states Parameter constraint Reachable times
+s1 p2≥0∧p3≥0∧p4≥0 xabs=0
+s2 p2≥0∧p3≥0∧p4≥0 xabs∈[0,4]
+s3 p2≥0∧p3≥4∧p4≥0 xabs∈[4,∞)
+s4 4>p2≥0∧p3≥0∧p4≥0 xabs∈(0,4]
+s5 4>p2≥0∧p3≥0∧6>p 4≥0xabs∈(1,6]
+ﬁnite. Note that this condition is not fulﬁlled in Example 6because /lscript2features
+an invariant x≤p3, with p3unbounded, thus allowing to remain arbitrarily
+long in /lscript2for an arbitrarily large value of p3. Therefore, the arrival time in /lscript3is
+xabs∈[4,∞).
+3.4 Step ➂: Test Data Generation
+Starting from EPZG , we generate some test data (line 3 in Algorithm 1)i nt e r m s
+of timed words.
+Constructing Timed Words. We use the minimal and maximum arrival times
+in the abstract PTA to generate test data. That is, we will notably use the
+boundary information, i.e., runs close to the fastest and slowest runs, to try to
+discover the actual timing guards of the oracle.
+The procedure to generate a timed word from the EPZG is as follows:
+1. Pick a run s0e0s1···snfromEPZG .
+2. Construct the timed word ( a0,d0)(a1,d1)···(an−1,d n−1), where ai=Act(ei)
+anddibelongs to the interval of reachable times associated with symbolic
+state si+1,f o r0 ≤i≤n−1. Note that, depending on the policy (see below),
+we sometimes choose on purpose valuations outside of the reachable times.
+Given an EPZG, we generate, for each ﬁnite path of the EPZG up to a given
+depth K, one timed word. In order to chose a timed word from a (symbolic)
+path of the EPZG, we identiﬁed diﬀerent policies.
+Policies. For each k<K , we instantiate ( a0,d0)(a1,d1)···(ak,d k) by selecting
+particular values for each diusing diﬀerent policies:
+–P±1:dj∈I±1, where I±1={mi−1,mi,mi+1,Mi−1,Mi,Mi+1}andmi
+andMiare the minimum and maximum arrival times of the symbolic state.
+–PminMax2 :dj∈IminMax2 withIminMax2 =I±1∪{(mi+Mi)/2}.
+–PminMax4 :dj∈IminMax4 withIminMax4 =IminMax2 ∪{mi+(Mi−mi)/4,mi+
+((Mi−mi)/4)∗3}.
+–Prnd:djbeing a random value such that mi≤dj≤Mi.
+
+--- Page 10 ---
+138 ´E. Andr´ ee ta l .
+Example 7. Consider again the PTA Ain Fig. 1b and its parametric zone graph
+in Fig. 2together with reachable times in Table 1. Pick the run s1e3s4e4s5.F i r s t
+note that Act(e3)=aand Act(e4)=c. According to Table 1, the reachable times
+associated with s4are (0 ,4] while those associated with s5are (1 ,6]. Therefore,
+a possible timed word generated with P±1is (a,1)(c,5). Note that this timed
+word does not belong to the TA to be repaired (Fig. 1a) because of the guard
+x>2; however, it does belong to an instance TA of Fig. 1b for a suﬃciently
+small value of p2(namely v(p2)<1). We will see later that such tests are tagged
+as failing.
+3.5 Step ➃: Test Labeling
+Then, every test sequence in TDis checked against the oracle in order to label
+it as accepted or not (line 4 in Algorithm 1), therefore the test suite TS;at e s t
+case in TSis a pair ( w,O(w)), being wa timed word, and O(w) the evaluation
+of the oracle, i.e., O(w) is deﬁned as a Boolean the value of which is w∈TL.1
+A test case failsiftainit(w)/negationslash=O(w), i.e., the initial TA and the oracle timed
+language disagree. Note that, if is no test case fails, tainitis considered correct2
+and the process terminates.
+In diﬀerent settings, diﬀerent oracles can be used. In this work, we assume
+that the oracle is the real system of which we want to build a faithful representa-
+tion; the system is black-box, and it can only be queried for acceptance of timed
+words. In another setting, the oracle could be the user who can easily assesswhich words should be accepted, and wants to validate their initial design. Of
+course, the type of oracle also determines how many test data we can provide
+for assessment: while a real implementation can be queried a lot (modulo the
+time budget and the execution time of a single query), a human oracle usually
+can evaluate only few tests.
+3.6 Step ➄: Generating Constraints from Timed Words
+Given the test suite TS, our approach generates constraints ϕthat restrict pta
+to only those TAs that correctly evaluate the tests (line 5 in Algorithm 1).
+In this section, we explain how to “replay a timed word”, i.e., given a PTA A,
+how to synthesize the exact set of parameter valuations vfor which a ﬁnite timed
+word belongs to the timed language of v(A). Computing the set of parameter
+valuations for which a given ﬁnite timed word belongs to the timed language can
+be done easily by exploring a small part of the symbolic state space. Replayinga timed word is also very close to the ReplayTrace procedure in [ 12] where we
+synthesized valuations corresponding to a trace, i.e., a timed word without the
+time information—which is decidable.
+1To limit the number of tests, we only keep the maximal accepted traces (i.e., we
+remove accepted traces included in longer accepted traces), and the minimal rejectedtraces (i.e., we remove rejected traces having as preﬁx another rejected trace).
+2This does not necessarily mean that both TAs have the same language, but that thetests did not exhibit any discrepancy.
+
+--- Page 11 ---
+Repairing TA Clock Guards through Abstraction and Testing 139
+From timed words to timed automata. First, we convert the timed word
+into a (non-parametric) timed automaton. This straightforward procedure wasintroduced in [ 11], and simply consists in converting a timed word of the form
+(a
+1,d1),···,(an,d n) into a sequence of transitions labeled with aiand guarded
+withxabs=di(where xabsmeasures the absolute time, i.e., is an extra clock
+never reset). Let TW2PTA denote this procedure.3
+Example 8. Consider again the timed word
+wmentioned in Example 7:(a,0.5)(c,5).
+The result of TW2PTA (w) is given in Fig. 4./lscriptTW
+0 /lscriptTW1 /lscriptTW2xabs=0 .5
+axabs=5
+c
+Fig. 4. Translation of timed word
+(a,0.5)(c,5)
+Synchronized product and synthesis. The second part of step ➄consists in
+performing the synchronized product of TW2PTA (w)a n d A, and calling EFsynth
+on the resulting PTA with the last location of the timed word as the targetofEFsynth .L e t ReplayTW (pta,w) denote the entire procedure of synthesizing
+the valuations associated that make a timed word possible.
+Example 9. Consider again the PTA Ain Fig. 1b and the timed word
+(a,0.5)(c,5) translated to a (P)TA in Fig. 4. The result of EFsynth applied to
+the synchronized product of these two PTAs with {/lscript
+TW
+2}as target location set
+is 0≤p4<5∧0≤p2<1
+2∧p3≥0. This set indeed represents all possible valu-
+ations for which ( a,0.5)(c,5) is a run of the automaton. Note that the result can
+be non-convex. If we now consider the simpler timed word ( a,3), then the result
+ofReplayTW (A,w) becomes p3≥3∧p2≥0∧p4≥0∨p2<3∧p3≥0∧p4≥0
+This comes from the fact that the action acan correspond to either e1(from /lscript1
+to/lscript2)o re3(from /lscript1to/lscript4) in Fig. 1b.
+Remark 2. Despite the non-guarantee of termination of the general EFsynth pro-
+cedure, ReplayTW not only always terminates, but is also very eﬃcient in prac-
+tice: indeed, it only explores the part of the PTA corresponding to the sequence
+of (timed) transitions imposed by the timed word. This comes from the fact thatwe take the synchronized product of Awith TW2PTA (w), the latter PTA being
+linear and ﬁnite.
+Lemma 1. Let pta be a PTA, and wbe a timed word. Then ReplayTW (pta,w)
+terminates.
+3.7 Correctness
+Recall that Assumption 1assumes that there exists a valuation v
+Osuch that
+L(vO(pta)) =TL. We show that, under Assumption 1, our resulting constraint
+is always non-empty and contains the valuation vO.
+Theorem 1. Letϕ=Repair (tainit,O).T h e n ϕ/negationslash=⊥andvO|=ϕ.
+Proof. Proofs of Lemma 1and Theorem 1can be found in [ 8].
+3This procedure transforms the word to a non-parametric TA; we nevertheless use
+the name TW2PTA for consistency with [ 11].
+
+--- Page 12 ---
+140 ´E. Andr´ ee ta l .
+3.8 Step ➅: Instantiation of a Repaired TA
+Any assignment satisfying ϕcharacterizes a correct TA w.r.t. the generated tests
+inTS; however, not all of them exactly capture the oracle behaviour. If the user
+wants to select one TA, (s)he can select one assignment vrepofϕ, and use it to
+instantiate the ﬁnal repaired TA tarep.
+In order to select one possible assignment vrep, diﬀerent strategies may be
+employed, on the base of the assumptions of the process. In this work, we assume
+thecompetent programmer hypothesis [22] that the developer produced an initial
+TAtainitclose to be correct; therefore, we want to generate a ﬁnal TA tarepthat
+isnot too diﬀerent fromtainit. In particular, we assume that the developer did
+small mistakes on setting the values of the clock guards.
+In order to ﬁnd the closest values of the clock guards that respect the con-
+straints, we exploit the local search capability of Choco [ 23]:
+1. we start from the observation that tainitis an instantiation of pta. We there-
+fore select the parameter evaluation vinitthat generates tainitfrompta, i.e.,
+tainit=vinit(pta);
+2. we initialize Choco with vinit; Choco then performs a local search trying to
+ﬁnd the assignment closest (according to a notion of distance deﬁned later in
+Sect.4)t ovinit, and that satisﬁes ϕ.
+3.9 Discussing Assumption 1
+Assumption 1assumes that the user provides a PTA ptathat contains the ora-
+cle. If this is not the case, the test generation phase (Sect. 3.6) may generate a
+negative test (i.e., not accepted by any instance of pta) that is instead accepted
+by the oracle or a positive test that is not accepted by the oracle; in this case,
+the constraints generation phase would produce an unsatisﬁable constraint ϕ.I n
+this case, the user should reﬁne the abstraction by parameterizing some otherclock guards, or by relaxing the constraints on some existing parameters.
+Moreover, it could be that the correct oracle has a diﬀerent structure (addi-
+tional states and transitions): as future work, we plan to apply other abstractionsas CoPtA models [ 21] that allow to parametrize states and transitions.
+Note that, even if the provided abstraction is wrong, our approach could still
+be able to reﬁne it. In order to do this, we must avoid to use for constraint gen-eration (step ➄) tests that produce unsatisﬁable constraints. We use a greedy
+incremental version of GenConstraints in which ReplayTW is called incremen-
+tally: if the constraint generated for a test wis not compatible with the other
+constraints generated previously, then it is discarded; otherwise it is conjuncted.
+4 Experimental Evaluation
+In order to evaluate our approach, we selected some benchmarks from the liter-ature to be used as initial TA ta
+init: the model of a coﬀee machine ( CF)[3], of a
+car alarm system ( CAS)[3], and the running case study ( RE). For each benchmark
+model, Table 2reports its number of locations and transitions.
+
+--- Page 13 ---
+Repairing TA Clock Guards through Abstraction and Testing 141
+Table 2. Benchmarks: data
+Benchmark Size of tainit # params SD SC(%)
+#locs. #trans.
+RunningEx (RE) 5 4 5 298.33
+Coffee (CF) 5 7 9 1199.18
+CarAlarmSystem (CAS) 16 25 10 1284.24
+RunningEx – diﬀerent oracle ( RE do)5 4 5 –98.72
+The proposed approach requires that the developer, starting from tainit,p r o -
+vides an abstraction in terms of a PTA pta. For the experiments, as we do not
+have any domain knowledge, we took the most general case and we built ptaby
+adding a parameter for each guard constant; the only optimization that we did
+is to use the same parameter when the same constant is used on entering and/or
+exiting transitions of the same location (as in Fig. 1b).
+In the approach, the oracle should be the real system that we can query for
+acceptance; in the experiments, the oracle is another TA taothat we obtained
+by slightly changing some constants on the guards. The oracle has been built ina way that it is an instance of pta, following Assumption 1.
+In order to measure how much a TA (either the initial one ta
+initor the ﬁnal
+onetarep) is diﬀerent from the oracle, we introduce a syntactic and a semantic
+measure, that provide diﬀerent kinds of comparison with the oracle tao.
+Given a model ta, the oracle tao,a n daP T A ptahaving parameters
+p1,...,p n,l e tvandvobe the corresponding evaluations, i.e., ta=v(pta)a n d
+tao=vo(pta). We deﬁne the syntactic distance oftato the oracle as follows:
+SD(ta)=/summationdisplay n
+i=1|v(pi)−vo(pi)|
+The syntactic distance roughly measures how much tamust be changed (under
+the constraints imposed by pta) in order to obtain tao.
+Thesemantic conformance , instead, tries to assess the distance between the
+languages accepted by taand the oracle tao. As the set of possible words is
+inﬁnite, we need to select a representative set of test data TDSC; to this aim,
+we generate, from tainitandtao, sampled test data in the two TAs; moreover,
+we also add negative tests by extending the positive tests with one forbidden
+transition at the end. The semantic conformance is deﬁned as follows:
+SC(ta)=|{t∈TDSC|(t∈L(ta)∧t∈L(tao))∨(t/negationslash∈L(ta)∧t/negationslash∈L(tao))}|
+|TDSC|
+Table 2also reports SDandSCof each benchmark tainit.
+Experiments have been executed on a MacOS X 10.14, Intel Core i3, with
+4 GiB of RAM. Code is implemented in Java, IMITATOR 2.11 “Butter Kouign-
+amann” [ 10] is used for constraint generation, and Choco 4.10 for constraint
+solving. The code and the benchmarks are available at https://github.com/
+ERATOMMSD/repairTAsThroughAbstraction .
+
+--- Page 14 ---
+142 ´E. Andr´ ee ta l .
+Table 3. Experimental results
+Bench. Policy Time (s) # failed
+tests/#
+teststarep
+Total Steps ➁–➂Step ➃Step ➄Step ➅ SD SC (%)
+RE P±1 1.070 0.010 0.008 1.030 0.019 1/38 0 100 .00
+RE PminMax2 1.148 0.007 0.006 1.130 0.005 1/41 0 100 .00
+RE PminMax4 1.191 0.004 0.004 1.177 0.004 1/41 0 100 .00
+RE Prnd 0.006 0.006 0.001 0.000 0.000 0/3 2 98.33
+CF P±1 25.921 0.050 0.267 25.546 0.045 45/293 8 99.86
+CF PminMax2 32.717 0.129 0.578 31.845 0.147 62/422 7 100 .00
+CF PminMax4 76.137 0.857 1.907 73.058 0.769 102/737 7 100 .00
+CF Prnd 0.134 0.098 0.035 0.000 0.000 1/11 8 99.96
+CAS P±1 59.511 0.043 0.160 59.261 0.037 174/392 2 100 .00
+CAS PminMax2 61.791 0.040 0.159 61.544 0.036 199/416 2 100 .00
+CAS PminMax4 68.341 0.716 0.467 67.037 0.584 245/464 2 100 .00
+CAS Prnd 0.024 0.017 0.007 0.000 0.000 0/20 12 84.24
+4.1 Results
+Table 3reports the experimental results. For each benchmark and each test gen-
+eration policy (see Sect. 3.4), it reports the execution time (divided between the
+diﬀerent phases), the total number of generated tests, the number of tests that
+fail on tainit,a n dSDandSCof the ﬁnal TA tarep.
+We now evaluate the approach answering the following research questions.
+RQ1: Is the approach able to repair faulty TAs?
+We evaluate whether the approach is actually able to (partially) repair tainit.
+From the results, we observe that, in three cases out of four, the process can
+completely repair REsinceSDbecomes 0, meaning that we obtain exactly the
+oracle (therefore, also SCbecomes 100%). For CFand CAS, it almost always
+reduces the syntactical distance SD, but it never ﬁnds the exact oracle. On the
+other hand, the semantic conformance SCis 100% in ﬁve cases. Note that SC
+can be 100% with SDdiﬀerent from 0 for two reasons: either the test data TDSC
+we are using for SCare not able to show the unconformity, or tarepis indeed
+equivalent to the oracle, but with a diﬀerent structure of the clock guards.
+RQ2: Which is the best test generation strategy?
+In Sect. 3.4, we proposed diﬀerent test generation policies over EPZG .W e
+here assess the inﬂuence of the generation policy on the ﬁnal results. P±1,
+PminMax2 ,a n d PminMax4 obtain the same best results for two benchmarks ( RE
+andCAS), meaning that the most useful tests are those on the boundaries of the
+clock guards: those are indeed able to expose the failure if the fault is not toolarge. On the other hand, for CF,P
+±1performs slightly worse than the other
+two, meaning that also generating tests inside the intervals (as done by PminMax2
+and PminMax4 ) can be beneﬁcial for repair. Prndis able to improve (but not totally
+
+--- Page 15 ---
+Repairing TA Clock Guards through Abstraction and Testing 143
+/lscript1 /lscript2 /lscript3
+/lscript4/lscript5x≤4 x≤5
+x≤6x≤3
+ax=5
+b
+x≥4
+cx≥8
+d
+Fig. 5. Repairing TAs with diﬀerent structures – another oracle TA
+Table 4. Experimental results – diﬀerent oracle
+Bench. Policy Time (s) # failed
+tests/# teststarep
+Total Steps ➁–➂Step ➃Step ➄Step ➅ SC (%)
+RE do P±1 2.083 0.007 0.005 2.055 0.013 10/44 98.72
+RE do PminMax2 2.718 0.005 0.004 2.693 0.013 11/47 98.72
+RE do PminMax4 2.686 0.004 0.003 2.658 0.012 11/47 98.72
+RE do Prnd 0.763 0.007 0.001 0.676 0.075 1/3 99.5
+repair) only CF; for the other two benchmarks, it is not able to improve neither
+SDnorSC.
+RQ3: How long does the approach take?
+The time taken by the process depends on the size of tainitand on the test
+generation policy. The most expensive phase is the generation of the constraints,
+as it requires to call IMITATOR for each test that must be accepted. As future
+work, we plan to optimize this phase by modifying IMITATOR to synthesize val-
+uations guaranteeing the acceptance of multiple timed words in a single analysis.
+In the experiments, we use as oracle another TA that we can visit for acceptance;
+this visit is quite fast and so step ➃does not take too much time. However, in
+the real setting, the oracle is the real system whose invocation time may be notnegligible; in that case, the invocation of the oracle could become a bottleneck
+and we would need to limit the number of generated tests.
+RQ4: Which is the process performance if pta does not include the oracle?
+Assumption 1assumes that the user provides a PTA that contains the oracle.
+In Sect. 3.9, we discussed about the possible consequences when this assumption
+does not hold. We here evaluate whether the approach is still able to partiallyrepair ta
+initusing an oracle having a diﬀerent structure. We took the TA shown
+in Fig. 5as oracle of the running example, that is structurally diﬀerent from
+tainitandptashown in Fig. 1(we name this experiment as RE do); the semantic
+conformance SCoftainitw.r.t. the new oracle is shown at the last row of Table 34.
+We performed the experiments with the new oracle using the greedy approach
+described in Assumption 1, and results are reported in Table 4. We observe that
+policies P±1,PminMax2 ,a n d PminMax4 , although they ﬁnd some failing tests, they
+are not able to improve SC. This is partially due to the fact that SCis computed
+4Note that it does not make sense to measure the syntactical distance, as the structure
+of the oracle is diﬀerent.
+
+--- Page 16 ---
+144 ´E. Andr´ ee ta l .
+on some timed words TDSCthat may be not enough to judge the improvement.
+On the other hand, as the three policies try to achieve a kind of coverage ofpta(so implicitly assuming Assumption 1), it could be that they are not able
+to ﬁnd interesting failing tests (i.e., they cannot be repaired); this seems to be
+conﬁrmed by the fact that the random policy P
+rndis instead able to partially
+repair the initial TA using only three tests, out of which one fails. We conclude
+that, if the assumption does not hold, trying to randomly select tests could be
+more eﬃcient.
+5 Related Work
+Testing timed automata. Works related to ours are approaches for test case
+generation for timed automata. In [ 1,3], a fault-based approach is proposed. The
+authors deﬁned 8 mutation operators for TAs and a test generation techniquebased on bounded-model checking; tests are then used for model-based testing
+to check that System Under Test (SUT) is conformant with the speciﬁcation.
+Our approach is diﬀerent, as we aim at building a faithful representation ofthe SUT (i.e., the oracle). Their mutation operators could be used to repair
+our initial TA, as done in [ 14]; however, due to continuous nature of TAs, the
+possible mutants could be too many. For this reason, our approach symbolically
+represents all the possible variations of the clock guards (similar to “change
+guard” mutants in [ 3]). Other classical test generation approaches for timed
+automata are presented in [ 17,25]; while they aim at coverage of a single TA, we
+aim at coverage of a family of TAs described by pta.
+Learning timed systems. The (timed) language inclusion is undecidable for timed
+automata [ 4], making learning impossible for this class. In [ 16,20], timed exten-
+sions of the L
+∗algorithm [ 13] were proposed for event-recording automata [ 5],
+a subclass of timed automata for which language equivalence can be decided.
+Learning is essentially diﬀerent from our setting, as the system to be learned is
+usually a white-box system, in which the equivalence query can be decided. In
+our setting, the oracle does not necessarily know the structure of the unknown
+system, and simply answers membership queries. In addition, we address in ourwork the full class of timed automata, for which learning is not possible.
+6 Conclusion and Perspectives
+This paper proposes an approach for automatically repairing timed automata,notably in the case where clock guards shall be repaired. Our approach generatesan abstraction of the initial TA in terms of a PTA, generates some tests, and
+then reﬁnes the abstraction by identifying only those TAs contained in the PTA
+that correctly evaluate all the tests.
+As future work, we plan to adopt also other formalisms to build the abstrac-
+tion where to look for the repaired timed automata; The CoPtA model [ 21],
+for example, extends timed automata with feature models and allows to specify
+
+--- Page 17 ---
+Repairing TA Clock Guards through Abstraction and Testing 145
+additional/alternative states and transitions. In addition, when the oracle acts
+as a white-box, i.e., when the oracle is able to test language equivalence, wecould also make use of learning techniques for timed automata, using the often
+terminating procedure for language inclusion in [ 26].
+References
+1. Aichernig, B.K., H¨ ormaier, K., Lorber, F.: Debugging with timed automata muta-
+tions. In: Bondavalli, A., Di Giandomenico, F.D. (eds.) SAFECOMP 2014. LNCS,vol. 8666, pp. 49–64. Springer, Cham (2014). https://doi.org/10.1007/978-3-319-
+10506-2
+4
+2. Aichernig, B.K., J¨ obstl, E., Tiran, S.: Model-based mutation testing via symbolic
+reﬁnement checking. Sci. Comput. Program. 97(P4), 383–404 (2015). https://doi.
+org/10.1016/j.scico.2014.05.004
+3. Aichernig, B.K., Lorber, F., Niˇ ckovi´c, D.: Time for mutants—model-based muta-
+tion testing with timed automata. In: Veanes, M., Vigan` o, L. (eds.) TAP 2013.
+LNCS, vol. 7942, pp. 20–38. Springer, Heidelberg (2013). https://doi.org/10.1007/
+978-3-642-38916-0 2
+4. Alur, R., Dill, D.L.: A theory of timed automata. Theoret. Comput. Sci. 126(2),
+183–235 (1994). https://doi.org/10.1016/0304-3975(94)90010-8
+5. Alur, R., Fix, L., Henzinger, T.A.: Event-clock automata: a determinizable class
+of timed automata. A determinizable classof timed automata. Theoret. Comput.Sci. 211(1–2), 253–273 (1999). https://doi.org/10.1016/S0304-3975(97)00173-4
+6. Alur, R., Henzinger, T.A., Vardi, M.Y.: Parametric real-time reasoning. In:
+Kosaraju, S.R., Johnson, D.S., Aggarwal, A. (eds.) STOC, pp. 592–601. ACM,
+New York (1993). https://doi.org/10.1145/167088.167242
+7. Andr´ e,´E.: What’s decidable about parametric timed automata? Int. J. Softw. Tools
+Technol. Transf. 21(2), 203–219 (2019). https://doi.org/10.1007/s10009-017-0467-
+0
+8. Andr´ e,´E., Arcaini, P., Gargantini, A., Radavelli, M.: Repairing timed automata
+clock guards through abstraction and testing. arXiv:1907.02133 (2019)
+9. Andr´ e,´E., Chatain, T., Encrenaz, E., Fribourg, L.: An inverse method for paramet-
+ric timed automata. Int. J. Found. Comput. Sci. 20(5), 819–836 (2009). https://
+doi.org/10.1142/S0129054109006905
+10. Andr´ e,´E., Fribourg, L., K¨ uhne, U., Soulat, R.: IMITATOR 2.5: a tool for analyzing
+robustness in scheduling problems. In: Giannakopoulou, D., M´ ery, D. (eds.) FM
+2012. LNCS, vol. 7436, pp. 33–36. Springer, Heidelberg (2012). https://doi.org/10.
+1007/978-3-642-32759-9
+6
+11. Andr´ e,´E., Hasuo, I., Waga, M.: Oﬄine timed pattern matching under uncertainty.
+In: Lin, A.W., Sun, J. (eds.) ICECCS, pp. 10–20. IEEE CPS (2018). https://doi.
+org/10.1109/ICECCS2018.2018.00010
+12. Andr´ e,´E., Lin, S.-W.: Learning-based compositional parameter synthesis for event-
+recording automata. In: Bouajjani, A., Silva, A. (eds.) FORTE 2017. LNCS,
+vol. 10321, pp. 17–32. Springer, Cham (2017). https://doi.org/10.1007/978-3-319-
+60225-7 2
+13. Angluin, D.: Learning regular sets from queries and counterexamples. Inf. Comput.
+75(2), 87–106 (1987). https://doi.org/10.1016/0890-5401(87)90052-6
+14. Arcaini, P., Gargantini, A., Radavelli, M.: Achieving change requirements of feature
+models by an evolutionary approach. J. Syst. Softw. 150, 64–76 (2019). https://
+doi.org/10.1016/j.jss.2019.01.045
+
+--- Page 18 ---
+146 ´E. Andr´ ee ta l .
+15. Bengtsson, J., Yi, W.: Timed automata: semantics, algorithms and tools. In: Desel,
+J., Reisig, W., Rozenberg, G. (eds.) ACPN 2003. LNCS, vol. 3098, pp. 87–124.
+Springer, Heidelberg (2004). https://doi.org/10.1007/978-3-540-27755-2 3
+16. Grinchtein, O., Jonsson, B., Leucker, M.: Learning of event-recording automata.
+Theoret. Comput. Sci. 411(47), 4029–4054 (2010). https://doi.org/10.1016/j.tcs.
+2010.07.008
+17. Hessel, A., Larsen, K.G., Mikucionis, M., Nielsen, B., Pettersson, P., Skou, A.:
+Testing real-time systems using UPPAAL. In: Hierons, R.M., Bowen, J.P., Harman,
+M. (eds.) Formal Methods and Testing. LNCS, vol. 4949, pp. 77–117. Springer,
+Heidelberg (2008). https://doi.org/10.1007/978-3-540-78917-8 3
+18. Hune, T., Romijn, J., Stoelinga, M., Vaandrager, F.W.: Linear parametric model
+checking of timed automata. J. Logic Algebraic Program. 52–53 , 183–220 (2002).
+https://doi.org/10.1016/S1567-8326(02)00037-1
+19. Jovanovi´ c, A., Lime, D., Roux, O.H.: Integer parameter synthesis for real-time
+systems. IEEE Trans. Softw. Eng. 41(5), 445–461 (2015). https://doi.org/10.1109/
+TSE.2014.2357445
+20. Lin, S.W., Andr´ e,´E., Liu, Y., Sun, J., Dong, J.S.: Learning assumptions for com-
+positional veriﬁcation of timed systems. Trans. Softw. Eng. 40(2), 137–153 (2014).
+https://doi.org/10.1109/TSE.2013.57
+21. Luthmann, L., Gerecht, T., Stephan, A., B¨ urdek, J., Lochau, M.: Mini-
+mum/maximum delay testing of product lines with unbounded parametric real-
+time constraints. J. Syst. Softw. 149, 535–553 (2019). https://doi.org/10.1016/j.
+jss.2018.12.028
+22. Papadakis, M., Kintis, M., Zhang, J., Jia, Y., Le Traon, Y., Harman, M.: Mutation
+testing advances: an analysis and survey. In: Advances in Computers. Elsevier
+(2018). https://doi.org/10.1016/bs.adcom.2018.03.015
+23. Prud’homme, C., Fages, J.G., Lorca, X.: Choco Documentation. TASC - LS2N
+CNRS UMR 6241, COSLING S.A.S. (2017). http://www.choco-solver.org
+24. Schrijver, A.: Theory of Linear and Integer Programming. Wiley-Interscience Series
+in Discrete Mathematics and Optimization. Wiley, New York (1999)
+25. Springintveld, J., Vaandrager, F., D’Argenio, P.R.: Testing timed automata. The-
+oret. Comput. Sci. 254(1–2), 225–257 (2001). https://doi.org/10.1016/S0304-
+3975(99)00134-6
+26. Wang, T., Sun, J., Liu, Y., Wang, X., Li, S.: Are timed automata bad for a speci-
+ﬁcation language? Language inclusion checking for timed automata. In: ´Abrah´ am,
+E., Havelund, K. (eds.) TACAS 2014. LNCS, vol. 8413, pp. 310–325. Springer,
+Heidelberg (2014). https://doi.org/10.1007/978-3-642-54862-8 21

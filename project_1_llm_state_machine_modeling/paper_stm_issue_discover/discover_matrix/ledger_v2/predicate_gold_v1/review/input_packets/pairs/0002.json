@@ -1,0 +1,436 @@
+{
+  "instructions": [
+    "Recover obligation O from the complete NL, author PlantUML, ledger reasoning, and cited formal semantics before proposing any executable property.",
+    "Do not infer inputs from state-name similarity, old planned mappings, v60 actual outputs, reference models, or execution results.",
+    "State missing quantifier, scope, timing, domain, bound, or environment information explicitly instead of inventing it."
+  ],
+  "ledger_items": [
+    {
+      "axes": {
+        "defect_element": "transition",
+        "defect_locus": "element",
+        "defect_logic_kind": null,
+        "defect_qualifier": "incorrect",
+        "defect_reference": "requirement"
+      },
+      "d_basis": "判 D2。被违反的义务有成文出处，即 NL 第 3 句「The system first transitions to the PumpState substate」，其中 first 明确指定了进入后的第一个落点。三个独立判读臂都认定成立，也都没能给出一种让 `InitialState` 充当该落点的读法——`InitialState` 不是 PumpState 的别名（NL 第 2 句已把三个子态逐个点名），也不是通往 PumpState 的中转（全文没有任何以 `InitialState` 为源的迁移）。反驳不存活。",
+      "d_tier": "D2",
+      "detail": "NL 第 3 句逐字为「The system first transitions to the PumpState substate, where the pump is activated or controlled」。这句话给出的是一个确定的落点：进入系统后第一个到达的子态是 PumpState。\n\n制品在 `:4` 开了 `state PumpControl {`，在 `:5` 写 `[*] --> InitialState`。也就是说 PumpControl 的默认入口指向 `InitialState` —— 这个状态名在 NL 全文（五句话）里一次都没有出现，NL 第 2 句枚举的三个子态是 PumpState、WaterState、MethaneState。\n\n直接后果是进入 PumpControl 之后的第一个落点与 NL 第 3 句指定的不一致。\n\n根因是把「系统有个起点」这件事当成了「需要建一个叫 InitialState 的状态」。在状态机里，起点由默认入口边表达，边的目标应当是一个真实的、NL 点名过的状态；生成侧多加了一层中转态，把本该指向 PumpState 的那条边截了下来。\n\n本条只断言落点错了。由这个错误落点进一步导致的「三个子态全部到不了」是另一条独立的缺陷，记在 EIS-0002-02；`InitialState` 这个状态本身该不该存在记在 EIS-0002-03；它没有出边因而成为死端记在 INS-0002-02。四条各自成立，修法也不同。",
+      "l_basis": "判 L0。陈述这条错误只需把两个词项摆在一起比对：NL 第 3 句说的目标是 `PumpState`，`:5` 那条边的目标写的是 `InitialState`，两者不同。不需要从模型结构导出任何新事实，也不需要任何执行序列。",
+      "l_tier": "L0",
+      "ledger_id": "EIS-0002-01",
+      "ledger_json_pointer": "/items/EIS-0002-01",
+      "origin_family": "expected_issue（原台账已记录）",
+      "pair_id": "0002",
+      "source_text": {
+        "l_basis_rule": "NL 说该进 PumpState、模型进 InitialState —— 目标词项对比即可陈述",
+        "l_decided_by": "人工逐条",
+        "meta_review": "**判 D2**：三臂一致认定它违反了 NL 里这句「The system first transitions to the PumpState substate, where the pump is activated or con」，且三方都尝试过推翻、都没找到站得住的第二种读法 —— 义务有成文条文可引、反驳不存活，是 `D2-lit`。",
+        "statement": "NL 3 明确 \"The system first transitions to the PumpState substate\"，参考侧第一个区域的初始边直接指向 PumpState。生成侧把 PumpControl 的初始边指向了一个 NL 中不存在的 InitialState，进入 PumpControl 后落点错误。",
+        "verdict_reason": null
+      },
+      "summary": "`PumpControl` 的默认入口 `:5 [*] --> InitialState` 指向了一个 NL 里根本不存在的 `InitialState`，而 NL 第 3 句要求进入 PumpControl 后首先到达 `PumpState`。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0002/0002.md",
+        "sha256": "sha256:483eba4f4afb37f17ae2969191e3e5f74114817d262f8db20fcbd611da25a6a1"
+      }
+    },
+    {
+      "axes": {
+        "defect_element": null,
+        "defect_locus": "global",
+        "defect_logic_kind": "unreachable",
+        "defect_qualifier": null,
+        "defect_reference": "language"
+      },
+      "d_basis": "判 D2。被违反的义务是 NL 第 3、4、5 三句各自给出的进入要求（分别要求能进入 PumpState、WaterState、MethaneState），三句都是成文条文。判读中出现过一种反驳：主张 WaterState 与 MethaneState 各自独占一个正交区，作为该区唯一的子态会自动激活，因而不需要显式默认入口。这种读法不存活——那两个区在自己那一层同样没有写任何 `[*] -->`，而「区内唯一子态即默认态」这一主张与同批判读中被明确否定过的「复合态唯一子态即默认态」在逻辑上是同一件事，不能一处站得住一处站不住。",
+      "d_tier": "D2",
+      "detail": "NL 第 2 句枚举了三个子态，第 3、4、5 句分别要求系统能够进入其中每一个。制品里这三项进入义务一个也实现不了。\n\n先看制品的结构。`:4` 开 `state PumpControl {`，块内用 `:12` 与 `:19` 的两个 `--` 分成三个正交区：区一含 `:5` 的 `[*] --> InitialState` 与 `:7-:10` 的 `state PumpState { }`，区二含 `:14-:17` 的 `state WaterState { }`，区三含 `:21-:24` 的 `state MethaneState { }`。\n\n然后逐个检查进入通路。`PumpState`：它与 `InitialState` 同处区一，而区一的默认入口指向 `InitialState`；全文没有任何以 `PumpState` 为目标的迁移，`InitialState` 也没有任何出边，所以进不去。`WaterState` 与 `MethaneState`：它们各自独占一个区，而区二和区三自己那一层都没有写 `[*] -->` 默认入口边（`:15` 与 `:22` 的 `[*]` 写在 `state WaterState {` 与 `state MethaneState {` 的块体内部，是这两个复合态自己的内部入口，只在已经进入它们之后才起作用）；全文同样没有任何以它们为目标的迁移。\n\n这个结论在两种读法下都成立，所以不受正交区语义的影响。若按严格的正交语义读，区二、区三缺默认入口，进入 PumpControl 时这两个区不会激活任何状态；若按把并发区压平的投影读，PumpControl 体内就只剩 `[*] --> InitialState` 一条入口边，三个子态一样都到不了。\n\n根因与 EIS-0002-01 同源但后果不同：多插的 `InitialState` 不仅把第一落点抢走了，而且它是个没有出边的死端，于是从它出发也无法再走到任何一个 NL 点名的子态。这条缺陷在第一版台账与上游论文的记录里都没有。",
+      "l_basis": "判 L2。陈述这条错误的核心是一个可达性论证：必须对从根初始边出发的全部执行路径做穷尽考察，说明其中没有任何一条能到达那三个子态中的任何一个。这不是在某个系统状态上读出来的静态事实，而是对行为集合的排除。",
+      "l_tier": "L2",
+      "ledger_id": "EIS-0002-02",
+      "ledger_json_pointer": "/items/EIS-0002-02",
+      "origin_family": "expected_issue（原台账已记录）",
+      "pair_id": "0002",
+      "source_text": {
+        "l_basis_rule": "须给出可达性论证",
+        "l_decided_by": "规则档",
+        "meta_review": "claude的D1理由依赖'WaterState/MethaneState各自独占正交区、无需显式初始伪态即自动激活',但该区同样没有`[*]-->`初始边,这与EIS-0032-01里claude自己否定的'唯一子态即默认态'读法在逻辑上是同一件事,不能一边站得住一边站不住。",
+        "statement": "FCSTM 投影确认 PumpControl 体内只有一条 [*] -> InitialState，而 InitialState 没有任何出边。结果是 NL 2 点名的三个子态 PumpState、WaterState、MethaneState 全部不可达，PumpControl 唯一能到达的状态是一个死端。NL 3/4/5 分别要求系统能进入这三个子态，此处全部落空。这是独立于上一条（初始落点错）的可达性缺陷，台帐与论文均未记录。",
+        "verdict_reason": "判 D2-lit：PumpControl 的区 1、区 2 都没有显式初始伪态，唯一子态不会因此自动激活；作者源全文也没有迁移以 PumpState、WaterState 或 MethaneState 为目标，故 NL 3/4/5 点名的三项进入义务均不可实现，claude 的正交区替读不存活。"
+      },
+      "summary": "NL 第 2 句点名的三个子态 `PumpState`、`WaterState`、`MethaneState` 在制品里全部不可达——全文没有任何迁移以它们为目标，`PumpControl` 唯一能到达的是死端 `InitialState`。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0002/0002.md",
+        "sha256": "sha256:483eba4f4afb37f17ae2969191e3e5f74114817d262f8db20fcbd611da25a6a1"
+      }
+    },
+    {
+      "axes": {
+        "defect_element": "state",
+        "defect_locus": "element",
+        "defect_logic_kind": null,
+        "defect_qualifier": "extraneous",
+        "defect_reference": "requirement"
+      },
+      "d_basis": "判 D1，两读并立。第一种读法把 NL 第 2 句读成穷尽枚举——PumpControl 里恰好只有那三个子态，于是 InitialState 属于多出的元素，缺陷成立。第二种读法注意到句中的 main 是一个限定词而不是计数口径：「三个主要子态」这一说法并不排斥另外存在一个非主要的、纯粹用于承载默认入口的辅助态。这种读法与 `:5 [*] --> InitialState` 的结构事实完全相容，也符合建模惯例。第二种读法无法被结构事实推翻，构成一个削弱型反驳，故不判 D2。需要说明的是，D1 只针对「多一个状态算不算缺陷」这一条主张；由这个状态引发的落点错误与不可达是另外两条，各自仍判 D2。",
+      "d_tier": "D1",
+      "detail": "NL 第 2 句逐字为「Within the PumpControl state, there are three main substates: PumpState, WaterState, and MethaneState」。这在本批 60 个样本里是少见的一类句子：它同时给出了数量（three）和逐个的名字，构成一条枚举式的基数断言。\n\n制品在 `PumpControl` 体内除了这三个之外还多了一个 `InitialState`（`:5` 的默认入口边隐式声明了它，全文没有 `state InitialState { }` 的显式定义）。这个名字在 NL 五句话里一次都没有出现，在上游的参考模型里也没有。\n\n按枚举读法，多出的这个子态构成过度规定，直接与那条基数断言冲突。\n\n根因与 EIS-0002-01 同源：把「需要一个起点」实现成了「建一个中转状态」，而不是让默认入口边直接指向 NL 点名的目标。\n\n本条只质疑这个状态该不该存在。它带来的落点错误记在 EIS-0002-01，它导致的三子态不可达记在 EIS-0002-02，它自身无出边构成死端记在 INS-0002-02。",
+      "l_basis": "判 L0。陈述这条错误只需把 NL 第 2 句列出的名字集合 {PumpState, WaterState, MethaneState} 与 PumpControl 体内实际出现的状态名集合摆在一起比对，看后者是否多出成员。这是纯粹的词项对比，不需要导出任何结构事实，也不需要执行序列。",
+      "l_tier": "L0",
+      "ledger_id": "EIS-0002-03",
+      "ledger_json_pointer": "/items/EIS-0002-03",
+      "origin_family": "expected_issue（原台账已记录）",
+      "pair_id": "0002",
+      "source_text": {
+        "l_basis_rule": "NL 点名的元素模型没有／模型多出 NL 未点名的元素 —— 词项对比即可陈述",
+        "l_decided_by": "规则档",
+        "meta_review": "main 是限定词而非穷尽计数——三个主子态的枚举不排斥一个非主要的默认入口态 InitialState，此读法与 :5 [*] --> InitialState 完全相容，与既有判例（three main substates 一族判 D1）同型。",
+        "statement": "NL 2 是 60 例中少见的逐个点名的数量断言：\"there are three main substates: PumpState, WaterState, and MethaneState\"。InitialState 既不在 NL 中也不在参考中，属过度规定，并直接违反这条枚举式基数断言。",
+        "verdict_reason": null
+      },
+      "summary": "`InitialState`（:5）在 NL 里没有对应，而 NL 第 2 句是一条逐个点名的枚举式基数断言——「there are three main substates: PumpState, WaterState, and MethaneState」。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0002/0002.md",
+        "sha256": "sha256:483eba4f4afb37f17ae2969191e3e5f74114817d262f8db20fcbd611da25a6a1"
+      }
+    },
+    {
+      "axes": {
+        "defect_element": null,
+        "defect_locus": "global",
+        "defect_logic_kind": "unintended_terminal",
+        "defect_qualifier": null,
+        "defect_reference": "requirement"
+      },
+      "d_basis": "判 D2。这是一个可达的死锁：状态可达、自身与全部祖先都无出边、也没有任何终止声明。这一类判定不依赖领域知识，也不依赖形式化规约——机器进得去出不来本身就是失效。三个判读臂一致认定成立，且没有任何一臂能拿出「作者显式声明这是合法终止」的依据（文件里既没有 `InitialState --> [*]`，名字里也没有终止语义，NL 里更没有对应句子）。",
+      "d_tier": "D2",
+      "detail": "`InitialState` 只在 `:5 [*] --> InitialState` 中作为目标出现过一次，全文再没有任何迁移以它为源端。\n\n在层次状态机里，一个叶态即使自身没有出边，也可能通过祖先态的出边离开（成组迁移）。这里这条退路也不存在：它的父态 `PumpControl`（:4-:27）在根层没有任何出边，根层除了 `:2 [*] --> PumpControl` 之外没有其它迁移。所以从 `InitialState` 出发，无论等待哪个事件，机器都不会再改变状态。\n\n这个状态还是可达的——`:2` 进入 PumpControl，`:5` 立刻进入 InitialState，是必经之路。于是「一进入系统就卡死」成为这台机器唯一的行为。NL 第 3、4、5 句要求的泵运转、水流监测、瓦斯监测三种工况一个都到不了。\n\n判读中需要自行裁定的一步是：这算不算一个有意设计的终态。回到 NL 来看，第 1 句「The system begins in the PumpControl state, from which it can transition to different substates based on specific conditions」明确说了从 PumpControl 出发还要往子态走；而这套系统是矿井排水泵控制器，属于持续运行的设备，把启动态做成终点显然不是作者意图。\n\n本条与 EIS-0002-02 的区别在于主张不同：那一条说「三个子态到不了」，本条说「唯一到得了的那个状态出不来」。前者是三项进入义务落空，后者是一个死锁。两者根因相同（多插了一个无出边的中转态），但陈述的对象和修法不同。",
+      "l_basis": "判 L2。陈述这条错误需要两件事同时成立：`InitialState` 可达（给出路径 `:2` → `:5`），以及从它出发不存在任何后继——后者要穷尽检查全部迁移，还要额外确认父态与根层也没有可继承的出边。两者都是对行为的构造与排除，超出单个系统状态的范围。",
+      "l_tier": "L2",
+      "ledger_id": "INS-0002-02",
+      "ledger_json_pointer": "/items/INS-0002-02",
+      "origin_family": "pyfcstm inspect 诊断归一化",
+      "pair_id": "0002",
+      "source_text": {
+        "l_basis_rule": "须证明可达且无出路（全路径）",
+        "l_decided_by": "规则档",
+        "meta_review": "**判 D2**：三臂一致认定它是死锁（进去出不来）——这一类免领域知识、免形式规约即可判为失效，且没人拿出「作者显式声明合法终止」的依据，是 `D2-impl`。",
+        "statement": "`InitialState` 是死端：它由 stm0.puml:5 的默认入口边隐式声明，全文再无以它为源的迁移，且其父态 `PumpControl` 与根层也都没有出边或成组迁移。于是系统一进入 `PumpControl` 就停在 `InitialState` 再也动不了，NL 要求的泵/水流/瓦斯各工况一个都到不了。⚠️ 判读者需自行裁定的那一步是「这是不是有意的终态」——对一个持续运行的矿井排水泵控制器，把启动态做成终态显然不是意图，但这一判断要回 NL。",
+        "verdict_reason": null
+      },
+      "summary": "`InitialState`（由 `:5` 的默认入口边隐式声明）没有任何出边，其父态 `PumpControl` 与根层也都没有出边，因此系统一进入 PumpControl 就永久停在 `InitialState`。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0002/0002.md",
+        "sha256": "sha256:483eba4f4afb37f17ae2969191e3e5f74114817d262f8db20fcbd611da25a6a1"
+      }
+    },
+    {
+      "axes": {
+        "defect_element": "trigger",
+        "defect_locus": "element",
+        "defect_logic_kind": null,
+        "defect_qualifier": "extraneous",
+        "defect_reference": "language"
+      },
+      "d_basis": "判 D2。被违反的义务来自建模语言本身：UML 2.5.1 规定初始伪状态的出边不得带触发或守卫，这是可引的成文规定，判定不依赖对 NL 的任何解释。判读中考虑过的第二种读法是「标签其实是 effect 或注释」，但同文件对照压过了它：`:2` 与 `:5` 都是裸初始边，作者显然区分得开带标签与不带标签两种写法，因此 `:8` 上的标签是刻意的。反驳不存活。",
+      "d_tier": "D2",
+      "detail": "`:7` 开 `state PumpState {`，`:8` 写 `[*] --> RunningState : Activate Pump`。这是 PumpState 内部唯一的默认入口边，冒号后带了标签 `Activate Pump`。\n\nUML 2.5.1 对初始伪状态的规定是：从初始伪状态出发的迁移不得带触发事件，也不得带守卫条件——该迁移在进入所属区域时隐式立即执行。制品的这条边违反了这条规定。后果是 PumpState 没有确定的默认子态：进入 PumpState 之后，在 `Activate Pump` 到达之前它不处在任何子态里。\n\n正确的修法是删掉或重构这个标签。如果作者的本意是「进入时执行启泵动作」，那应当把它移到 effect 的位置（`[*] --> RunningState / Activate Pump`，或写成 RunningState 的 entry 动作）；如果本意是「泵要收到启动指令才转」，那 RunningState 就不该是默认子态，需要在它之前补一个待机态。注意修法不是再补一条无标签的初始边——一个区域只能有一个默认入口，补第二条会引入新的违规。因此本条记录的缺陷对象是这个多余的触发事件本身。\n\n判读时需要留意的分歧点是：`: Activate Pump` 会不会本来就是注释或动作而非触发事件。本文件内部提供了对照——`:2 [*] --> PumpControl` 与 `:5 [*] --> InitialState` 都是不带任何标签的裸初始边，说明作者知道两种写法的区别，`:8` 上的标签更可能是刻意写的触发事件。\n\n同型形态在本文件另外两个复合态上各自独立出现，分别记为 INS-0002-04（WaterState，`:15`）与 INS-0002-05（MethaneState，`:22`）。",
+      "l_basis": "判 L0。陈述这条错误只需就地读 `:8` 这一行，看 `[*] -->` 后面的冒号有没有跟内容——纯词法层面的模式匹配，不需要从模型结构导出任何新事实，也不需要任何执行序列。",
+      "l_tier": "L0",
+      "ledger_id": "INS-0002-03",
+      "ledger_json_pointer": "/items/INS-0002-03",
+      "origin_family": "pyfcstm inspect 诊断归一化",
+      "pair_id": "0002",
+      "source_text": {
+        "l_basis_rule": "NL 点名的元素模型没有／模型多出 NL 未点名的元素 —— 词项对比即可陈述",
+        "l_decided_by": "规则档",
+        "meta_review": "按 dtier_triage.md §6.5 的**配套判据 2**（同文件对照定案）：本文件 :2 `[*] --> PumpControl` 与 :5 `[*] --> InitialState` 都是**裸初始边**，说明作者知道带标签与不带标签的区别，故 :8 上的 `Activate Pump` 更可能是刻意的 trigger ⇒ D2-lang。",
+        "statement": "复合态 `PumpState` 的唯一默认入口边挂了触发事件 `Activate Pump`。UML 2.5.1 规定初始伪状态的出边不得带 trigger/guard；pyfcstm 的 `is_unconditional` 同样要求 guard 与 event 皆空。改对是删除或重构这段标签（若本意是 effect，则应明确移入 effect 位置），而不是再补第二条初始出边；因此问题对象是多余的 trigger，落 element+trigger+extraneous。⚠️ 铰链供判读者留意：若认为 `: Activate Pump` 本意是注释或动作而非触发事件，本条即不成立；但本文件 :2/:5 的裸初始边与 :8/:15/:22 的带标签初始边构成同文件对照。",
+        "verdict_reason": "判 D2-lang：:2/:5 是裸初始边，而 :8 刻意带 `Activate Pump`，同文件对照说明作者区分两种写法；初始伪态出边不得带 trigger/guard，正确修复是删除或重构标签而非补第二条初始边，故落 trigger+extraneous。"
+      },
+      "summary": "复合态 `PumpState` 的唯一默认入口边 `:8 [*] --> RunningState : Activate Pump` 挂了触发事件，而 UML 2.5.1 规定初始伪状态的出边不得带触发或守卫。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0002/0002.md",
+        "sha256": "sha256:483eba4f4afb37f17ae2969191e3e5f74114817d262f8db20fcbd611da25a6a1"
+      }
+    },
+    {
+      "axes": {
+        "defect_element": "trigger",
+        "defect_locus": "element",
+        "defect_logic_kind": null,
+        "defect_qualifier": "extraneous",
+        "defect_reference": "language"
+      },
+      "d_basis": "判 D2。被违反的义务来自建模语言本身：UML 2.5.1 规定初始伪状态的出边不得带触发或守卫。判读中考虑过的第二种读法是「标签其实是 effect」，但同文件对照压过了它：`:2 [*] --> PumpControl` 与 `:5 [*] --> InitialState` 都是裸初始边，说明作者区分得开两种写法，`:15` 上的标签是刻意写的触发。反驳不存活。",
+      "d_tier": "D2",
+      "detail": "`:14` 开 `state WaterState {`，`:15` 写 `[*] --> MonitoringWaterFlow : Start Monitoring`。这是 WaterState 内部唯一的默认入口边，冒号后带了标签 `Start Monitoring`。\n\nUML 2.5.1 规定从初始伪状态出发的迁移不得带触发事件也不得带守卫条件。制品这条边违反了该规定，后果是 WaterState 没有确定的默认子态：进入之后在 `Start Monitoring` 到达之前不处在任何子态里。\n\n正确的修法是删掉或重构这个标签——若本意是「进入时开始监测」应移到 effect 位置或写成 entry 动作；若本意是「要收到监测指令才开始」则 MonitoringWaterFlow 不该是默认子态。修法不是再补一条无标签初始边（一个区域只能有一个默认入口）。因此缺陷对象是这个多余的触发事件本身。\n\n需要说明这条与本 pair 的可达性判定不冲突。EIS-0002-02 断言 WaterState 整体不可达，那是关于「能不能进得去」的结论，且部分依赖于并发区如何投影；而「初始边带触发」是一条纯语法事实，在作者写下的源文本上直接成立，与可达性无关，两者各自独立。\n\n同型形态在本文件另外两个复合态上各自独立出现，分别记为 INS-0002-03（PumpState，`:8`）与 INS-0002-05（MethaneState，`:22`）。",
+      "l_basis": "判 L0。陈述这条错误只需就地读 `:15` 这一行，看 `[*] -->` 后面的冒号有没有跟内容——纯词法层面的模式匹配，不导出任何结构事实，也不需要执行序列。",
+      "l_tier": "L0",
+      "ledger_id": "INS-0002-04",
+      "ledger_json_pointer": "/items/INS-0002-04",
+      "origin_family": "pyfcstm inspect 诊断归一化",
+      "pair_id": "0002",
+      "source_text": {
+        "l_basis_rule": "NL 点名的元素模型没有／模型多出 NL 未点名的元素 —— 词项对比即可陈述",
+        "l_decided_by": "规则档",
+        "meta_review": "按 dtier_triage.md §6.5 的**配套判据 2**（同文件对照定案）：本文件 :2 `[*] --> PumpControl` 与 :5 `[*] --> InitialState` 都是**裸初始边**，说明作者知道带标签与不带标签的区别，故 :15 上的 `Start Monitoring` 更可能是刻意的 trigger ⇒ D2-lang。",
+        "statement": "复合态 `WaterState` 的唯一默认入口边挂了触发事件 `Start Monitoring`，违反 UML 2.5.1 对初始伪状态出边的规定。改对是删除或重构该标签（若本意是 effect，则应明确移入 effect 位置），而不是再补第二条初始出边；因此问题对象是多余的 trigger，落 element+trigger+extraneous。⚠️ 与本 pair 另一类判定不冲突：`WaterState` 自身的可达性受投影压平并发区影响，而「初始边带触发」是纯语法事实、与可达性无关，在作者源上独立成立。",
+        "verdict_reason": "判 D2-lang：:2/:5 是裸初始边，而 :15 刻意带 `Start Monitoring`，同文件对照压过 effect 替读；初始伪态出边不得带 trigger/guard，正确修复是删除或重构标签而非补第二条初始边，故落 trigger+extraneous。"
+      },
+      "summary": "复合态 `WaterState` 的唯一默认入口边 `:15 [*] --> MonitoringWaterFlow : Start Monitoring` 挂了触发事件，而 UML 2.5.1 规定初始伪状态的出边不得带触发或守卫。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0002/0002.md",
+        "sha256": "sha256:483eba4f4afb37f17ae2969191e3e5f74114817d262f8db20fcbd611da25a6a1"
+      }
+    },
+    {
+      "axes": {
+        "defect_element": "trigger",
+        "defect_locus": "element",
+        "defect_logic_kind": null,
+        "defect_qualifier": "extraneous",
+        "defect_reference": "language"
+      },
+      "d_basis": "判 D2。被违反的义务来自建模语言本身：UML 2.5.1 规定初始伪状态的出边不得带触发或守卫。判读中考虑过的第二种读法是「标签其实是 effect」，但同文件对照压过了它：`:2 [*] --> PumpControl` 与 `:5 [*] --> InitialState` 都是裸初始边，说明作者区分得开两种写法，`:22` 上的标签是刻意写的触发。反驳不存活。",
+      "d_tier": "D2",
+      "detail": "`:21` 开 `state MethaneState {`，`:22` 写 `[*] --> MonitoringMethaneFlow : Start Monitoring`。这是 MethaneState 内部唯一的默认入口边，冒号后带了标签 `Start Monitoring`。\n\nUML 2.5.1 规定从初始伪状态出发的迁移不得带触发事件也不得带守卫条件。制品这条边违反了该规定，后果是 MethaneState 没有确定的默认子态：进入之后在 `Start Monitoring` 到达之前不处在任何子态里。\n\n正确的修法是删掉或重构这个标签——若本意是「进入时开始监测」应移到 effect 位置或写成 entry 动作；若本意是「要收到监测指令才开始」则 MonitoringMethaneFlow 不该是默认子态。修法不是再补一条无标签初始边（一个区域只能有一个默认入口）。因此缺陷对象是这个多余的触发事件本身。\n\n瓦斯监测在矿井排水泵控制里是安全相关功能，NL 第 5 句「the pump is controlling or monitoring the methane flow」把它列为系统的三项主要工况之一；默认子态不确定意味着进入该工况后的初始行为未定义。\n\n同型形态在本文件另外两个复合态上各自独立出现，分别记为 INS-0002-03（PumpState，`:8`）与 INS-0002-04（WaterState，`:15`）。三条的触发事件名不同（`Activate Pump` 与两个 `Start Monitoring`），所在复合态不同，各自独立成立、各自需要单独修。",
+      "l_basis": "判 L0。陈述这条错误只需就地读 `:22` 这一行，看 `[*] -->` 后面的冒号有没有跟内容——纯词法层面的模式匹配，不导出任何结构事实，也不需要执行序列。",
+      "l_tier": "L0",
+      "ledger_id": "INS-0002-05",
+      "ledger_json_pointer": "/items/INS-0002-05",
+      "origin_family": "pyfcstm inspect 诊断归一化",
+      "pair_id": "0002",
+      "source_text": {
+        "l_basis_rule": "NL 点名的元素模型没有／模型多出 NL 未点名的元素 —— 词项对比即可陈述",
+        "l_decided_by": "规则档",
+        "meta_review": "按 dtier_triage.md §6.5 的**配套判据 2**（同文件对照定案）：本文件 :2 `[*] --> PumpControl` 与 :5 `[*] --> InitialState` 都是**裸初始边**，说明作者知道带标签与不带标签的区别，故 :22 上的 `Start Monitoring` 更可能是刻意的 trigger ⇒ D2-lang。",
+        "statement": "复合态 `MethaneState` 的唯一默认入口边挂了触发事件 `Start Monitoring`，违反 UML 2.5.1 对初始伪状态出边的规定。改对是删除或重构该标签（若本意是 effect，则应明确移入 effect 位置），而不是再补第二条初始出边；因此问题对象是多余的 trigger，落 element+trigger+extraneous。",
+        "verdict_reason": "判 D2-lang：:2/:5 是裸初始边，而 :22 刻意带 `Start Monitoring`，同文件对照压过 effect 替读；初始伪态出边不得带 trigger/guard，正确修复是删除或重构标签而非补第二条初始边，故落 trigger+extraneous。"
+      },
+      "summary": "复合态 `MethaneState` 的唯一默认入口边 `:22 [*] --> MonitoringMethaneFlow : Start Monitoring` 挂了触发事件，而 UML 2.5.1 规定初始伪状态的出边不得带触发或守卫。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0002/0002.md",
+        "sha256": "sha256:483eba4f4afb37f17ae2969191e3e5f74114817d262f8db20fcbd611da25a6a1"
+      }
+    }
+  ],
+  "ledger_sha256": "sha256:b5a38d3d24a51e980e5b9f5afc7c8c66aded59f3b51f16afe67e0deb592d0e36",
+  "metadata_refs": [
+    {
+      "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0002/source_meta.json",
+      "role": "SOURCE_META",
+      "selected_fields": {
+        "selected_stage": "phase_ii_semantic",
+        "source_locator": "sheet=STM Results; row=2; excel_row=4; selected_cell=AE4; selected=Result with Semantic Checking",
+        "source_pair_id": "llms_emp_feedback_final_0002",
+        "stm0_role": "author_feedback_final_plantuml"
+      },
+      "sha256": "sha256:5e2499331678593182a8dba1fed1d4619154578c3ab0dd2e18e3b1d63a0e311b"
+    },
+    {
+      "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0002/fcstm_meta.json",
+      "role": "FCSTM_META",
+      "selected_fields": {
+        "academic_eligible": false,
+        "academic_ineligibility_reason": "whole_model_behavior_equivalence_and_simulation_not_claimed; use only the working-contract attribution-scoped source-static capability",
+        "artifact_role": "r4_5_attribution_scoped_discover_input",
+        "parse_status": "ok",
+        "simulation_status": "ineligible",
+        "source_static_discover_eligible": true
+      },
+      "sha256": "sha256:32d14c4f7de599da979ed1802b87bf76309bd8b6e56a97882fe9527d6de554ad"
+    }
+  ],
+  "nl": {
+    "lines": [
+      {
+        "number": 1,
+        "text": "1. The system begins in the PumpControl state, from which it can transition to different substates based on specific conditions."
+      },
+      {
+        "number": 2,
+        "text": "2. Within the PumpControl state, there are three main substates: PumpState, WaterState, and MethaneState."
+      },
+      {
+        "number": 3,
+        "text": "3. The system first transitions to the PumpState substate, where the pump is activated or controlled."
+      },
+      {
+        "number": 4,
+        "text": "4. The system can also transition to the WaterState substate, indicating that the pump is controlling or monitoring the water flow."
+      },
+      {
+        "number": 5,
+        "text": "5. Similarly, the system can transition to the MethaneState substate, indicating that the pump is controlling or monitoring the methane flow."
+      }
+    ],
+    "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0002/nl.txt",
+    "role": "AUTHOR_NL",
+    "sha256": "sha256:a391765dba935d89e6d2467c97b218c0136d106ea9c00bac91e6525e28ac04f1"
+  },
+  "packet_sha256": "sha256:b580d092f2f3108f7efc12404b11298fb4fe727e9df82c48d75f7323173f1291",
+  "pair_id": "0002",
+  "plantuml": {
+    "lines": [
+      {
+        "number": 1,
+        "text": "@startuml"
+      },
+      {
+        "number": 2,
+        "text": "[*] --> PumpControl"
+      },
+      {
+        "number": 3,
+        "text": ""
+      },
+      {
+        "number": 4,
+        "text": "state PumpControl {"
+      },
+      {
+        "number": 5,
+        "text": "[*] --> InitialState"
+      },
+      {
+        "number": 6,
+        "text": ""
+      },
+      {
+        "number": 7,
+        "text": "state PumpState {"
+      },
+      {
+        "number": 8,
+        "text": "[*] --> RunningState : Activate Pump"
+      },
+      {
+        "number": 9,
+        "text": "RunningState --> [*] : Deactivate Pump"
+      },
+      {
+        "number": 10,
+        "text": "}"
+      },
+      {
+        "number": 11,
+        "text": ""
+      },
+      {
+        "number": 12,
+        "text": "--"
+      },
+      {
+        "number": 13,
+        "text": ""
+      },
+      {
+        "number": 14,
+        "text": "state WaterState {"
+      },
+      {
+        "number": 15,
+        "text": "[*] --> MonitoringWaterFlow : Start Monitoring"
+      },
+      {
+        "number": 16,
+        "text": "MonitoringWaterFlow --> [*] : Stop Monitoring"
+      },
+      {
+        "number": 17,
+        "text": "}"
+      },
+      {
+        "number": 18,
+        "text": ""
+      },
+      {
+        "number": 19,
+        "text": "--"
+      },
+      {
+        "number": 20,
+        "text": ""
+      },
+      {
+        "number": 21,
+        "text": "state MethaneState {"
+      },
+      {
+        "number": 22,
+        "text": "[*] --> MonitoringMethaneFlow : Start Monitoring"
+      },
+      {
+        "number": 23,
+        "text": "MonitoringMethaneFlow --> [*] : Stop Monitoring"
+      },
+      {
+        "number": 24,
+        "text": "}"
+      },
+      {
+        "number": 25,
+        "text": ""
+      },
+      {
+        "number": 26,
+        "text": ""
+      },
+      {
+        "number": 27,
+        "text": "}"
+      },
+      {
+        "number": 28,
+        "text": "@enduml"
+      }
+    ],
+    "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0002/stm0.puml",
+    "role": "AUTHOR_PLANTUML",
+    "sha256": "sha256:3a8e81a4a5a1e54e3994af300fcbd1913073547b8069288bbe57e61d989c3d43"
+  },
+  "schema_version": "paper1.predicate-gold.review-input-packet.v1",
+  "visibility": {
+    "execution_results_visible": false,
+    "other_track_conclusions_visible": false,
+    "planned_predicate_mapping_visible": false,
+    "v60_actual_predicate_visible": false
+  }
+}

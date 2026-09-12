@@ -1,0 +1,27 @@
+state llms_emp_gpt4o_hldcs named "llms-emp-gpt4o-hldcs" {
+    [*] -> start;
+    pseudo state start named "start";
+    state HumanDriving named "HumanDriving" {
+        [*] -> startHumanDriving;
+        event Enter_Autonomous named "Enter Autonomous";
+        event Exit_Autonomous named "Exit Autonomous";
+        event Front_Distance_Greater_Than_10 named "Front Distance > 10";
+        event Human_Steering_Cmd_or_Brake_Pressed named "Human Steering Cmd or Brake Pressed";
+        event Power_Off named "Power Off";
+        event Power_On named "Power On";
+        pseudo state startHumanDriving named "startHumanDriving";
+        state InitialState named "InitialState";
+        state FinalState named "FinalState";
+        state Autonomous named "Autonomous" {
+            [*] -> startAutonomous;
+            pseudo state startAutonomous named "startAutonomous";
+        }
+        ! * -> FinalState : Power_Off;
+        startHumanDriving -> InitialState : Power_On;
+        InitialState -> Autonomous : Front_Distance_Greater_Than_10;
+        InitialState -> FinalState : Exit_Autonomous;
+        Autonomous -> startHumanDriving : Human_Steering_Cmd_or_Brake_Pressed;
+        Autonomous -> InitialState : Enter_Autonomous;
+    }
+    start -> HumanDriving;
+}

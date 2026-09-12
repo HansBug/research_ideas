@@ -1,0 +1,95 @@
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B14",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "claude-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "not_better",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "NL and STM describe discrete distance/state conditions (e.g., dist_to_exit<2), no continuous timed-automata or periodic tick semantics present. This is a standard T0 protocol case, not T1 stress or T0.5 caveat.",
+      "evidence_references": [
+        "NL",
+        "raw STM_0",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "candidate_parse_status=parse_ok and mechanical checks confirm both files present and parseable; candidate is minimally auditable.",
+      "evidence_references": [
+        "candidate STM_k"
+      ]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "provenance_checks show change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true, and candidate_same_as_canonical_stm0=false, so the delta is attributable to canonical STM_0 -> candidate STM_k.",
+      "evidence_references": [
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G3": {
+      "status": "fail",
+      "reason": "In HighwayMode, canonical STM_0 has 'cruise -> endHighwayMode : dist_to_exit_2', which faithfully encodes NL item 5's 'exit the highway if dist_to_exit<2'. Candidate replaces this with a new, separate transition 'cruise -> endHighwayMode : Untraced_Auto_Exit' whose event is named/defined as 'Untraced Auto Exit' with no guard condition tied to dist_to_exit or any other NL-supported predicate. This deletes the readable, NL-traceable guard semantics on this transition and substitutes an opaque, unexplained trigger, which is a traceability/semantic regression on a state exit that NL explicitly specifies via a numeric condition.",
+      "evidence_references": [
+        "NL",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G4": {
+      "status": "fail",
+      "reason": "No NL-relevant target is strictly improved. The only functional deltas are: (a) removal of a duplicate cruise->lane_change transition (canonical already had it duplicated harmlessly, so removing one copy is at best a cosmetic dedup with no NL-visible behavior gain), and (b) the cruise->endHighwayMode guard replaced by an opaque 'Untraced_Auto_Exit' event, which is a degradation rather than an improvement.",
+      "evidence_references": [
+        "NL",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G5": {
+      "status": "fail",
+      "reason": "Comparing NL, canonical, and candidate: canonical's cruise->endHighwayMode transition correctly reflects NL's dist_to_exit<2 exit condition. Candidate's introduction of an unlabeled/opaque 'Untraced_Auto_Exit' event as an additional or replacing trigger for the same target state breaks semantic fidelity and traceability back to the NL text, without any compensating NL-supported behavior gain elsewhere.",
+      "evidence_references": [
+        "NL",
+        "raw STM_0",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "Verdict reported with evidence references, confidence, forbidden claims, and no human escalation needed beyond standard dry-run caveats; headline/repair-effectiveness eligibility fixed to false per protocol.",
+      "evidence_references": [
+        "this JSON output"
+      ]
+    }
+  },
+  "evidence_references": [
+    "canonical STM_0: 'cruise -> endHighwayMode : dist_to_exit_2;' matches NL item 5 dist_to_exit<2 condition",
+    "candidate STM_k: added 'event Untraced_Auto_Exit named \"Untraced Auto Exit\";' and 'cruise -> endHighwayMode : Untraced_Auto_Exit;' with no NL-traceable condition",
+    "candidate STM_k retains 'lane_change -> endHighwayMode : dist_to_exit_2;' unchanged, so only the cruise-side exit trigger is degraded",
+    "candidate STM_k removes one of the two duplicate 'cruise -> lane_change : dist_to_front_25_extra_lane_true' transitions present in canonical (cosmetic dedup, no semantic gain)"
+  ],
+  "rationale": "The candidate makes two changes relative to canonical: (1) it deduplicates a redundant cruise->lane_change transition, which is cosmetic and not an NL-supported improvement in itself; (2) it replaces the NL-supported, clearly guarded cruise->endHighwayMode transition (dist_to_exit<2) with a new transition guarded by an opaque, undefined event literally named 'Untraced Auto Exit'. This second change deletes traceable NL semantics on a state exit and introduces an unexplained trigger with no guard expression tied to any NL condition, constituting a no-regression (G3) and semantic fidelity (G5) violation per the anti-gaming rule against opaque/untraceable variable or event substitution for NL-readable conditions. No target issue is strictly improved (G4 fails), and provenance/attribution checks pass but do not rescue the regression. Overall the candidate is not better than canonical.",
+  "observed_anti_gaming_risk_flags": [
+    "opaque_event_name_replacing_NL_traceable_guard: 'Untraced_Auto_Exit' event has no condition and its name itself signals loss of traceability, replacing the clear dist_to_exit<2 guard on cruise->endHighwayMode",
+    "cosmetic_dedup_misrepresented_as_repair: removal of a duplicate transition provides no NL-visible behavior gain and should not be counted toward improvement"
+  ],
+  "forbidden_claims": [
+    "This blind dry-run is not repair effectiveness evidence.",
+    "This verdict does not constitute headline Better STM success evidence."
+  ],
+  "confidence": "high",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "No hidden answer key, expected verdict, source case id, or case-specific semantic cue was present in the packet; only mechanical/provenance facts and the FCSTM/NL artifacts were used for this judgment."
+  }
+}

@@ -1,0 +1,30 @@
+```json
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B16",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "claude-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "not_better",
+  "gate_results": {
+    "G0": {"status": "pass", "reason": "NL and STMs describe a discrete event-driven braking device with no timing/duration semantics; this is a standard T0 protocol case, no T0.5/T1 scope routing applies.", "evidence_references": ["NL", "raw STM_0", "canonical STM_0"]},
+    "G1": {"status": "pass", "reason": "candidate_parse_status is parse_ok and provenance ledger/hash checks are all present, so candidate is minimally auditable.", "evidence_references": ["candidate STM_k", "mechanical_checks", "provenance_checks"]},
+    "G2": {"status": "fail", "reason": "The only change from canonical to candidate is the addition of a new event 'Untraced_Auto_Reset' and a new transition OperationalState -> ClampingState. Nothing in the NL supports this new transition or event; it is not attributable to any NL-described behavior, and the label 'Untraced' itself signals it cannot be traced to a real signal or action described in the NL.", "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]},
+    "G3": {"status": "fail", "reason": "NL states OperationalState can only be reached via Signal_Transmission_Fails and can only return to InitialState via Signal_Feedback_Sent; there is no NL-supported path from OperationalState directly to ClampingState (the brake caliper clamping state, which per NL is only reached after BrakingState). This new transition introduces behavior contradicting the NL-described flow, i.e. a regression/fabrication rather than a preserved behavior.", "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]},
+    "G4": {"status": "fail", "reason": "No NL-relevant target issue in canonical STM_0 is improved by the candidate; all existing states/transitions/events are unchanged and preserved, but nothing is fixed or clarified. The only addition is an unsupported extra transition, which does not correspond to any deficiency described in the NL.", "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]},
+    "G5": {"status": "fail", "reason": "Re-reading NL against candidate: the new OperationalState->ClampingState transition via an untraceable 'Auto_Reset' event has no semantic grounding in the NL narrative (operational state should only return to initial state upon feedback), so this is a semantic fabrication/regression rather than a faithful refinement.", "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]},
+    "G6": {"status": "pass", "reason": "Reporting fixed per protocol: dry-run flags forced, verdict is not_better due to unsupported/unfaithful added transition, no leakage detected in packet.", "evidence_references": ["this JSON output"]}
+  },
+  "evidence_references": ["NL lines 1-3", "canonical STM_0 transitions list", "candidate STM_k added event Untraced_Auto_Reset and transition OperationalState -> ClampingState", "provenance_checks"],
+  "rationale": "The candidate is identical to canonical STM_0 except for one addition: a new event 'Untraced_Auto_Reset' and a transition from OperationalState directly to ClampingState. The NL clearly specifies that from OperationalState the only exit is back to InitialState via 'Signal Feedback Sent', and that ClampingState (brake caliper clamping) is only reached from BrakingState after 'Entering Clamping State'. The new transition is not supported by any NL text, and its own label ('Untraced') signals it cannot be traced to a real described event or action. This is neither a legitimate guard-extraction refinement (rule 7, which requires an NL-specified condition already folded into an existing label) nor an opaque-but-harmless instrumentation addition (rule 4's unknown case applies to renamed/abstracted existing behavior, not to an entirely new, NL-unsupported transition that changes reachable behavior). Because it introduces a state transition that contradicts the NL-described control flow, this is a clear semantic regression / fabrication, not an improvement. No states, hierarchies, or existing transitions were deleted, but a new invalid one was added, so G3/G5 fail. Per fail-closed rule 4, unclear-but-not-clearly-regressive changes get 'unknown', but this case is a clear, NL-contradicting fabrication, so 'not_better' is warranted rather than 'unknown' or 'partial'.",
+  "observed_anti_gaming_risk_flags": ["fabricated_untraceable_transition", "event_label_semantically_unsupported_by_NL", "no_target_issue_addressed"],
+  "forbidden_claims": ["This blind dry-run is not repair effectiveness evidence.", "This verdict does not constitute headline Better STM measurement."],
+  "confidence": "high",
+  "human_escalation_required": false,
+  "leakage_observation": {"detected": false, "notes": "No hidden answer key, expected verdict, source case id, or construction-intent labels were observed in the packet; all fields used are consistent with allowed mechanical/provenance facts."}
+}
+```

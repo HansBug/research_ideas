@@ -1,0 +1,88 @@
+{
+ "case": "0013",
+ "group": "NL06",
+ "llm": "GPT-4",
+ "diffs": [
+  {
+   "verdict": "problem",
+   "ref": "PumpControl 恰有三个非伪子态：PumpState、WaterState、MethaneState",
+   "gen": "PumpControl 有七个非伪子态：PumpState、WaterState、MethaneState、PumpStateA、WaterStateA、PumpStateB、MethaneStateB",
+   "reason": "NL 2 是显式枚举式数量断言（\"three main substates: PumpState, WaterState, and MethaneState\"）。生成侧把同一批状态克隆成 A、B 两套塞进两个额外区域，FCSTM 投影确认 PumpControl 体内共七个具名状态。无论按「直接子态」还是「后代状态」读法，七个 ≠ 三个，这条基数断言都被违反——它不依赖直接/后代之争，因此不受台帐 E2a 排除理由的影响。",
+   "assertable": "cardinality(scope=\"llms_emp_feedback_final_0013.PumpControl\", count=3)",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "每个区域恰有一条初始边指向该区域唯一的具名子态",
+   "gen": "行首多余的 -- 造出一个既无状态也无初始边的空区域 0；其后三个区域各带一条初始边 [*] --> PumpState、[*] --> PumpStateA、[*] --> PumpStateB",
+   "reason": "FCSTM 把 PumpControl 投影成单一状态体，其中同时存在 [*] -> PumpState、[*] -> PumpStateA、[*] -> PumpStateB 三条初始边——在不含正交并发的 FSM/HSM/EFSM 语义下，PumpControl 的默认进入点不唯一。NL 3 明确要求首先进入 PumpState，此处无法保证。此外空区域 0 是没有任何状态的退化区域。",
+   "assertable": "initial_target(composite=\"llms_emp_feedback_final_0013.PumpControl\", child=\"llms_emp_feedback_final_0013.PumpControl.PumpState\")",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "extra",
+   "ref": "零事件、零子态间迁移——参考模型只有三条区域初始边",
+   "gen": "自造六个事件（Water Flow Detected、Methane Flow Detected、Water Flow Controlled、Transition to Methane、Methane Flow Controlled、Transition to Water）与九条子态间迁移（区域 1 六条 + 区域 2 两条 + 区域 3 两条，其中含区域初始边共 14 个 transition id）",
+   "reason": "NL06 全文没有命名任何触发事件，也没有描述 PumpState / WaterState / MethaneState 之间的任何迁移——五句话只说系统能进入这三个子态。\"Water Flow Detected\" 之类事件与 PumpState --> WaterState 这类边全属凭空发明，参考侧一条都没有。",
+   "assertable": "event_declared(event=\"llms_emp_feedback_final_0013.Transition_to_Methane\")",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "三个区域，一区一具名子态——区域划分本身就是「三个主子态」的载体",
+   "gen": "四个区域：空区域 0、含全部三个具名子态并在其间连边的区域 1、克隆区域 2（PumpStateA/WaterStateA）、克隆区域 3（PumpStateB/MethaneStateB）",
+   "reason": "论文记的 semantic hallucination \"1. use region\" 在形式上确实被满足了（制品里有 -- 分隔符），但区域划分的语义与参考完全不同：参考用区域承载三个主子态，生成侧却把三个主子态塞进同一个区域、再用区域装克隆件。并发结构本身超出本研究范围故标 out_of_scope 并记 similar，但「区域用途错位」这一点已由上面第 1、2 条 problem 覆盖，不重复计数。",
+   "assertable": null,
+   "predicate_exists": true,
+   "out_of_scope": "concurrency"
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "参考把三个主子态写成三个正交并发区",
+   "gen": "生成侧也用了并发区，但用途不同",
+   "reason": "参考侧的并发读法与 NL 3 的 \"first transitions to PumpState\" 及 NL 4/5 的 \"can also transition to\" 顺序性措辞冲突；NL 通篇无 region/concurrent/parallel 字样，三个主子态是并发还是顺序在 NL 中欠定。这使论文对本组普遍记录的 \"missing regions\" 语义幻觉本身建立在一个未经独立验证的参考读法上。",
+   "assertable": null,
+   "predicate_exists": false,
+   "out_of_scope": "concurrency"
+  }
+ ],
+ "problem_count": 2,
+ "extra_count": 1,
+ "vs_paper": "论文记了一条 semantic hallucination \"1. use region\"，semantic_resolved = 1.0；plantuml_accuracy 15/15、grammar 14/14；f1_phase1 = 0.375（本组最低之一），f1_phase2 = 0.75。论文认为「用了 region」即算修好，但这份制品用 region 装的是克隆状态，真正的缺陷（七个子态违反 NL 的三个枚举、三条竞争初始边、六个自造事件九条自造迁移）论文一条都没记。",
+ "vs_ledger": "台帐 0013 状态为 no_supported_finding，零条 E1、零条 observation——这是我在本组最不同意的一处。我判的两条 problem 都可用现有谓词直接断言：cardinality(scope=PumpControl, count=3) 在 NL 2 的显式枚举支持下返回 7、initial_target(PumpControl, PumpState) 因三条竞争初始边而不成立。台帐给 0023/0043/0053 的 E2a 排除理由（\"NL 只说位于 PumpControl 内部，没有唯一要求直接子状态\"）不适用于 0013：0013 的问题不是包裹层次，而是子态数量本身翻了一倍多，与直接/后代读法无关。",
+ "notes": "0013 是本组最严重的一份，却被台帐记为零发现。核心失败模式是「状态克隆」：模型把 PumpState/WaterState/MethaneState 复制成 A、B 两套塞进额外区域，同时在三个正主之间编造出六个事件与六条互切迁移。它同时是本组唯一出现空区域（行首多余 --）的 case。建议把 cardinality 作为 NL06 组的主断言——NL 2 的逐个点名恰好是 60 例中最适合 cardinality 谓词的一处。",
+ "_source_file": "NL06-a.json",
+ "cross_reference": {
+  "case": "0013",
+  "group": "NL06",
+  "llm": "GPT-4",
+  "counts": {
+   "correct": 0,
+   "similar": 1,
+   "problem": 2,
+   "extra": 1,
+   "uncertain": 1
+  },
+  "out_of_scope": {
+   "concurrency": 2
+  },
+  "problems_in_scope": 3,
+  "paper": {
+   "format": null,
+   "grammar": null,
+   "semantic": "1. use region",
+   "semantic_resolved": 1.0,
+   "f1_phase1": 0.375,
+   "f1_phase2": 0.75
+  },
+  "ledger": {
+   "status": "no_supported_finding",
+   "e1_ids": [],
+   "e1_categories": []
+  },
+  "assertable_problems": 2
+ }
+}

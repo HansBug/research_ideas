@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?><scxml xmlns="http://www.w3.org/2005/07/scxml" initial="start" version="1.0">
+<state id="start">
+<transition target="AutonomousMode"/>
+<transition target="collision_avoidance_deactive"/>
+</state>
+<state id="collision_avoidance_deactive">
+<transition event="pedestrian_detected || (dist_to_rear&lt;5 &amp;&amp; vel&gt;30) || (dist_to_front&lt;15 in HighwayMode || dist_to_front&lt;10 in UrbanMode)" target="collision_avoidance_active"/>
+</state>
+<state id="collision_avoidance_active">
+<transition event="front_inactive &amp;&amp; rear_inactive &amp;&amp; pedestrian_inactive" target="collision_avoidance_deactive"/>
+</state>
+<state id="AutonomousMode">
+<transition event="high_way=true" target="HighwayMode"/>
+<transition event="urban_way=true" target="UrbanMode"/>
+<state id="startAutonomousMode">
+<transition target="InitialState"/>
+</state>
+<state id="InitialState">
+<transition event="high_way=true" target="HighwayMode"/>
+<transition event="urban_way=true" target="UrbanMode"/>
+</state>
+<state id="FinishState"/>
+<state id="HighwayMode">
+<transition event="auto_finished=true" target="FinishState"/>
+<state id="startHighwayMode">
+<transition target="enter_hwy"/>
+</state>
+<state id="enter_hwy">
+<transition target="cruise"/>
+</state>
+<state id="cruise">
+<transition event="dist_to_front&lt;25 &amp;&amp; extra_lane=true" target="lane_change"/>
+<transition event="dist_to_exit&lt;2" target="endHighwayMode"/>
+<transition event="dist_to_front&lt;25 &amp;&amp; extra_lane=true" target="lane_change"/>
+</state>
+<state id="lane_change">
+<transition event="lane change completed" target="cruise"/>
+<transition event="dist_to_exit&lt;2" target="endHighwayMode"/>
+</state>
+<state id="endHighwayMode"/>
+</state>
+<state id="UrbanMode">
+<transition event="auto_finished=true" target="FinishState"/>
+<state id="startUrbanMode">
+<transition target="enter_urban"/>
+</state>
+<state id="enter_urban">
+<transition event="dist_to_front&lt;15 &amp;&amp; extra_lane=true" target="lane_change_urban"/>
+<transition event="road ahead is clear" target="straight"/>
+<transition event="intersection=true" target="intersection"/>
+</state>
+<state id="lane_change_urban">
+<transition event="lane change complete" target="straight"/>
+<transition event="dist_to_exit&lt;0.7" target="exit_urban"/>
+</state>
+<state id="straight">
+<transition event="intersection=true" target="intersection"/>
+<transition event="dist_to_front&lt;15 &amp;&amp; extra_lane=true" target="lane_change_urban"/>
+</state>
+<state id="intersection"/>
+<state id="exit_urban"/>
+</state>
+</state>
+</scxml>

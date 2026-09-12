@@ -1,0 +1,79 @@
+[
+  {
+    "pair": "0049",
+    "verdicts": [
+      {
+        "record_id": "EIS-0049-01",
+        "arm": "甲",
+        "hit": false,
+        "equivalence_form": null,
+        "argument": "该格运行失败，无任何已发布 issue。",
+        "note": "失败类型 DiscoverGraphFailed —— Discover graph failed at split_requirements: RuntimeError: ValidationError: 1 validation error for RequirementSet（requirements 期望 tuple，实得 str）。"
+      },
+      {
+        "record_id": "EIS-0049-01",
+        "arm": "乙",
+        "hit": false,
+        "equivalence_form": null,
+        "argument": "台账 01 的命题是「作者源把 NL 4/5 的局部驶离高速条件 dist_to_exit<2 合并到了 NL 6 专属于 auto_finished=true 的 FinishState 上」，锚点是 `lane_change --> FinishState : dist_to_exit<2` 与 `cruise --> FinishState : dist_to_exit<2` 这两条边。该产出 8 条已发布 issue 中，[1] 讲 UrbanMode 作用域下 FinishState 未声明，[2]-[8] 全部讲 CollisionAvoidance 的融合事件未拆分为独立事件（pedestrian_detected / dist_to_rear<5&vel>30 / dist_to_front<15 in HighwayMode / dist_to_front<10 in UrbanMode / front_inactive / rear_inactive / pedestrian_inactive）。没有任何一条提到 dist_to_exit、驶离高速动作、或 FinishState 的触发条件被错误扩展。[1] 虽然涉及 FinishState，但它主张的是「UrbanMode 下缺少该状态的本地实例」，与「进入 FinishState 的触发条件被混入 dist_to_exit<2」是两个不同的作者编辑（前者动的是 FinishState 的声明位置，后者动的是两条 dist_to_exit 边的存在性），属 §2.2「不同缺陷共用状态名」。",
+        "note": "该产出的 excluded_findings 仅 1 条（ISSUE-REQ010-unattributed），内容是 UrbanMode.FinishState 未声明的重复承载，与本条记录无关；即从没发现，不属「发现了但没发布」。"
+      },
+      {
+        "record_id": "EIS-0049-01",
+        "arm": "丙",
+        "hit": false,
+        "equivalence_form": null,
+        "argument": "同一判据下检查该产出的 3 条已发布 issue：[1] UrbanMode 内缺少 FinishState 子状态声明，[2] 碰撞避免激活的四个条件被融合，[3] 碰撞避免解除的三个条件被融合。无一条主张 dist_to_exit<2 不应通向 FinishState，也无一条主张 FinishState 的触发条件被错误扩展。[1] 与台账 01 共用 FinishState 这个名字，但它谈的是该状态的声明作用域，不是 `lane_change --> FinishState : dist_to_exit<2` / `cruise --> FinishState : dist_to_exit<2` 这两条边该不该存在，属 §2.2「不同缺陷共用状态名」，不算命中。",
+        "note": "该产出 excluded_findings 的两条均为 terminates(HighwayMode/UrbanMode, auto_finished_true) 为 False 且被判 representation_debt，讲的是模式级终止行为的证据依赖编译器路由控制，不涉及 dist_to_exit 的条件混入；故本条属从没发现，非「发现了但没发布」。"
+      },
+      {
+        "record_id": "EIS-0049-02",
+        "arm": "甲",
+        "hit": false,
+        "equivalence_form": null,
+        "argument": "该格运行失败，无任何已发布 issue。",
+        "note": "失败类型 DiscoverGraphFailed —— Discover graph failed at split_requirements: RuntimeError: ValidationError: 1 validation error for RequirementSet（requirements 期望 tuple，实得 str）。"
+      },
+      {
+        "record_id": "EIS-0049-02",
+        "arm": "乙",
+        "hit": true,
+        "equivalence_form": "直接对应",
+        "argument": "台账 02 的命题是「FinishState 本应是唯一的 AutonomousMode 级共享终态，生成侧把它绑进了 HighwayMode，于是 UrbanMode 的 auto_finished 只能落进 HighwayMode.FinishState」。产出 [1]「UrbanMode 下缺少本地 FinishState 退出子状态」逐字断言了同一组事实：『模型仅在 HighwayMode 下声明 FinishState，UrbanMode 作用域下未声明同名子状态』『REQ-010 的 auto_finished=true 退出语义只能借用 HighwayMode.FinishState 作代理』——后半句与台账那句『UrbanMode 的 auto_finished ... 路由到 HighwayMode 再进入 HighwayMode.FinishState』说的是同一件事，只是一个用 FCSTM token 路由描述、一个用『借用作代理』描述。按 §2.4 数引用：作者源里 FinishState 从未用 state 关键字显式声明，其状态命名空间的归属完全由首次出现位置（HighwayMode 块内的 `lane_change --> FinishState`）这一条作者编辑决定，两个主张锚在同一条编辑上，动其一必动其二。谓词不同（台账 containment vs 产出 state_declared）按 §2.2 不影响判定。不确定点：产出隐含的修法是给 UrbanMode 补一个本地 FinishState，而台账参考的正解是一个共享终态，两者修法不同；但 §2.3 明令不得用『据此修复后台账缺陷是否消失』当判据，且负向核心（FinishState 落在 HighwayMode 内、UrbanMode 完成只能进 HighwayMode.FinishState）两边完全一致，故判命中。亦不触 §2.2 的『结构存在性冒充行为验证』——台账 02 本身即 direction=hierarchy / predicate=containment 的结构性命题，不是可达性命题。",
+        "note": "该产出另有 excluded_findings 1 条 ISSUE-REQ010-unattributed，报告的正是 UrbanMode.FinishState 未声明但被判 unattributed；同一事实已由已发布 issue [1] 承载，故本条按已发布计，不受影响。"
+      },
+      {
+        "record_id": "EIS-0049-02",
+        "arm": "丙",
+        "hit": true,
+        "equivalence_form": "直接对应",
+        "argument": "产出 [1]「UrbanMode 内缺少 FinishState 子状态声明」断言『模型仅在 HighwayMode 内声明了 FinishState，UrbanMode 之下没有该子状态』，同时指出 NL-L010 要求 UrbanMode 经 transitioning to FinishState 退出。这与台账 02『生成侧把它绑进 HighwayMode 后，UrbanMode 的 auto_finished ... 进入 HighwayMode.FinishState』指向同一处作者失误：FinishState 在作者源中无显式 state 声明，其唯一归属由 HighwayMode 块内的首次引用决定，两个主张锚在同一条编辑上（§2.4）。产出未展开 token 路由这一后果的细节，但命题核心（该状态只存在于 HighwayMode 作用域，UrbanMode 的完成没有属于自己的终态可去）与台账一致，措辞差异按 §2.2 不影响判定。与乙的 [1] 采用完全相同的判定尺度：两者主张实质相同，故结论相同。不确定点同乙：产出隐含修法为补一个 UrbanMode 本地实例，与参考的单一共享终态不同，但 §2.3 禁止以修复后效当判据。",
+        "note": "该产出 excluded_findings 中的 ISSUE-EXCL-UrbanMode-terminates（terminates(UrbanMode, auto_finished_true) 为 False，证据依赖 compiler-owned route_control:R45RouteToken）正对应台账 02 描述的 token 路由现象，被 representation_debt 策略拦下未发布；但本条已由已发布 issue [1] 独立命中，该排除项不影响判定，仅作背景记录。"
+      },
+      {
+        "record_id": "EIS-0049-03",
+        "arm": "甲",
+        "hit": false,
+        "equivalence_form": null,
+        "argument": "该格运行失败，无任何已发布 issue。",
+        "note": "失败类型 DiscoverGraphFailed —— Discover graph failed at split_requirements: RuntimeError: ValidationError: 1 validation error for RequirementSet（requirements 期望 tuple，实得 str）。"
+      },
+      {
+        "record_id": "EIS-0049-03",
+        "arm": "乙",
+        "hit": false,
+        "equivalence_form": null,
+        "argument": "台账 03 的命题是过度规定：作者源写了四条完成关系（cruise/straight/intersection 三条子态级 auto_finished 边 + 顶层 `AutonomousMode --> FinishState : auto_finished=true`），顶层那条已覆盖全部情形，三条子态边冗余，并造成 cruise 上 dist_to_exit<2 与 auto_finished=true 两条同源同目标的重复关系。该产出 8 条已发布 issue 全部是「缺失」型主张（UrbanMode 下缺 FinishState、七个独立事件未声明），方向与台账 03 相反：台账说「多写了不该有的边」，产出没有任何一条说某条边/关系是冗余的、重复的或不应存在。§2.1 的『负向命题的正向对偶』不适用——那要求两个命题就同一条边给出正反两面，而产出根本没有触及这四条完成边中的任何一条。也说不出『产出为假蕴含台账为假』的链条（缺一个 UrbanMode 本地终态，与顶层组边已覆盖导致三条子态边冗余，逻辑上互不蕴含），按 §2.5 不援引形态 ④。",
+        "note": "excluded_findings 中的 ISSUE-REQ010-unattributed 亦为缺失型，不涉冗余；即从没发现，非「发现了但没发布」。"
+      },
+      {
+        "record_id": "EIS-0049-03",
+        "arm": "丙",
+        "hit": false,
+        "equivalence_form": null,
+        "argument": "该产出 3 条已发布 issue 全部为缺失型（UrbanMode 内缺 FinishState、四个激活条件未拆分声明、三个解除条件未拆分声明），无一条主张任何完成边冗余、重复或超出 NL 要求，与台账 03『三条子态级完成边纯属冗余 + cruise 上同源同目标重复关系』这一过度规定命题方向相反。与乙适用同一尺度：两份产出在本条上都没有触及那四条 auto_finished 完成边的取舍，故同判不命中。",
+        "note": "两条 excluded_findings（terminates(HighwayMode/UrbanMode, auto_finished_true) 为 False，representation_debt）谈的是模式级终止行为未被证成，属「该有的没有」，与台账 03「不该有的多写了」方向相反，不构成本条的「发现了但没发布」。"
+      }
+    ]
+  }
+]

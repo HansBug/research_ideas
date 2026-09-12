@@ -1,0 +1,700 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0000",
+  "ledger": [
+    {
+      "ledger_id": "EIS-0000-01",
+      "pair": "0000",
+      "D": "D2",
+      "L": "L2",
+      "summary": "断电义务被接错了源端：`:14` 写的是 `[*] --> FinalState : Power Off`，即从顶层初始伪状态出发，于是两个运行态 `HumanDrivingMode`（:4）与 `AutonomousMode`（:7）都没有任何 Power Off 出边，运行中的系统无法关机。",
+      "detail": "NL 第 5 句逐字为「when power off, it will transit to final state」。它的主语是已经在运行的系统，所以这条边的源端应当是某个运行态。制品把它写成了 `:14 [*] --> FinalState : Power Off`，源端是顶层的初始伪状态。\n\n由此产生两个可分别陈述的后果。其一，两个运行态都不消费 Power Off：`HumanDrivingMode`（:4-:5，空复合态）与 `AutonomousMode`（:7-:10）的出边只有 `:12` 的 `front_distance > 10` 和 `:13` 的接管边，机器一旦运行起来就没有断电通路。其二，顶层同时存在 `:2 [*] --> HumanDrivingMode : Power On` 与 `:14 [*] --> FinalState : Power Off` 两条初始边，二者竞争同一个起点；若冷启动时先到达的事件是 Power Off，机器会直接落到 `FinalState`，等价于「还没开机就已经关机」。而 `FinalState` 只是一个普通命名状态（全文件没有把它声明为终态，也没有 `--> [*]`），所以机器实际上不会真正终止，只是停在一个没有出边的状态里。\n\n根因不在生成模型的语义理解，而在上游论文自己的语法修复阶段。上游工作簿列 I（Phase-I 原始生成）这一格写的是 `HumanDriving --> FinalState : Power Off`，语义是对的，但它被嵌在 `state HumanDriving { ... }` 的块体内，构成结构违法，被记为语法幻觉「transition does not connect two state」。列 Z（语法检查后）的修法是把源端改成 `[*]` —— 结构合法了，语义被破坏了。列 AD（语义幻觉）为空、列 AG 语义 resolved 记 1.0，说明这个由修复动作注入的缺陷没有被后续的语义检查捕获。\n\n同一份 NL 的另一个 case 可作对照：`0030` 的 Phase-I 同样产出 `[*] --> FinalState : Power Off`，而上游语义栏把它记为「missing final state」并改成 `HumanDriving --> [*] : Power Off`。同一缺陷形状在同一份 NL 的两个 case 上一个被抓、一个被漏，说明上游的语义检查不可复现。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 5 句「when power off, it will transit to final state」；该句的主语是运行中的系统，因此把断电边接在初始伪状态上不满足它。三个独立判读臂都尝试过为制品找一种能与结构事实相容的第二种读法（例如把 `[*] --> FinalState : Power Off` 读成「系统级的断电总是回到终态，不必逐态给边」），但该读法与 UML 语义冲突：初始伪状态在机器启动后不再活跃，其出边在运行期不可能被触发。反驳不存活，故不降 D1。",
+      "L_basis": "判 L2。本条记录的缺陷主张不止「少了一条边」这一层——它同时断言「冷启动时若先来 Power Off，机器会直接落到 FinalState」。要陈述后半句必须给出一条从初始伪状态出发的执行序列，也就是构造一条带时间维的行为，而不是读某个静态快照。若把主张收窄成「两个运行态没有 Power Off 出边」，那部分确实只需词项比对；但台账记录的是含轨迹论证的完整形态，故按 L2 归档。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "transition",
+        "defect_qualifier": "other",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0000-02",
+      "pair": "0000",
+      "D": "D1",
+      "L": "L1",
+      "summary": "NL 第 5 句的三个接管条件在 `:13` 被压成一个不可分解的自由文本标签 `Human Steering Cmd, Brake Pressed, in (AutoFinal)`，模型因此无法对其中任何单一条件作出响应。",
+      "detail": "NL 第 5 句逐字为「transit to human driving mode when receive human steering cmd, brake pressed, in (auto final)」，其中列出了三样东西：一个驾驶员转向指令、一个刹车踏板动作、以及一个「处于 auto final」的状态条件。制品在 `:13` 把三者原样拼成了一个标签：`AutonomousMode --> HumanDrivingMode : Human Steering Cmd, Brake Pressed, in (AutoFinal)`。\n\nPlantUML 的迁移标签在冒号之后是自由文本，工具不会把逗号解析成析取或合取。把这份制品投影成形式化状态机后，整个标签变成单一事件名 `Human_Steering_Cmd_Brake_Pressed_in_AutoFinal`。后果是：机器只能对这个「三合一」事件整体作出反应，无法对单独的 human steering cmd 或单独的 brake pressed 作出反应。\n\n更进一步，三样东西里的第三样 `in (AutoFinal)` 在范畴上不是事件而是状态条件——NL 第 2 句保证 auto final 是 autonomous mode 的一个子状态，制品也确实在 `:9` 建了 `AutoNavigating --> AutoFinal : Condition Met`。状态条件本应表达为守卫或表达为「从 AutoFinal 出发的边」，把它塞进事件名意味着：仅仅进入 AutoFinal 不会交还控制权，而 AutoFinal 除了这个复合事件之外没有任何其它出边。\n\n根因是把自然语言里的枚举直接抄成了标签文本，没有先判定这三样在状态机里各自应当落到哪个语法位（触发事件 / 守卫 / 源状态）。上游论文的 SysML 语法检查对此没有报警（该格 grammar 记 12/13、grammar_resolved 记 1.0），因为标签在语法上是合法的自由文本。",
+      "D_basis": "判 D1，两读并立。第一种读法把标签里的逗号读成析取（三选一触发），这时 `in (AutoFinal)` 被当成事件，构成范畴错误，缺陷成立。第二种读法把逗号读成合取，即「收到转向指令且踩下刹车」为触发、`in (AutoFinal)` 为写在标签里的状态守卫——这种读法与制品的结构事实完全相容：AutoFinal 存在、迁移源端是包含 AutoFinal 的 AutonomousMode、语义上也讲得通。由于第二种读法是一种称职的读法且无法被结构事实推翻，它构成一个削弱型反驳，故不判 D2。注意两种读法都不能让制品变成对 NL 的忠实编码（单一自由文本标签在任一读法下都丢失了结构信息），D1 说的是「这条缺陷主张的具体形态存在第二种站得住的读法」，不是「制品没问题」。",
+      "L_basis": "判 L1。陈述这条错误需要的是一个静态事实：把 `:13` 的标签按 PlantUML 的解析规则投影之后，得到的事件集合里只有一个事件名，而不是三个。这要从模型结构导出（需要知道标签如何被解析成事件），比单纯的词项比对深一层；但它只涉及模型的一个静态切面，不需要任何执行序列或可达性论证，故不到 L2。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "trigger",
+        "defect_qualifier": "other",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "INS-0000-04",
+      "pair": "0000",
+      "D": "D2",
+      "L": "L0",
+      "summary": "根层的两条初始边 `:2 [*] --> HumanDrivingMode : Power On` 与 `:14 [*] --> FinalState : Power Off` 都带标签，于是这台机器没有无条件的默认入口——不来事件就不进入任何状态。",
+      "detail": "全文件根层（不在任何 `state X { }` 块内）的 `[*] -->` 只有两条：`:2` 逐字 `[*] --> HumanDrivingMode : Power On`，`:14` 逐字 `[*] --> FinalState : Power Off`。两条的冒号后都有标签。\n\nUML 2.5.1 对初始伪状态的规定是：从初始伪状态出发的迁移不得带触发事件，也不得带守卫条件（该迁移是隐式立即执行的）。两条边都违反了这条规定。合起来的后果是这台状态机没有确定的启动状态：系统上电之后，在 Power On 或 Power Off 到达之前，它不处在任何状态里。\n\n需要排除一个容易误判的地方：`:8` 的 `  [*] --> AutoNavigating` 确实是一条不带标签的裸初始边，但它写在 `state AutonomousMode {`（:7）与 `}`（:10）之间，属于 AutonomousMode 这个复合态的内部默认入口，只在进入 AutonomousMode 之后才起作用，不能充当根层的默认入口。\n\n根因是把 NL 第 3 句「when power on, the system turn into human driving mode」里的「power on」当成了一个需要显式建模的事件。在状态机的建模惯例里，上电通常就是机器开始运行本身，对应的是无标签的默认入口边；把它写成初始伪状态上的带标签边，等于要求「机器要先运行起来，才能收到让它开始运行的事件」。\n\n同一份 NL 下另外三份制品出现了同型形态，各自也已作为独立条目记录（INS-0030-01 / INS-0040-01 / INS-0050-01），四份可以横向对比。",
+      "D_basis": "判 D2。被违反的义务不来自 NL 而来自建模语言本身：UML 2.5.1 规定初始伪状态的出边不得带触发或守卫。这是一条可引的成文规定，且判定只需读那两行，不依赖对 NL 的任何解释。三个判读臂一致认定成立，也没有人能给出一种让「带标签的根层初始边」合法的读法。需要如实记下的一点是：三臂在给理由时都只说「它成立」，没有一臂主动引出上面这条语言规定，出处是本次重写时补齐的。",
+      "L_basis": "判 L0。陈述这条错误只需就地读根层那两行，看它们的冒号后面有没有内容——是一次纯词法层面的模式匹配，既不需要从模型结构导出任何新事实，也不需要构造任何执行序列。唯一需要留意的是「哪几行算根层」，而那只是看缩进与花括号配对，仍在词法层面。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "trigger",
+        "defect_qualifier": "extraneous",
+        "defect_logic_kind": null,
+        "defect_reference": "language"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:initial_contract:__root__",
+          "claims": [
+            "Formal diagnostic W_INITIAL_UNCONDITIONAL_MISSING is present at exact reference llms_emp_feedback_final_0000."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0000"
+          ],
+          "obligations": [
+            "Every entered composite must provide a valid unconditional initial entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:__root__:facet:a1184dc6e6ab"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:0753aaef6dbf527a",
+          "claims": [
+            "HumanDrivingMode has composite formal structure although the requirement requires a simple state."
+          ],
+          "locations": [
+            "NL1",
+            "HumanDrivingMode",
+            "PUML:L4"
+          ],
+          "obligations": [
+            "HumanDrivingMode must be represented as a simple state."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:0753aaef6dbf527a:facet:c56f9373d315"
+          ]
+        },
+        {
+          "finding_id": "source:stable_termination:AutonomousMode.AutoFinal",
+          "claims": [
+            "Required termination target 'AutonomousMode.AutoFinal' admits a source-level nonterminating continuation."
+          ],
+          "locations": [
+            "AutonomousMode.AutoFinal"
+          ],
+          "obligations": [
+            "The NL-designated termination state 'auto final' must be a stable ending target for its declared behavior."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:stable_termination:AutonomousMode.AutoFinal:facet:ebb77538d1d4"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:bba4d39e4618d82f",
+          "claims": [
+            "HumanDrivingMode is modeled as a composite state although the requirement designates it as a simple state."
+          ],
+          "locations": [
+            "NL1",
+            "PUML:L4",
+            "HumanDrivingMode"
+          ],
+          "obligations": [
+            "Human driving mode must be represented by a simple state."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:bba4d39e4618d82f:facet:c56f9373d315"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "hypothesis:3ac31c3771a00f1c",
+          "claims": [
+            "HumanDrivingMode has the wrong formal state kind for the explicitly required simple human-driving mode."
+          ],
+          "locations": [
+            "NL1",
+            "PUML:L4",
+            "llms_emp_feedback_final_0000.HumanDrivingMode"
+          ],
+          "obligations": [
+            "The human driving mode must be represented by a simple state."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:3ac31c3771a00f1c:facet:c56f9373d315"
+          ]
+        },
+        {
+          "finding_id": "source:stable_termination:FinalState",
+          "claims": [
+            "Required termination target 'FinalState' admits a source-level nonterminating continuation."
+          ],
+          "locations": [
+            "FinalState"
+          ],
+          "obligations": [
+            "The NL-designated termination state 'final state' must be a stable ending target for its declared behavior."
+          ],
+          "basis": [
+            "unattributed"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:stable_termination:FinalState:facet:87fdf66a699c"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:856e848a3e3962cb",
+          "claims": [
+            "The state designated as the power-off final state does not provide the required terminating behavior."
+          ],
+          "locations": [
+            "NL1",
+            "PUML:L14",
+            "llms_emp_feedback_final_0000.FinalState"
+          ],
+          "obligations": [
+            "Power-off behavior must terminate at the designated final state."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:856e848a3e3962cb:facet:9056050992c3"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:reachable_deadlock:FinalState",
+          "claims": [
+            "Source state 'FinalState' is reachable, non-final, and has no enabled continuation in the certified fragment."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0000.FinalState"
+          ],
+          "obligations": [
+            "A reachable non-final behavior must admit a continuation or valid termination."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:reachable_deadlock:FinalState:facet:503d89daad7a"
+          ]
+        },
+        {
+          "finding_id": "source:initial_contract:__root__",
+          "claims": [
+            "Formal diagnostic W_INITIAL_UNCONDITIONAL_MISSING is present at exact reference llms_emp_feedback_final_0000."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0000"
+          ],
+          "obligations": [
+            "Every entered composite must provide a valid unconditional initial entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:__root__:facet:a1184dc6e6ab"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:32eab890f8edbc91",
+          "claims": [
+            "The initial target of llms_emp_feedback_final_0000 is not HumanDrivingMode."
+          ],
+          "locations": [
+            "NL1"
+          ],
+          "obligations": [
+            "llms_emp_feedback_final_0000 must initially enter HumanDrivingMode."
+          ],
+          "basis": [
+            "representation_debt"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:32eab890f8edbc91:facet:b3eaf5c861fa"
+          ]
+        },
+        {
+          "finding_id": "source:transition:AutonomousMode:power off:FinalState",
+          "claims": [
+            "Source has no matching transition from 'AutonomousMode' to 'FinalState' under 'power off'."
+          ],
+          "locations": [
+            "NL1",
+            "PUML:L14",
+            "tr_0006",
+            "F21"
+          ],
+          "obligations": [
+            "AutonomousMode must transition directly to FinalState under power off.",
+            "Power Off must transition from the autonomous operating scope to FinalState."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:AutonomousMode:power off:FinalState:facet:10f7eafeeb94"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型新增了从 AutoNavigating 到 AutoFinal 的 `Condition Met` 转移条件。",
+          "reason": "自然语言规格只说明返回人驾条件中包含“in (auto final)”，没有定义 AutoFinal 的进入条件或 `Condition Met` 事件。该转移是规格未授权的额外行为，且 `Condition Met` 语义不明确。",
+          "where": "AutonomousMode 内部：`AutoNavigating --> AutoFinal : Condition Met`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "模型将 Human Steering Cmd、Brake Pressed 和 in (AutoFinal) 用逗号并列在同一转移标签中，表达为一个同时满足的组合条件。",
+          "reason": "规格表述为“when receive human steering cmd, brake pressed, in (auto final)”但未明确这是 AND 还是多个触发条件；模型以逗号直接编码为单一转移条件，至少没有清楚表达规范要求的条件关系，可能错误地要求三者同时成立，从而遗漏仅收到人工转向命令或仅踩刹车时的返回行为（若规格中的逗号意图表示任一条件）。",
+          "where": "`AutonomousMode --> HumanDrivingMode : Human Steering Cmd, Brake Pressed, in (AutoFinal)`"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "断电转移未从当前运行状态定义，而是另设从初始伪状态到 FinalState 的转移",
+          "reason": "规格要求“当 power off 时，系统将转移到 final state”，应适用于系统运行期间的状态；模型把 Power Off 画成从初始伪状态 [*] 出发，表示仅在系统初始/启动入口发生断电转移，无法表达从 HumanDrivingMode 或 AutonomousMode 断电时进入 FinalState。",
+          "where": "[*] --> FinalState : Power Off"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "自动驾驶子状态中缺少规格明确的进入/完成语义约束，且 AutoFinal 的转移条件被泛化为“Condition Met”",
+          "reason": "规格仅说明 autonomous mode 具有子状态，并在返回人驾条件中引用“in (auto final)”，模型自行引入了 AutoNavigating 到 AutoFinal 的“Condition Met”转移，但未给出该条件的规范依据；如果该转移用于表示进入 AutoFinal，则其触发条件与规格不一致或至少未被规格定义。",
+          "where": "AutonomousMode 内部：AutoNavigating --> AutoFinal : Condition Met"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "Power Off 迁移被建模为从顶层初始伪状态到 FinalState，而不是系统运行期间从当前状态迁移到最终状态。",
+          "reason": "规格要求“当 power off 时，它将转移到 final state”，通常意味着无论当前处于人驾模式还是自动模式，收到关机事件都应能进入最终状态。模型中的该迁移只在初始伪状态上有效，系统进入 HumanDrivingMode 或 AutonomousMode 后无法通过 Power Off 到达 FinalState。",
+          "where": "[*] --> FinalState : Power Off"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "自动模式回到人驾的条件被写成一个合并的迁移标签，未明确表示这些条件的逻辑关系及“处于 AutoFinal”的状态约束。",
+          "reason": "规格要求在收到 human steering cmd、刹车按下、且处于 auto final 时转入人驾模式。模型用逗号串联条件，PlantUML 中它只是文本标签，不构成可执行的条件表达式，因而没有明确建模所需的 AND 关系，也没有使用明确的 AutoFinal 内部状态迁移/状态约束。",
+          "where": "AutonomousMode --> HumanDrivingMode : Human Steering Cmd, Brake Pressed, in (AutoFinal)"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "AutoFinal 没有被定义为自动模式的最终/完成状态，只是普通子状态。",
+          "reason": "规格中特别指出“in (auto final)”是回到人驾模式的前提。模型虽有名为 AutoFinal 的状态，但未声明其为 final state，也未说明进入该状态后自动模式完成或如何保持该状态；因此其语义不足以保证“在 auto final 中”这一条件。",
+          "where": "state AutonomousMode { [*] --> AutoNavigating; AutoNavigating --> AutoFinal : Condition Met }"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0000",
+    "ledger_assessments": [
+      {
+        "ledger_id": "EIS-0000-01",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本格分别主张根层缺少无条件初始入口、HumanDrivingMode 状态种类错误、AutoFinal 非稳定终止；都没有指认 Power Off 被接到根层初始伪状态，亦未主张由此导致运行态无断电出边或 FinalState 的关机终止失败。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:stable_termination:FinalState",
+            "hypothesis:856e848a3e3962cb"
+          ],
+          "reason": "两条输出都指向同一个 FinalState，并主张 NL 所要求的 Power Off 终止行为在该普通状态上不能真正终止。这是台账明确陈述的直接后果，虽未复述错接源端的根因，仍属同处同性质的后果覆盖。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:reachable_deadlock:FinalState",
+            "source:transition:AutonomousMode:power off:FinalState"
+          ],
+          "reason": "前一条指认由初始 Power Off 路径可达的 FinalState 是非终态且无后继，覆盖台账的“落入普通无出边状态而不真正终止”；后一条指认 AutonomousMode 缺少通往 FinalState 的 Power Off 迁移，覆盖错接源端造成的运行态断电通路缺失。两者各自都是台账完整主张中可独立陈述的直接后果。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本格只主张未授权的 Condition Met 迁移和接管条件标签合并，均不涉及 Power Off 迁移的源端、运行态断电通路或 FinalState 的关机终止。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "该输出精确指认 `[*] --> FinalState : Power Off`，并主张它应从运行状态触发、现状导致 HumanDrivingMode 与 AutonomousMode 运行期间无法断电进入 FinalState，与台账同处同性质。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "该输出精确指认 Power Off 被接在顶层初始伪状态，并明确说明进入两个运行模式后无法通过 Power Off 到达 FinalState，与台账主张一致。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0000-02",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本格没有输出指认 `AutonomousMode --> HumanDrivingMode` 的三项合并标签及其不可执行/不可分解性质；AutoFinal 终止性与 HumanDrivingMode 状态种类是不同性质。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本格只涉及 HumanDrivingMode 状态种类与 FinalState 的终止行为，没有主张三个接管条件被压入单一自由文本标签。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本格涉及 FinalState 死锁、根初始入口、初始目标以及 AutonomousMode 的 Power Off 缺边，均非接管迁移标签的记法槽位/不可分解问题。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_2"
+          ],
+          "reason": "该输出指向同一条 AutonomousMode 到 HumanDrivingMode 的迁移，主张三个异类条件被逗号并入单一标签，无法清楚表达逻辑并可能阻止单一条件触发；与台账的自由文本合并及不可独立响应性质一致。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本格只报告 Power Off 错接源端和未授权的 Condition Met 迁移，没有报告三项接管条件被合并为单一自由文本标签。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_2"
+          ],
+          "reason": "该输出精确指认同一接管迁移，说明逗号串联在 PlantUML 中只是文本标签，既未形成可执行条件关系，也未把 `in (AutoFinal)` 表达为状态约束；与台账同处同性质。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "INS-0000-04",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:__root__"
+          ],
+          "reason": "该输出定位根复合区并主张缺少有效的无条件初始入口，正是两条根初始边均带标签造成的语言契约违反及默认入口缺失。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本格没有报告根层初始伪状态出边带触发或缺少无条件默认入口；FinalState 终止性和 HumanDrivingMode 状态种类均为不同性质。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:__root__"
+          ],
+          "reason": "该输出定位根层初始契约并明确主张缺少有效无条件初始入口，与台账所述两条带标签初始边导致无默认入口同处同性质。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本格未讨论根层初始边的触发标签合法性或无条件入口缺失。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "虽然 baseline_issue_1 提到 `[ * ]` 源端及 Power Off 标签，但其性质是断电边源端错位、运行态缺断电通路，不是两条初始边带触发而违反初始契约或缺少无条件默认入口。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_issue_1 的主张是 Power Off 迁移源端错位及运行期不可关机，没有主张根层两条初始边均因带标签而非法或机器缺少无条件默认入口。",
+          "confidence": "high"
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:initial_contract:__root__",
+        "matched_ledger_ids": [
+          "INS-0000-04"
+        ],
+        "false_positive": false,
+        "reason": "根层缺少有效无条件初始入口，与 INS-0000-04 的初始契约缺陷一致。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "hypothesis:0753aaef6dbf527a",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 HumanDrivingMode 应为简单状态而制品为复合状态；冻结台账没有状态种类错误条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:stable_termination:AutonomousMode.AutoFinal",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 AutoFinal 不是稳定终止目标；台账 EIS-0000-02 只把 AutoFinal 作为接管状态条件并批评其被塞入事件标签，不要求它是终态。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "hypothesis:bba4d39e4618d82f",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "与同格另一条重复主张 HumanDrivingMode 状态种类错误，冻结台账无对应条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:3ac31c3771a00f1c",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 HumanDrivingMode 的形式状态种类错误，冻结台账没有这一缺陷。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:stable_termination:FinalState",
+        "matched_ledger_ids": [
+          "EIS-0000-01"
+        ],
+        "false_positive": false,
+        "reason": "指认 NL 指定的 FinalState 不能提供真正终止，覆盖 EIS-0000-01 明述的错接后果。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:856e848a3e3962cb",
+        "matched_ledger_ids": [
+          "EIS-0000-01"
+        ],
+        "false_positive": false,
+        "reason": "明确主张 Power Off 的 FinalState 不提供所需终止行为，与 EIS-0000-01 中普通命名状态不真正终止的后果一致。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:reachable_deadlock:FinalState",
+        "matched_ledger_ids": [
+          "EIS-0000-01"
+        ],
+        "false_positive": false,
+        "reason": "FinalState 可达、非终态且无后继，正是台账所述冷启动 Power Off 落入普通无出边状态的行为后果。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:initial_contract:__root__",
+        "matched_ledger_ids": [
+          "INS-0000-04"
+        ],
+        "false_positive": false,
+        "reason": "根层缺少有效无条件初始入口，与 INS-0000-04 一致。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "hypothesis:32eab890f8edbc91",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张机器的初始目标不是 HumanDrivingMode，属于目标错误；INS-0000-04 主张的是初始边带触发导致无无条件入口，EIS-0000-01 则是 Power Off 边错接源端，输出未具体指认相同迁移及性质。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:transition:AutonomousMode:power off:FinalState",
+        "matched_ledger_ids": [
+          "EIS-0000-01"
+        ],
+        "false_positive": false,
+        "reason": "指认 AutonomousMode 缺少 Power Off 到 FinalState 的迁移，是错接源端造成的运行态断电通路缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 AutoNavigating 到 AutoFinal 的 Condition Met 迁移未获规格授权；冻结台账没有该额外行为条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "EIS-0000-02"
+        ],
+        "false_positive": false,
+        "reason": "同一接管迁移上的三项条件被合并为单一含糊标签，覆盖 EIS-0000-02。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0000-01"
+        ],
+        "false_positive": false,
+        "reason": "精确报告 Power Off 从初始伪状态出发而非运行态，且运行后无法关机。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 Condition Met 迁移未获规格定义，与冻结台账三条缺陷均非同一性质。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0000-01"
+        ],
+        "false_positive": false,
+        "reason": "精确报告 Power Off 源端错接及两个运行模式缺少断电通路。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "EIS-0000-02"
+        ],
+        "false_positive": false,
+        "reason": "精确报告三项接管内容处于一个不可执行的文本标签，且 AutoFinal 状态约束未结构化。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 AutoFinal 没有声明为最终/完成状态；EIS-0000-02 的性质是接管条件被合并进自由文本标签，并不要求 AutoFinal 本身为终态。",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "按“同一处且同一性质”逐项对齐。只描述台账缺陷的直接行为后果仍可命中，例如 FinalState 可达但不终止、运行态缺少 Power Off 通路；但仅共享背景元素、主张不同的状态种类/完成语义/额外 Condition Met，或把初始边的错误目标与初始边带触发混为一谈，均不计命中。"
+  },
+  "status": "ok",
+  "attempts": 1
+}

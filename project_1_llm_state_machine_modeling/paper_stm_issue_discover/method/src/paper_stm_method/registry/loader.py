@@ -1,0 +1,85 @@
+from __future__ import annotations
+
+import hashlib
+import json
+from importlib import resources
+from pathlib import Path
+from typing import Any
+
+from .model import Predicate, PredicateRegistry
+from .validation import validate_registry
+
+
+def load_registry(path: str | Path | None = None) -> PredicateRegistry:
+    registry_path = Path(path).resolve() if path is not None else None
+    raw_bytes = (
+        registry_path.read_bytes()
+        if registry_path is not None
+        else resources.files("paper_stm_method.resources")
+        .joinpath("predicate_registry.json")
+        .read_bytes()
+    )
+    raw: dict[str, Any] = json.loads(raw_bytes.decode("utf-8"))
+    validate_registry(raw)
+    source_catalog_value = raw.get("source_catalog_path")
+    source_catalog_path = None
+    if isinstance(source_catalog_value, str) and source_catalog_value.strip():
+        if registry_path is None:
+            catalog_bytes = (
+                resources.files("paper_stm_method.resources")
+                .joinpath("current_source_catalog.json")
+                .read_bytes()
+            )
+        else:
+            catalog_path = registry_path.parent / "current_source_catalog.json"
+            if not catalog_path.is_file():
+                raise FileNotFoundError(
+                    "explicit predicate registry requires a colocated current_source_catalog.json"
+                )
+            source_catalog_path = catalog_path
+            catalog_bytes = catalog_path.read_bytes()
+        catalog = json.loads(catalog_bytes.decode("utf-8"))
+        if not isinstance(catalog, dict) or catalog.get("registry_version") != raw.get("registry_version"):
+            raise ValueError("predicate source catalog does not match frozen registry")
+        source_ids = {
+            str(item.get("id"))
+            for item in catalog.get("sources", [])
+            if isinstance(item, dict) and isinstance(item.get("id"), str)
+        }
+        registered_source_ids = {
+            source_id
+            for family in raw["families"]
+            for predicate in family["predicates"]
+            for source_id in predicate["sources"]
+        }
+        if not registered_source_ids <= source_ids:
+            raise ValueError("predicate registry references an unknown scholarly provenance source")
+    predicates: dict[str, Predicate] = {}
+    families: dict[str, tuple[str, ...]] = {}
+    for family in raw["families"]:
+        ids: list[str] = []
+        for item in family["predicates"]:
+            predicate = Predicate(
+                id=item["id"],
+                name=item["name"],
+                family=family["id"],
+                semantics=item["semantics"],
+                inputs=tuple(item["inputs"]),
+                sources=tuple(item["sources"]),
+                source_types=tuple(item["source_types"]),
+                soundness_fragment=(
+                    f"{family['label']}: {item['semantics']} "
+                    "This claim holds only over the declared closed inputs and boundary."
+                ),
+            )
+            predicates[predicate.id] = predicate
+            ids.append(predicate.id)
+        families[family["id"]] = tuple(ids)
+    return PredicateRegistry(
+        version=raw["registry_version"],
+        registry_hash="sha256:" + hashlib.sha256(raw_bytes).hexdigest(),
+        predicates=predicates,
+        families=families,
+        raw=raw,
+        source_catalog_path=source_catalog_path,
+    )

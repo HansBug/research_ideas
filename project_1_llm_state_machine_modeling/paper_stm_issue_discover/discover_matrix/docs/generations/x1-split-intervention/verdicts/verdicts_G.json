@@ -1,0 +1,108 @@
+[
+  {
+    "pair": "0039",
+    "verdicts": [
+      {
+        "record_id": "EIS-0039-01",
+        "arm": "甲",
+        "hit": true,
+        "equivalence_form": "直接对应",
+        "argument": "台账 EIS-0039-01 的命题是：作者源缺少 NL3 逐字要求的 enter_hwy --> lane_change 声明边（primary_predicate = edge_declared），lane_change 被降级为只能经 cruise 二次到达。产出 甲 的 issue [1] 标题即『enter_hwy 缺少在 dist_to_front<25 && extra_lane=true 触发下到 lane_change 的声明边』，论证写明『模型中 enter_hwy 仅有到 cruise 的无条件迁移，而带该触发的 lane_change 迁移仅声明在 cruise 上，未在 enter_hwy 上声明，edge_declared 返回 False』——源态、目标态、守卫变量、谓词四者与台账完全一致，连『只能从 cruise 到达』这一降级描述都相同。作者源里 enter_hwy 在状态命名空间只被引用两次（第 34 行 [*] --> enter_hwy、第 36 行 enter_hwy --> cruise），两个主张锚在同一条『enter_hwy 只写了一条出边』的作者编辑上。属同一处失误的直接对应，未踩 §2.2 任何禁止项。",
+        "note": ""
+      },
+      {
+        "record_id": "EIS-0039-01",
+        "arm": "乙",
+        "hit": false,
+        "equivalence_form": null,
+        "argument": "该格运行失败，无任何已发布 issue。",
+        "note": "失败类型：DiscoverGraphFailed —— Discover graph failed at split_requirements，RuntimeError: ValidationError: 1 validation error for RequirementSet，requirements 字段 Input should be a valid tuple（type=tuple_type，实际收到 str）"
+      },
+      {
+        "record_id": "EIS-0039-01",
+        "arm": "丙",
+        "hit": false,
+        "equivalence_form": null,
+        "argument": "该格运行失败，无任何已发布 issue。",
+        "note": "失败类型：DiscoverGraphFailed —— Discover graph failed at split_requirements，RuntimeError: ValidationError: 2 validation errors for RequirementSet，requirements.0 与 requirements.40 均为 predicate 'edge_declared' requires bindings ['source','trigger','target']; missing or empty: ['trigger']（type=value_error）"
+      },
+      {
+        "record_id": "EIS-0039-02",
+        "arm": "甲",
+        "hit": false,
+        "equivalence_form": null,
+        "argument": "台账 EIS-0039-02 的命题是：作者源第 64、65 行的 AutonomousMode --> HighwayMode : high_way=true 与 AutonomousMode --> UrbanMode : urban_way=true 这两条外层边在 UML 语义下从 AutonomousMode 任意配置都使能，投影为自环加重入，会把已推进的子态进度复位，属 NL 未授权的过度规定（primary_predicate = guard_distinguishable）。产出 甲 只发布了三条 issue：[1] 关于 enter_hwy 缺边，[2] 关于 collision_avoidance_deactive→active 迁移把四个原子触发压合成单一融合事件，[3] 关于 active→deactive 迁移把三个 inactive 信号压合成单一融合事件。三条中没有任何一条指向第 64/65 行这两条外层迁移，也没有任何一条谈及使能条件不可区分、自环重入或子态进度复位。不存在『产出为假蕴含台账为假』的蕴含链：融合事件未拆分为假，与两条外层边是否过度规定在逻辑上互不相干（§2.5 告诫：元素重叠或区域相同都不构成蕴含，此处连元素都不重叠）。判不命中。",
+        "note": ""
+      },
+      {
+        "record_id": "EIS-0039-02",
+        "arm": "乙",
+        "hit": false,
+        "equivalence_form": null,
+        "argument": "该格运行失败，无任何已发布 issue。",
+        "note": "失败类型：DiscoverGraphFailed —— Discover graph failed at split_requirements，RuntimeError: ValidationError: 1 validation error for RequirementSet，requirements 字段 Input should be a valid tuple（type=tuple_type，实际收到 str）"
+      },
+      {
+        "record_id": "EIS-0039-02",
+        "arm": "丙",
+        "hit": false,
+        "equivalence_form": null,
+        "argument": "该格运行失败，无任何已发布 issue。",
+        "note": "失败类型：DiscoverGraphFailed —— Discover graph failed at split_requirements，RuntimeError: ValidationError: 2 validation errors for RequirementSet，requirements.0 与 requirements.40 均为 predicate 'edge_declared' requires bindings ['source','trigger','target']; missing or empty: ['trigger']（type=value_error）"
+      }
+    ]
+  },
+  {
+    "pair": "0056",
+    "verdicts": [
+      {
+        "record_id": "EIS-0056-01",
+        "arm": "甲",
+        "hit": false,
+        "equivalence_form": null,
+        "argument": "台账 EIS-0056-01 的命题是：同一 Intercepted 事件在同一活动配置下有两个无区分守卫的可达目标——作者源第 26 行区域内 NoIntercept --> Intercepted : Intercepted 与第 30 行 composite 出边 SearchState --> FormationAdjustment : Intercepted 构成不可区分的冲突目标（guard_distinguishable）。产出 甲 已发布三条：[1] SearchState 直接子状态计数超出三个搜索区域（cardinality(SearchState,3) 为假）、[2] SearchState 初始入口未直接指向任一搜索区域、[3] 未声明 uav_count。[1] 与本条虽然都触及 NoIntercept/Intercepted 这两个名字，但它表达的命题是『SearchState 直接子状态是 5 个而非 3 个』，与『同一事件的两个目标无守卫区分』是两个不同命题：子状态计数为假既不蕴含也不被蕴含于守卫可区分性为假（可以想象一个只含三个区域、但仍在区域内外同挂 Intercepted 的模型，计数正确而冲突仍在）。这正是 §2.2 第一项点名禁止的『不同缺陷共用状态名：子状态计数的发现不算作该状态内迁移目标错误的命中』。[2] 谈的是初始入口边，[3] 谈的是变量缺失，均与本条无关。判不命中。",
+        "note": "属『发现了但没发布』：被归因策略排除的 9 条里，ISSUE-REPDEBT-REQ-007/008/009-occupancy（AreaX 在 Intercepted 下未观测到进入 FormationAdjustment）与 ISSUE-REPDEBT-REQ-016-edge（Area1 -> FormationAdjustment 直接边缺失）正是本条冲突的运行期可观测后果（内层胜出则 NL 第 3 句不成立），但均被判 representation_debt（证据触及编译器所有的 R45RouteToken）而未发布。需说明：其 rationale 把成因归给编译器路由令牌而非区域内外的 Intercepted 冲突，故即便发布也未必表达同一命题。按 §三，此类一律不计命中。"
+      },
+      {
+        "record_id": "EIS-0056-01",
+        "arm": "乙",
+        "hit": false,
+        "equivalence_form": null,
+        "argument": "台账 EIS-0056-01 要求的是『Intercepted 事件在区域内目标与 composite 出边目标之间不可区分』这一冲突命题。产出 乙 已发布两条：[1] SearchState 直接子状态数量不等于 3（cardinality(scope=SearchState,count=3) 返回 False，因并发区域额外声明 NoIntercept 与 Intercepted）、[2] 未声明 uav_count。[1] 与 甲[1]、丙[1] 是同一类命题，按与 甲 完全相同的尺度处理：子状态计数为假不蕴含守卫不可区分为假，且属 §2.2 第一项明令禁止的『子状态计数发现 ≠ 该状态内迁移目标错误』。[2] 与本条无关。乙 没有任何一条已发布 issue 主张两条 Intercepted 迁移同时使能或目标冲突。判不命中。",
+        "note": "属『发现了但没发布』：被归因策略排除的 2 条里，ISSUE-REQ-005-representation-debt『SearchState 收到 Intercepted 后未到达 FormationAdjustment（不可归因于作者模型）』是本条冲突的运行期后果，primary 为 False 但 attribution 判为 representation_debt（证据触及 R45RouteToken）而未发布。按 §三不计命中。"
+      },
+      {
+        "record_id": "EIS-0056-01",
+        "arm": "丙",
+        "hit": false,
+        "equivalence_form": null,
+        "argument": "台账 EIS-0056-01 的命题是 Intercepted 事件的两个可达目标（第 26 行区域内 Intercepted 态、第 30 行到 FormationAdjustment 的 composite 出边）无守卫区分、构成冲突。产出 丙 已发布三条：[1] SearchState 未恰好声明三个搜索区域子状态（直接子状态计数为 5，cardinality(SearchState,3)=False）、[2] SearchState 的入口未指向任一已声明区域子状态、[3] 缺少 uav_count 及其递减效应。[1] 按与 甲[1]、乙[1] 完全相同的尺度判：它主张的是计数命题，不蕴含守卫不可区分命题，且落在 §2.2 第一项禁止范围内；其修复建议『将拦截相关正交区域拆出 SearchState 外部』也只是修复手段的重叠，而 §2.3 明确禁止用『修复后台账缺陷是否消失』当判据。[2] 关于初始入口，[3] 关于变量与 effect，均与本条无关。判不命中。",
+        "note": "属『发现了但没发布』：被归因策略排除的 4 条里，ISSUE-REQ-006-repr-debt『Intercepted 未能从 SearchState 迁移到 FormationAdjustment（归因为表示债）』是本条冲突的运行期后果（occupancy_after 未在 2 周期内到达 FormationAdjustment），因归因涉及编译器路由变量 R45RouteToken 被标记 representation_debt 未发布。按 §三不计命中。"
+      },
+      {
+        "record_id": "EIS-0056-02",
+        "arm": "甲",
+        "hit": true,
+        "equivalence_form": "直接对应",
+        "argument": "台账 EIS-0056-02 的命题（见其 NL 依据末句）是：effect_declared(source=AttackState, trigger=Attack_Complete, variable=uav_count, sign='negative') = False —— 作者把递减写进了 UML 的 guard 槽位 [Decrease UAV Count]（作者源第 34 行）而非 effect 槽位 /，故该迁移在声明层没有对 uav_count 的负向效果。产出 甲 的 issue [3] 论证逐字写道『对 REQ-015，AttackState -> SearchState 迁移未在声明层声明对 uav_count 的负向效果（effect_declared 返回假）』，并把涉及元素列为 uav_count、AttackState、Attack_Complete_Decrease_UAV_Count（该融合事件名正是第 34 行 guard 槽位内容被吸收后的产物，证明两者锚在同一条作者编辑上——第 34 行在作者源中只出现一次）。谓词、源态、触发、变量、符号五项全部对齐，属同一命题的直接对应。其额外提出的『uav_count 变量根本未声明』是更上游的成因（形态 ④ 亦成立：无变量则不可能有该变量的负向 effect），但因已存在逐字同谓词主张，按 直接对应 记。",
+        "note": ""
+      },
+      {
+        "record_id": "EIS-0056-02",
+        "arm": "乙",
+        "hit": true,
+        "equivalence_form": "蕴含更根本的原因",
+        "argument": "台账 EIS-0056-02 的命题是 effect_declared(AttackState, Attack_Complete, uav_count, negative) = False。产出 乙 的 issue [2] 主张『模型中未声明任何作者变量（R45RouteToken 为转换器路由变量，不承载 UAV 数量语义）』，即 variable_declared(uav_count) = False，并说明该缺失使 Attack_Complete_Decrease_UAV_Count 后的负向变化主张无法承载，修复方式为『声明一个整型变量表示无人机数量，并在 Attack_Complete_Decrease_UAV_Count 转移上添加递减效应』。蕴含链：模型中不存在名为 uav_count 的作者变量 ⟹ 任何迁移都不可能声明对该变量的负向 effect ⟹ 台账的 effect_declared 断言必为假。这正是 §2.1 形态 ④ 的教科书例子（台账『该边应有变量下降』，产出『模型根本没声明该变量』），且 §2.5 明确告诫此形态容易被误判为不命中。产出锁定的迁移标识 Attack_Complete_Decrease_UAV_Count 与台账所指的作者源第 34 行同一条语句一致——该行全文只出现一次。不确定点：乙 未像 甲/丙 那样显式点出 effect_declared 谓词本身为假，也未指出『递减被误放进 guard 槽位』这一记法诊断；但按 §2.2 检查，它既不是更弱的命题（变量缺失严格蕴含 effect 缺失，而非反向蕴含），也没有用结构存在性冒充行为验证，故仍判命中。",
+        "note": ""
+      },
+      {
+        "record_id": "EIS-0056-02",
+        "arm": "丙",
+        "hit": true,
+        "equivalence_form": "直接对应",
+        "argument": "台账 EIS-0056-02 的命题是 effect_declared(AttackState, Attack_Complete, uav_count, negative) = False。产出 丙 的 issue [3] 标题即『缺少表示 UAV 数量的作者变量及其在攻击完成时的减少效应』，论证逐字写道『AttackState 上 Attack_Complete_Decrease_UAV_Count 转移未声明对该变量的负向效应，effect_declared=False』，并同时给出更上游的 variable_declared(uav_count)=False。谓词名、源态、触发、变量、符号与台账断言逐项对齐，涉及元素同样锁定 Attack_Complete_Decrease_UAV_Count——即作者源第 34 行把递减误写进 guard 槽位后被吸收成的事件名，该行全文仅出现一次，两主张锚在同一条作者编辑上。属直接对应；其变量缺失部分另可按形态 ④ 独立成立，不改变命中结论。",
+        "note": ""
+      }
+    ]
+  }
+]

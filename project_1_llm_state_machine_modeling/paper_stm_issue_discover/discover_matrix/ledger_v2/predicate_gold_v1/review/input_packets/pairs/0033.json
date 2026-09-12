@@ -1,0 +1,268 @@
+{
+  "instructions": [
+    "Recover obligation O from the complete NL, author PlantUML, ledger reasoning, and cited formal semantics before proposing any executable property.",
+    "Do not infer inputs from state-name similarity, old planned mappings, v60 actual outputs, reference models, or execution results.",
+    "State missing quantifier, scope, timing, domain, bound, or environment information explicitly instead of inventing it."
+  ],
+  "ledger_items": [
+    {
+      "axes": {
+        "defect_element": "state",
+        "defect_locus": "element",
+        "defect_logic_kind": null,
+        "defect_qualifier": "incorrect",
+        "defect_reference": "requirement"
+      },
+      "d_basis": "判 D2。被违反的义务有成文出处，即 NL 第 2 句的 Within 一词。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法——三个状态在根作用域被创建是 PlantUML 作用域规则的确定结果，不存在「其实它们在里面」的解释余地；也不能诉诸直接／后代口径之争来化解，因为它们根本不在 PumpControl 的任何层级下。反驳不存活。",
+      "d_tier": "D2",
+      "detail": "NL 第 2 句逐字为「Within the PumpControl state, there are three main substates: PumpState, WaterState, and MethaneState.」——Within 一词明确了包含关系。\n\n制品在根层写了三行：`:3 PumpControl -down-> PumpState : Activate Pump`、`:4 PumpControl -down-> WaterState : Monitor Water Flow`、`:5 PumpControl -down-> MethaneState : Monitor Methane Flow`。这三行都在任何 `state X { }` 块之外，所以三个目标状态是在根作用域被创建的，与 `PumpControl` 平级。\n\n后面 `:7`、`:12`、`:17` 三处虽然都写了 `state PumpControl {`，块内也提到了这三个名字，但那些名字此时已经在根作用域存在了，块内的引用不会把它们迁进来。\n\n这条与「直接子态还是后代状态」之争无关——三者不在 `PumpControl` 内部的任何层级上，无论按哪种口径数都不是它的子孙。",
+      "l_basis": "判 L1。陈述这条错误需要导出一个静态结构事实：按 PlantUML 的作用域规则，`:3`-`:5` 三行在根作用域创建了三个状态，因此它们的父是根而不是 `PumpControl`。这要把解析规则应用一遍并看清 `:7`/`:12`/`:17` 三个块并不会改变父；但它只涉及静态切面上的包含关系，不需要执行序列，故不到 L2。",
+      "l_tier": "L1",
+      "ledger_id": "EIS-0033-01",
+      "ledger_json_pointer": "/items/EIS-0033-01",
+      "origin_family": "expected_issue（原台账已记录）",
+      "pair_id": "0033",
+      "source_text": {
+        "l_basis_rule": "三个子态被声明为兄弟 —— 层次归属静态导出",
+        "l_decided_by": "人工逐条",
+        "meta_review": "**判 D2**：三臂一致认定它违反了 NL 里这句「Within the PumpControl state, there are three main substates: PumpState, WaterState, and M」，且三方都尝试过推翻、都没找到站得住的第二种读法 —— 义务有成文条文可引、反驳不存活，是 `D2-lit`。",
+        "statement": "NL 2 明确 \"Within the PumpControl state, there are three main substates: PumpState, WaterState, and MethaneState\"。生成侧把三者声明成了 PumpControl 的兄弟而非子态，层次归属整体错位。这与直接子态/后代状态之争无关——它们根本不在 PumpControl 内部的任何层级。",
+        "verdict_reason": null
+      },
+      "summary": "NL 第 2 句要求 `PumpState`、`WaterState`、`MethaneState` 是 `PumpControl` 的子态，而制品在 `:3`-`:5` 把它们建成了 `PumpControl` 的兄弟——三者根本不在 PumpControl 内部的任何层级。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0002/0033.md",
+        "sha256": "sha256:f3c16f2351b36126670c3385575e4522b8f403920a9d234b8e7228779582f9b7"
+      }
+    },
+    {
+      "axes": {
+        "defect_element": "transition",
+        "defect_locus": "element",
+        "defect_logic_kind": null,
+        "defect_qualifier": "other",
+        "defect_reference": "language"
+      },
+      "d_basis": "判 D2。被违反的义务有两个来源，任一单独成立。其一来自 NL 第 3 句要求的首个落点。其二来自建模语言：区域的默认入口边其目标必须属于该区域，且一个区域只能有一个默认入口——两条都是二值的良构约束。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法。反驳不存活。",
+      "d_tier": "D2",
+      "detail": "NL 第 3 句逐字为「The system first transitions to the PumpState substate, where the pump is activated or controlled.」，要求进入 PumpControl 后首先到达 PumpState。\n\n制品的写法有两个叠加的问题。第一，`state PumpControl {` 这一句写了三遍（`:7`、`:12`、`:17`），PlantUML 会把三次的内容合并到同一个状态里，于是 `PumpControl` 内部同时有三条默认入口边：`:8 [*] --> PumpState`、`:13 [*] --> WaterState`、`:18 [*] --> MethaneState`。一个区域只能有一个默认入口，三条并存使默认进入点不唯一。\n\n第二，三条边的目标 `PumpState`、`WaterState`、`MethaneState` 在 `:3`-`:5` 已经于根作用域被创建（见 EIS-0033-01），所以它们不是 `PumpControl` 的子态。默认入口边的目标必须落在同一区域内，三条都越界了。投影因此把三条都替换成了无效标记。\n\n合起来的后果是：`PumpControl` 没有任何有效的默认进入点，NL 第 3、4、5 句描述的三个进入动作在 PumpControl 的入口处一个都实现不了。\n\n本条与 EIS-0033-01 是两处不同的缺陷：那一条说三个状态的层次归属错了，本条说 PumpControl 的默认入口既越界又不唯一。修法不同——把三个状态挪进 PumpControl 能解决前者，但三条并存的默认入口仍然是问题。",
+      "l_basis": "判 L1。陈述这条错误需要导出两个静态事实：三条初始边的目标按作用域规则不属于 `PumpControl`，以及三次重复打开同一个块使得该区域有三条默认入口。两者都要把 PlantUML 的作用域与合并规则应用一遍才能得出，比查名字在不在深一层；但只涉及静态切面，不需要执行序列，故不到 L2。",
+      "l_tier": "L1",
+      "ledger_id": "EIS-0033-02",
+      "ledger_json_pointer": "/items/EIS-0033-02",
+      "origin_family": "expected_issue（原台账已记录）",
+      "pair_id": "0033",
+      "source_text": {
+        "l_basis_rule": "三条初始边目标越出子作用域、默认进入点不唯一 —— 作用域与唯一性的静态事实",
+        "l_decided_by": "人工逐条",
+        "meta_review": "**判 D2**：三臂一致认定它违反了 NL 里这句「The system first transitions to the PumpState substate, where the pump is activated or con」，且三方都尝试过推翻、都没找到站得住的第二种读法 —— 义务有成文条文可引、反驳不存活，是 `D2-lit`。",
+        "statement": "NL 3 要求系统首先进入 PumpState。生成侧的三条初始边目标全部越出了 PumpControl 的子作用域，投影因此把它们替换成三个 Invalid 标记——PumpControl 没有任何有效的默认进入点，NL 3/4/5 描述的三个进入动作在 PumpControl 的入口处一个都无法实现。同时三条初始边并存本身也使默认进入点不唯一。",
+        "verdict_reason": null
+      },
+      "summary": "`PumpControl` 被重复打开了三次（`:7`、`:12`、`:17`），三个块内各写了一条默认入口边（`:8`、`:13`、`:18`），三条的目标都是在根作用域创建的状态——目标越出了子作用域，且默认进入点不唯一。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0002/0033.md",
+        "sha256": "sha256:f3c16f2351b36126670c3385575e4522b8f403920a9d234b8e7228779582f9b7"
+      }
+    },
+    {
+      "axes": {
+        "defect_element": "trigger",
+        "defect_locus": "element",
+        "defect_logic_kind": null,
+        "defect_qualifier": "extraneous",
+        "defect_reference": "language"
+      },
+      "d_basis": "判 D2。被违反的义务来自建模语言：UML 2.5.1 规定初始伪状态的出边不得带触发或守卫，这是一条二值条款。同文件对照定案：`:8`/`:13`/`:18` 三条内层初始边都是裸边，只有顶层 `:2` 刻意带了 `begin`，说明作者区分得开两种写法；而 `begin` 描述的是系统激活、不是机器内部 effect，触发读法成立。需要如实记下：本条最初的 meta review 称「`begin` 已列入某份名词性事件名示例词表」，经核那份示例并不存在，不作为依据；改按上面的语言规定与同文件对照定案，结论不变。",
+      "d_tier": "D2",
+      "detail": "`:2` 是全文唯一的根层初始边，冒号后带了 `begin`。UML 2.5.1 规定从初始伪状态出发的迁移不得带触发事件也不得带守卫。后果是这台机器没有确定的启动状态：在 `begin` 到达之前它不处在任何状态里。\n\n同文件内部提供了对照：`:8 [*] --> PumpState`、`:13 [*] --> WaterState`、`:18 [*] --> MethaneState` 三条内层初始边全部是裸的、不带任何标签。作者知道两种写法的区别，`:2` 上的标签是刻意放的。\n\n从语义看，`begin` 描述的是系统被激活这件事本身，而不是机器内部要执行的某个动作，所以它按触发读而不是按 effect 读。\n\n有两点排雷需要一并记下，以免判读被工具输出误导。其一，诊断对象名 `llms_emp_feedback_final_0033` 不在作者源里——那是任何模型都必有的图根包装名（来自文件名），不是被凭空造出来的状态；被指控的那条边完全落在作者源的 `:2` 上。其二，工具给出的修复建议里提到的 `InvalidFinaltr_0006` 是投影合成的状态，那条修复建议被污染了，但 finding 本身不受影响。\n\n正确的修法是把 `:2` 改成无条件的初始边（删掉 `begin`），不是再补第二条。",
+      "l_basis": "判 L0。陈述这条错误只需就地读 `:2` 这一行，看 `[*] -->` 后面的冒号有没有跟内容——纯词法层面的模式匹配。配套的同文件对照同样只是读另外三行。不需要从模型结构导出新事实，也不需要执行序列。",
+      "l_tier": "L0",
+      "ledger_id": "INS-0033-01",
+      "ledger_json_pointer": "/items/INS-0033-01",
+      "origin_family": "pyfcstm inspect 诊断归一化",
+      "pair_id": "0033",
+      "source_text": {
+        "l_basis_rule": "NL 点名的元素模型没有／模型多出 NL 未点名的元素 —— 词项对比即可陈述",
+        "l_decided_by": "规则档",
+        "meta_review": "顶层唯一初始边标签 `begin` 正是同族既有处理 列举的名词性事件名示例之一，应判触发读法，判 D2。",
+        "statement": "整个模型没有无条件默认入口：顶层唯一的初始边 `[*] -down-> PumpControl : begin` 挂了触发事件 `begin`。UML 2.5.1 规定初始伪状态的出边不得带 trigger/guard；pyfcstm 的 `is_unconditional` 同样要求 guard 与 event 皆空，`existing_conditional_count=1` 与作者源只有这一条顶层初始边吻合。改对是把这条边改成无条件（或另补一条无条件 `[*] -->`），编辑方向是新增/改写一条边。⚠️ 两点供判读者留意：① 诊断对象名 `llms_emp_feedback_final_0033` 不在作者源里，它是任何 fcstm 模型都必有的图根包装名（来自文件名），不是被投影凭空造出来的状态——被指控的那条边完全落在作者源 :2 上；② 工具给出的修复建议里 `first_child_name=InvalidFinaltr_0006` 是投影合成态，**修复建议被污染了**，但 finding 本身不受影响。",
+        "verdict_reason": "判 D2-lang：本文件 :8/:13/:18 三条内层初始边均为裸边，只有顶层 :2 刻意带 `begin`，同文件对照说明作者知道两种写法的区别；`begin` 又描述系统激活而非机器内部 effect，故 trigger 读法成立并违反初始伪态出边不得带 trigger/guard 的二值条款。原 meta 所称“begin 已列入 §6.5 示例词”并不存在，不作为依据。"
+      },
+      "summary": "顶层唯一的初始边 `:2 [*] -down-> PumpControl : begin` 挂了触发事件 `begin`，而 UML 2.5.1 规定初始伪状态的出边不得带触发或守卫——整个模型没有无条件的默认入口。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0002/0033.md",
+        "sha256": "sha256:f3c16f2351b36126670c3385575e4522b8f403920a9d234b8e7228779582f9b7"
+      }
+    }
+  ],
+  "ledger_sha256": "sha256:b5a38d3d24a51e980e5b9f5afc7c8c66aded59f3b51f16afe67e0deb592d0e36",
+  "metadata_refs": [
+    {
+      "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0033/source_meta.json",
+      "role": "SOURCE_META",
+      "selected_fields": {
+        "selected_stage": "phase_ii_semantic",
+        "source_locator": "sheet=STM Results; row=33; excel_row=35; selected_cell=AE35; selected=Result with Semantic Checking",
+        "source_pair_id": "llms_emp_feedback_final_0033",
+        "stm0_role": "author_feedback_final_plantuml"
+      },
+      "sha256": "sha256:5316bae6454924487876dad42170e1cd7b7f8a0d7e148bfb807f69b9693a896a"
+    },
+    {
+      "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0033/fcstm_meta.json",
+      "role": "FCSTM_META",
+      "selected_fields": {
+        "academic_eligible": false,
+        "academic_ineligibility_reason": "whole_model_behavior_equivalence_and_simulation_not_claimed; use only the working-contract attribution-scoped source-static capability",
+        "artifact_role": "r4_5_attribution_scoped_discover_input",
+        "parse_status": "ok",
+        "simulation_status": "ineligible",
+        "source_static_discover_eligible": true
+      },
+      "sha256": "sha256:37bc315506feaee1f86d9335aded4eac8fdcac8bc011ee7f06ed6de0f28ae865"
+    }
+  ],
+  "nl": {
+    "lines": [
+      {
+        "number": 1,
+        "text": "1. The system begins in the PumpControl state, from which it can transition to different substates based on specific conditions."
+      },
+      {
+        "number": 2,
+        "text": "2. Within the PumpControl state, there are three main substates: PumpState, WaterState, and MethaneState."
+      },
+      {
+        "number": 3,
+        "text": "3. The system first transitions to the PumpState substate, where the pump is activated or controlled."
+      },
+      {
+        "number": 4,
+        "text": "4. The system can also transition to the WaterState substate, indicating that the pump is controlling or monitoring the water flow."
+      },
+      {
+        "number": 5,
+        "text": "5. Similarly, the system can transition to the MethaneState substate, indicating that the pump is controlling or monitoring the methane flow."
+      }
+    ],
+    "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0033/nl.txt",
+    "role": "AUTHOR_NL",
+    "sha256": "sha256:a391765dba935d89e6d2467c97b218c0136d106ea9c00bac91e6525e28ac04f1"
+  },
+  "packet_sha256": "sha256:531ff91ad586f3c27e5ab3b5b8611c91d524b60759b40f4acf0ff925ff37f6c7",
+  "pair_id": "0033",
+  "plantuml": {
+    "lines": [
+      {
+        "number": 1,
+        "text": "@startuml"
+      },
+      {
+        "number": 2,
+        "text": "[*] -down-> PumpControl : begin"
+      },
+      {
+        "number": 3,
+        "text": "PumpControl -down-> PumpState : Activate Pump"
+      },
+      {
+        "number": 4,
+        "text": "PumpControl -down-> WaterState : Monitor Water Flow"
+      },
+      {
+        "number": 5,
+        "text": "PumpControl -down-> MethaneState : Monitor Methane Flow"
+      },
+      {
+        "number": 6,
+        "text": ""
+      },
+      {
+        "number": 7,
+        "text": "state PumpControl {"
+      },
+      {
+        "number": 8,
+        "text": "[*] --> PumpState"
+      },
+      {
+        "number": 9,
+        "text": "PumpState --> [*] : Pump Deactivated"
+      },
+      {
+        "number": 10,
+        "text": "}"
+      },
+      {
+        "number": 11,
+        "text": ""
+      },
+      {
+        "number": 12,
+        "text": "state PumpControl {"
+      },
+      {
+        "number": 13,
+        "text": "[*] --> WaterState"
+      },
+      {
+        "number": 14,
+        "text": "WaterState --> [*] : Water Flow Stabilized"
+      },
+      {
+        "number": 15,
+        "text": "}"
+      },
+      {
+        "number": 16,
+        "text": ""
+      },
+      {
+        "number": 17,
+        "text": "state PumpControl {"
+      },
+      {
+        "number": 18,
+        "text": "[*] --> MethaneState"
+      },
+      {
+        "number": 19,
+        "text": "MethaneState --> [*] : Methane Flow Stabilized"
+      },
+      {
+        "number": 20,
+        "text": "}"
+      },
+      {
+        "number": 21,
+        "text": "@enduml"
+      }
+    ],
+    "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0033/stm0.puml",
+    "role": "AUTHOR_PLANTUML",
+    "sha256": "sha256:2404401116a5260b2f403016514c6c1a82cf79ed05ff8de1c92830b926dee2b0"
+  },
+  "schema_version": "paper1.predicate-gold.review-input-packet.v1",
+  "visibility": {
+    "execution_results_visible": false,
+    "other_track_conclusions_visible": false,
+    "planned_predicate_mapping_visible": false,
+    "v60_actual_predicate_visible": false
+  }
+}

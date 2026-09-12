@@ -1,0 +1,161 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0031",
+  "ledger": [],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "ok",
+      "findings": []
+    },
+    {
+      "cell": "method_run2",
+      "status": "ok",
+      "findings": []
+    },
+    {
+      "cell": "method_run3",
+      "status": "ok",
+      "findings": []
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型将“信号反馈已发送后返回初始状态”的转移错误地施加到了 BrakingState。",
+          "reason": "规格说明反馈发送后返回初始状态，但上下文是信号传输失败后进入运行状态的恢复路径；制动状态进入后必须继续转移到制动钳夹紧状态。该额外转移允许制动状态在尚未进入制动钳夹紧状态时直接返回初始状态，绕过规格第3条规定的必经步骤。",
+          "where": "`BrakingState --> InitialState : Signal Feedback Sent`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "模型为 ClampingState 增加了规格未定义且语义不明的反馈转移。",
+          "reason": "规格只规定进入制动钳夹紧状态，没有规定制动钳夹紧状态因“缺少反馈”返回初始状态，也没有定义该故障条件。该转移引入了自然语言规格之外的行为，并且其标签不是规格中的“Signal Feedback Sent”。",
+          "where": "`ClampingState --> InitialState : Transition Missing Feedback`"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型增加了从制动钳夹紧状态返回初始状态的“Transition Missing Feedback”迁移。",
+          "reason": "规范只说明进入制动钳夹紧状态，并未规定“缺少反馈”会触发迁移；该额外条件和行为没有规范依据，因而模型行为超出规范。",
+          "where": "ClampingState --> InitialState : Transition Missing Feedback"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "模型没有为制动钳夹紧状态定义“信号反馈已发送”后返回初始状态的迁移。",
+          "reason": "规范规定信号反馈发送后返回初始状态。制动流程在进入夹紧状态后仍属于该制动装置的状态流程，模型却只在夹紧态设置了未定义的“Transition Missing Feedback”返回条件，不能实现规范所述的反馈返回语义。",
+          "where": "制动钳夹紧状态的反馈返回路径"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "迁移标签“Brake Signal Received”基本符合规格，但模型未明确该迁移是从初始状态发生；这一点在结构上已由源状态体现，因此不构成实质问题。",
+          "reason": "规格要求收到制动信号后从初始状态进入制动状态，模型正是该方向。",
+          "where": "InitialState 到 BrakingState 的迁移"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "模型增加了从制动状态直接返回初始状态的“Signal Feedback Sent”迁移。",
+          "reason": "规格只说明进入制动状态后转入制动钳夹紧状态，并说明信号反馈发送后返回初始状态；未规定制动状态可以绕过制动钳夹紧状态直接返回初始状态，因此该额外路径允许了规格未定义的行为。",
+          "where": "BrakingState 到 InitialState 的迁移"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "模型用“Transition Missing Feedback”作为从制动钳夹紧状态返回初始状态的触发条件。",
+          "reason": "规格仅规定“信号反馈发送后”返回初始状态；“缺少反馈”不是规格规定的返回条件，且该标签语义与要求相反。",
+          "where": "ClampingState 到 InitialState 的迁移"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "制动钳夹紧状态没有按“信号反馈发送”条件返回初始状态，而是按“Transition Missing Feedback”返回。",
+          "reason": "进入制动状态后必须转入制动钳夹紧状态；若反馈在该流程后发送，模型应表达由反馈发送触发的返回初始状态，否则无法完整实现规格定义的闭环。",
+          "where": "ClampingState 的后续行为"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0031",
+    "ledger_assessments": [],
+    "emission_assessments": [
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有任何预期条目可供该输出在同一位置、同一性质上覆盖。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有任何预期条目可供该输出在同一位置、同一性质上覆盖。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有任何预期条目可供该输出在同一位置、同一性质上覆盖。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有任何预期条目可供该输出在同一位置、同一性质上覆盖。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有任何预期条目可供该输出在同一位置、同一性质上覆盖。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有任何预期条目可供该输出在同一位置、同一性质上覆盖。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有任何预期条目可供该输出在同一位置、同一性质上覆盖。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有任何预期条目可供该输出在同一位置、同一性质上覆盖。",
+        "confidence": null
+      }
+    ],
+    "pair_reason": "冻结台账条目集合为空，因此六个输出格均无可命中的台账条目；方法侧三轮无输出，基线侧列出的八条 issue 均无法对应冻结预期集合，全部判为 false positive。"
+  },
+  "status": "ok",
+  "attempts": 1
+}

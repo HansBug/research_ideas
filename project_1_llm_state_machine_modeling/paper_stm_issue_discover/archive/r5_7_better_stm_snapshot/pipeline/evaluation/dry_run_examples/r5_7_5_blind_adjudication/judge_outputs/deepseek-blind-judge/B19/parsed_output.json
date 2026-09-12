@@ -1,0 +1,102 @@
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B19",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "deepseek-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "not_better",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "NL describes a discrete-event braking device state machine with event-driven transitions (brake signal received, signal transmission fails, signal feedback sent, entering clamping state). No continuous time, real-time duration, timed-automata invariants, or periodic tick/timer cues are present. This is a standard T0 protocol case; no T0.5 caveat or T1 stress applies.",
+      "evidence_references": [
+        "NL",
+        "canonical STM_0"
+      ]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "Mechanical checks confirm baseline_file_present=true, candidate_file_present=true, candidate_parse_status=parse_ok. Provenance checks confirm change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true. Candidate is parseable and auditable.",
+      "evidence_references": [
+        "candidate STM_k",
+        "input_packet mechanical_checks",
+        "input_packet provenance_checks"
+      ]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "Candidate STM_k is not byte-identical to canonical STM_0 (candidate_same_as_canonical_stm0=false). Changes are attributable: candidate removes the event declaration 'Signal_Transmission_Fails' and the transition 'InitialState -> OperationalState : Signal_Transmission_Fails'. These are structural deletions, not normalization/formatting conversions.",
+      "evidence_references": [
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G3": {
+      "status": "fail",
+      "reason": "Candidate deletes the event 'Signal_Transmission_Fails' and the transition 'InitialState -> OperationalState : Signal_Transmission_Fails'. NL explicitly states 'If the signal transmission fails, it proceeds to the operational state' (NL line 2). This is an NL-supported transition that the candidate removes, leaving OperationalState with zero incoming transitions and thus unreachable. This constitutes a clear regression: NL-supported behavior (a state, a transition, and its trigger event) is destroyed.",
+      "evidence_references": [
+        "NL",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G4": {
+      "status": "fail",
+      "reason": "No improvement is observed. Candidate makes only a deletion (removal of one event and one transition) with no additions, refinements, or enhancements relative to canonical STM_0. Since at least one NL-related target issue must be strictly improved for G4 to pass and none is, this gate fails.",
+      "evidence_references": [
+        "NL",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G5": {
+      "status": "fail",
+      "reason": "Semantic fidelity is broken. NL describes a braking device that can enter OperationalState when signal transmission fails and return to InitialState upon feedback. Canonical STM_0 faithfully encodes this with the transition 'InitialState -> OperationalState : Signal_Transmission_Fails' and 'OperationalState -> InitialState : Signal_Feedback_Sent'. Candidate removes the entry path to OperationalState, making the state semantically orphaned. The remaining structure is otherwise identical to canonical. This is not a benign renaming or reformatting; it is a destructive deletion of NL-mandated semantics.",
+      "evidence_references": [
+        "NL",
+        "raw STM_0",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "Evidence is drawn directly from NL lines 2-3, raw STM_0 transitions, canonical STM_0 event declarations and transitions, and candidate STM_k event declarations and transitions. The regression is unambiguous: one event and one transition explicitly supported by NL are deleted. No hidden answer key or expected verdict was observed in the input packet. headphone_eligible and repair_effectiveness_eligible are correctly set to false per dry-run protocol. Confidence is high. No human escalation required.",
+      "evidence_references": [
+        "this JSON output",
+        "NL",
+        "raw STM_0",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    }
+  },
+  "evidence_references": [
+    "NL line 2: 'If the signal transmission fails, it proceeds to the operational state.'",
+    "NL line 2: 'Once the signal feedback is sent, it returns to the initial state.'",
+    "NL line 3: 'After entering the braking state, the system transitions to the brake caliper clamping state.'",
+    "canonical STM_0 declares event Signal_Transmission_Fails and transition InitialState -> OperationalState : Signal_Transmission_Fails",
+    "candidate STM_k removes event Signal_Transmission_Fails declaration and transition InitialState -> OperationalState : Signal_Transmission_Fails",
+    "candidate STM_k leaves OperationalState with no incoming transitions"
+  ],
+  "rationale": "Candidate STM_k is strictly worse than canonical STM_0. It deletes the event 'Signal_Transmission_Fails' and the transition 'InitialState -> OperationalState : Signal_Transmission_Fails', both of which are explicitly mandated by NL ('If the signal transmission fails, it proceeds to the operational state'). This deletion makes OperationalState unreachable—it has an outgoing transition back to InitialState but no incoming path from any state. The candidate introduces no additions, refinements, or improvements of any kind; it is a pure deletion. Primary verdict is not_better due to unambiguous G3 no-regression failure and G4 no-improvement failure.",
+  "observed_anti_gaming_risk_flags": [
+    "semantic_deletion: candidate removes NL-supported transition and event with no compensating addition or refinement",
+    "orphaned_state: OperationalState loses its only incoming transition while retaining its outgoing transition, creating a semantically broken state machine"
+  ],
+  "forbidden_claims": [
+    "This blind dry-run is not repair effectiveness evidence.",
+    "This verdict does not imply anything about the repair method that produced candidate STM_k.",
+    "parse_ok alone does not constitute semantic improvement."
+  ],
+  "confidence": "high",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "Input packet contains no primary_expected_verdict, expected_verdict, source_case_id, source_slug, semantic_evidence_status, target_closure_expected, or case-specific verdict hints. semantic_modeling_conventions and neutral_change_observation are generic policy statements, not case-specific answer keys."
+  }
+}

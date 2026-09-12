@@ -1,0 +1,267 @@
+{
+ "batch": 4,
+ "groups": [
+  "NL04",
+  "NL10"
+ ],
+ "nl_sentences": {
+  "NL04": [
+   "The system begins in the TurnOn state, which has two possible execution times, with a maximum of 2 seconds and a minimum of 2 seconds, before transitioning to the fork1 state.",
+   "The TurnOn state transitions into a fork1 state, which contains parallel paths leading to AutoFocus and DetLight.",
+   "The AutoFocus state has execution times of 2 seconds maximum and 1 second minimum before proceeding to the choice1 state, which is triggered when the condition memFull=true is true.",
+   "The DetLight state has execution times of 1 second maximum and 0 seconds minimum, transitioning to the choice2 state when the condition <>{prob=0.4} is met.",
+   "If the fork1 state transitions to choice3, it proceeds to the ChargedFlash state, which has execution times of 4 seconds maximum and 2 seconds minimum.",
+   "The ChargedFlash state can lead to Junction3, where the system starts and proceeds to the Join2 state. The transition occurs when Charged=true.",
+   "The choice3 state also transitions to Junction3, and once the system reaches Junction3, it joins the Join2 state.",
+   "The choice2 state transitions to Join2, and if the condition sunny=true is met, it further joins the Join1 state, which leads to Junction2.",
+   "In the Junction2 state, the system proceeds to TakePicture, followed by WriteMemory, with execution times of 3 seconds maximum and 2 seconds minimum.",
+   "After WriteMemory completes, the system enters Junction1 before proceeding to TurnOff, which ends the process and transitions back to the initial state, represented by [*].",
+   "In the Fork2 state, which is part of the Join2 substate, the system can either proceed to Junction2 or Flash. If the Flash state is activated, it transitions to Terminate, ending the sequence."
+  ],
+  "NL10": [
+   "The microwave starts in the DoorShut state. From this state, the system can either remain in DoorShut if a Cancel action is performed or transition to the DoorOpen state when the door is opened.",
+   "When the Door Opened action occurs in the DoorShut state, the system transitions to the DoorOpen state. The door can be closed to return to the DoorShut state.",
+   "In the DoorOpen state, placing an item inside the microwave transitions the system to DoorOpenWithItem. If the item is removed, the system returns to DoorOpen.",
+   "From DoorOpenWithItem, the system can transition to DoorShutWithItem if the door is closed with zero time set or to ReadytoCook if cooking time is entered.",
+   "In the DoorShutWithItem state, opening the door transitions the system back to DoorOpenWithItem, while entering cooking time takes the system to ReadytoCook, where the cooking time is displayed and updated.",
+   "In the ReadytoCook state, if the Cancel action is performed, the system returns to DoorShutWithItem, canceling or updating the cooking time. If the door is opened, the system transitions to DoorOpenWithItem.",
+   "When the Start action is performed in ReadytoCook, the system transitions to the Cooking state, where the timer starts.",
+   "In the Cooking state, opening the door stops the timer and the system transitions to DoorOpenWithItem, while if the timer expires, the system moves to DoorShutWithItem. A Cancel action transitions the system back to ReadytoCook."
+  ]
+ },
+ "items": [
+  {
+   "case": "0008",
+   "diff_index": 0,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "10 个伪状态（fork1/choice1/choice2/choice3/Junction1/Junction2/Junction3/Join1/Join2/Fork2）全部缺 pseudo 声明",
+   "nl_evidence": "NL 第 1/2/5 句逐字含 \"the fork1 state\"；第 3 句 \"the choice1 state\"；第 4/8 句 \"the choice2 state\"；第 5/7 句 \"choice3\"；第 6/7 句 \"Junction3\"；第 8 句 \"the Join1 state\"；第 6/7/8/11 句 \"the Join2 state\"；第 8/9/11 句 \"Junction2\"；第 10 句 \"Junction1\"；第 11 句 \"the Fork2 state\"——10 个元素名全部 NL 逐字出现",
+   "note": "元素名 10/10 NL 逐字命中，故属 nl_named。但两点必须记档：(a) NL 通篇把它们称作 \"the X state\"，从未出现 pseudostate/stereotype 字样，\"必须声明为伪状态\" 这一层是从命名约定 + NL 描述的分支/汇合行为（第 2 句 fork1 \"contains parallel paths\"、第 5+7 句 choice3 两条出边、第 8 句 choice2 两条出边、第 11 句 Fork2 \"either ... or\"）推出的，不是 NL 逐字义务；(b) 参考的 stereotype 在 workbook 里已被污染成 `<>`，所以只能断 kind='pseudo'，不能断具体 fork/choice/junction/join。已核对 pairs/0008/plantuml.puml：10 个元素确实均无 stereotype，fork1 还被嵌进 state TurnOn{}。"
+  },
+  {
+   "case": "0008",
+   "diff_index": 2,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "边 AutoFocus --> choice1 : [memFull=true]",
+   "nl_evidence": "NL 第 3 句逐字含 \"before proceeding to the choice1 state, which is triggered when the condition memFull=true is true\"——AutoFocus、choice1、memFull=true 三者与该迁移均被点名",
+   "note": "已核对 gen：`state AutoFocus { [*] --> choice1: After (2 s); choice1 --> Junction3: when (memFull=true) }`，NL 要求的带守卫边整条不存在，守卫被挪到 choice1-->Junction3。附带说明：同一行 `[*] --> choice1: After (2 s)` 本身还是\"带触发的初始边\"，独立构成 wellformedness 问题；但本 diff 断言的对象是 NL 点名的守卫边，故保留 nl_named。"
+  },
+  {
+   "case": "0008",
+   "diff_index": 3,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "containment(AutoFocus, Junction3)——Junction3 被嵌进 AutoFocus",
+   "nl_evidence": "NL 第 6 句逐字含 \"The ChargedFlash state can lead to Junction3, where the system starts and proceeds to the Join2 state\"；第 7 句 \"The choice3 state also transitions to Junction3, and once the system reaches Junction3, it joins the Join2 state\"——Junction3 及其在闪光支路上的位置被点名",
+   "note": "已核对 gen：Junction3 首现于 `state AutoFocus { ... choice1 --> Junction3 ... }`，故 `ChargedFlash --> Junction3` 变成重新进入 AutoFocus。NL 第 2 句把 AutoFocus 与第 5 句的 choice3/ChargedFlash 放在 fork1 的并列支路上，Junction3 属后者，不在 AutoFocus 内——因此本条同样可读作 nl_contradiction（与第 2+5+6 句的拓扑矛盾）。两层皆可入 E1，不影响计数。"
+  },
+  {
+   "case": "0008",
+   "diff_index": 4,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "边 DetLight --> choice2 : <>{prob=0.4}（概率条件位置）",
+   "nl_evidence": "NL 第 4 句逐字含 \"transitioning to the choice2 state when the condition <>{prob=0.4} is met\"——DetLight、choice2、prob=0.4 及该迁移均被点名",
+   "note": "已核对 gen：`state DetLight { [*] --> choice2: After (1 s); choice2 --> Join2: <<GaStep>>{prob=0.4} }`，概率被挂到 choice2 的出边。与 0008#2 同样附带\"带触发初始边\"的 wellformedness 重叠，但断言对象是 NL 点名的条件位置。"
+  },
+  {
+   "case": "0008",
+   "diff_index": 5,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "边 choice3 --> Junction3",
+   "nl_evidence": "NL 第 7 句逐字含 \"The choice3 state also transitions to Junction3\"",
+   "note": "已核对 gen：只有 `choice3 --> ChargedFlash`，无 choice3 --> Junction3。注意参考把 `[Charged=true]` 挂在 choice3-->Junction3 上，而 NL 第 6 句把 Charged=true 挂在 ChargedFlash-->Junction3（背景 ③ 的 NL/参考自相矛盾）；但第 7 句对该边的表述是无条件的 \"also transitions to\"，assertable 取 trigger='<无触发>' 正好落在 NL 侧，未受污染。"
+  },
+  {
+   "case": "0018",
+   "diff_index": 1,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "伪状态 choice3 缺失（并被自造 fork2 顶替）",
+   "nl_evidence": "NL 第 5 句逐字含 \"If the fork1 state transitions to choice3, it proceeds to the ChargedFlash state\"；第 7 句逐字含 \"The choice3 state also transitions to Junction3\"",
+   "note": "已核对 gen：choice3 从未声明，`choice1 --> fork2`、`fork2 --> ChargedFlash`、`choice1 --> ChargedFlash : memFull=true`。choice3 在 NL 中两次逐字出现，缺失可直接归因。"
+  },
+  {
+   "case": "0018",
+   "diff_index": 2,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "拍照支路的分支节点应是 Fork2；gen 把 Junction2/Flash 两条出边直接挂在 join2 上",
+   "nl_evidence": "NL 第 11 句逐字含 \"In the Fork2 state, which is part of the Join2 substate, the system can either proceed to Junction2 or Flash\"——Fork2 及其两条出边（-->Junction2、-->Flash）被逐字点名",
+   "note": "【审阅者引 NL 但 assertable 落点不在 NL 上】reason 写\"NL 第 11 句要求 Join2 先进入 Fork2\"，这是对第 11 句的过读：第 11 句说的是 containment（\"part of the Join2 substate\"，且据背景 ④ 该措辞本身是误述），从未说 Join2 迁移到 Fork2；`Join2 --> Fork2` 这条边只存在于参考。因此当前 assertable `edge_declared(join2, <无触发>, fork2)` 是 reference-only 形式。但本 diff 的实质缺口（Fork2 不是分支节点）确由第 11 句逐字支撑：gen 里 fork2 只有 `fork2 --> ChargedFlash`，`edge_declared(fork2, -, Junction2)` 与 `edge_declared(fork2, -, Flash)` 均为 False。建议把 E1 assertable 改成这两条 NL 逐字形，则本条稳落 nl_named；若坚持用 `Join2 --> Fork2`，则该断言应降为 reference_only。"
+  },
+  {
+   "case": "0028",
+   "diff_index": 0,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "整份制品领域错配：NL04 点名的状态一个都不存在",
+   "nl_evidence": "NL 第 1 句逐字含 \"begins in the TurnOn state\"；第 2 句 \"AutoFocus and DetLight\"；第 9 句 \"proceeds to TakePicture, followed by WriteMemory\"",
+   "note": "已核对 pairs/0028/plantuml.puml：整份是微波炉（DoorShut/DoorOpen/ReadytoCook/Cooking），与 NL04 的 11 句元素重合为零。最强的 nl_named，无争议。"
+  },
+  {
+   "case": "0038",
+   "diff_index": 0,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "边 AutoFocus --> choice1 上的守卫 [memFull=true]",
+   "nl_evidence": "NL 第 3 句逐字含 \"proceeding to the choice1 state, which is triggered when the condition memFull=true is true\"",
+   "note": "已核对 gen：`AutoFocus --> choice1 : after 2s / minimum 1s`（标签被时间占满），`choice1 --> choice3 : memFull=true`（守卫移位）。"
+  },
+  {
+   "case": "0038",
+   "diff_index": 1,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "边 fork1 --> choice3（gen 中 fork 名为 fork_state）",
+   "nl_evidence": "NL 第 5 句逐字含 \"If the fork1 state transitions to choice3\"",
+   "note": "已核对 gen：`fork_state` 只有 -->AutoFocus 与 -->DetLight；choice3 仅能由 `choice1 --> choice3 : memFull=true` 进入，闪光支路被降级为对焦支路下游。NL 第 5 句逐字点名该迁移。"
+  },
+  {
+   "case": "0038",
+   "diff_index": 3,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "边 choice3 --> Junction3",
+   "nl_evidence": "NL 第 7 句逐字含 \"The choice3 state also transitions to Junction3\"",
+   "note": "已核对 gen：只有 `choice3 --> ChargedFlash`。与 0008#5 同形。"
+  },
+  {
+   "case": "0038",
+   "diff_index": 4,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "伪状态 Join1 缺失（sunny 守卫被挪到 choice2 --> Join2 上）",
+   "nl_evidence": "NL 第 8 句逐字含 \"The choice2 state transitions to Join2, and if the condition sunny=true is met, it further joins the Join1 state, which leads to Junction2\"",
+   "note": "已核对 gen：全文无 Join1，只有 `choice2 --> Join2 : sunny=true`。Join1 在 NL 第 8 句逐字出现，且第 8 句同时点名 sunny=true 与 Join1-->Junction2，归因充分。"
+  },
+  {
+   "case": "0048",
+   "diff_index": 3,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "sunny=true 守卫位置 + Join1 的接法（gen: choice2 --> Join2 : [sunny=true]，Join2 --> Join1 无条件）",
+   "nl_evidence": "NL 第 8 句逐字含 \"The choice2 state transitions to Join2, and if the condition sunny=true is met, it further joins the Join1 state\"",
+   "note": "已核对 gen：`choice2 --> Join2 : [sunny=true]` 且 `state Join2 <<join>> { Join2 --> Join1 }`。NL 第 8 句把无条件去向定为 Join2、把 sunny=true 定为进 Join1 的条件，gen 恰好互换——本条同样可读作 nl_contradiction（违反第 8 句明确要求），两层皆入 E1。"
+  },
+  {
+   "case": "0048",
+   "diff_index": 4,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "choice1/choice2/choice3/Junction1/Junction2/Junction3 六个伪状态无 pseudo 声明",
+   "nl_evidence": "NL 第 3 句 \"the choice1 state\"、第 4/8 句 \"the choice2 state\"、第 5/7 句 \"choice3\"、第 10 句 \"Junction1\"、第 8/9/11 句 \"Junction2\"、第 6/7 句 \"Junction3\"——六个元素名全部逐字出现",
+   "note": "已核对 gen：只有 fork1/Join2/Fork2 带 stereotype（且被写成 composite 块），六个 choice/junction 为普通状态。同 0008#0 的两点保留意见外，本条另有一处 assertable 落点风险：当前 assertable 实例化在 `choice1` 上，而 choice1 恰是 NL 支撑最弱的元素——NL 只在第 3 句把它当作 AutoFocus 的目标点名，从未描述任何从 choice1 分出的分支，参考里 choice1 的两条出边（choice1-->Join1、choice1-->Junction1）正是背景 ① 认定的 NL 无对应句者。建议改实例化到 choice2/choice3/Junction3（NL 第 5+7、8、6+7 句明确描述其分支/汇合角色）。"
+  },
+  {
+   "case": "0058",
+   "diff_index": 4,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "choice1/choice2/choice3/Junction1/Junction2/Junction3 六个伪状态从未声明",
+   "nl_evidence": "同 0048#4：NL 第 3、4/8、5/7、10、8/9/11、6/7 句分别逐字点名这六个元素",
+   "note": "已核对 gen：只有 fork1/fork2/Join1/Join2 带 stereotype，六个 choice/junction 仅由迁移隐式产生。assertable 实例化在 `choice2` 上——NL 第 8 句明确描述 choice2 的双出边（无条件 -->Join2、sunny=true -->Join1），落点比 0048#4 的 choice1 稳。保留 0008#0 的 (a)(b) 两点说明。"
+  },
+  {
+   "case": "0005",
+   "diff_index": 0,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "自环 DoorShut --> DoorShut : Cancel",
+   "nl_evidence": "NL 第 1 句逐字含 \"the system can either remain in DoorShut if a Cancel action is performed\"",
+   "note": "已核对 gen：`DoorShut : Cancel` 是状态体描述行，不是迁移；模型中无该自环。NL 第 1 句是显式义务。注意参考在该边上还挂了 `/CancelTimer` effect，而 NL 第 1 句只要求\"remain in DoorShut\"、未提任何 timer 动作——E1 断言只应覆盖迁移存在性（当前 assertable 正是 stays_in，落点正确）。"
+  },
+  {
+   "case": "0015",
+   "diff_index": 3,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "timer 启停与 cooking time 显示/更新动作（参考以迁移 effect 承载）全部缺失",
+   "nl_evidence": "NL 第 7 句逐字含 \"the system transitions to the Cooking state, where the timer starts\"；第 8 句逐字含 \"opening the door stops the timer\" 与 \"if the timer expires\"；第 5 句逐字含 \"where the cooking time is displayed and updated\"；第 6 句逐字含 \"canceling or updating the cooking time\"",
+   "note": "已核对 gen：全文无任何 `/effect`、变量或状态动作。timer / 显示更新在 NL 第 5/6/7/8 句逐字点名，且据本批背景裁定 `Start Timer` 类动作在 M=(S,E,V,Tr,A) 范围内，故属 nl_named。两点落点提醒：(a) 参考共有 7 条带 effect 的迁移，其中 `DoorShut --> DoorShut: Cancel/CancelTimer` 与 `Cooking --> ReadytoCook: Cancel/Stop Timer` 的 effect 在 NL 八句里没有对应表述（NL 第 1 句只说 remain、第 8 句只说 \"A Cancel action transitions the system back to ReadytoCook\"），属 reference_only，不应计入 E1 分母；NL 支撑的是第 7 句 Start Timer、第 8 句 Door Opened/Stop Timer、第 5 句 Display+Update、第 6 句 Cancel 这四处。(b) 首选 assertable 写的是 `variable_declared('timer')`，但 NL 与参考都把 timer 表述为动作而非变量，应优先用同条列出的 `effect_declared(ReadytoCook, Start, timer, positive)` 形（正对 NL 第 7 句）。"
+  },
+  {
+   "case": "0025",
+   "diff_index": 2,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "timer 启停与 cooking time 显示/更新动作（参考以迁移 effect 承载）全部缺失",
+   "nl_evidence": "NL 第 7 句逐字含 \"the system transitions to the Cooking state, where the timer starts\"；第 8 句逐字含 \"opening the door stops the timer\" 与 \"if the timer expires\"；第 5 句逐字含 \"where the cooking time is displayed and updated\"；第 6 句逐字含 \"canceling or updating the cooking time\"",
+   "note": "已核对 gen：全文无任何 `/effect`、变量或状态动作。timer / 显示更新在 NL 第 5/6/7/8 句逐字点名，且据本批背景裁定 `Start Timer` 类动作在 M=(S,E,V,Tr,A) 范围内，故属 nl_named。两点落点提醒：(a) 参考共有 7 条带 effect 的迁移，其中 `DoorShut --> DoorShut: Cancel/CancelTimer` 与 `Cooking --> ReadytoCook: Cancel/Stop Timer` 的 effect 在 NL 八句里没有对应表述（NL 第 1 句只说 remain、第 8 句只说 \"A Cancel action transitions the system back to ReadytoCook\"），属 reference_only，不应计入 E1 分母；NL 支撑的是第 7 句 Start Timer、第 8 句 Door Opened/Stop Timer、第 5 句 Display+Update、第 6 句 Cancel 这四处。(b) 首选 assertable 写的是 `variable_declared('timer')`，但 NL 与参考都把 timer 表述为动作而非变量，应优先用同条列出的 `effect_declared(ReadytoCook, Start, timer, positive)` 形（正对 NL 第 7 句）。"
+  },
+  {
+   "case": "0035",
+   "diff_index": 4,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "timer 启停与 cooking time 显示/更新动作（参考以迁移 effect 承载）全部缺失",
+   "nl_evidence": "NL 第 7 句逐字含 \"the system transitions to the Cooking state, where the timer starts\"；第 8 句逐字含 \"opening the door stops the timer\" 与 \"if the timer expires\"；第 5 句逐字含 \"where the cooking time is displayed and updated\"；第 6 句逐字含 \"canceling or updating the cooking time\"",
+   "note": "已核对 gen：全文无任何 `/effect`、变量或状态动作。timer / 显示更新在 NL 第 5/6/7/8 句逐字点名，且据本批背景裁定 `Start Timer` 类动作在 M=(S,E,V,Tr,A) 范围内，故属 nl_named。两点落点提醒：(a) 参考共有 7 条带 effect 的迁移，其中 `DoorShut --> DoorShut: Cancel/CancelTimer` 与 `Cooking --> ReadytoCook: Cancel/Stop Timer` 的 effect 在 NL 八句里没有对应表述（NL 第 1 句只说 remain、第 8 句只说 \"A Cancel action transitions the system back to ReadytoCook\"），属 reference_only，不应计入 E1 分母；NL 支撑的是第 7 句 Start Timer、第 8 句 Door Opened/Stop Timer、第 5 句 Display+Update、第 6 句 Cancel 这四处。(b) 首选 assertable 写的是 `variable_declared('timer')`，但 NL 与参考都把 timer 表述为动作而非变量，应优先用同条列出的 `effect_declared(ReadytoCook, Start, timer, positive)` 形（正对 NL 第 7 句）。"
+  },
+  {
+   "case": "0045",
+   "diff_index": 2,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "timer 启停与 cooking time 显示/更新动作（参考以迁移 effect 承载）全部缺失",
+   "nl_evidence": "NL 第 7 句逐字含 \"the system transitions to the Cooking state, where the timer starts\"；第 8 句逐字含 \"opening the door stops the timer\" 与 \"if the timer expires\"；第 5 句逐字含 \"where the cooking time is displayed and updated\"；第 6 句逐字含 \"canceling or updating the cooking time\"",
+   "note": "已核对 gen：全文无任何 `/effect`、变量或状态动作。timer / 显示更新在 NL 第 5/6/7/8 句逐字点名，且据本批背景裁定 `Start Timer` 类动作在 M=(S,E,V,Tr,A) 范围内，故属 nl_named。两点落点提醒：(a) 参考共有 7 条带 effect 的迁移，其中 `DoorShut --> DoorShut: Cancel/CancelTimer` 与 `Cooking --> ReadytoCook: Cancel/Stop Timer` 的 effect 在 NL 八句里没有对应表述（NL 第 1 句只说 remain、第 8 句只说 \"A Cancel action transitions the system back to ReadytoCook\"），属 reference_only，不应计入 E1 分母；NL 支撑的是第 7 句 Start Timer、第 8 句 Door Opened/Stop Timer、第 5 句 Display+Update、第 6 句 Cancel 这四处。(b) 首选 assertable 写的是 `variable_declared('timer')`，但 NL 与参考都把 timer 表述为动作而非变量，应优先用同条列出的 `effect_declared(ReadytoCook, Start, timer, positive)` 形（正对 NL 第 7 句）。"
+  },
+  {
+   "case": "0055",
+   "diff_index": 3,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "timer 启停与 cooking time 显示/更新动作（参考以迁移 effect 承载）全部缺失",
+   "nl_evidence": "NL 第 7 句逐字含 \"the system transitions to the Cooking state, where the timer starts\"；第 8 句逐字含 \"opening the door stops the timer\" 与 \"if the timer expires\"；第 5 句逐字含 \"where the cooking time is displayed and updated\"；第 6 句逐字含 \"canceling or updating the cooking time\"",
+   "note": "已核对 gen：全文无任何 `/effect`、变量或状态动作。timer / 显示更新在 NL 第 5/6/7/8 句逐字点名，且据本批背景裁定 `Start Timer` 类动作在 M=(S,E,V,Tr,A) 范围内，故属 nl_named。两点落点提醒：(a) 参考共有 7 条带 effect 的迁移，其中 `DoorShut --> DoorShut: Cancel/CancelTimer` 与 `Cooking --> ReadytoCook: Cancel/Stop Timer` 的 effect 在 NL 八句里没有对应表述（NL 第 1 句只说 remain、第 8 句只说 \"A Cancel action transitions the system back to ReadytoCook\"），属 reference_only，不应计入 E1 分母；NL 支撑的是第 7 句 Start Timer、第 8 句 Door Opened/Stop Timer、第 5 句 Display+Update、第 6 句 Cancel 这四处。(b) 首选 assertable 写的是 `variable_declared('timer')`，但 NL 与参考都把 timer 表述为动作而非变量，应优先用同条列出的 `effect_declared(ReadytoCook, Start, timer, positive)` 形（正对 NL 第 7 句）。本 case 唯一实质缺口。"
+  },
+  {
+   "case": "0025",
+   "diff_index": 1,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "边 DoorOpenWithItem --> DoorShutWithItem : Door Closed 上缺 [Zero Time] 限定",
+   "nl_evidence": "NL 第 4 句逐字含 \"the system can transition to DoorShutWithItem if the door is closed with zero time set or to ReadytoCook if cooking time is entered\"",
+   "note": "已核对 gen：`DoorOpenWithItem --> DoorShutWithItem: Door Closed`（无守卫、事件名亦未点零时）。\"with zero time set\" 在 NL 第 4 句逐字出现，故该限定条件是 NL 点名对象，非参考独有；据本批背景裁定 `[Zero Time]` 类守卫在范围内。本条亦可读作 nl_contradiction（违反第 4 句对该去向的限定），两层皆入 E1。旁证：0015/0045/0055 分别写了 \"Door Closed with 0 time\"/\"[zero time set]\"/\"[time = 0]\"，说明该限定确实可从 NL 直接读出。predicate_exists=False 不影响分层。"
+  },
+  {
+   "case": "0035",
+   "diff_index": 1,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "边 DoorOpen --> DoorShut : Door Closed",
+   "nl_evidence": "NL 第 2 句逐字含 \"The door can be closed to return to the DoorShut state.\"",
+   "note": "已核对 pairs/0035/plantuml.puml：无此边，第 5 行位置是 `DoorOpen --> DoorOpen : Item Removed`。NL 第 2 句显式义务。"
+  },
+  {
+   "case": "0035",
+   "diff_index": 2,
+   "was": "nl_named",
+   "verdict": "uncertain_stratum",
+   "element": "多余自环 DoorOpen --> DoorOpen : Item Removed（verdict=extra，本批唯一 extra）",
+   "nl_evidence": "NL 无任何一句把 Item Removed 挂在 DoorOpen 上：第 3 句为 \"In the DoorOpen state, placing an item inside the microwave transitions the system to DoorOpenWithItem. If the item is removed, the system returns to DoorOpen.\"，其中 \"returns to DoorOpen\" 蕴含源态是 DoorOpenWithItem（NL 表达自环时用的是第 1 句的 \"remain in\" 措辞）",
+   "note": "四层判据无法落位，故不硬判。(1) 不是 nl_named：NL 从未点名一条以 DoorOpen 为源的 Item Removed 迁移。(2) 不是 reference_only：该定义是\"只存在于参考\"，而本元素只存在于 gen，参考里也没有。(3) 不是 wellformedness：它是可达状态上的带触发自环，不匹配死端/吸收态/不可达/无默认子态/带触发初始边/无触发 completion 边任何一种。(4) 是否 nl_contradiction 取决于 E1 政策对 NL 采开世界还是闭世界读法：闭世界下\"NL 八句已穷举全部迁移\"成立，第 3 句把 Item Removed 唯一地指派给 DoorOpenWithItem-->DoorOpen（gen 第 7 行确实也有这条），多出的自环即违规；开世界下 NL 未禁止追加迁移，本条不可归因、须出 E1。卡点在政策而不在 NL 文本，且该政策会同时影响 154 条里全部 extra 判定，建议由 E1 政策统一裁定后回填。"
+  },
+  {
+   "case": "0035",
+   "diff_index": 3,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "边 DoorOpenWithItem --> DoorShutWithItem : Door Closed 上缺 [Zero Time] 限定",
+   "nl_evidence": "NL 第 4 句逐字含 \"if the door is closed with zero time set\"",
+   "note": "与 0025#1 同形，已核对 gen 该边无任何限定。predicate_exists=False 不影响分层。"
+  }
+ ],
+ "totals": {
+  "confirmed": 24,
+  "reference_only": 0,
+  "wellformedness": 0,
+  "nl_contradiction": 0,
+  "uncertain_stratum": 1,
+  "_total": 25
+ }
+}

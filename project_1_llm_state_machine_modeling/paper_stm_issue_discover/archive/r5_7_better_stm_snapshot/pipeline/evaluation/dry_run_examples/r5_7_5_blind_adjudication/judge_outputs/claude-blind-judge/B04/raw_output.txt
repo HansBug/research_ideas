@@ -1,0 +1,75 @@
+```json
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B04",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "claude-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "not_better",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "NL describes discrete event-triggered transitions (doors closed signal, arrival signal, obstacle detection) with no continuous-time/timer semantics. This is a standard T0 protocol case, not T0.5 or T1 stress.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "candidate_parse_status is parse_ok per mechanical_checks; candidate is structurally well-formed fcstm with all states, hierarchy, and transitions present, meeting minimal auditability requirements.",
+      "evidence_references": ["candidate STM_k"]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "Change ledger, target instance ledger, and hash chain are all reported complete/available, and candidate is confirmed different from canonical (candidate_same_as_canonical_stm0=false), so the delta is attributable to a canonical->candidate edit rather than conversion artifacts.",
+      "evidence_references": ["canonical STM_0", "candidate STM_k"]
+    },
+    "G3": {
+      "status": "fail",
+      "reason": "Candidate removes the event labels on two transitions that are explicitly required by NL: (1) DoorsClosing -> InMotion loses the 'Closed_SendDeparted' event label (NL item 1 explicitly states this transition is 'triggered by the Closed/SendDeparted signal'), and (2) InMotion -> Stopping loses the 'Arrived_Stop_Send_Arrived' event label (NL item 2 explicitly states this transition is 'indicated by the Arrived/Stop, Send Arrived signal'). Both event declarations still exist in the model but are now unused/orphaned on these transitions, meaning the guard/trigger semantics for these two key transitions have been deleted. This is a clear NL-supported behavior deletion, not a benign refactor.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G4": {
+      "status": "fail",
+      "reason": "No target issue is visibly improved by this change. The topology (states, hierarchy, transition endpoints) is identical between canonical and candidate; the only difference is removal of two event annotations, which is a strict loss of information rather than an improvement of any NL-supported target.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G5": {
+      "status": "fail",
+      "reason": "Comparing NL, raw STM_0, canonical STM_0, and candidate STM_k side by side: canonical faithfully retains all NL-specified triggering events on all top-level transitions (Closed/SendDeparted, Arrived/Stop Send Arrived, Obstacle Detected), matching raw STM_0's PlantUML labels. Candidate silently drops two of these three event labels while keeping the third (Obstacle_Detected). This is an unjustified, inconsistent semantic reduction in fidelity to NL, not a refinement.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "Verdict not_better is reported with headline_eligible=false, repair_effectiveness_eligible=false, real_repair_run_id=null per protocol dry-run requirements; no leakage detected in the packet; evidence and rationale are archived below.",
+      "evidence_references": ["this JSON output"]
+    }
+  },
+  "evidence_references": [
+    "NL item 1 (Closed/SendDeparted trigger)",
+    "NL item 2 (Arrived/Stop, Send Arrived trigger)",
+    "canonical STM_0: DoorsClosing -> InMotion : Closed_SendDeparted;",
+    "canonical STM_0: InMotion -> Stopping : Arrived_Stop_Send_Arrived;",
+    "candidate STM_k: DoorsClosing -> InMotion; (no event)",
+    "candidate STM_k: InMotion -> Stopping; (no event)"
+  ],
+  "rationale": "The candidate is topologically identical to canonical (same states, same hierarchy, same transition endpoints) but strips the event/trigger labels from two transitions that NL explicitly specifies as being triggered by named signals ('Closed/SendDeparted' and 'Arrived/Stop, Send Arrived'). The corresponding event declarations remain defined in the model but become orphaned/unused, confirming this is a deletion of NL-supported trigger semantics rather than a harmless rename or simplification. No compensating improvement (e.g., a new guard, corrected hierarchy, or restored missing transition) is present elsewhere in the candidate to offset this loss. Per G3/G5 fail-closed discipline, deletion of NL-supported transition semantics must be treated as regression regardless of any superficial simplicity gain, so the verdict is not_better.",
+  "observed_anti_gaming_risk_flags": [
+    "semantic_deletion: two NL-mandated event/trigger labels removed from transitions",
+    "under_repair: no compensating target improvement to justify the loss",
+    "trace_loss: DoorsClosing->InMotion and InMotion->Stopping become unlabeled, reducing traceability to NL-specified signals"
+  ],
+  "forbidden_claims": [
+    "This blind dry-run is not repair effectiveness evidence.",
+    "This verdict does not constitute a headline Better STM result."
+  ],
+  "confidence": "high",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "No hidden answer key, expected verdict, source case id, or case-specific semantic cue was present in the packet; provenance_checks fields used are limited to low-level mechanical facts (parse status, ledger/hash availability, byte-identity flag) as permitted."
+  }
+}
+```

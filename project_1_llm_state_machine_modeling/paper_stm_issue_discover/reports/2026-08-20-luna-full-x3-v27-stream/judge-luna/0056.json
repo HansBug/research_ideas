@@ -1,0 +1,622 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0056",
+  "ledger": [
+    {
+      "ledger_id": "EIS-0056-01",
+      "pair": "0056",
+      "D": "D2",
+      "L": "L1",
+      "summary": "同一个 `Intercepted` 事件在同一活动配置下有两个目标——区域内的 `:12 NoIntercept --> Intercepted` 与外层的 `:16 SearchState --> FormationAdjustment`——两者都没有区分守卫，构成不可区分的冲突目标。",
+      "detail": "`SearchState`（:5-:14）用 `:10` 的 `--` 分成两个区：区一是 `Area1`/`Area2`/`Area3` 的轮转，区二是 `NoIntercept` 与 `Intercepted` 的往返。\n\n`Intercepted` 这个事件在两个层级上各被消费一次。区二内部：`:12 NoIntercept --> Intercepted : Intercepted`。外层：`:16 SearchState --> FormationAdjustment : Intercepted`——源是整个复合态，因此从它的任意后代配置出发都使能。\n\n于是当系统处于 `SearchState` 且区二处于 `NoIntercept` 时，`Intercepted` 事件到达，两条边同时可发，而它们都没有守卫可以区分。投影可以直接确认这个冲突：既有区内的那条，也有从各 `Area*` 出发、通向外层的那条。\n\n后果取决于哪一条胜出。若内层胜出，系统只会在区二里从 `NoIntercept` 走到 `Intercepted`，而不会转入编队调整——NL 第 3 句「When the UAV swarm is intercepted, it transitions to the formation adjustment state」就不成立。\n\n根因是同一个语义（被拦截）被建了两遍：一遍做成了区二的一个状态，一遍做成了外层的一条迁移。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 3 句「When the UAV swarm is intercepted, it transitions to the formation adjustment state」——被拦截应当确定地转入编队调整，而制品里这件事只是两个可能结果之一。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法：两条边同时使能且都无守卫是可检索的结构事实，UML 对这种冲突不保证选哪一条。反驳不存活。",
+      "L_basis": "判 L1。陈述这条错误需要导出一个静态事实：内层与外层两条以同一事件为触发的迁移在同一个活动配置下同时使能，且都没有守卫。这要把成组迁移的使能范围搞清楚才能得出；但它只涉及单个系统状态上的一次可发性判断，不需要构造执行序列，故不到 L2。",
+      "axes": {
+        "defect_locus": "pair",
+        "defect_element": null,
+        "defect_qualifier": null,
+        "defect_logic_kind": "priority_conflict",
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0056-02",
+      "pair": "0056",
+      "D": "D1",
+      "L": "L1",
+      "summary": "NL 第 4 句要求的无人机数量递减被写进了 `:20 AttackState --> SearchState : Attack Complete [Decrease UAV Count]` 的**守卫**槽位而不是 effect 槽位——按 `事件 [守卫] / 效果` 的记法读，它的意思变成「若 Decrease UAV Count 成立则迁移」。",
+      "detail": "NL 第 4 句后半逐字为「After completing the attack, the number of UAVs in the swarm decreases accordingly.」——要求的是一个在迁移时执行的动作。\n\nPlantUML 的迁移标签遵循 `事件 [守卫] / 效果` 的记法。制品把 `Decrease UAV Count` 放进了方括号，也就是守卫槽位。严格按记法读，这条边的含义是「攻击完成、且 Decrease UAV Count 这个条件为真时，迁移」，与「迁移时执行递减」不是一回事；而且模型里没有任何东西能让这个条件成立。\n\n这与同一份 NL 的 0016、0036、0046 三份制品情形不同：那三份把递减写在了 `/` 之后（例如 0016 的 `:34 Attacking --> Searching : Attack Finished / Decrease UAV swarm count`），槽位是对的，问题出在前端没有把 `/` 切开而产生的下降债务；本例是作者自己把动作放进了错误的记法槽位。",
+      "D_basis": "判 D1，两读并立。第一种读法严格按 `事件 [守卫] / 效果` 记法：`[Decrease UAV Count]` 落在守卫槽位，NL 第 4 句要求的递减 effect 没有被表达，而且这个守卫无从满足。第二种读法注意到 PlantUML 冒号后是无类型的自由文本，方括号里放一个动词短语也可以称职地读作一句非正式的动作括注——作者可能只是用方括号做了个视觉分组。判定这一点的关键在于有没有证据表明作者掌握并刻意区分守卫与效果两个槽位：本文件 23 行里除三个 `[*]` 之外只有这一处用到方括号，别处从不这么写，因此拿不出这样的证据。两读并立，故判 D1。",
+      "L_basis": "判 L1。陈述这条错误需要导出一个静态事实：`:20` 的标签按 PlantUML 的 `事件 [守卫] / 效果` 记法解析后，`Decrease UAV Count` 落在守卫槽位而不是效果槽位。这要把记法规则应用一遍才能得出，比单纯的词项比对深一层；但只涉及静态切面，不需要执行序列，故不到 L2。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "guard",
+        "defect_qualifier": "other",
+        "defect_logic_kind": null,
+        "defect_reference": "language"
+      }
+    },
+    {
+      "ledger_id": "INS-0056-01",
+      "pair": "0056",
+      "D": "D2",
+      "L": "L2",
+      "summary": "三区轮转的三条迁移 `:7 Area1 --> Area2`、`:8 Area2 --> Area3`、`:9 Area3 --> Area1` 全部既无事件也无守卫，且首尾相接闭合成环——进入 `Area1` 后机器会在三者之间零时间无限空转，`SearchState` 永远得不到稳定配置。",
+      "detail": "`:7`、`:8`、`:9` 三行的箭头后面都没有冒号，即都是完成迁移：进入源状态后立即可发，不需要等待任何事件。三条首尾相接：`Area1 → Area2 → Area3 → Area1`。\n\n后果不是「多了几条瞬时过渡」，而是零时间发散。在 UML 的 run-to-completion 语义下，一次 RTC 步要一直执行到没有可发的完成迁移为止；而这里永远有下一条可发，于是一次 RTC 步内就会无限级联。机器到不了任何稳定配置，也就永远无法派发 `:16` 的 `Intercepted` 或 `:19` 的 `Task Assignment Received`——NL 第 3 句与第 4 句要求的行为都不可实现。\n\n区域切换本应由事件驱动（例如「本区搜索完成」）。两条旁证说明这不是凭空要求：同一份 NL 的 pair 0016 把三区搜索建成了 `Finished Region1/2/3 Search` 事件驱动；而 0056 自己的另一个并发区（`:12`、`:13`）也写了正规的事件触发——作者并非不会写。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 3 句与第 4 句要求的拦截响应与任务分配响应，它们在零时间发散下都无法被派发。判读中出现过一种反驳：把三区轮转读作「每个区搜索完成之后再切换」。这条反驳不存活——它需要源里存在一个 doActivity 或完成事件来表示「搜索完成」，而 `:7`-`:9` 三行之间没有任何活动声明；判读臂自己也承认三区搜索的完成并未显式写成 doActivity。没有活动可等，完成迁移入态即发火。",
+      "L_basis": "判 L2。陈述这条错误属于活性范畴：要说明机器会在三个区域之间无限空转、永远到不了稳定配置，必须排除掉存在有限执行的可能，也就是对全部执行迹做穷尽考察。这是对行为集合的构造与排除。",
+      "axes": {
+        "defect_locus": "pair",
+        "defect_element": null,
+        "defect_qualifier": null,
+        "defect_logic_kind": "nontermination",
+        "defect_reference": "requirement"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "hypothesis:ff21b44c315b71cc",
+          "claims": [
+            "The interception route may be misrealized for the modeled active search leaf states."
+          ],
+          "locations": [
+            "NL3",
+            "tr_0009",
+            "F22",
+            "F23",
+            "F24",
+            "F25",
+            "F26"
+          ],
+          "obligations": [
+            "After interception, the swarm transitions from its current search operation to FormationAdjustment."
+          ],
+          "basis": [
+            "representation_debt"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:ff21b44c315b71cc:facet:df3bed35a63f"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "hypothesis:fe28627680761fda",
+          "claims": [
+            "An Intercepted event may reach the root final pseudostate through a leaf route rather than reaching FormationAdjustment."
+          ],
+          "locations": [
+            "NL3",
+            "tr_0009",
+            "F22-F26",
+            "diagnostic_counts.I_TRANSITION_NEVER_EVENT_TRIGGERED"
+          ],
+          "obligations": [
+            "When interception occurs from the UAV swarm operating state, the event route must reach FormationAdjustment."
+          ],
+          "basis": [
+            "representation_debt"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:fe28627680761fda:facet:df3bed35a63f"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:addb576c7d41c4f0",
+          "claims": [
+            "A Task Assignment Received event may reach the root final pseudostate through a SearchState leaf route rather than reaching AttackState."
+          ],
+          "locations": [
+            "NL4",
+            "tr_0011",
+            "F27-F31",
+            "diagnostic_counts.I_EFFECT_GUARD_CONTRADICT"
+          ],
+          "obligations": [
+            "When task assignment information is received during flight, the event route must reach AttackState."
+          ],
+          "basis": [
+            "representation_debt"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:addb576c7d41c4f0:facet:4a5bab2638b4"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:050d9ec66cf038e1",
+          "claims": [
+            "The SearchState cycle may admit a nonterminating continuation instead of requiring eventual mission completion."
+          ],
+          "locations": [
+            "NL2",
+            "SearchState",
+            "tr_0013",
+            "inspect:I_NONTRIVIAL_SCC",
+            "inspect:I_TOPOLOGICAL_NON_TERMINATING"
+          ],
+          "obligations": [
+            "Before mission completion, the swarm continuously performs search tasks and must have a terminating mission-completion route."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L2",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:050d9ec66cf038e1:facet:27fc3342e74f"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "hypothesis:3464cdee550b9a29",
+          "claims": [
+            "The required target-search action may be absent from the formal state/action inventory."
+          ],
+          "locations": [
+            "NL2",
+            "F2",
+            "inspect:abstract_action_inventory"
+          ],
+          "obligations": [
+            "The UAV swarm continuously performs target search tasks during operation."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:3464cdee550b9a29:facet:b66e67c6429f"
+          ]
+        },
+        {
+          "finding_id": "source:transition:llms_emp_feedback_final_0056:Intercepted:FormationAdjustment",
+          "claims": [
+            "The authored interception transition may have a different formal source endpoint than the normative UAV swarm source."
+          ],
+          "locations": [
+            "NL3",
+            "PUML16",
+            "F40",
+            "tr_0009"
+          ],
+          "obligations": [
+            "The interception transition must go from the UAV swarm machine to FormationAdjustment."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:llms_emp_feedback_final_0056:Intercepted:FormationAdjustment:facet:1b2945ce11a1"
+          ]
+        },
+        {
+          "finding_id": "source:transition:llms_emp_feedback_final_0056:Task Assignment Received:AttackState",
+          "claims": [
+            "The authored task-assignment transition may have a different formal source endpoint from the normative UAV swarm source and may lack the independent flight guard."
+          ],
+          "locations": [
+            "NL4",
+            "PUML19",
+            "F41",
+            "tr_0011"
+          ],
+          "obligations": [
+            "During flight, task assignment must take the UAV swarm to AttackState under the stated qualification."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:llms_emp_feedback_final_0056:Task Assignment Received:AttackState:facet:9722ade6222c"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "拦截状态被建模为 SearchState 内部的并行子区域，而规格要求“当无人机蜂群被拦截时，转入编队调整状态”；当前模型允许蜂群仍处于 SearchState 的组合状态中同时变为 Intercepted，且外部转移只从 SearchState 出发，未明确该并行区域事件如何触发离开整个搜索状态。",
+          "reason": "PlantUML 的复合状态分隔区表示并行区域，因而 Intercepted 不是 SearchState 的互斥顶层状态。这样不能清晰保证被拦截后停止搜索并进入 FormationAdjustment，也可能产生 Area 状态与 Intercepted 状态并存的行为，和规格的状态转移语义不一致。",
+          "where": "SearchState 内部的两个并行区域（Area1/Area2/Area3 区域与 NoIntercept/Intercepted 区域），以及 SearchState --> FormationAdjustment : Intercepted"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "攻击完成后无人机数量减少只写在转移标签的方括号中，没有建模为动作或状态变量更新。",
+          "reason": "“[Decrease UAV Count]”在状态图中通常表示守卫条件，而不是执行数量递减的动作；因此模型没有表达攻击完成时实际减少蜂群 UAV 数量这一规定行为。",
+          "where": "AttackState --> SearchState : Attack Complete [Decrease UAV Count]"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "任务完成终止转移无条件地从 SearchState 出发，模型没有明确任务完成与攻击、编队调整等过程的互斥或优先关系。",
+          "reason": "规格限定“任务完成前”持续执行搜索，任务完成应结束任务流程；当前图中若任务完成事件与拦截或任务分配事件同时发生，未定义优先级/互斥条件，且仅凭该转移无法保证非搜索过程不会在任务完成时继续或被错误终止。",
+          "where": "SearchState --> [*] : Mission Complete"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型把搜索区域和拦截状态建模为同一复合状态中的两个并行区域，但规范只说明拦截时转入“编队调整状态”，没有规定拦截状态与搜索区域并行保持；同时外部转移 `SearchState --> FormationAdjustment : Intercepted` 未明确从哪个并行子状态退出。",
+          "reason": "按PlantUML复合状态语义，进入 `SearchState` 会同时激活两个区域，拦截时外部转移会退出整个复合状态，而内部 `Intercepted` 状态及其 `Intercept Resolved` 转移并不能自然实现规范所要求的“拦截后转入编队调整、调整完成后继续搜索”的单一流程，可能造成状态语义歧义或不可达/冗余的拦截行为。",
+          "where": "`state SearchState { ... }` 内部的两个并行区域：`Area1/Area2/Area3` 与 `NoIntercept/Intercepted`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "攻击完成后仅在转移标签中写出 `[Decrease UAV Count]`，没有建模无人机数量的实际减少、数量变量、动作或守卫条件。",
+          "reason": "规范明确要求攻击完成后编队中的无人机数量相应减少。转移标签中的文字不是可执行的状态动作或状态变量更新，因此模型无法表达数量减少了多少、何时减少，也无法验证该要求。",
+          "where": "`AttackState --> SearchState : Attack Complete [Decrease UAV Count]`"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "任务分配信息的接收被限制为从顶层 `SearchState` 转移，但模型未说明搜索的三个区域均可触发该转移，也未定义在并行区域结构下触发时的退出/恢复语义。",
+          "reason": "规范要求“飞行期间”收到任务分配信息即进入攻击状态。当前模型的 `SearchState` 是带并行区域的复合状态，转移的触发范围和离开复合状态后的恢复路径不明确，无法保证在 `Area1`、`Area2`、`Area3` 以及拦截相关子状态下都符合该行为。",
+          "where": "`SearchState --> AttackState : Task Assignment Received`"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "搜索期间的三个状态区域被建模为顺序循环的子状态，而规范只说明持续执行搜索任务并在三个状态区域内运行，未规定必须按 Area1→Area2→Area3→Area1 的固定顺序循环。",
+          "reason": "该模型增加了规范未给出的强制转移顺序，可能排除在三个区域之间按其他方式运行的合法行为。",
+          "where": "`SearchState` 内部的 `Area1 --> Area2`、`Area2 --> Area3`、`Area3 --> Area1`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "拦截检测被放入 `SearchState` 的并行区域语法块中，但外部又从复合状态 `SearchState` 建立 `SearchState --> FormationAdjustment : Intercepted` 转移；模型没有明确拦截事件发生时如何退出两个并行区域、如何保存或恢复搜索区域。",
+          "reason": "规范要求被拦截时转入编队调整状态。当前模型同时把 `Intercepted` 作为内部状态和外部转移触发条件，语义存在冲突/歧义：进入内部 `Intercepted` 并不会自动触发外部转移，且复合并行状态的退出行为未定义。",
+          "where": "`SearchState` 内的 `NoIntercept/Intercepted` 区域，以及 `SearchState --> FormationAdjustment : Intercepted`"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "攻击状态没有建模攻击失败、取消或其他结束条件，只能通过 `Attack Complete [Decrease UAV Count]` 返回搜索。",
+          "reason": "规范明确说明攻击完成后无人机数量相应减少，但没有规定攻击必须成功或只有这一种结束路径。模型把唯一结束路径限定为带有数量减少动作的攻击完成事件，未能表达可能的攻击未完成/失败处理；若规范意图只要求成功路径，则该项属于模型对行为的额外限制。",
+          "where": "`AttackState --> SearchState : Attack Complete [Decrease UAV Count]`"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "无人机数量减少被写在转移标签的方括号中，PlantUML中方括号通常表示守卫条件而不是动作。",
+          "reason": "规范要求攻击完成后执行“无人机数量减少”这一动作；当前写法未明确表示动作，可能被解释为必须满足名为 `Decrease UAV Count` 的条件，因此不能可靠地表达数量减少这一状态机行为。",
+          "where": "`AttackState --> SearchState : Attack Complete [Decrease UAV Count]`"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0056",
+    "ledger_assessments": [
+      {
+        "ledger_id": "EIS-0056-01",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "hypothesis:ff21b44c315b71cc"
+          ],
+          "reason": "该 issue 将拦截事件路线与从搜索活动叶状态到 FormationAdjustment 的要求绑定，覆盖台账所述内层与外层拦截目标冲突导致的路线不确定性。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "hypothesis:fe28627680761fda"
+          ],
+          "reason": "该 issue 明确描述 Intercepted 事件在叶路线与 FormationAdjustment 目标之间的替代到达结果，覆盖同一事件的内外层竞争目标。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本轮关于 Intercepted 的 issue 只主张 authored 迁移的形式源端点错位，未主张同一事件的内层/外层无守卫双目标冲突。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_issue_1覆盖了拦截并行区域与外部迁移的语义歧义，但未明确主张同一 Intercepted 事件对应的两条无守卫迁移在同一活动配置下同时使能。",
+          "confidence": "medium"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_issue_1指认了内层 Intercepted 与外层 FormationAdjustment 路线，却将性质表述为退出/恢复歧义，未达到台账要求的无守卫双目标冲突。",
+          "confidence": "medium"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_issue_2指认相同拦截区域和外部迁移，但主张的是并行状态退出语义冲突，未主张两条同事件迁移同时可发且无守卫。",
+          "confidence": "medium"
+        }
+      },
+      {
+        "ledger_id": "EIS-0056-02",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该 issue 只讨论拦截路线，没有指认 AttackState 到 SearchState 迁移或 Decrease UAV Count 的记法槽位。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本轮 issue 分别讨论拦截路线、任务分配路线和 SearchState 非终止可能，未指认攻击完成迁移中数量递减位于守卫槽位。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本轮 issue 讨论搜索动作库存、拦截迁移源端点和任务分配迁移源端点/守卫，未覆盖攻击完成迁移的数量记法槽位。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_2"
+          ],
+          "reason": "baseline_issue_2明确指出同一攻击完成迁移的方括号内容被当作守卫而非执行动作，正是数量递减落入错误记法槽位。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_2"
+          ],
+          "reason": "baseline_issue_2定位同一迁移并明确没有表达数量实际减少动作，覆盖守卫槽位与效果槽位的错误。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_4"
+          ],
+          "reason": "baseline_issue_4定位同一迁移并明确方括号是守卫语法而不是动作，直接覆盖台账主张。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "INS-0056-01",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该轮只报告拦截路线问题，没有涉及三区轮转迁移的无事件闭环。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "SearchState 非终止 issue 的定位是任务完成路线和非平凡 SCC，但没有指认 Area1→Area2→Area3→Area1 三条无事件迁移，也没有主张零时间 RTC 空转。",
+          "confidence": "medium"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本轮没有 finding 指认三区轮转迁移或其无事件非终止性。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该轮没有 finding 指认 Area1、Area2、Area3 三条无事件迁移组成闭合零时间循环。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该轮没有 finding 指认三区三条迁移形成无事件、无守卫的闭环或由此产生零时间不终止。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_issue_1虽定位三区迁移，但只主张固定顺序是规范未要求的多余限制，不主张无事件完成迁移导致零时间无限空转。",
+          "confidence": "high"
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "method_run1",
+        "emitted_id": "hypothesis:ff21b44c315b71cc",
+        "matched_ledger_ids": [
+          "EIS-0056-01"
+        ],
+        "false_positive": false,
+        "reason": "它直接主张拦截事件从当前搜索活动叶状态到 FormationAdjustment 的路线可能未正确实现，覆盖同一 SearchState 内部拦截迁移与外层 FormationAdjustment 目标之间的不可区分冲突及其规范后果。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:fe28627680761fda",
+        "matched_ledger_ids": [
+          "EIS-0056-01"
+        ],
+        "false_positive": false,
+        "reason": "它指认 Intercepted 事件可能沿叶状态路线到达根终止伪状态而非 FormationAdjustment，语义上覆盖同一拦截事件在内层与外层消费之间导致规范目标不确定的缺陷。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:addb576c7d41c4f0",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它讨论 Task Assignment Received 到 AttackState 的路线，与台账中的 Intercepted 双目标冲突、攻击数量记法槽位或三区无事件完成环均不是同一事件和性质。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:050d9ec66cf038e1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它主张 SearchState 可能存在非终止延续，但定位和性质是任务完成路线的非终止性，未指认 Area1、Area2、Area3 三条无事件完成迁移形成的零时间闭环。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "hypothesis:3464cdee550b9a29",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它主张形式状态或动作清单缺少目标搜索动作，属于动作库存缺失，不是三区轮转迁移的无事件闭环、拦截双目标冲突或 Decrease UAV Count 的守卫槽位错误。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:transition:llms_emp_feedback_final_0056:Intercepted:FormationAdjustment",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它指出 authored interception transition 的形式源端点可能不符合规范来源，属于迁移源端点错位；台账 EIS-0056-01 要求的是同一事件在内层和外层两个目标上的无守卫冲突，并非单独的源端点问题。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:transition:llms_emp_feedback_final_0056:Task Assignment Received:AttackState",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它指认任务分配迁移的源端点及飞行守卫问题，与三个冻结条目的事件、迁移位置和缺陷性质均不相同。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0056-01"
+        ],
+        "false_positive": false,
+        "reason": "它定位同一两个并行区域及 SearchState 到 FormationAdjustment 的 Intercepted 外部迁移，并主张拦截后仍可在 SearchState 内保持或不能明确退出；虽未明确写出两条无守卫边同时使能，但语义上覆盖该拦截结构冲突。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "EIS-0056-02"
+        ],
+        "false_positive": false,
+        "reason": "它定位同一 AttackState 到 SearchState 迁移，并明确方括号被解释为守卫而非数量递减动作，直接覆盖记法槽位错误。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它讨论 SearchState 到终止伪状态的任务完成优先级和互斥问题，未指认三区无事件闭环，也不是拦截双目标冲突或数量动作槽位错误。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0056-01"
+        ],
+        "false_positive": false,
+        "reason": "它定位同一 SearchState 的两个并行区域和 Intercepted 外部迁移，主张内部 Intercepted 与外部编队调整路线语义歧义；该问题对应台账所述同一事件的内外层竞争目标。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "EIS-0056-02"
+        ],
+        "false_positive": false,
+        "reason": "它定位同一攻击完成迁移并主张方括号没有表达实际数量减少动作，直接覆盖守卫槽位而非 effect 槽位的缺陷。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它讨论 Task Assignment Received 到 AttackState 的触发范围和并行区域退出恢复，不是 Intercepted 冲突、数量记法槽位或三区无事件闭环。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它定位三区迁移，但主张的是规范未规定固定 Area1→Area2→Area3→Area1 顺序的多余限制，不是三条无事件迁移形成零时间无限空转的非终止性。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "EIS-0056-01"
+        ],
+        "false_positive": false,
+        "reason": "它定位同一内部 Intercepted 区域与外部 FormationAdjustment 迁移，并主张内部状态与外部目标之间存在语义冲突和退出歧义，覆盖拦截双层结构缺陷。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它讨论 AttackState 缺少攻击失败或取消路径，属于攻击终止行为范围问题，不对应冻结台账中的任何位置和性质。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [
+          "EIS-0056-02"
+        ],
+        "false_positive": false,
+        "reason": "它定位同一攻击完成迁移并明确方括号通常表示守卫而非动作，直接覆盖无人机数量递减被放入错误记法槽位。",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "仅 EIS-0056-02 在三个 baseline 运行中均被明确覆盖；EIS-0056-01 的方法前两轮与各 baseline 的拦截结构 finding 只在部分语义上接近，未达到冻结台账要求的同一事件双无守卫目标冲突这一性质，因此按严格命中判据均记为 miss。INS-0056-01 的三区非终止条目没有任何输出明确同时指认三条无事件闭环及零时间发散；method_run2 的泛化 SearchState 非终止主张不足以命中。"
+  },
+  "status": "ok",
+  "attempts": 1
+}

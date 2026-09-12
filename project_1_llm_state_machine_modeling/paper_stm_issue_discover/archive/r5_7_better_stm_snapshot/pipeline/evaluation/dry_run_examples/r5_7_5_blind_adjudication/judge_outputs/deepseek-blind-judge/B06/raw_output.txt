@@ -1,0 +1,70 @@
+Based on my thorough E0–E11 analysis against the blind input packet, here is the adjudication:
+
+```json
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B06",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "deepseek-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "better",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "NL describes a discrete state machine with sensor-threshold guards (front_distance > 10), power on/off events, and manual-control triggers. No real second/millisecond duration, interval duration, execution-time bound, or timed-automata claim is present. This is a clean T0 protocol case; neither T0.5 caveat nor T1 stress applies.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "candidate STM_k is parseable (mechanical_checks.candidate_parse_status=parse_ok), has readable state/hierarchy/transition structure, event declarations, and a guard expression. Minimum audit threshold is met. parse_ok alone is not semantic evidence of better.",
+      "evidence_references": ["candidate STM_k"]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "Change can be attributed to canonical STM_0 → candidate STM_k. The sole semantic delta is replacing the event-triggered transition 'InitialState -> Autonomous : Front_Distance_10' with a guard-triggered transition 'InitialState -> Autonomous : if [front_distance > 10]', supported by the addition of 'def int front_distance = 0'. All other transitions, states, hierarchy, and event declarations are byte-identical to canonical. This is not a format conversion, normalization, or renaming — it is a guard-extraction change with a clear NL anchor (NL line: 'when front_distance > 10, auto transport to autonomous state').",
+      "evidence_references": ["canonical STM_0", "candidate STM_k"]
+    },
+    "G3": {
+      "status": "pass",
+      "reason": "No NL-supported state, transition, hierarchy level, guard, action/effect, or trace is deleted or destroyed. The event declaration 'Front_Distance_10' is removed from the candidate event list, but this is a valid consequence of converting that trigger from an opaque event to an explicit guard; the transition 'InitialState -> Autonomous' is preserved with equivalent triggering semantics. All other transitions (Power_Off, Power_On, Exit_Autonomous, Human_Steering_Cmd_or_Brake_Pressed, Enter_Autonomous) remain identical. State hierarchy (HumanDriving containing InitialState, FinalState, Autonomous) is unchanged. No regression.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G4": {
+      "status": "pass",
+      "reason": "NL explicitly states 'when front_distance > 10' as a conditional threshold with a comparison operator and numeric bound. Canonical STM_0 encodes this condition opaquely as an event name 'Front_Distance_10' (display label 'Front Distance > 10'). Candidate STM_k extracts the guard into explicit syntax: 'if [front_distance > 10]', making the threshold semantics directly readable in the model rather than hidden in an event label. This is a strict, NL-supported, single-target guard-extraction improvement — the target issue (opaque event vs. explicit conditional guard) is clearly and completely addressed.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G5": {
+      "status": "pass",
+      "reason": "Returning to NL, raw STM_0, canonical STM_0, and candidate STM_k together: the NL condition 'when front_distance > 10' is faithfully represented by the guard 'if [front_distance > 10]'. The raw STM_0 already labeled this as 'Front Distance > 10', confirming the conditional intent. Canonical preserved that intent as an event name; candidate elevates it to first-class guard syntax. All other NL semantics (power-on → HumanDriving, human steering/brake → HumanDriving, power-off → Final, autonomous sub-states) are identically preserved across canonical and candidate. Semantic fidelity is maintained with improved guard explicitness. Text similarity alone is not the basis; the judgment rests on the guard's direct correspondence to the NL predicate.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "Evidence chain is complete: NL → raw STM_0 → canonical STM_0 → candidate STM_k, supported by mechanical/provenance checks. Confidence is high because the change is single-point, well-scoped, directly anchored in NL, and preserves all other semantics. Forbidden claims include any assertion of repair effectiveness or headline eligibility. No human escalation required — the evidence is self-contained and unambiguous within the blind packet.",
+      "evidence_references": ["this JSON output"]
+    }
+  },
+  "evidence_references": [
+    "NL: 'when front_distance > 10, auto transport to autonomous state' — explicit conditional threshold",
+    "raw STM_0: 'InitialState --> Autonomous : Front Distance > 10' — condition expressed in label",
+    "canonical STM_0: event Front_Distance_10 named 'Front Distance > 10'; transition 'InitialState -> Autonomous : Front_Distance_10' — opaque event trigger",
+    "candidate STM_k: 'InitialState -> Autonomous : if [front_distance > 10]' — explicit guard syntax",
+    "mechanical_checks: parse_ok, both files present, candidate ≠ canonical",
+    "provenance_checks: change_ledger, target_instance_ledger, hash_chain all available and complete"
+  ],
+  "rationale": "The candidate makes exactly one semantic change: it converts the transition trigger for 'InitialState -> Autonomous' from an opaque event (Front_Distance_10) to an explicit guard (if [front_distance > 10]). This change is directly anchored in the NL, which explicitly writes 'when front_distance > 10' as a conditional threshold — not as an opaque named event. The canonical STM_0 collapsed this predicate into an event name; the candidate extracts it into first-class guard syntax per rule 7 (complete local guard extraction). All states, transitions, hierarchy, and other NL-supported behaviors are preserved unchanged. No regression is introduced: the removed event declaration 'Front_Distance_10' is functionally replaced by the guard. This is a strict, complete, single-target improvement with no evidence of gaming, over-repair, or semantic drift.",
+  "observed_anti_gaming_risk_flags": [],
+  "forbidden_claims": ["This blind dry-run is not repair effectiveness evidence."],
+  "confidence": "high",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "Input packet contains only blind_case_id B06, NL, raw STM_0, canonical STM_0, candidate STM_k, mechanical checks, provenance checks, protocol-level semantic modeling conventions, and a neutral change observation. No primary_expected_verdict, expected_verdict, source_case_id, source_slug, semantic_evidence_status, target_closure_expected, or any case-specific construction-intent label is present. The semantic_modeling_conventions block is a uniform protocol-level policy block, not a case-specific answer key."
+  }
+}
+```

@@ -1,0 +1,288 @@
+{
+  "instructions": [
+    "Recover obligation O from the complete NL, author PlantUML, ledger reasoning, and cited formal semantics before proposing any executable property.",
+    "Do not infer inputs from state-name similarity, old planned mappings, v60 actual outputs, reference models, or execution results.",
+    "State missing quantifier, scope, timing, domain, bound, or environment information explicitly instead of inventing it."
+  ],
+  "ledger_items": [
+    {
+      "axes": {
+        "defect_element": "state",
+        "defect_locus": "element",
+        "defect_logic_kind": null,
+        "defect_qualifier": "other",
+        "defect_reference": "language"
+      },
+      "d_basis": "判 D2。被违反的义务有两个来源，任一单独成立。其一来自 NL 第 1、3 句要求的三路独立避撞控制。其二来自建模语言：区域的默认入口迁移其目标必须属于该区域，这是二值的良构约束，投影已明确报出两处越界。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法——PlantUML 的名字全局唯一是确定的解析规则。反驳不存活。",
+      "d_tier": "D2",
+      "detail": "PlantUML 里状态名是全局唯一标识符，不按块作用域分开。`Idle`、`Braking`、`Clamping` 首次出现在 `:4`-`:7`，那时它们在 `Frontend` 的作用域里被创建。\n\n`:11`-`:14` 与 `:18`-`:21` 两段虽然写在 `RearEnd` 与 `Pedestrian` 块内，但它们引用的是同一批已经存在的状态，不会新建。所以后两个复合态里其实一个状态都没有——它们是空的复合态。\n\n连带后果是这两个块的默认入口边越界：`:11 [*] --> Idle` 与 `:18 [*] --> Idle` 的目标 `Idle` 属于 `Frontend`，不在它们自己的区域内。UML 要求区域的默认入口目标必须落在该区域内，投影因此明确报出「PlantUML initial target outside child scope: CollisionAvoidanceSystem.Frontend.Idle」并为两处各生成了一个无效初始迁移标记。\n\n同时，`:12`-`:14` 与 `:19`-`:21` 那些看起来是三套的迁移，实际是同一批迁移被重复声明了三次。\n\n这直接违反 NL：第 1 句「There are three region in this diagram」，第 3 句「The orthogonal regions of the active mode of collision avoidance allow for concurrent activation different of collision avoidance controls」——要求三路可以并发激活不同的避撞控制，而制品里只有一路。\n\n正确写法是给三套状态取不同的标识符，需要相同显示名时用别名语法（例如 `state \"Idle\" as FrontendIdle`）——作者其实在三个复合态本身上用了这种别名语法（`:3`、`:10`、`:17`），只是没有对内部状态照做。",
+      "l_basis": "判 L1。陈述这条错误需要导出一个静态解析事实：按全局标识符规则，三处的 `Idle` 是同一个实体且属于 `Frontend`，因而后两个复合态为空、它们的初始边目标越出所在区域。这要把解析规则与作用域归属一起推一遍；但只涉及静态切面，不需要执行序列，故不到 L2。",
+      "l_tier": "L1",
+      "ledger_id": "EIS-0047-01",
+      "ledger_json_pointer": "/items/EIS-0047-01",
+      "origin_family": "expected_issue（原台账已记录）",
+      "pair_id": "0047",
+      "source_text": {
+        "l_basis_rule": "状态名全局标识使后两个复合态实际为空、初始迁移越界 —— 静态解析事实",
+        "l_decided_by": "人工逐条",
+        "meta_review": "**判 D2**：三臂一致认定它违反了 NL 里这句「The orthogonal regions of the active mode of collision avoidance allow for concurrent acti」，且三方都尝试过推翻、都没找到站得住的第二种读法 —— 义务有成文条文可引、反驳不存活，是 `D2-lit`。",
+        "statement": "PlantUML 状态名是全局标识：Idle / Braking / Clamping 在 Frontend 里首次声明后，RearEnd 与 Pedestrian 中的同名引用指向的是 Frontend 内的同一批状态，于是后两个复合状态实际为空、其初始迁移越界指向 Frontend.Idle（pyfcstm 明确报 \"PlantUML initial target outside child scope: CollisionAvoidanceSystem.Frontend.Idle\"，并生成 InvalidInitialtr_0005 / InvalidInitialtr_0009）。三个避撞控制塌缩为一个，直接违反 NL 第1、3句要求的三路控制，也是同一批迁移被重复声明三次的根因。",
+        "verdict_reason": null
+      },
+      "summary": "`Idle`、`Braking`、`Clamping` 三个名字在 `Frontend` 块内（`:4`-`:7`）首次声明，而 PlantUML 的状态名是全局标识符——`RearEnd`（:10-:15）与 `Pedestrian`（:17-:22）里的同名引用指的是同一批状态，于是后两个复合态实际为空，三路避撞控制塌缩成一路。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0007/0047.md",
+        "sha256": "sha256:f71a7c1048f42e585ae1e706c0519022d6adb816d99348f95e56bdc9c7c703dd"
+      }
+    },
+    {
+      "axes": {
+        "defect_element": "transition",
+        "defect_locus": "element",
+        "defect_logic_kind": null,
+        "defect_qualifier": "missing",
+        "defect_reference": "other"
+      },
+      "d_basis": "判 D2。被违反的义务来自建模语言：一个区域必须有确定的默认入口，否则进入该区域时的初始配置未定义；有三个候选子状态时这一点是二值可判的。三个判读臂一致认定成立。需要如实记下：三臂在给理由时都没有主动引出上面这条依据，出处是本次重写时补齐的；同时 NL 第 2 句要求子机在检测到碰撞时变为活动，这隐含了它至少要能被有定义地进入，可作旁证。",
+      "d_tier": "D2",
+      "detail": "`:2` 开 `state CollisionAvoidanceSystem {`，块内直接放了三个具名复合态（`:3`、`:10`、`:17`），三者之间没有 `--` 分隔符，因此它们是同一个区域里的三个顺序子状态。\n\n这一层没有默认入口：`:3`-`:22` 之间除了三个块本身，没有任何 `[*] -->`。三条 `[*]`（`:4`、`:11`、`:18`）都写在各自块的内部，比这一层低一层。\n\n后果是 `:25 [*] --> CollisionAvoidanceSystem` 把系统送进这个复合态之后，不知道该落到哪个子状态上；投影为此合成了一个占位的未指定初始状态。即便考虑 EIS-0047-01 记录的名字碰撞（后两个复合态实际为空），唯一有内容的 `Frontend` 也同样进不去。\n\n正确写法是在 `CollisionAvoidanceSystem` 这一层补一条默认入口边，或者用 `--` 把三者做成并发区（那样每个区各自需要自己的入口）。\n\n被违反的义务有两层。语言层：一个区域必须有确定的默认入口，否则进入时的初始配置未定义。需求层：NL 第 2 句「This sub-machine becomes active when a possible frontend collision, rear-end collision or collision with pedestrian is detected」要求子机被激活，而激活之后落在哪个控制上没有定义，等于没有任何避撞控制被激活。",
+      "l_basis": "判 L0。陈述这条错误只需读 `state CollisionAvoidanceSystem { }` 这一层，数它直接包含几个子状态（三个）、这一层有没有 `[*] -->`（没有）。这是纯词法层面的检查，不需要从模型结构导出新事实，也不需要执行序列。",
+      "l_tier": "L0",
+      "ledger_id": "EIS-0047-02",
+      "ledger_json_pointer": "/items/EIS-0047-02",
+      "origin_family": "expected_issue（原台账已记录）",
+      "pair_id": "0047",
+      "source_text": {
+        "l_basis_rule": "NL 点名的元素模型没有／模型多出 NL 未点名的元素 —— 词项对比即可陈述",
+        "l_decided_by": "规则档",
+        "meta_review": "**判 D2**：三臂一致判它成立，⚠️ 但都没给出可引的 NL 原句或领域义务 —— ⛔ 建议你顺手核一眼它的义务出处，若拿不出出处应降到 D1。",
+        "statement": "CollisionAvoidanceSystem 有三个子状态却没有初始子状态，进入它时落到合成的 UnspecifiedInitial，连唯一存活的 Frontend 控制也不可达；UML 要求区必须有默认入口或显式进入点，这是结构缺陷。",
+        "verdict_reason": null
+      },
+      "summary": "`CollisionAvoidanceSystem`（:2-:23）有三个子状态却没有任何默认入口边——块内没有区级的 `[*] -->`——进入它时落到合成的占位状态，连唯一存活的 `Frontend` 控制也不可达。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0007/0047.md",
+        "sha256": "sha256:f71a7c1048f42e585ae1e706c0519022d6adb816d99348f95e56bdc9c7c703dd"
+      }
+    },
+    {
+      "axes": {
+        "defect_element": "trigger",
+        "defect_locus": "element",
+        "defect_logic_kind": null,
+        "defect_qualifier": "missing",
+        "defect_reference": "requirement"
+      },
+      "d_basis": "判 D1，两读并立。第一种读法把 NL 第 2 句的 becomes active 读作「子机整体被进入」：`:25` 无条件进入，条件丢失。第二种读法把 becomes active 读作「真正的规避控制被激活」——即进入 `Braking`、`Clamping` 这些实际执行避撞的状态；按这个读法，`:25` 无条件进入的只是待机态 `Idle`，真正的激活门在 `:5`/`:12`/`:19` 三条 `Idle --> Braking : Collision Detected` 上，条件其实是表达了的。第二种读法与结构事实相容（`Idle` 这个名字本身也支持它），故判 D1。",
+      "d_tier": "D1",
+      "detail": "NL 第 2 句逐字为「This sub-machine becomes active when a possible frontend collision, rear-end collision or collision with pedestrian is detected.」——给出的是一个条件：检测到碰撞才激活。\n\n制品在 `:25` 建了一条不带任何触发的根层初始边，目标是 `CollisionAvoidanceSystem`。也就是说机器一上电这个子机就是活动的，那个条件没有被表达。\n\n需要注记一点：上游参考模型对激活条件同样保持沉默，所以本条的依据是 NL 原文而不是与参考的差异。",
+      "l_basis": "判 L0。陈述这条错误只需就地读 `:25` 这一行，看它有没有带触发（没有），再与 NL 第 2 句给出的激活条件对照。这是词法层面的比对，不需要从模型结构导出新事实，也不需要执行序列。",
+      "l_tier": "L0",
+      "ledger_id": "EIS-0047-03",
+      "ledger_json_pointer": "/items/EIS-0047-03",
+      "origin_family": "expected_issue（原台账已记录）",
+      "pair_id": "0047",
+      "source_text": {
+        "l_basis_rule": "NL 点名的元素模型没有／模型多出 NL 未点名的元素 —— 词项对比即可陈述",
+        "l_decided_by": "规则档",
+        "meta_review": "NL 第2句的 becomes active 可读作进入 Braking/Clamping 等真正的规避控制，而非子机整体被进入——:25 无条件进入的只是待机态 Idle，真正的激活门在 :5/:12/:19 的 Collision Detected 触发上。",
+        "statement": "NL 第2句明确规定子机在检测到可能碰撞时才 becomes active；生成方在上电时无条件激活整个避撞子机，与该句直接冲突。（需注记：参考模型对激活条件同样保持沉默，故此条依据的是 NL 原文而非参考。）",
+        "verdict_reason": null
+      },
+      "summary": "`:25 [*] --> CollisionAvoidanceSystem` 在上电时无条件激活整个避撞子机，而 NL 第 2 句规定子机在检测到可能碰撞时才 becomes active。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0007/0047.md",
+        "sha256": "sha256:f71a7c1048f42e585ae1e706c0519022d6adb816d99348f95e56bdc9c7c703dd"
+      }
+    }
+  ],
+  "ledger_sha256": "sha256:b5a38d3d24a51e980e5b9f5afc7c8c66aded59f3b51f16afe67e0deb592d0e36",
+  "metadata_refs": [
+    {
+      "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0047/source_meta.json",
+      "role": "SOURCE_META",
+      "selected_fields": {
+        "selected_stage": "phase_ii_semantic",
+        "source_locator": "sheet=STM Results; row=47; excel_row=49; selected_cell=AE49; selected=Result with Semantic Checking",
+        "source_pair_id": "llms_emp_feedback_final_0047",
+        "stm0_role": "author_feedback_final_plantuml"
+      },
+      "sha256": "sha256:54ce1a2b1bc350456a05fb5d90253cfd54db31db37c00dd45e1bb07967a2843d"
+    },
+    {
+      "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0047/fcstm_meta.json",
+      "role": "FCSTM_META",
+      "selected_fields": {
+        "academic_eligible": false,
+        "academic_ineligibility_reason": "whole_model_behavior_equivalence_and_simulation_not_claimed; use only the working-contract attribution-scoped source-static capability",
+        "artifact_role": "r4_5_attribution_scoped_discover_input",
+        "parse_status": "ok",
+        "simulation_status": "ineligible",
+        "source_static_discover_eligible": true
+      },
+      "sha256": "sha256:b010de4155d5bbd258cdc8ccd4332baa63566087261aff86b0cfa5b1fea3d345"
+    }
+  ],
+  "nl": {
+    "lines": [
+      {
+        "number": 1,
+        "text": "1. There are three region in this diagram"
+      },
+      {
+        "number": 2,
+        "text": "2. This sub-machine becomes active when a possible frontend collision, rear-end collision or collision with pedestrian is detected."
+      },
+      {
+        "number": 3,
+        "text": "3. The orthogonal regions of the active mode of collision avoidance allow for concurrent activation different of collision avoidance controls."
+      }
+    ],
+    "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0047/nl.txt",
+    "role": "AUTHOR_NL",
+    "sha256": "sha256:49854d044ad99f16a710021500f5e972da93b27635a41144d9b91d32444c0f63"
+  },
+  "packet_sha256": "sha256:d1db6b4371d1d9515d66a2c5d39d169a54b82e535c334d26672cab42c3270658",
+  "pair_id": "0047",
+  "plantuml": {
+    "lines": [
+      {
+        "number": 1,
+        "text": "@startuml"
+      },
+      {
+        "number": 2,
+        "text": "state CollisionAvoidanceSystem {"
+      },
+      {
+        "number": 3,
+        "text": "state \"Frontend Collision Avoidance\" as Frontend {"
+      },
+      {
+        "number": 4,
+        "text": "[*] --> Idle"
+      },
+      {
+        "number": 5,
+        "text": "Idle --> Braking : Collision Detected"
+      },
+      {
+        "number": 6,
+        "text": "Braking --> Clamping : Brake Applied"
+      },
+      {
+        "number": 7,
+        "text": "Clamping --> Idle : Collision Avoided"
+      },
+      {
+        "number": 8,
+        "text": "}"
+      },
+      {
+        "number": 9,
+        "text": ""
+      },
+      {
+        "number": 10,
+        "text": "state \"Rear-End Collision Avoidance\" as RearEnd {"
+      },
+      {
+        "number": 11,
+        "text": "[*] --> Idle"
+      },
+      {
+        "number": 12,
+        "text": "Idle --> Braking : Collision Detected"
+      },
+      {
+        "number": 13,
+        "text": "Braking --> Clamping : Brake Applied"
+      },
+      {
+        "number": 14,
+        "text": "Clamping --> Idle : Collision Avoided"
+      },
+      {
+        "number": 15,
+        "text": "}"
+      },
+      {
+        "number": 16,
+        "text": ""
+      },
+      {
+        "number": 17,
+        "text": "state \"Pedestrian Collision Avoidance\" as Pedestrian {"
+      },
+      {
+        "number": 18,
+        "text": "[*] --> Idle"
+      },
+      {
+        "number": 19,
+        "text": "Idle --> Braking : Collision Detected"
+      },
+      {
+        "number": 20,
+        "text": "Braking --> Clamping : Brake Applied"
+      },
+      {
+        "number": 21,
+        "text": "Clamping --> Idle : Collision Avoided"
+      },
+      {
+        "number": 22,
+        "text": "}"
+      },
+      {
+        "number": 23,
+        "text": "}"
+      },
+      {
+        "number": 24,
+        "text": ""
+      },
+      {
+        "number": 25,
+        "text": "[*] --> CollisionAvoidanceSystem"
+      },
+      {
+        "number": 26,
+        "text": "CollisionAvoidanceSystem --> [*] : Collision Avoided"
+      },
+      {
+        "number": 27,
+        "text": ""
+      },
+      {
+        "number": 28,
+        "text": "@enduml"
+      }
+    ],
+    "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0047/stm0.puml",
+    "role": "AUTHOR_PLANTUML",
+    "sha256": "sha256:4e161360e5cf8af9da41402e70a5c58505252226c290cc1e7cabf4a95acf61a0"
+  },
+  "schema_version": "paper1.predicate-gold.review-input-packet.v1",
+  "visibility": {
+    "execution_results_visible": false,
+    "other_track_conclusions_visible": false,
+    "planned_predicate_mapping_visible": false,
+    "v60_actual_predicate_visible": false
+  }
+}

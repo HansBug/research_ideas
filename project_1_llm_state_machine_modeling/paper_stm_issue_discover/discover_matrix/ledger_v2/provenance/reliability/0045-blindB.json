@@ -1,0 +1,79 @@
+{
+  "case": "0045",
+  "nl_group": "NL10",
+  "diffs": [
+    {
+      "verdict": "problem",
+      "ref": "DoorShutWithItem --> ReadytoCook: Cooking Time Entered/Display Cooking Time, Update Cooking Time",
+      "gen": "DoorShutWithItem --> ReadytoCook : Cooking Time Entered",
+      "reason": "NL 第5句明确写 \"entering cooking time takes the system to ReadytoCook, where the cooking time is displayed and updated\"，点名了\"显示烹饪时间\"与\"更新烹饪时间\"两个动作。生成方该迁移只保留触发事件，效果部分完全丢失，全模型没有任何位置承载显示/更新动作。属 NL 点名元素缺失（普通 action，在范围内）。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "ReadytoCook --> DoorShutWithItem: Cancel/Cancel Timer",
+      "gen": "ReadytoCook --> DoorShutWithItem : Cancel",
+      "reason": "NL 第6句明确写 \"if the Cancel action is performed, the system returns to DoorShutWithItem, canceling or updating the cooking time\"，点名了取消动作的效果。生成方只保留 Cancel 触发，`/Cancel Timer` 效果丢失。属 NL 点名元素缺失。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "ReadytoCook --> Cooking: Start/Start Timer",
+      "gen": "ReadytoCook --> Cooking : Start",
+      "reason": "NL 第7句明确写 \"When the Start action is performed in ReadytoCook, the system transitions to the Cooking state, where the timer starts\"，点名了启动定时器动作。生成方只保留 Start 触发，`/Start Timer` 效果丢失。定时器动作按口径 4 属普通 action，在范围内。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "Cooking --> DoorOpenWithItem: Door Opened/Stop Timer",
+      "gen": "Cooking --> DoorOpenWithItem : Door Opened",
+      "reason": "NL 第8句明确写 \"In the Cooking state, opening the door stops the timer and the system transitions to DoorOpenWithItem\"，点名了停止定时器动作。生成方只保留 Door Opened 触发，`/Stop Timer` 效果丢失。属 NL 点名元素缺失。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "DoorShut --> DoorShut: Cancel/CancelTimer",
+      "gen": "DoorShut --> DoorShut : Cancel",
+      "reason": "NL 第1句只说 \"the system can either remain in DoorShut if a Cancel action is performed\"，没有为这次取消点名任何动作效果。参考的 `/CancelTimer` 属比 NL 更具体的部分，按口径 2 不算生成方问题；自环本身两侧一致。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "Cooking --> ReadytoCook: Cancel/Stop Timer",
+      "gen": "Cooking --> ReadytoCook : Cancel",
+      "reason": "NL 第8句末尾只写 \"A Cancel action transitions the system back to ReadytoCook\"，未为这条边点名动作效果（该句的 stop-timer 只绑定在开门那条边上，已单独判 problem）。参考此处的 `/Stop Timer` 属更具体部分，按口径 2 不计问题。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "ReadytoCook --> ReadytoCook: Coooking Time Entered/ Display Cooking Time. Update Cooking Time",
+      "gen": "（无 ReadytoCook 自环）",
+      "reason": "NL 第5、6句提到\"显示与更新烹饪时间\"，但都绑定在进入 ReadytoCook 或取消的迁移上，没有点名一个在 ReadytoCook 内重复录入时间的自环。参考该自环属更具体部分（且触发名 \"Coooking\" 拼写错误），按口径 2 不算生成方问题。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "DoorOpenWithItem --> ReadytoCook: Door Closed[Time Remaining]",
+      "gen": "DoorOpenWithItem --> ReadytoCook : Cooking Time Entered",
+      "reason": "NL 第4句写 \"From DoorOpenWithItem, the system can transition to DoorShutWithItem if the door is closed with zero time set or to ReadytoCook if cooking time is entered\"——ReadytoCook 分支的条件在 NL 中就是\"cooking time is entered\"。生成方按 NL 字面实现，参考改用 `Door Closed[Time Remaining]`。二者是同一分支的不同刻画，NL 支持生成方写法，判 correct。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "DoorOpenWithItem --> DoorShutWithItem: Door Closed[Zero Time] ；Cooking --> DoorShutWithItem: Timer Expired'",
+      "gen": "DoorOpenWithItem --> DoorShutWithItem : Door Closed [zero time set] ；Cooking --> DoorShutWithItem : Timer Expired",
+      "reason": "NL 第4句 \"if the door is closed with zero time set\" 与第8句 \"if the timer expires\" 两侧都实现，仅守卫文本大小写/措辞不同。参考的 `Timer Expired'` 末尾多一个撇号，属参考侧笔误，生成方写法更干净。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "[*] --> DoorShut ；DoorShut --> DoorOpen: Door Opened ；DoorOpen --> DoorShut: Door Closed ；DoorOpen --> DoorOpenWithItem: Item Placed ；DoorOpenWithItem --> DoorOpen: Item Removed ；DoorShutWithItem --> DoorOpenWithItem: Door Opened ；ReadytoCook --> DoorOpenWithItem: Door Opened",
+      "gen": "同名的七条迁移全部存在，触发一致",
+      "reason": "NL 第1、2、3、5、6句涉及的门开关与放取物品迁移在两侧完全对应，六个状态命名一致，初始迁移无触发。按口径 1 判 correct。",
+      "out_of_scope": null
+    }
+  ],
+  "problem_count": 4,
+  "extra_count": 0,
+  "notes": "拆分粒度原则：一条 diff = 一个可独立修复的现象。本 case 生成方系统性地丢掉了所有迁移效果（`/action` 部分），但我按\"每个被 NL 点名的动作 + 其所在迁移\"逐条拆分，而不是合并成一条\"效果全丢\"，理由是：每条对应不同的 NL 句子、不同的迁移、不同的补写内容，是可分别验收的独立义务；同时把 NL 未点名而只有参考才有的两个效果（DoorShut 自环的 CancelTimer、Cooking--Cancel-->ReadytoCook 的 Stop Timer）单独判 similar，避免把参考更具体的部分算成生成方缺陷。\n\nNL 逐句核对：\n1 \"starts in DoorShut；Cancel 自环；开门到 DoorOpen\"：迁移全满足；Cancel 的效果 NL 未点名，不计问题。\n2 \"DoorShut --Door Opened--> DoorOpen；关门回 DoorShut\"：满足。\n3 \"DoorOpen --Item Placed--> DoorOpenWithItem；Item Removed 回 DoorOpen\"：满足。\n4 \"DoorOpenWithItem --> DoorShutWithItem（关门且零时间）/ --> ReadytoCook（录入烹饪时间）\"：满足，且 ReadytoCook 分支触发比参考更贴 NL。\n5 \"DoorShutWithItem 开门回 DoorOpenWithItem；录入时间到 ReadytoCook，其中时间被显示并更新\"：迁移满足，但\"displayed and updated\"动作缺失（计 problem）。\n6 \"ReadytoCook 中 Cancel 回 DoorShutWithItem（取消或更新烹饪时间）；开门到 DoorOpenWithItem\"：迁移满足，取消动作效果缺失（计 problem）。\n7 \"ReadytoCook 中 Start 到 Cooking，定时器启动\"：迁移满足，Start Timer 缺失（计 problem）。\n8 \"Cooking 中开门停定时器并到 DoorOpenWithItem；定时器到期到 DoorShutWithItem；Cancel 回 ReadytoCook\"：三条迁移全满足，开门那条的 Stop Timer 缺失（计 problem）。\n\n良构性检查（生成方）：初始边无触发；六个状态全部可达、全部有出边，无死端、无吸收态、无复合态、无无标签 completion 边。结构层面是 12 例中最干净的之一，问题全部集中在迁移效果缺失。\n参考侧存疑位置：(a) `ReadytoCook --> ReadytoCook: Coooking Time Entered` 触发名拼写错误；(b) `Cooking --> DoorShutWithItem: Timer Expired'` 末尾多余撇号；(c) 参考同样没有 final 状态（与 NL 一致，不计问题）。"
+}

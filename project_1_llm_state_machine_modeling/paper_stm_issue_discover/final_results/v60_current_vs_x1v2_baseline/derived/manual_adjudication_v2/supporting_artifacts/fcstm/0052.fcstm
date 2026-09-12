@@ -1,0 +1,27 @@
+def int R45RouteToken = 0;
+state llms_emp_feedback_final_0052 named "llms_emp_feedback_final_0052" {
+    event start named "start";
+    event accelerate named "accelerate";
+    event brake named "brake";
+    event stop named "stop";
+    event keyOff named "keyOff";
+    event shutdown named "shutdown";
+    state Operate named "Operate" {
+        state Idle named "Idle";
+        state Accelerating_or_Cruising named "Accelerating_or_Cruising";
+        state Braking named "Braking";
+        [*] -> Idle;
+        Idle -> Accelerating_or_Cruising : /accelerate;
+        Accelerating_or_Cruising -> Braking : /brake;
+        Braking -> Idle : /stop;
+        Accelerating_or_Cruising -> Idle : /stop;
+        Idle -> [*] : /keyOff effect { R45RouteToken = 8; };
+        Accelerating_or_Cruising -> [*] : /keyOff effect { R45RouteToken = 8; };
+        Braking -> [*] : /keyOff effect { R45RouteToken = 8; };
+    }
+    state Off named "Off";
+    Operate -> Off : if [R45RouteToken == 8] effect { R45RouteToken = 0; };
+    [*] -> Off;
+    Off -> Operate : /start;
+    Off -> [*] : /shutdown;
+}

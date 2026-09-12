@@ -1,0 +1,79 @@
+{
+  "case": "0058",
+  "nl_group": "NL04",
+  "diffs": [
+    {
+      "verdict": "problem",
+      "ref": "TurnOn: execTime=[(2,s,max),(2,s,min)] ；AutoFocus: execTime=... ；DetLight: execTime = ... ；ChargedFlash: execTime=... ；WriteMemory: execTime=...（都是挂在简单状态上的属性，无嵌套）",
+      "gen": "state TurnOn { state \"\"TurnOn\"\" as TurnOn_state }\nTurnOn_state : {max=2s, min=2s}\n（AutoFocus / DetLight / ChargedFlash / WriteMemory 同构，共 5 个同名包装复合态，且 5 个复合态内部都没有 `[*] -->`）",
+      "reason": "良构性问题：生成方把 5 个带执行时间的状态各自包进一个同名复合态，内部只有一个子状态，且**没有任何默认子态**（fcstm 为每个都注入 `UnspecifiedInitial`）。这在 `fork1 --> AutoFocus`、`fork1 --> DetLight`、`TakePicture --> WriteMemory` 三处是硬缺陷：这些迁移的目标是复合态本身（不是内部的 `X_state`），进入时没有默认子态可激活，配置无定义。命中口径 3 的\"复合态无默认子态\"。同时该包装是 NL 与参考都没有的多余层次，并伴随语法瑕疵（`state \"\"TurnOn\"\" as TurnOn_state` 双重引号、文件末尾 `@enduml\"` 多一个引号）；因该多余层次与良构缺陷在同一处、同一修复动作（拆掉包装）即可消除，合并为一条并按较重档位记 problem。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "state Join2 <> ；state Fork2 <> ；Join2 --> Fork2 ；Fork2 --> Junction2 ；Fork2 --> Flash（Fork2 是与 Join2 并列的伪状态）",
+      "gen": "state Join2 <<join>>\n...\nstate Join2 {\nstate fork2 <<fork>>\nfork2 --> Junction2\nfork2 --> Flash\n}",
+      "reason": "良构性问题：Join2 先被声明为 `<<join>>` 伪状态，随后又被声明为一个含 fork2 与 Flash 的复合状态——同一元素同时是伪状态和复合状态，种类自相矛盾；作为复合态它又没有 `[*] -->` 默认子态（fcstm 注入 `UnspecifiedInitial`），而 `Junction3 --> Join2` 与 `choice2 --> Join2` 两条入边都指向它，进入后没有合法配置。NL 第11句 \"In the Fork2 state, which is part of the Join2 substate\" 措辞本身含糊，把 fork2 嵌进 Join2 是一种说得通的读法（参考读成 `Join2 --> Fork2`），这部分不计问题；判 problem 的是\"伪状态与复合态双重声明 + 无默认子态\"。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "choice1 --> Join1 ；choice1 --> Junction1",
+      "gen": "AutoFocus_state --> choice1 : [memFull=true]（choice1 只有入边，没有任何出边）",
+      "reason": "良构性问题：生成方的 choice1 有入边却没有任何出边，是死端/吸收节点（fcstm 中 choice1 为普通 state 且无出边）。作为 NL 第3句点名的\"choice1 state\"，一个分支点没有任何分支出口在任何语义下都不成立：系统在 memFull=true 后永久停滞，NL 第10句 \"transitions back to the initial state, represented by [*]\" 这条主流程从 AutoFocus 分支出发不可达。参考给了两条出边（Join1、Junction1）。附带后果：Join1 只剩 choice2 一条入边，作为 `<<join>>` 只有单分支汇入，Junction1 也只剩 WriteMemory 一条入边。命中口径 3 的\"死端\"。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "ChargedFlash --> Junction3（无守卫）；choice3 --> Junction3:[Charged=true]",
+      "gen": "ChargedFlash_state --> Junction3 : [Charged=true] ；choice3 --> Junction3（无守卫）",
+      "reason": "NL 第6句 \"The ChargedFlash state can lead to Junction3, where the system starts and proceeds to the Join2 state. The transition occurs when Charged=true\" 把 `Charged=true` 绑在 ChargedFlash --> Junction3 上；NL 第7句 \"The choice3 state also transitions to Junction3\" 未给条件。生成方的守卫位置与 NL 第6、7句一致。参考侧存疑：参考把 `[Charged=true]` 挂到 choice3 --> Junction3，同时让 ChargedFlash --> Junction3 无守卫，与 NL 第6句相反，不能以参考为基准判生成方。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "TurnOn: execTime=[(2,s,max),(2,s,min)] ；AutoFocus: execTime=[(2,s,max),(1,s,min)] ；DetLight: execTime = [(1,s,max),(0,s,min)] ；ChargedFlash: execTime=[(4,s,max),(2,s,min)] ；WriteMemory: execTime=[(3,s,max),(2,s,min)]",
+      "gen": "{max=2s, min=2s} ；{max=2s, min=1s} ；{max=1s, min=0s} ；{max=4s, min=2s} ；{max=3s, min=2s}",
+      "reason": "NL 第1、3、4、5、9句给出的五组最大/最小执行时间数值两侧完全一致，仅记法不同（execTime 元组 vs 花括号键值）。按口径 1 判 correct；按口径 4，这是真正的时长约束，标 out_of_scope: timing。",
+      "out_of_scope": "timing"
+    },
+    {
+      "verdict": "similar",
+      "ref": "state choice1 <> ；state choice2 <> ；state choice3 <> ；state Junction1 <> ；state Junction2 <>（原文中的 `<>` 是 workbook 丢失 stereotype 后的残留）；state Junction3 <>",
+      "gen": "choice1 / choice2 / choice3 / Junction1 / Junction2 / Junction3 均未声明 stereotype，被当作普通状态（fcstm: `state choice3 named \"choice3\"`）；其中 choice3 的两条出边 `choice3 --> ChargedFlash_state` 与 `choice3 --> Junction3` 都无守卫",
+      "reason": "NL 自身把它们称作 \"the choice1 state\"、\"Junction3 state\"（第3、6、7句），并未规定必须是伪状态；参考的 `<>` 是 stereotype 内容在 workbook 中丢失后的残留，也不构成可靠的种类基准。生成方保留了分支拓扑，只是种类退化为普通状态、choice3 的两条分支都不带守卫（NL 第5、7句同样没有给出区分这两条分支的条件，属 NL 欠定），故按口径 1、2 判 similar。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "DetLight --> choice2: <>{prob=0.4}",
+      "gen": "DetLight_state --> choice2 : <<GaStep>>{prob=0.4}",
+      "reason": "NL 第4句写的是 \"transitioning to the choice2 state when the condition <>{prob=0.4} is met\"，NL 与参考中的 `<>` 都是 stereotype 被吞掉后的残留。生成方补成 `<<GaStep>>`（MARTE 风格）是一种重建猜测，概率值 0.4 与目标 choice2 均保留，语义未变，按口径 1 判 similar。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "state fork1 <>（stereotype 内容丢失）；fork1 --> AutoFocus ；fork1 --> DetLight ；fork1 --> choice3 ；TurnOn --> fork1",
+      "gen": "state fork1 <<fork>> ；fork1 --> AutoFocus ；fork1 --> DetLight ；fork1 --> choice3 ；TurnOn_state --> fork1",
+      "reason": "NL 第2句 \"The TurnOn state transitions into a fork1 state, which contains parallel paths leading to AutoFocus and DetLight\" 与第5句的 fork1 --> choice3 两侧一致；生成方还把参考中丢失的 fork 语义显式恢复为 `<<fork>>`。`TurnOn_state --> fork1` 与参考的 `TurnOn --> fork1` 同为无触发 completion 迁移，与 NL 第1句\"执行完 2 秒后迁移\"一致。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "choice2 --> Join2 ；choice2 --> Join1: [sunny=true] ；Join1 --> Junction2 ；Junction3 --> Join2 ；Junction2 --> TakePicture ；TakePicture -->WriteMemory ；WriteMemory --> Junction1 ；Junction1 --> TurnOff ；TurnOff --> [*] ；Flash --> Terminate",
+      "gen": "同名的十条迁移全部存在（WriteMemory 侧为 WriteMemory_state --> Junction1）",
+      "reason": "NL 第7、8、9、10、11句涉及的主流程迁移与 `[sunny=true]` 守卫两侧一一对应，`[*]` 终止出口也在（NL 第10句）。按口径 1 判 correct。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "[*] --> TurnOn ；AutoFocus --> choice1: [memFull=true]",
+      "gen": "[*] --> TurnOn_state ；AutoFocus_state --> choice1 : [memFull=true]",
+      "reason": "NL 第1句 \"The system begins in the TurnOn state\" 与第3句 \"proceeding to the choice1 state, which is triggered when the condition memFull=true\" 两侧一致；初始迁移无触发，良构（生成方指向包装复合态内部的子状态，是显式深入进入，不额外记问题，包装本身已在第 1 条计入）。",
+      "out_of_scope": null
+    }
+  ],
+  "problem_count": 3,
+  "extra_count": 0,
+  "notes": "拆分粒度原则：一条 diff = 一个可独立修复的现象。三个 problem 分别对应三种互不相干的修复动作：(a) 拆掉 5 个同名包装复合态；(b) 消除 Join2 的伪状态/复合态双重声明；(c) 给 choice1 补出边。5 个包装复合态虽然也是\"多出的元素\"，但其多余性与良构缺陷同源同处，合并为一条并按较重档位记 problem，不再另记 extra（因此本 case extra_count=0）。五组执行时间只算一条 correct，不逐状态拆。\n\nNL 逐句核对：\n1 \"TurnOn 有 2s max / 2s min 两个执行时间，然后迁移到 fork1\"：满足（{max=2s,min=2s} + TurnOn_state --> fork1）。\n2 \"TurnOn 迁到 fork1，fork1 含通往 AutoFocus 与 DetLight 的并行路径\"：满足（`<<fork>>` + 两条出边）。\n3 \"AutoFocus 2s/1s，之后到 choice1，条件 memFull=true\"：迁移与守卫满足；但 choice1 之后无任何出路（计 problem）。\n4 \"DetLight 1s/0s，条件 <>{prob=0.4} 到 choice2\"：满足（stereotype 重建为 <<GaStep>>）。\n5 \"fork1 可到 choice3，再到 ChargedFlash（4s/2s）\"：满足。\n6 \"ChargedFlash 到 Junction3 再到 Join2，条件 Charged=true\"：满足，且守卫位置比参考更贴 NL。\n7 \"choice3 也到 Junction3；Junction3 汇入 Join2\"：满足。\n8 \"choice2 到 Join2；sunny=true 时到 Join1，Join1 通往 Junction2\"：满足。\n9 \"Junction2 到 TakePicture 再到 WriteMemory（3s/2s）\"：满足。\n10 \"WriteMemory 到 Junction1 再到 TurnOff，最后回到 [*]\"：满足。\n11 \"Fork2 属于 Join2，可到 Junction2 或 Flash；Flash 到 Terminate 结束\"：迁移满足；但承载它的 Join2 同时被声明为 join 伪状态且无默认子态（计 problem）。\n\n即：NL 全部 11 句的迁移/数值内容都有对应元素，本 case 的三个 problem 全部是良构性缺陷，而不是 NL 覆盖缺失。\n参考侧存疑位置：(a) `[Charged=true]` 挂在 choice3 --> Junction3 而非 NL 第6句指定的 ChargedFlash --> Junction3；(b) 所有伪状态的 stereotype 在 workbook 中丢失为 `<>`（NL 第4句文本中同样残留 `<>`），属数据源污染而非建模判断，故未据此判生成方问题；(c) 参考的 Terminate 与生成方一样是无出边终点，双方共有，不计差异。"
+}

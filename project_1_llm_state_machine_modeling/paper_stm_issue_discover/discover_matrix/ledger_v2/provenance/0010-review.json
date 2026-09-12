@@ -1,0 +1,141 @@
+{
+ "case": "0010",
+ "group": "NL08",
+ "llm": "GPT-4",
+ "diffs": [
+  {
+   "verdict": "correct",
+   "ref": "human_mode（简单状态）",
+   "gen": "HumanDriving : Human Driving Mode（叶状态）",
+   "reason": "NL 第1句要求 human driving mode 是 simple state，生成方以叶状态表达，语义一致。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "(参考无 front_distance 迁移)",
+   "gen": "HumanDriving --> Autonomous : Front Distance > 10",
+   "reason": "NL 第4句 front_distance > 10 从人工驾驶进入自动驾驶，这一条生成方给对了（参考模型整句缺失），不记为差异。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "[*] --> human_mode : power_on",
+   "gen": "[*] --> HumanDriving（无触发） 且 HumanDriving --> Autonomous : Power On",
+   "reason": "NL 第3句要求 power on 时系统进入 human driving mode。生成制品把 Power On 挪到了 HumanDriving→Autonomous 这条边上：顶层初始边成了无触发迁移（丢失 NL 明确给出的触发条件），而 Power On 反过来变成\"开机即切自动驾驶\"的事件，既违反第3句，又抢占了第4句 front_distance>10 才该承担的角色（该模型同时保留了 `HumanDriving --> Autonomous : Front Distance > 10`，于是 HumanDriving 有两条通向 Autonomous 的边）。冷启动后给出 Power On，系统从人工驾驶被推进自动驾驶，与 NL 语义相反。",
+   "assertable": "occupancy_after(source=\"[*]\", trigger=\"llms_emp_feedback_final_0010.Power_On\", target=\"llms_emp_feedback_final_0010.HumanDriving\") → 期望 True 实得 False（无触发初始边先落到 HumanDriving，Power_On 随即把系统推到 Autonomous）；补充 edge_declared(source=\"[*]\", trigger=\"llms_emp_feedback_final_0010.Power_On\", target=\"llms_emp_feedback_final_0010.HumanDriving\") → False",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "autonomous_mode（参考自己也没写状态体，同样违反 NL 第2句）",
+   "gen": "Autonomous : <<submachine>>（仅状态体文本），AutonomousIdle / AutonomousActive 与 Autonomous 平级声明在顶层",
+   "reason": "NL 第2句要求 autonomous mode 有子状态并以 sub machine state 表示。生成方只给 Autonomous 贴了 `<<submachine>>` 字样注释，实际上是叶状态；本该作为其子状态的 AutonomousIdle / AutonomousActive 被声明成顶层同级状态（pyfcstm 投影确认全部为 root 直属叶状态，Autonomous 无 substates），层次结构完全丢失。这是 stereotype 文本冒充结构的典型幻觉，论文语法检查 14/14 全通过也没有发现。",
+   "assertable": "state_declared(state=\"llms_emp_feedback_final_0010.Autonomous\", kind=\"composite\") → 期望 True 实得 False；补充 containment(parent=\"llms_emp_feedback_final_0010.Autonomous\", child=\"llms_emp_feedback_final_0010.Autonomous.AutonomousActive\") → False",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "human_mode --> [*] : power_off",
+   "gen": "HumanDriving --> AutonomousFinal : Power Off，且 AutonomousFinal 是普通状态（AutonomousFinal : Auto Final State）",
+   "reason": "NL 第5句要求断电进入终态。生成制品把 Power Off 指向一个名字里带 Final 的**普通状态**，模型里根本没有终态伪状态，投影中 AutonomousFinal 也无任何出边——断电后系统进入一个永远出不来的活状态，机器永不 terminate。命名像终态但语义不是终态，属于典型的名字骗过评审、结构没兑现。",
+   "assertable": "terminates(scope=\"llms_emp_feedback_final_0010.HumanDriving\", trigger=\"llms_emp_feedback_final_0010.Power_Off\") → 期望 True 实得 False；补充 terminates(scope=\"[*]\") → False（模型从冷启动也无法完成）",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "human_mode --> autonomous_mode : in (auto_final)（参考虽把方向写反，但至少为 in(auto final) 保留了一条独立迁移）",
+   "gen": "AutonomousFinal 无任何出边；接管只有 AutonomousActive --> HumanDriving : Human Steering Cmd 和 : Brake Pressed 两条",
+   "reason": "NL 第5句的第三个条件 in (auto final) 在生成制品里没有任何承载：AutonomousFinal 被声明出来却是绝对吸收态，处于 auto final 时既不能交还控制权也不能断电。相比之下 human steering cmd 与 brake pressed 被拆成两条独立边（这一点比同组其它 5 个 pair 都好），恰恰说明缺的是第三个条件。",
+   "assertable": "reaches(source=\"llms_emp_feedback_final_0010.AutonomousFinal\", target=\"llms_emp_feedback_final_0010.HumanDriving\", within_cycles=3) → 期望 True 实得 False（reaches 每周期提供所有已声明事件，仍出不去，足以证明是吸收态）",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "autonomous_mode --> [*] : power_off",
+   "gen": "(自动驾驶侧无任何 Power Off 出边；Power Off 只从 HumanDriving 发出)",
+   "reason": "NL 第5句的断电义务对运行中的系统整体成立，参考模型也从两个模式各给了一条 power_off 边。生成制品在 AutonomousIdle / AutonomousActive / AutonomousFinal 三个自动驾驶态里都不消费 Power Off，自动驾驶期间无法关机。台帐对 0030、0040 记了同类 power_off_missing_from_autonomous，唯独 0010 漏记，属台帐口径不一致。",
+   "assertable": "event_consumed(source=\"llms_emp_feedback_final_0010.AutonomousActive\", trigger=\"llms_emp_feedback_final_0010.Power_Off\") → 期望 True 实得 False",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "extra",
+   "ref": "(参考与 NL 都没有 <=10 这一侧的条件)",
+   "gen": "Autonomous --> AutonomousIdle : Front Distance <= 10（并配套 AutonomousIdle --> AutonomousActive : Front Distance > 10）",
+   "reason": "NL 只给了 front_distance > 10 一个阈值方向，从未提到 <=10 会发生什么。生成方自造了 `<=10` 事件并据此再造一条进入链，把第4句的判据在自动驾驶内部重复了一遍（投影中出现 Front_Distance_10 与 Front_Distance_10_2 两个事件），属 over-specification 且加剧了层次错置。",
+   "assertable": "event_declared(event=\"llms_emp_feedback_final_0010.Front_Distance_10\") → True（该事件确实被声明，但 NL 无对应义务，属多余元素而非缺失）",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "参考在 NL 第5句上自身不自洽：brake_pressed 与 in (auto_final) 方向写反，human_steering_cmd 同时出现在两个方向（human_mode 在该事件下有不可区分的冲突目标）",
+   "gen": "AutonomousActive --> HumanDriving : Human Steering Cmd / : Brake Pressed（方向正确，但缺 in (auto final)）",
+   "reason": "NL 第5句是 garbled 文本，三条件是并列触发还是合取标签无法从 NL 定案；参考模型采用了拆分成独立迁移的读法（支持三选一），却把三条中的两条方向写反，因此不能作为该句的判定基准。我把\"缺 in(auto final) 接管边\"记为 problem 是采用三选一读法的结果；若按合取读法，该条会退化为\"复合标签编码\"问题而不是缺失问题。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "参考模型漏掉 NL 第4句 front_distance>10、把 autonomous_mode 写成隐式叶状态（违反 NL 第2句）、in (auto_final) 指向不存在的子状态",
+   "gen": "(生成方在第4句上正确，在第2句上以 stereotype 假装满足)",
+   "reason": "NL08 的参考模型至少三处与 NL 冲突，这直接解释了 0010 为何能拿到全组最高 F1（0.88/0.88）：它的元素词汇（HumanDriving / Autonomous / human steering cmd / brake pressed / power on / power off）与参考高度重合，而它真正的缺陷全在 source-trigger-target 归属、层次结构和终态语义上，元素级 F1 对这些一律不敏感。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 5,
+ "extra_count": 1,
+ "vs_paper": "论文对 0010 **三个检查阶段全部零记录**：format_hallucinations=None、grammar_hallucinations=None、semantic_hallucinations=None（三个 resolved 字段皆为 None，即无需修复），plantuml_accuracy 16/16、grammar_accuracy 14/14，F1 Phase-I 0.88 = Phase-II 0.88，为 NL08 全组最高分。我核对 workbook 列 I 与列 AE 完全一致，确认该制品从未被任何一个阶段改动过一个字符。而我独立判出 5 个 problem + 1 个 extra（Power On 错位、submachine 层次丢失、断电指向普通状态、in(auto final) 无接管边、自动驾驶侧无断电、自造 <=10 条件），无一被论文记录。这是全库最强的对照点：论文的三阶段检查在这份制品上完全失效，而其元素级 F1 反而把它排到同组第一。",
+ "vs_ledger": "台帐 4 条 E1（全库单 pair 最多）与我的判断映射如下：EXP-0010-IT-002 ↔ 我的 Power On 错位；EXP-0010-SH-001 ↔ 我的 submachine 层次丢失；EXP-0010-IT-001 ↔ 我的断电指向普通状态；EXP-0010-TR-001 ↔ 我的 in(auto final) 无接管边。台帐 4 条我全部认同。我另有 1 个 problem（自动驾驶侧无 Power Off）和 1 个 extra（自造 Front Distance <= 10）台帐未记；前者台帐在 0030/0040 上明确记为 power_off_missing_from_autonomous，说明这是台帐的漏记而非口径差异。",
+ "notes": "逐句核对 NL08 五句的结论：第1句（human 简单状态）满足；第2句（autonomous 有子状态、submachine）以 `<<submachine>>` 文本假装满足、实际违反；第3句（power on → human driving）违反，Power On 被挪去当模式切换事件；第4句（front_distance>10 → autonomous）满足（且优于参考，参考整句缺失）；第5句拆成三部分：human steering cmd / brake pressed 满足（唯一把两者拆成独立边的 pair）、in (auto final) 完全缺失、power off → final state 违反（目标是普通吸收态，模型永不 terminate、自动驾驶侧还完全不能断电）。可断言性：5 个 problem 全部能用现有 19 谓词写出正向断言（occupancy_after / state_declared / terminates / reaches / event_consumed），是本次 12 个 pair 中可断言性最好的一个——这反过来说明论文零记录不是\"难以判定\"，而是检查根本没做到位。",
+ "_source_file": "NL08-0010.json",
+ "cross_reference": {
+  "case": "0010",
+  "group": "NL08",
+  "llm": "GPT-4",
+  "counts": {
+   "correct": 2,
+   "similar": 0,
+   "problem": 5,
+   "extra": 1,
+   "uncertain": 2
+  },
+  "out_of_scope": {},
+  "problems_in_scope": 6,
+  "paper": {
+   "format": null,
+   "grammar": null,
+   "semantic": null,
+   "semantic_resolved": null,
+   "f1_phase1": 0.88,
+   "f1_phase2": 0.88
+  },
+  "ledger": {
+   "status": "expected_issues_found",
+   "e1_ids": [
+    "EXP-0010-IT-001",
+    "EXP-0010-IT-002",
+    "EXP-0010-SH-001",
+    "EXP-0010-TR-001"
+   ],
+   "e1_categories": [
+    "IT",
+    "IT",
+    "SH",
+    "TR"
+   ]
+  },
+  "assertable_problems": 5
+ }
+}

@@ -1,0 +1,972 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0054",
+  "ledger": [
+    {
+      "ledger_id": "INS-0054-01",
+      "pair": "0054",
+      "D": "D2",
+      "L": "L2",
+      "summary": "`Stopping` 由 `:14 InMotion --> Stopping : Arrived/Stop, Send Arrived` 隐式声明，只有这一条入边、没有任何出边；父为根、根层无成组出边、全文无 `--> [*]`，到站停车后系统永久停住。",
+      "detail": "`Stopping` 这个名字在全文只出现一次，就是 `:14` 的箭头右侧。它没有被 `state Stopping { }` 显式定义，也没有任何迁移以它为源端。\n\n退路不存在：它的父是根，根层除 `:2 [*] --> DoorsClosing` 外没有其它可继承的成组出边；全文没有任何 `--> [*]`。它是可达的：`:2` → `:13` → `:14`。所以这是一个可达的死锁。\n\n同文件对照可以定案。作者在 `:2` 与 `:5` 两处都用了 `[*]` 来表达初始伪状态，说明他掌握这个记法；但全文一处 `--> [*]` 都没有，即他从未把任何状态标为终态。所以「到站即有意终点」这个读法拿不到作者的任何表态支持。加之同一 pair 的 `EmergencyStopping` 也是同样的死端（记在 INS-0054-02），两处一起看更像是漏写。\n\n从 NL 看，第 2 句只说了怎么进 `Stopping`，没说这是终点。这是列车控制系统，到站是一次行程的结束而不是设备生命周期的结束。\n\n同一份 NL 的 pair 0004、0024、0034 上出现了同型的 Stopping 死锁。",
+      "D_basis": "判 D2。这是一个可达且无任何出路的非预期终止：状态可达、无出边、无可继承的成组出边、全文无终止声明。判读中考虑过的第二种读法是「到站即为有意终态」，但同文件对照压过了它：作者在 `:2`/`:5` 用过 `[*]` 表达初始伪态，却全文没有一处 `--> [*]`；且同一 pair 的 EmergencyStopping 呈现相同死端形态，该读法解释不了它。反驳不存活。",
+      "L_basis": "判 L2。陈述这条错误需要先给出一条到达 `Stopping` 的路径（`:2` → `:13` → `:14`），再穷尽检查全部迁移以确认没有任何一条以它为源，并确认根层无成组出边、全文无终止符。这些都是对行为的构造与排除。",
+      "axes": {
+        "defect_locus": "global",
+        "defect_element": null,
+        "defect_qualifier": null,
+        "defect_logic_kind": "unintended_terminal",
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "INS-0054-02",
+      "pair": "0054",
+      "D": "D2",
+      "L": "L2",
+      "summary": "`EmergencyStopping` 只有 `:15` 一条入边——`:17`、`:18` 两行是 do 动作描述而不是出边——父为根、根层无成组出边、全文无终止符，一旦因障碍进入紧急停车就再也出不来。",
+      "detail": "`:15 InMotion --> EmergencyStopping : [obstacle detected]` 是它唯一的入边。`:17 EmergencyStopping : do/Emergency Stop` 与 `:18 EmergencyStopping : do/Send Obstacle Detected` 用的是 `状态名 : 文本` 语法，声明的是状态内的 do 动作，不是迁移。全文没有任何迁移以它为源端。\n\n退路不存在：父是根，根层除 `:2` 外没有其它可继承的成组出边；全文没有任何 `--> [*]`。它是可达的：`:2` → `:13` → `:15`。所以这是一个可达的死锁。\n\n同一份 NL 的另外两份制品都给了这个状态出路：pair 0024 的 `:19 EmergencyStopping --> InMotion:exit/Send Obstacle Detected`，pair 0034 的 `:11 EmergencyStopping --> [*] : Obstacle Cleared`。可见 NL 本身并没有妨碍作者建出恢复边或终止边，0054 是自己漏写了。\n\n从领域看，紧急停车是一个安全响应而不是生命周期的结束：障碍解除后列车需要能够恢复行驶，或者至少需要一个明确的终止。永久卡在紧急停车态意味着这列车此后既不能走也不能正常结束。\n\n本 pair 还有一个同类死端 `Stopping`，记在 INS-0054-01。",
+      "D_basis": "判 D2。这是一个可达且无任何出路的非预期终止。判读中考虑过的第二种读法是「这是有意的吸收态，人工复位在建模范围之外」，但它不存活——作者没有用任何方式声明这是合法终态（全文无 `--> [*]`，名字也不含终止语义），而「紧急制动后永久无法恢复」在列车控制这个领域是明确不可接受的后果，该读法没有回应它。同一份 NL 的其它制品对同一个状态给出了恢复边或显式终态，说明这条义务是可实现的。",
+      "L_basis": "判 L2。陈述这条错误需要先给出一条到达 `EmergencyStopping` 的路径（`:2` → `:13` → `:15`），再穷尽检查全部迁移以确认没有任何一条以它为源（并确认 `:17`/`:18` 是动作行不是迁移），还要确认根层无成组出边、全文无终止符。这些都是对行为的构造与排除。",
+      "axes": {
+        "defect_locus": "global",
+        "defect_element": null,
+        "defect_qualifier": null,
+        "defect_logic_kind": "unintended_terminal",
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "VU-0054-01",
+      "pair": "0054",
+      "D": "D1",
+      "L": "L0",
+      "summary": "`:15 InMotion --> EmergencyStopping : [obstacle detected]` 只写了守卫、没有触发事件；按严格 UML 它是完成迁移，而 `InMotion` 内部没有终态，急停响应将永不触发。",
+      "detail": "`:15` 的标签是 `[obstacle detected]`——方括号形式，即一个守卫条件，冒号后没有任何事件名。\n\n按严格的 UML 语义，不带触发的迁移是完成迁移：它只在源状态完成时求值。源是复合态 `InMotion`（:4-:11），复合态的完成意味着它的内部区域到达终态；而 `InMotion` 内部没有任何 `--> [*]`（`:5`-`:10` 只有默认入口边与三条阶段间迁移）。所以 `InMotion` 永远不会完成，`:15` 永远不会被求值——障碍检测的响应不会发生。\n\n本条属于第一版台账漏记、后从各实验臂未被认领的产出中提取回来的一类。",
+      "D_basis": "判 D1，两读并立。第一种读法按严格 UML：无触发即完成迁移，而 `InMotion` 无内部终态、永不完成，因此这条急停响应永不触发。第二种读法按 PlantUML 常见的条件迁移用法：守卫成立即可迁移——而这恰好忠实对应 NL 的措辞，NL 第 2 句「or to the EmergencyStopping state if an obstacle is detected」与第 3 句「When an obstacle is detected」都只给了条件、没有点名任何信号。两种语义都与逐字结构相容，故判 D1。",
+      "L_basis": "判 L0。陈述这条错误只需就地读 `:15` 这一行，看冒号后是方括号守卫还是事件名——只有守卫、没有事件。这是纯词法层面的检查，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "trigger",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:guarded_completion_unfireable:tr_0008",
+          "claims": [
+            "Transition tr_0008 is a guarded completion transition from InMotion, but that composite has no final-state exit."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0054.puml:line:15",
+            "tr_0008",
+            "InMotion"
+          ],
+          "obligations": [
+            "Under the declared UML-derived label profile, a guard-only transition from a composite state is a completion transition and requires a reachable composite completion."
+          ],
+          "basis": [
+            "representation_debt"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:guarded_completion_unfireable:tr_0008:facet:775d5346c37d"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:EmergencyStopping:during:Emergency Stop",
+          "claims": [
+            "State 'EmergencyStopping' lacks required state_action 'Emergency Stop' in the during phase."
+          ],
+          "locations": [
+            "EmergencyStopping"
+          ],
+          "obligations": [
+            "State 'EmergencyStopping' must own required state_action 'Emergency Stop' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:EmergencyStopping:during:Emergency Stop:facet:d4c77bef1276"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:EmergencyStopping:during:Obstacle Detected",
+          "claims": [
+            "State 'EmergencyStopping' lacks required output_signal 'Obstacle Detected' in the during phase."
+          ],
+          "locations": [
+            "EmergencyStopping"
+          ],
+          "obligations": [
+            "State 'EmergencyStopping' must own required output_signal 'Obstacle Detected' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:EmergencyStopping:during:Obstacle Detected:facet:6f60c0b65de0"
+          ]
+        },
+        {
+          "finding_id": "source:reachable_deadlock:Stopping",
+          "claims": [
+            "Source state 'Stopping' is reachable, non-final, and has no enabled continuation in the certified fragment."
+          ],
+          "locations": [
+            "NL2",
+            "llms_emp_feedback_final_0054.Stopping",
+            "W_DEADLOCK_LEAF"
+          ],
+          "obligations": [
+            "Stopping must admit a continuation or valid termination after the Arrived transition.",
+            "Stopping must admit a valid termination or continuation after it is entered."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:reachable_deadlock:Stopping:facet:5723aafdd5a5",
+            "source:reachable_deadlock:Stopping:facet:92210753f4c6"
+          ]
+        },
+        {
+          "finding_id": "source:reachable_deadlock:EmergencyStopping",
+          "claims": [
+            "Source state 'EmergencyStopping' is reachable, non-final, and has no enabled continuation in the certified fragment."
+          ],
+          "locations": [
+            "NL2",
+            "NL3",
+            "llms_emp_feedback_final_0054.EmergencyStopping",
+            "W_DEADLOCK_LEAF"
+          ],
+          "obligations": [
+            "EmergencyStopping must admit a continuation or valid termination after obstacle detection.",
+            "EmergencyStopping must admit a valid termination or continuation after it is entered."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:reachable_deadlock:EmergencyStopping:facet:b239ff79390b",
+            "source:reachable_deadlock:EmergencyStopping:facet:008d37984fa8"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:guarded_completion_unfireable:tr_0008",
+          "claims": [
+            "Transition tr_0008 is a guarded completion transition from InMotion, but that composite has no final-state exit."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0054.puml:line:15",
+            "tr_0008",
+            "InMotion"
+          ],
+          "obligations": [
+            "Under the declared UML-derived label profile, a guard-only transition from a composite state is a completion transition and requires a reachable composite completion."
+          ],
+          "basis": [
+            "representation_debt"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:guarded_completion_unfireable:tr_0008:facet:775d5346c37d"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:61cab5f7a8fe85cb",
+          "claims": [
+            "At least two of the 2 conditioned branches from InMotion overlap without priority."
+          ],
+          "locations": [
+            "NL2"
+          ],
+          "obligations": [
+            "The multi-way alternatives from InMotion must have a defined selection when their conditions coincide."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L1",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:61cab5f7a8fe85cb:facet:107d8361f120"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:EmergencyStopping:None:Obstacle Detected",
+          "claims": [
+            "State 'EmergencyStopping' lacks required output_signal 'Obstacle Detected' in any lifecycle phase."
+          ],
+          "locations": [
+            "EmergencyStopping"
+          ],
+          "obligations": [
+            "State 'EmergencyStopping' must own required output_signal 'Obstacle Detected' in any lifecycle phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:EmergencyStopping:None:Obstacle Detected:facet:2e6a47a79b98"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:InMotion.Accelerating:entry:Entry/Accelerate",
+          "claims": [
+            "State 'InMotion.Accelerating' lacks required state_action 'Entry/Accelerate' in the entry phase."
+          ],
+          "locations": [
+            "InMotion.Accelerating"
+          ],
+          "obligations": [
+            "State 'InMotion.Accelerating' must own required state_action 'Entry/Accelerate' in the entry phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:InMotion.Accelerating:entry:Entry/Accelerate:facet:28bda9bd05da"
+          ]
+        },
+        {
+          "finding_id": "source:reachable_deadlock:Stopping",
+          "claims": [
+            "Source state 'Stopping' is reachable, non-final, and has no enabled continuation in the certified fragment."
+          ],
+          "locations": [
+            "NL2",
+            "llms_emp_feedback_final_0054.Stopping",
+            "tr_0007",
+            "F28"
+          ],
+          "obligations": [
+            "A reachable non-final Stopping state must admit a continuation or valid termination.",
+            "Each named operating state must have a valid continuation or termination."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:reachable_deadlock:Stopping:facet:92210753f4c6",
+            "source:reachable_deadlock:Stopping:facet:b4b900bb767d"
+          ]
+        },
+        {
+          "finding_id": "source:reachable_deadlock:EmergencyStopping",
+          "claims": [
+            "Source state 'EmergencyStopping' is reachable, non-final, and has no enabled continuation in the certified fragment."
+          ],
+          "locations": [
+            "NL3",
+            "llms_emp_feedback_final_0054.EmergencyStopping",
+            "tr_0008",
+            "NL2",
+            "F29",
+            "F30",
+            "F31"
+          ],
+          "obligations": [
+            "A reachable non-final EmergencyStopping state must admit a continuation or valid termination.",
+            "Each named operating state must have a valid continuation or termination."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:reachable_deadlock:EmergencyStopping:facet:008d37984fa8",
+            "source:reachable_deadlock:EmergencyStopping:facet:a6044add0da9"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:220853ac8fd45050",
+          "claims": [
+            "The required Entry/Accelerate indication may not be represented by the selected entry transition; the observed transition into Accelerating is an initial transition without that action identity."
+          ],
+          "locations": [
+            "NL8",
+            "F10",
+            "F16",
+            "tr_0002"
+          ],
+          "obligations": [
+            "The system enters the Accelerating substate when motion begins, marked by the \"Entry/Accelerate\" action."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:220853ac8fd45050:facet:df1d36449fb3"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:83ae3507f3c25b1b",
+          "claims": [
+            "The Approaching substate may not have the required persistence semantics before the stopping condition."
+          ],
+          "locations": [
+            "NL10",
+            "F13",
+            "F14",
+            "F20",
+            "F22"
+          ],
+          "obligations": [
+            "The system remains in the Approaching substate while nearing the destination, until it is ready to stop or decelerate."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L2",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:83ae3507f3c25b1b:facet:c02d482fa9d2"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:guarded_completion_unfireable:tr_0008",
+          "claims": [
+            "Transition tr_0008 is a guarded completion transition from InMotion, but that composite has no final-state exit."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0054.puml:line:15",
+            "tr_0008",
+            "InMotion"
+          ],
+          "obligations": [
+            "Under the declared UML-derived label profile, a guard-only transition from a composite state is a completion transition and requires a reachable composite completion."
+          ],
+          "basis": [
+            "representation_debt"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:guarded_completion_unfireable:tr_0008:facet:775d5346c37d"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:EmergencyStopping:during:Emergency Stop",
+          "claims": [
+            "State 'EmergencyStopping' lacks required state_action 'Emergency Stop' in the during phase."
+          ],
+          "locations": [
+            "EmergencyStopping"
+          ],
+          "obligations": [
+            "State 'EmergencyStopping' must own required state_action 'Emergency Stop' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:EmergencyStopping:during:Emergency Stop:facet:988ee44974c4"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:EmergencyStopping:during:Obstacle Detected",
+          "claims": [
+            "State 'EmergencyStopping' lacks required output_signal 'Obstacle Detected' in the during phase."
+          ],
+          "locations": [
+            "EmergencyStopping"
+          ],
+          "obligations": [
+            "State 'EmergencyStopping' must own required output_signal 'Obstacle Detected' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:EmergencyStopping:during:Obstacle Detected:facet:6f60c0b65de0"
+          ]
+        },
+        {
+          "finding_id": "source:reachable_deadlock:Stopping",
+          "claims": [
+            "Source state 'Stopping' is reachable, non-final, and has no enabled continuation in the certified fragment."
+          ],
+          "locations": [
+            "NL2",
+            "tr_0007",
+            "llms_emp_feedback_final_0054.Stopping",
+            "final_pseudostates:[]"
+          ],
+          "obligations": [
+            "The Arrived route from InMotion must terminate through the designated Stopping state rather than leave a non-final leaf deadlocked."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:reachable_deadlock:Stopping:facet:b4b900bb767d"
+          ]
+        },
+        {
+          "finding_id": "source:reachable_deadlock:EmergencyStopping",
+          "claims": [
+            "Source state 'EmergencyStopping' is reachable, non-final, and has no enabled continuation in the certified fragment."
+          ],
+          "locations": [
+            "NL3",
+            "tr_0008",
+            "llms_emp_feedback_final_0054.EmergencyStopping",
+            "final_pseudostates:[]"
+          ],
+          "obligations": [
+            "The obstacle route must terminate or continue validly after entering EmergencyStopping."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:reachable_deadlock:EmergencyStopping:facet:8f098df5d1f9"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": []
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "障碍物检测迁移的触发条件与规格不一致",
+          "reason": "规格要求在检测到障碍物时进入 EmergencyStopping，但模型将其写成带方括号的守卫条件 `[obstacle detected]`，没有按规格表达为障碍物检测事件/触发信号；这使该迁移的触发语义不明确，且未体现“检测到障碍物”这一事件。",
+          "where": "`InMotion --> EmergencyStopping : [obstacle detected]`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "EmergencyStopping 中的动作和信号被建模为 do 活动，而非进入该状态时包含的动作",
+          "reason": "规格明确说进入 EmergencyStopping 状态后包括执行 `Emergency Stop` 并发送 `Obstacle Detected` 信号。模型使用 `do/`，表示状态内持续活动，可能在离开状态前持续执行，而不是进入时动作；同时将发送信号建模为 do 活动，未明确体现一次性发送。",
+          "where": "`EmergencyStopping : do/Emergency Stop` 与 `EmergencyStopping : do/Send Obstacle Detected`"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "Approaching 子状态的发送动作类型与规格不符或语义不完整",
+          "reason": "规格要求在 Approaching 子状态中发送 `Send` 信号，并持续接近目的地。模型只定义了 `do/Send`，未明确这是信号发送，也未建模“继续接近目的地”的行为；若 `Send` 被解释为信号，则缺少信号语义标注。",
+          "where": "`Approaching : do/Send`"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "缺少 Approaching 保持至准备停车或减速的明确行为/转换语义",
+          "reason": "规格要求系统在 Approaching 中继续保持并接近目的地，直到准备停车或减速。模型没有从 Approaching 出发的任何迁移，也没有显式的内部保持条件或“准备停车/减速”触发条件，因此未表达该状态的终止条件和所述持续行为。",
+          "where": "`Approaching` 状态及其迁移"
+        },
+        {
+          "finding_id": "baseline_issue_5",
+          "issue": "到达后的动作/信号语法表达与规格信号不完全对应",
+          "reason": "规格要求由 `Arrived/Stop, Send Arrived` 信号触发到达并执行 Stop、发送 Arrived。模型标签虽包含相同文本，但 PlantUML 中逗号会把动作内容写成未区分的标签文本，未明确 `Stop` 与 `Send Arrived` 是触发后的动作，而不是信号名称的一部分；该表示不足以准确建模规格中的事件/动作划分。",
+          "where": "`InMotion --> Stopping : Arrived/Stop, Send Arrived`"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "从 InMotion 到 EmergencyStopping 的触发条件与规格不一致或不完整",
+          "reason": "规格要求在检测到障碍物时转入 EmergencyStopping，模型把条件写成方括号守卫条件，未明确表示“障碍物检测”这一触发事件；若按规格中的事件语义，模型缺少对应的 obstacle detected 触发信号。",
+          "where": "`InMotion --> EmergencyStopping : [obstacle detected]`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "EmergencyStopping 中“Obstacle Detected”信号的动作表示不符合规格的明确语义",
+          "reason": "规格要求进入 EmergencyStopping 时包含动作“Emergency Stop”并发送“Obstacle Detected”信号。模型将发送动作标为 `do` 活动，而不是进入动作（`entry`），因此不能保证在进入该状态时立即执行；同时 `Send Obstacle Detected` 的动作语法也未明确表达信号发送是否为独立动作。",
+          "where": "`EmergencyStopping : do/Send Obstacle Detected`"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "DoorsClosing 到 InMotion 的触发信号动作文本存在格式/语义歧义",
+          "reason": "规格明确要求由“Closed/SendDeparted”信号触发，若该写法表示事件 Closed、动作 SendDeparted，则模型基本匹配；但模型没有对该信号标注为信号事件，无法确认它是触发信号而非普通事件。该问题属于表达不清，可能导致模型语义无法与规格一一对应。",
+          "where": "`DoorsClosing --> InMotion : Closed/SendDeparted`"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "Arrived 转换标签中的动作分隔方式与规格不一致",
+          "reason": "规格要求由 `Arrived` 触发，并执行 `Stop`、发送 `Arrived`。模型把两个动作用逗号写在同一动作字符串中，未明确建模为两个独立动作或明确的发送动作，因此不能可靠表达“停止并发送到达信号”的动作序列。",
+          "where": "`InMotion --> Stopping : Arrived/Stop, Send Arrived`"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0054",
+    "ledger_assessments": [
+      {
+        "ledger_id": "INS-0054-01",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:reachable_deadlock:Stopping"
+          ],
+          "reason": "The reachable_deadlock finding identifies Stopping as reachable, non-final, and without an enabled continuation, matching the ledger's reachable unintended terminal at Stopping.",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:reachable_deadlock:Stopping"
+          ],
+          "reason": "The reachable_deadlock finding identifies the same Stopping state and the same no-continuation/deadlock property.",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:reachable_deadlock:Stopping"
+          ],
+          "reason": "The finding identifies Stopping as a reachable non-final deadlocked leaf and explicitly relates the Arrived route to that state.",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "This cell has no findings, so it does not cover the missing trigger on :15.",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "Its findings do not claim that Stopping has no outgoing continuation.",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "Its findings do not claim that Stopping has no outgoing continuation.",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "INS-0054-02",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:reachable_deadlock:EmergencyStopping"
+          ],
+          "reason": "The reachable_deadlock finding identifies EmergencyStopping as reachable, non-final, and without an enabled continuation, matching the ledger's unintended terminal claim.",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:reachable_deadlock:EmergencyStopping"
+          ],
+          "reason": "The finding identifies the same EmergencyStopping state and the same no-continuation/deadlock property.",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:reachable_deadlock:EmergencyStopping"
+          ],
+          "reason": "The finding identifies EmergencyStopping as a reachable non-final deadlocked leaf and claims that the obstacle route cannot validly continue or terminate.",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "This cell has no findings, so it does not cover the EmergencyStopping deadlock.",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "Although it discusses EmergencyStopping actions, no finding claims that EmergencyStopping has no outgoing continuation or is an unintended terminal.",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "Although it discusses EmergencyStopping action notation, no finding claims that the state has no continuation or valid termination.",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "VU-0054-01",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:guarded_completion_unfireable:tr_0008"
+          ],
+          "reason": "The guarded_completion finding identifies transition :15 from InMotion and claims that its guard-only form is a completion transition that cannot be evaluated because InMotion lacks a final-state exit.",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:guarded_completion_unfireable:tr_0008"
+          ],
+          "reason": "The same exact transition-level finding states that the guard-only transition is an unfireable completion transition, covering the missing-trigger defect.",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:guarded_completion_unfireable:tr_0008"
+          ],
+          "reason": "The finding identifies :15 and the same completion-transition/unfireability consequence, which is the ledger's trigger-slot defect.",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "This cell has no findings, so it does not cover the missing trigger on transition :15.",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "baseline_issue_1 identifies the exact :15 transition and the absence of an obstacle-detection event/trigger, matching the ledger's missing trigger property.",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "baseline_issue_1 identifies the exact :15 transition and claims that the required obstacle-detected trigger event is not represented.",
+          "confidence": "high"
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:guarded_completion_unfireable:tr_0008",
+        "matched_ledger_ids": [
+          "VU-0054-01"
+        ],
+        "false_positive": false,
+        "reason": "It identifies the exact :15 InMotion-to-EmergencyStopping transition and the missing trigger semantics: the guard-only label is treated as a completion transition that cannot fire because InMotion has no final-state exit.",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:lifecycle_action:EmergencyStopping:during:Emergency Stop",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "It concerns placement of the Emergency Stop lifecycle action inside EmergencyStopping, whereas no ledger item claims a missing or misplaced state action.",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:lifecycle_action:EmergencyStopping:during:Obstacle Detected",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "It concerns placement of the Obstacle Detected output signal in EmergencyStopping, not the trigger slot on transition :15 or either deadlock.",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:reachable_deadlock:Stopping",
+        "matched_ledger_ids": [
+          "INS-0054-01"
+        ],
+        "false_positive": false,
+        "reason": "It identifies the reachable non-final Stopping state with no continuation, matching the ledger's unintended terminal/deadlock claim at the destination of :14.",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:reachable_deadlock:EmergencyStopping",
+        "matched_ledger_ids": [
+          "INS-0054-02"
+        ],
+        "false_positive": false,
+        "reason": "It identifies the reachable non-final EmergencyStopping state with no continuation, matching the ledger's unintended terminal/deadlock claim after :15.",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:guarded_completion_unfireable:tr_0008",
+        "matched_ledger_ids": [
+          "VU-0054-01"
+        ],
+        "false_positive": false,
+        "reason": "It identifies the exact :15 transition and the missing trigger semantics caused by interpreting the guard-only transition as an unfireable completion transition.",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:61cab5f7a8fe85cb",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "It claims overlap and missing priority among conditioned branches from InMotion, a selection/guard conflict rather than the missing trigger on :15 or a deadlock.",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:lifecycle_action:EmergencyStopping:None:Obstacle Detected",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "It claims a missing output signal owned by EmergencyStopping in a lifecycle phase; the ledger's D1 item concerns the trigger slot of incoming transition :15, not state action ownership.",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:lifecycle_action:InMotion.Accelerating:entry:Entry/Accelerate",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "It concerns a missing entry action in the Accelerating substate, unrelated to the three ledger locations and properties.",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:reachable_deadlock:Stopping",
+        "matched_ledger_ids": [
+          "INS-0054-01"
+        ],
+        "false_positive": false,
+        "reason": "It claims Stopping is reachable, non-final, and has no continuation, the same state and unintended-terminal property as INS-0054-01.",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:reachable_deadlock:EmergencyStopping",
+        "matched_ledger_ids": [
+          "INS-0054-02"
+        ],
+        "false_positive": false,
+        "reason": "It claims EmergencyStopping is reachable, non-final, and has no continuation, the same state and unintended-terminal property as INS-0054-02.",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:220853ac8fd45050",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "It concerns representation of Entry/Accelerate on entry to Accelerating, not the trigger of :15 or either terminal state.",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:83ae3507f3c25b1b",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "It concerns persistence semantics of Approaching, which is neither a supplied ledger location nor property.",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:guarded_completion_unfireable:tr_0008",
+        "matched_ledger_ids": [
+          "VU-0054-01"
+        ],
+        "false_positive": false,
+        "reason": "It identifies the exact :15 transition and the missing trigger semantics through the unfireable guard-only completion interpretation.",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:lifecycle_action:EmergencyStopping:during:Emergency Stop",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "It claims a missing during-phase state action in EmergencyStopping, not the missing trigger on :15 or the deadlock state.",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:lifecycle_action:EmergencyStopping:during:Obstacle Detected",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "It claims a missing during-phase output signal in EmergencyStopping, not the incoming transition's trigger slot or an unintended terminal state.",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:reachable_deadlock:Stopping",
+        "matched_ledger_ids": [
+          "INS-0054-01"
+        ],
+        "false_positive": false,
+        "reason": "It identifies the reachable non-final Stopping state as deadlocked, matching INS-0054-01.",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:reachable_deadlock:EmergencyStopping",
+        "matched_ledger_ids": [
+          "INS-0054-02"
+        ],
+        "false_positive": false,
+        "reason": "It identifies the reachable non-final EmergencyStopping state as deadlocked, matching INS-0054-02.",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "VU-0054-01"
+        ],
+        "false_positive": false,
+        "reason": "It points to the exact InMotion-to-EmergencyStopping transition and claims that the bracketed condition fails to express the required obstacle-detection trigger event, matching the missing-trigger property.",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "It claims EmergencyStopping actions are modeled as do activities rather than entry actions, a state-action placement issue absent from the ledger.",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "It concerns the do/Send action and persistence behavior of Approaching, not any ledger item.",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "It claims missing continuation or stopping semantics for Approaching, a different state and property from the ledger.",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_5",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "It concerns ambiguity in the action text on the Arrived-to-Stopping transition, not the absence of an outgoing transition from Stopping.",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "VU-0054-01"
+        ],
+        "false_positive": false,
+        "reason": "It points to the exact InMotion-to-EmergencyStopping transition and claims the obstacle-detected event trigger is not represented, matching VU-0054-01.",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "It concerns the lifecycle representation and immediacy of the Obstacle Detected action within EmergencyStopping, not the trigger slot of :15.",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "It concerns the DoorsClosing-to-InMotion transition's signal/action notation, a different location and property.",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "It concerns action separation on the Arrived-to-Stopping transition, not the absence of any continuation after Stopping is entered.",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "The two reachable deadlock ledger items are covered in all three method runs and in no baseline run. The missing-trigger ledger item is covered by the method's guarded-completion finding in all three method runs and by baseline_issue_1 in baseline runs 2 and 3. Other emissions concern distinct lifecycle-action, guard-selection, persistence, or action-notation claims and are false positives for this frozen ledger."
+  },
+  "status": "ok",
+  "attempts": 1
+}

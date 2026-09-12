@@ -1,0 +1,150 @@
+{
+ "case": "0038",
+ "group": "NL04",
+ "llm": "Kimi",
+ "diffs": [
+  {
+   "verdict": "problem",
+   "ref": "AutoFocus --> choice1: [memFull=true]",
+   "gen": "AutoFocus --> choice1 : after 2s / minimum 1s;  choice1 --> choice3 : memFull=true",
+   "reason": "NL 第 3 句要求 memFull=true 约束 AutoFocus 进入 choice1；本模型把该守卫移到 choice1 --> choice3 上，AutoFocus --> choice1 的标签被时间占满。守卫移位，论文与台帐均未记录。",
+   "assertable": "edge_declared(source='llms_emp_feedback_final_0038.AutoFocus', trigger='llms_emp_feedback_final_0038.memFull_true', target='llms_emp_feedback_final_0038.choice1')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "fork1 --> choice3",
+   "gen": "无 fork_state --> choice3；choice3 只能由 choice1 --> choice3 进入",
+   "reason": "NL 第 5 句『If the fork1 state transitions to choice3』要求闪光分支由 fork 直接分出；本模型把它挂在 choice1 之后，闪光分支变成对焦分支的下游，控制流拓扑错误。论文与台帐均未记录。",
+   "assertable": "edge_declared(source='llms_emp_feedback_final_0038.fork_state', trigger='<无触发>', target='llms_emp_feedback_final_0038.choice3')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "NL 第 6 句：ChargedFlash --> Junction3，The transition occurs when Charged=true",
+   "gen": "ChargedFlash --> Junction3 : after 4s / minimum 2s;  Junction3 --> Join2 : Charged=true",
+   "reason": "Charged=true 晚了一条边：应约束 ChargedFlash 进入 Junction3，实际约束 Junction3 出到 Join2，于是未充电时仍可进入 Junction3。与台帐 EXP-0038-GC-001 一致（注意台帐依据的是 NL 第 6 句，参考自身把 Charged=true 挂在 choice3 --> Junction3，两者不一致，以 LLM 实际看到的 NL 为准更合理）。",
+   "assertable": "edge_declared(source='llms_emp_feedback_final_0038.ChargedFlash', trigger='llms_emp_feedback_final_0038.Charged_true', target='llms_emp_feedback_final_0038.Junction3')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "choice3 --> Junction3",
+   "gen": "只有 choice3 --> ChargedFlash",
+   "reason": "NL 第 7 句明确要求 choice3 也直连 Junction3，该分支缺失。与台帐 EXP-0038-TR-001 一致。",
+   "assertable": "edge_declared(source='llms_emp_feedback_final_0038.choice3', trigger='<无触发>', target='llms_emp_feedback_final_0038.Junction3')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "choice2 --> Join2（无守卫）;  choice2 --> Join1 : [sunny=true];  Join1 --> Junction2",
+   "gen": "choice2 --> Join2 : sunny=true（Join1 完全不存在）",
+   "reason": "NL 第 8 句要求 choice2 无条件到 Join2、并在 sunny=true 时汇入 Join1 再到 Junction2；本模型删掉 Join1 并把 sunny 守卫挂到 Join2 边上，晴天分支整条丢失。与台帐 EXP-0038-SH-001 一致（其 GC 的一半也在此）。",
+   "assertable": "state_declared(state='Join1', kind='pseudo')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "Flash --> Terminate（Terminate 为普通叶状态）",
+   "gen": "state Terminate { [*] --> Terminate }（内部初始迁移指向 composite 自身）",
+   "reason": "把 Terminate 声明成 composite 且其内部初始迁移指向自己，投影为 InvalidInitialtr_0021『initial target outside child scope: Terminate』，进入 Terminate 后无定义子状态。这是 Phase-II 语义检查重写新引入的缺陷（论文 grammar 栏说的是 TurnOn 被嵌套两次，已修，与此无关），论文与台帐均未记录。",
+   "assertable": "state_declared(state='llms_emp_feedback_final_0038.Terminate', kind='leaf')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "Junction1/Junction2/Junction3 为 junction，Fork2 为 fork，choice1/2/3 为 choice",
+   "gen": "state Junction3 <<join>>;  state Junction1 <<join>>;  Junction2 / Fork2 / choice1 / choice2 / choice3 无任何 stereotype",
+   "reason": "10 个伪状态中只有 fork_state 与 Join2 类型正确；Junction3 与 Junction1 被标成 join（NL/参考均为 junction），其余 6 个退化为普通状态。伪状态结构问题不属时间也不属并发，正常判。19 谓词的 state_declared 只有 leaf/composite/pseudo/any，join 与 junction 的类型错配无法断言，只能断言『是否为伪状态』。",
+   "assertable": "state_declared(state='llms_emp_feedback_final_0038.choice1', kind='pseudo')",
+   "predicate_exists": false,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "TurnOn: execTime=[(2,s,max),(2,s,min)] 等 5 处 execTime",
+   "gen": "after 2s / minimum 2s、after 2s / minimum 1s、after 1s（缺 min 0s）、after 4s / minimum 2s、after 3s / minimum 2s，均写成迁移标签",
+   "reason": "5 处时间中 4 处 max+min 齐全，是本组时间保留度较好的一份，但载体是迁移 trigger 而非状态 execTime。时间类差异标 out_of_scope: timing；19 谓词无状态 timing 查询（同台帐 E2c）。",
+   "assertable": null,
+   "predicate_exists": false,
+   "out_of_scope": "timing"
+  },
+  {
+   "verdict": "similar",
+   "ref": "fork1",
+   "gen": "fork_state（重命名，带 <<fork>>）",
+   "reason": "仅命名差异，类型声明正确。",
+   "assertable": "state_declared(state='llms_emp_feedback_final_0038.fork_state', kind='pseudo')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "[*] --> TurnOn; TurnOn --> fork1; fork1 --> AutoFocus; fork1 --> DetLight; DetLight --> choice2; choice3 --> ChargedFlash; Junction3 --> Join2; Join2 --> Fork2; Fork2 --> Junction2; Fork2 --> Flash; Flash --> Terminate; Junction2 --> TakePicture; TakePicture --> WriteMemory; WriteMemory --> Junction1; Junction1 --> TurnOff; TurnOff --> [*]",
+   "gen": "同名同向 16 条边均存在",
+   "reason": "本组唯一把 NL 第 11 句的 Join2 --> Fork2 --> {Junction2, Flash} 三段完整扁平写对的一份，主干与终态齐全，这是它 Phase-II F1 0.8955 的来源。",
+   "assertable": "edge_declared(source='llms_emp_feedback_final_0038.Join2', trigger='<无触发>', target='llms_emp_feedback_final_0038.Fork2')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "choice1 --> Join1; choice1 --> Junction1; fork/join 无正交区域; state X <> 退化; NL 第 6 句与参考的 Charged=true 位置冲突",
+   "gen": "—",
+   "reason": "参考侧存疑同 0008。其中第 4 点直接关系本 case：台帐 EXP-0038-GC-001 要求 Charged=true 落在 ChargedFlash --> Junction3（依 NL 第 6 句），而参考把它放在 choice3 --> Junction3，台帐与参考不可能同时正确；以 NL 为基准更公平，但该矛盾必须记录。",
+   "assertable": null,
+   "predicate_exists": false,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 7,
+ "extra_count": 0,
+ "vs_paper": "论文：format 栏 None；grammar 栏『1. Composite State error： state TurnOn is nested twice』(resolved YES)；语义栏『1. Missing Junction Pseudostate and Fork Pseudostate』，semantic_resolved=1.0。F1 Phase-I 0.5915 → Phase-II 0.8955（TP 21→30，全组 Phase-II 最高）。论文声称伪状态问题已解决，但最终制品里 10 个伪状态只有 2 个类型正确（我的第 7 条），Junction1/Junction3 还被标成 join；论文未记录我判的第 1、2、3、4、5、6 条中的任何一条具体缺陷。",
+ "vs_ledger": "台帐 status=mixed，3 条 E1：EXP-0038-GC-001（Charged=true 晚一条边）对应我的第 3 条；EXP-0038-SH-001（Join1 缺失）对应我的第 5 条；EXP-0038-TR-001（choice3 --> Junction3 缺失）对应我的第 4 条。observations：camera_timing_adapter_missing（E2c）对应我的第 8 条 timing；choice_guard_attachment_ambiguity（E2a）与我的第 1 条相关，台帐因 guard 位置有歧义而排除，我仍记为 problem，因为本模型把守卫挪到了 choice1 的出边而非 AutoFocus 的入边或出边，已超出歧义范围。我的第 2 条（fork1 --> choice3 缺失）、第 6 条（Terminate 自指初始）、第 7 条（伪状态类型错配）台帐均未收，其中第 2、6 条可直接用 edge_declared / state_declared 断言，属应补的 E1 候选。",
+ "notes": "Kimi 的 Phase-II 制品在论文口径下是全组最好（F1 0.8955），因为它扁平且元素名齐全；但逐条核对下来它有 7 个真问题，是本组问题最多的之一：闪光分支入口错（fork→choice3 变 choice1→choice3）、两处守卫移位、Join1 整条丢失、choice3 直连缺失、Terminate 自指初始。7 个 problem 中 1 条标 timing（其实是 similar 判定下的时间条目未计入）——实际计入 problem 的 7 条中 0 条 timing、0 条 concurrency，全部在范围内。这与论文 F1 最高的评价形成鲜明反差，说明元素重合度不反映控制流正确性。",
+ "_source_file": "NL04-0038.json",
+ "cross_reference": {
+  "case": "0038",
+  "group": "NL04",
+  "llm": "Kimi",
+  "counts": {
+   "correct": 1,
+   "similar": 2,
+   "problem": 7,
+   "extra": 0,
+   "uncertain": 1
+  },
+  "out_of_scope": {
+   "timing": 1
+  },
+  "problems_in_scope": 7,
+  "paper": {
+   "format": null,
+   "grammar": "1. Composite State error： state TurnOn is nested twice",
+   "semantic": "1. Missing Junction Pseudostate and Fork Pseudostate",
+   "semantic_resolved": 1.0,
+   "f1_phase1": 0.5915492958,
+   "f1_phase2": 0.8955223881
+  },
+  "ledger": {
+   "status": "mixed",
+   "e1_ids": [
+    "EXP-0038-GC-001",
+    "EXP-0038-SH-001",
+    "EXP-0038-TR-001"
+   ],
+   "e1_categories": [
+    "GC",
+    "SH",
+    "TR"
+   ]
+  },
+  "assertable_problems": 6
+ }
+}

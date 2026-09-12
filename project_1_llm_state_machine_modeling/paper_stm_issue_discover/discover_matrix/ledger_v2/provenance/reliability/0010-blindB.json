@@ -1,0 +1,65 @@
+{
+  "case": "0010",
+  "nl_group": "NL08",
+  "diffs": [
+    {
+      "verdict": "problem",
+      "ref": "[*] --> human_mode : power_on（参考把 power_on 用作进入 human_mode）",
+      "gen": "HumanDriving --> Autonomous : Power On",
+      "reason": "NL 第3句 \"when power on, the system turn into human driving mode\" 明确规定 power on 的效果是\"进入人工驾驶模式\"。生成方却把 Power On 用作\"离开人工驾驶模式、进入自动驾驶\"的触发，与 NL 第3句的显式义务方向相反。这不是命名差异，而是同一事件被赋予相反语义。（生成方另有 `[*] --> HumanDriving` 无触发初始边，已正确承载\"开机后处于人工驾驶\"，因此这条 Power On 出边纯属语义错配。）",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "autonomous_mode（参考为简单状态，无子状态）",
+      "gen": "Autonomous : <<submachine>>\nAutonomous --> AutonomousIdle : Front Distance <= 10\nAutonomousIdle --> AutonomousActive : Front Distance > 10",
+      "reason": "NL 第2句明确写 \"The autonomous mode has sub-states and is represented by a sub machine state\"，点名了层次结构义务。生成方虽然加了 `<<submachine>>` 文字标注并新造了 AutonomousIdle / AutonomousActive，但二者是 Autonomous 的**兄弟**状态而非子状态（puml 中无 `state Autonomous { ... }` 块，fcstm 投影中三者同级），因此 `Autonomous --> AutonomousIdle` 实际是\"离开自动模式\"，NL 第2句要求的子机层次完全没有实现。project_1 关注层次结构，此项在范围内。注：新造的 Idle/Active 分解与 `Front Distance <= 10` 触发是 NL 未点名的自造细节，但 NL 第2句授权了子状态存在，故与本条合并为同一现象不另记 extra。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "human_mode --> autonomous_mode : in (auto_final)（触发存在，但方向与 NL 相反）",
+      "gen": "（无任何 in(auto_final) 触发；只有一个名为 AutonomousFinal 的普通状态标签 \"Auto Final State\"）",
+      "reason": "NL 第4句 \"transit to human driving mode when receive human steering cmd, brake pressed, in (auto final)\" 明确列出三个触发条件，其中 `in (auto final)` 在生成方模型中没有任何对应迁移：AutonomousFinal 只是一个状态标签，没有以它为条件回到 HumanDriving 的边。属 NL 点名元素缺失。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "human_mode --> [*] : power_off",
+      "gen": "HumanDriving --> AutonomousFinal : Power Off\nAutonomousFinal : Auto Final State",
+      "reason": "NL 第5句 \"when power off, it will transit to final state\" 明确要求 power off 去到 final 状态。生成方去到的是一个**普通状态** AutonomousFinal（fcstm 中为 `state AutonomousFinal`，非 final 伪状态），且该状态没有任何出边，构成吸收态/死端：机器一旦断电就永久停滞且无法表达\"终止\"。既违反 NL 第5句的显式义务，又命中口径 3 的死端良构性类。生成方还把 NL 第4句的 `in (auto final)` 概念与 NL 第5句的 final state 混为一物。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "autonomous_mode --> [*] : power_off",
+      "gen": "（自动驾驶侧无 power off 出边，只有 HumanDriving --> AutonomousFinal : Power Off）",
+      "reason": "NL 第5句 \"when power off, it will transit to final state\" 没有限定断电只在哪些状态可用，参考在 human 与 autonomous 两侧都给了 power_off，属参考比 NL 更具体的部分。按口径 2，参考更具体的部分不算生成方问题；且 AutonomousIdle/AutonomousActive 都能经 Human Steering Cmd / Brake Pressed 回到 HumanDriving，不形成死锁。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "（参考完全没有 front_distance 相关迁移）",
+      "gen": "HumanDriving --> Autonomous : Front Distance > 10",
+      "reason": "NL 第4句前半 \"when front_distance > 10, auto transport to autonomous state\" 明确点名该条件，生成方实现了，参考漏掉了。参考侧存疑：参考漏掉了 NL 明确给出的 front_distance > 10 条件，此处不能以参考为基准判生成方多余。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "autonomous_mode --> human_mode : human_steering_cmd（另有方向相反的 human_mode --> autonomous_mode : human_steering_cmd 与 : brake_pressed）",
+      "gen": "AutonomousActive --> HumanDriving : Human Steering Cmd\nAutonomousActive --> HumanDriving : Brake Pressed",
+      "reason": "NL 第4句 \"transit to human driving mode when receive human steering cmd, brake pressed, in (auto final)\"：这两个触发应当把系统带回人工驾驶。生成方方向正确。参考侧存疑：参考对 brake_pressed 与 in(auto_final) 写成 `human_mode --> autonomous_mode`，方向与 NL 第4句相反，且同时存在 `autonomous_mode --> human_mode : human_steering_cmd` 与 `human_mode --> autonomous_mode : human_steering_cmd` 两条同触发反向边，参考自身不自洽，不能据此判生成方为 problem。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "uncertain",
+      "ref": "[*] --> human_mode : power_on",
+      "gen": "[*] --> HumanDriving",
+      "reason": "参考侧存疑：参考的初始迁移带触发 `power_on`，属带触发的初始边，违反良构性（初始迁移不得带触发事件）。生成方的无触发 `[*] --> HumanDriving` 才是表达 NL 第3句\"开机后处于人工驾驶\"的良构写法。卡点：由于参考在此处本身不良构，无法把它当作\"power_on 应该出现在哪条边\"的权威基准；生成方是否还需要额外的显式 power_on 入边，NL 没有给出可判定依据。",
+      "out_of_scope": null
+    }
+  ],
+  "problem_count": 4,
+  "extra_count": 0,
+  "notes": "拆分粒度原则：一条 diff = 一个可独立修复的现象。把\"NL2 层次义务未实现\"与\"自造的 Idle/Active 及其 <=10 触发\"合并为一条（同一处修复：把两个状态挪进 Autonomous 内），不另记 extra；把\"power_off 目标不是 final\"与\"自动侧缺 power_off\"拆开（前者是良构+NL 违反，后者只是覆盖面差异）。\n\nNL 逐句核对：\n1 \"The human driving mode is represented by a simple state\"：满足（HumanDriving 为简单状态）。\n2 \"The autonomous mode has sub-states and is represented by a sub machine state\"：不满足（AutonomousIdle/AutonomousActive 是兄弟状态，Autonomous 内无子结构，仅有 <<submachine>> 文字标注）。\n3 \"when power on, the system turn into human driving mode\"：部分满足——`[*] --> HumanDriving` 表达了开机即人工驾驶，但 Power On 事件被错用于 HumanDriving --> Autonomous，与本句相反。\n4a \"when front_distance > 10, auto transport to autonomous state\"：满足。\n4b \"transit to human driving mode when receive human steering cmd, brake pressed, in (auto final)\"：human steering cmd 与 brake pressed 满足（方向正确，优于参考）；in (auto final) 不满足。\n5 \"when power off, it will transit to final state\"：不满足（目标是普通状态 AutonomousFinal，且是死端；自动侧无 power off，后者按口径 2 不计问题）。\n\n参考侧存疑位置：(a) `[*] --> human_mode : power_on` 带触发初始边；(b) brake_pressed / in(auto_final) 方向与 NL4 相反；(c) human_steering_cmd 同时存在两条反向边；(d) 完全漏掉 NL4 的 front_distance > 10；(e) 未实现 NL2 的子机层次。"
+}

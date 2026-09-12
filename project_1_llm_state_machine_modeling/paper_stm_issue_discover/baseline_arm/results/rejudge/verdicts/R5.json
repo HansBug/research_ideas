@@ -1,0 +1,70 @@
+{
+  "judged_by": "R5",
+  "positions": {
+    "EIS-0010-02|run1/0010-gpt": {
+      "hit": true,
+      "equivalence_form": "直接对应",
+      "carrier": "issue",
+      "argument": "台账记『Autonomous 只贴了 <<submachine>> 文字注释、实为叶状态，AutonomousIdle/AutonomousActive 被声明成顶层同级状态，层次结构丢失』。本格 issue [1]（ISSUE-REQ-002-autonomous-not-composite）逐字说 Autonomous 只带 submachine 标记而未形成可被结构检查识别的复合状态，issue [2]（ISSUE-REQ-002A-autonomous-missing-substates）说 cardinality 检查为 False、这些状态未作为 Autonomous 的直接子状态建模。两者与台账指向作者源里同一处编辑（`Autonomous : <<submachine>>` 加上把 AutonomousIdle/AutonomousActive 写在根一层），只是措辞不同。"
+    },
+    "EIS-0010-03|run1/0010-claude": {
+      "hit": true,
+      "equivalence_form": "直接对应",
+      "carrier": "issue",
+      "argument": "台账记『Power Off 指向一个名字带 Final 的普通状态，模型里没有终态伪状态，AutonomousFinal 无出边，机器永不 terminate』。本格 issue [6]（ISSUE-REQ010-power-off-does-not-terminate）逐字说模型声明 HumanDriving -> AutonomousFinal : /Power_Off，而 AutonomousFinal 只是命名近似的中间状态而非终止目标、也没有到 [*] 的终止边；issue [7]（ISSUE-REQ011-top-level-final-missing）说模型未声明顶层 Final 终止状态。两条与台账指向作者源同一处（`HumanDriving --> AutonomousFinal : Power Off` 与 `AutonomousFinal : Auto Final State` 这一对语句），命题相同。"
+    },
+    "EIS-0010-04|run3/0010-gpt": {
+      "hit": true,
+      "equivalence_form": "直接对应",
+      "carrier": "issue",
+      "argument": "台账记『NL 第5句第三个条件 in (auto final) 没有任何承载：AutonomousFinal 是绝对吸收态，处于 auto final 时不能交还控制权；human steering cmd 与 brake pressed 被拆成两条独立边恰说明缺的是第三个条件』。本格 issue [4]（ISSUE-AutoFinalReturnEdgesWrongSource）逐字说这两条到 HumanDriving 的边被声明在 AutonomousActive 上而不是要求的 AutonomousFinal 上，四条断言 AST-REQ-011-1/-2、AST-REQ-012-1/-2 均为 False。两者指向作者源同一处编辑（`AutonomousActive --> HumanDriving : Human Steering Cmd` 与 `: Brake Pressed` 这两行的源态选错，导致 AutonomousFinal 无出边），只是一方从『in (auto final) 未被承载』说、另一方从『返回边源态错』说。"
+    },
+    "EIS-0010-05|run1/0010-gpt": {
+      "hit": true,
+      "equivalence_form": "合取项之一",
+      "carrier": "issue",
+      "argument": "台账命题是合取式『AutonomousIdle 且 AutonomousActive 且 AutonomousFinal 三个自动驾驶态都不消费 Power Off，自动驾驶期间无法关机』。本格 issue [10]（ISSUE-REQ-014-015-power-off-only-on-human-driving）证明其中 AutonomousFinal 这一合取项成立（AST-REQ-015-1 terminates(AutonomousFinal, Power_Off)=False），并同时证明 Autonomous 亦然（AST-REQ-014-1=False），其 rationale 逐字给出同一根因：『模型只声明了从 HumanDriving 发出的 Power_Off 边』。这与台账指向作者源同一处遗漏——全文只有 `HumanDriving --> AutonomousFinal : Power Off` 一条 Power Off 边。"
+    },
+    "EIS-0010-05|run3/0010-gpt": {
+      "hit": true,
+      "equivalence_form": "直接对应",
+      "carrier": "issue",
+      "argument": "台账记『AutonomousIdle / AutonomousActive / AutonomousFinal 三个自动驾驶态都不消费 Power Off』。本格 issue [7]（ISSUE-PowerOffAutonomousIdleNotTerminating）、issue [8]（ISSUE-PowerOffAutonomousActiveNotTerminating）、issue [9]（ISSUE-PowerOffAutonomousFinalNotTerminating）逐一覆盖台账点名的这三个状态，对应 AST-REQ-014B-1 / AST-REQ-014C-1 / AST-REQ-014D-1 全为 False，另加 issue [6] 覆盖 Autonomous。命题与台账逐条对应，指向作者源同一处遗漏（自动驾驶侧无任何 Power Off 出边）。"
+    },
+    "EIS-0035-03|run1/0035-gpt": {
+      "hit": true,
+      "equivalence_form": "蕴含更根本的原因",
+      "carrier": "assertion",
+      "argument": "台账记『DoorOpenWithItem --Door Closed--> DoorShutWithItem 这条边既无守卫也未在事件名点出零时，丢失了把该去向限定于零时的义务』。本格已发布断言 AST-REQ-019-2（coverage key `variable_declared:cooking_time:REQ-019-zero-time-condition`，Result=False，失败消息『zero time set 条件缺少 cooking_time 变量载体』）锚在 REQ-019 上，而 REQ-019 的其余断言（AST-REQ-019-1/-3）正是那条 DoorOpenWithItem--Door_Closed-->DoorShutWithItem 迁移。蕴含链一句话：模型根本没有 cooking_time 变量，那条 Door Closed 边就不可能带上『零时』守卫，故台账所述『该边未把去向限定于零时』必然成立——与 §2.1 举的『台账说该边应有变量下降、我们说模型根本没声明该变量』同型，且定位更上游。⚠️ 该 False 结果同时被本格列入『被归因策略排除的发现』；我按 §3.1 第二条（已发布断言表中 Result=False 的断言承载命中）判定，详见 note。"
+    },
+    "EIS-0035-03|run3/0035-gpt": {
+      "hit": false,
+      "argument": "本格 4 条 issue 分别关于根初始目标不是 DoorShut（[1]）、DoorOpen 中 Door_Closed 未返回 DoorShut（[2]）、cooking_time 变量缺失（[3]，ISSUE-REQ-024-COOKING-TIME-VAR）、timer 变量缺失（[4]），无一提到零时限定或那条 DoorOpenWithItem--Door_Closed-->DoorShutWithItem 边。issue [3] 的 cooking_time 主张其 rationale 明写理由是『支持烹饪时间的显示、更新和取消』，与台账所述『把该去向限定于零时的义务』无关，不能凭同名变量对齐（§三纪律 2）。更关键的是本格对该边的判定是相反的：AST-REQ-015-1（occupancy_after:DoorOpenWithItem:Door_Closed:DoorShutWithItem）与 AST-REQ-015-2（edge_declared 同）均为 True，即本格认定这条迁移满足要求，未报出任何指向该处的缺陷主张。"
+    },
+    "EIS-0000-02|run1/0000-claude": {
+      "hit": false,
+      "argument": "本条台账已被裁定按撤回后的判据读：『缺少可单独触发的事件』不得作为归因依据；生效判据是 in (AutoFinal) 属状态测试表达式却被放在 trigger 位而非 guard 位，故对该组迁移不构成约束，实测 stays_in(AutoNavigating, 融合事件)=False，即尚未进入 AutoFinal 就交还控制权（可达性过强）。本格 issue [2]（ISSUE-human_steering_cmd-fused-and-misrouted）与 issue [3]（ISSUE-brake_pressed-not-declared）全部建立在被撤回的『事件融合、独立事件缺失』之上（AST-REQ-006B-1、AST-REQ-006C-1）；其唯一的边主张 AST-REQ-006-1『未声明从 AutoFinal 经 human_steering_cmd 到 HumanDrivingMode 的迁移』方向恰好相反，说的是从 AutoFinal 出发可达性不足，而台账（新判据）说的是从 AutoNavigating 出发可达性过强——正是 §三纪律 2 点名禁止的按元素名相似度对齐的反例。issue [1] 关于 front_distance、issue [4] 关于 Power_Off，均无关。"
+    },
+    "EIS-0000-02|run2/0000-claude": {
+      "hit": false,
+      "argument": "同上，按撤回后的判据（in (AutoFinal) 被误置于 trigger 位、组迁移可从任一活跃子态触发、可达性过强）判。本格 3 条 issue 中，issue [1] 关于 front_distance 变量缺失、issue [3] 关于 Power_Off 挂在根初始伪状态；issue [2]（ISSUE-REQ-005-fused-event）依据 AST-REQ-005A-1 / AST-REQ-005B-1（human_steering_cmd 与 brake_pressed 未独立声明）——恰是被明确撤回、不得作为归因依据的那部分，其余 AST-REQ-005C-1『AutoFinal 未声明以 human_steering_cmd 通向 HumanDrivingMode 的边』仍是可达性不足方向。本格全部断言中无任何一条主张该迁移在未进入 AutoFinal 时也会触发，故未报出指向台账所述那处失误的命题。"
+    },
+    "EIS-0012-01|run2/0012-gpt": {
+      "hit": true,
+      "equivalence_form": "直接对应",
+      "carrier": "issue",
+      "argument": "台账记『Off 出边中存在一条无触发迁移（`Off --> Terminate`）使 Off 不可驻留，该不可驻留由 occupancy_after(Off, start, Operate)=False 暴露——因为无触发 completion 边使 start 在 Off 根本不被消费』。本格 issue [2]（ISSUE-REQ-012-start-runtime-not-occupy-operate）逐字说：supporting 断言确认 `Off -> Operate : /start` 声明边存在，但运行时占用检查未达到 Operate，且『证据还涉及 Off 的无触发 `Off -> Terminate` 路由』，对应 AST-REQ-012-1=False 而 AST-REQ-012-2（edge_declared）=True。两者点名同一条作者源语句（`Off --> Terminate`，全文只出现一次）、同一个缺陷事实、连暴露该缺陷的测量都是同一条 occupancy_after，且本格明确区分了『边存在』与『运行时不可占据』，不属 §2.2 的以结构存在性冒充行为验证。"
+    },
+    "EIS-0032-01|run2/0032-gpt": {
+      "hit": false,
+      "argument": "台账 EIS-0032-01 说的是三个 Region 都是复合态却没有初始伪态、进入任一 Region 的默认子态未定义，且 AcceleratingState 全模型无任何入边、Accelerating(or Cruising) 配置不可占据。本格 3 条 issue 全是结构包含 / 命名主张：[1] ISSUE-REQ003-CONTAINMENT-IDLE（containment(OperateState, ...IdleRegion.IdleState)=False）、[2] ISSUE-REQ005-REQ006-MISSING-ACCELERATING-OR-CRUISING（未声明名为 Accelerating or Cruising 的整体状态，AST-REQ-005-1/-2、AST-REQ-006-1 为 False）、[3] ISSUE-REQ007-CONTAINMENT-BRAKING。无一条主张缺少初始伪态，也无一条主张任何状态不可占据/不可达；issue [2] 讲的是模型没有以该整体名声明状态，而台账讲的是已声明的 AcceleratingState 无入边、进入区域时默认子态未定义——用状态声明存在性去顶可占据性正是 §2.2 明令禁止的替换形态。断言表中唯一的可达性断言 AST-REQ-002-1（reaches:[*]:OperateState）为 True，不承载命中。"
+    },
+    "EIS-0032-02|run2/0032-gpt": {
+      "hit": true,
+      "equivalence_form": "直接对应",
+      "carrier": "issue",
+      "argument": "台账 EIS-0032-02 说『多出的 Region 包装层是 NL 与参考都没有的元素，属过度规约，NL 第 3 句只许可 Operate 下一层子态』。本格 issue [1]（ISSUE-REQ003-CONTAINMENT-IDLE）与 issue [3]（ISSUE-REQ007-CONTAINMENT-BRAKING）主张 Idle / Braking 未作为 Operate 内的子状态成立，其断言 coverage key 逐字写出路径 `...OperateState.IdleRegion.IdleState` 与 `...OperateState.BrakeRegion.BrakingState`（AST-REQ-003-1、AST-REQ-007-1 均为 False），即点名 Operate 与叶状态之间多插了 IdleRegion / BrakeRegion 一层。蕴含链一句话：IdleState 之所以不是 Operate 的直接子状态，正因作者在二者之间插入了 IdleRegion 包装层——台账所记的那处多余层级，BrakeRegion 同理；这是同一处建模失误的另一侧面（§2.3 明确允许），非仅共用状态名。"
+    }
+  },
+  "note": "两点判据歧义，供汇总方复核。(1) EIS-0035-03|run1/0035-gpt：其承载物 AST-REQ-019-2 同时出现在『该格的已发布断言与结果』表（Result=False）与『⛔ 不计入命中』的『被归因策略排除的发现』区块中。§3.1 第二条（⭐ 已发布断言表中 False 的断言可承载命中，并要求填 carrier=assertion 与 assertion_id）与第三条（⛔ 被排除的发现不承载命中，若只能靠这些区块支撑即 hit:false）在此冲突。我采用第二条：该断言确在『已发布断言』表内，排除区块记录的是『未发布为确认 issue』这一编辑结果而非该断言未发布；若按第三条从严，该位应改判 false。(2) EIS-0010-05 的两位：台账把三个自动驾驶态并列为一个合取式，run1 只覆盖其中 AutonomousFinal（加 Autonomous）、run3 覆盖全部三个，故二者 equivalence_form 分别填『合取项之一』与『直接对应』。"
+}

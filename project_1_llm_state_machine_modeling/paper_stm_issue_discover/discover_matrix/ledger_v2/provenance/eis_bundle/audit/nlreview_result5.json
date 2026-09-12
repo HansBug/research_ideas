@@ -1,0 +1,342 @@
+{
+  "batch": 5,
+  "scope": "(A) 12 条从未经人工判定的差异归层；(B) wellformedness 与 nl_contradiction 两层词法判据抽验 16 条",
+  "materials_read": [
+    "manual_review/<case>-review.json 的 diffs[<index>]（全部 28 条目标行）",
+    "pairs/<case>/nl.txt（NL01/NL03/NL04/NL05/NL06/NL07/NL08/NL10 原文逐句核对）",
+    "pairs/<case>/plantuml.puml（作者源，含 -- 并发分隔符检查）",
+    "fcstm/llms_emp_feedback_final_<case>.fcstm（投影结构、事件表、Invalid*/Unspecified* 标记）",
+    "Dataset.xlsx sheet Dataset col D 行 20/47/53/55/57（NL03/NL05/NL10/NL04/NL06 参考模型）",
+    "/tmp/refcmp/stratification.json（15:35 版本，wellformedness 33 / nl_named 78 / over_specification 31 / nl_contradiction 2 / reference_only 4 / unclassified 6）",
+    "/tmp/nlcheck/result1..4.json（sibling 批次已判定的 nl_contradiction / wellformedness 行）",
+    "/tmp/nlcheck/EXTRA_POLICY.md（over_specification 的可归因 ∧ 有害判据）",
+    "/tmp/refcmp/ledger.json findings（EXP-0038-GC-001 / SH-001 / TR-001）"
+  ],
+  "part_a": [
+    {
+      "case": "0030",
+      "diff_index": 4,
+      "was": "unclassified",
+      "verdict": "nl_named",
+      "element": "Autonomous --> HumanDriving 接管边的三个触发条件被压成单一事件 Human_Steering_Cmd_Brake_Pressed；模型中不存在独立的 Brake_Pressed / Human_Steering_Cmd 事件，也没有 in(auto final) 守卫",
+      "nl_evidence": "NL08 S5（原文标号 '4.'）逐字：'transit to human driving mode when receive human steering cmd, brake pressed, in (auto final)' —— 三个条件全部被 NL 逐字点名；FCSTM 只声明 event Human_Steering_Cmd_Brake_Pressed named \"Human Steering Cmd / Brake Pressed / [*]\"，故 event_declared(...Brake_Pressed) = False",
+      "note": "作者源把三个候选触发写进一个 PlantUML 标签（`Human Steering Cmd / Brake Pressed / [*]`），UML 无「一条边挂多个可选 trigger」的记法，参考模型拆成三条独立边——属源级建模错误，不是投影债务。若把 S5 的逗号串读成析取（参考的三条边、以及 0040 的 `||` / 0050 的 `or` 都支持这一读法），本条也可判 nl_contradiction（违反显式枚举）；两种读法都可入 E1，故此处取保守的 nl_named。"
+    },
+    {
+      "case": "0038",
+      "diff_index": 5,
+      "was": "unclassified",
+      "verdict": "wellformedness",
+      "element": "state Terminate { [*] --> Terminate } —— Terminate 被声明为复合态，其唯一内部初始迁移目标越出子域（FCSTM: state InvalidInitialtr_0021 named 'PlantUML initial target outside child scope: Terminate'），复合态无任何合法默认子态",
+      "nl_evidence": "无需 NL 作 oracle：仅凭生成模型自身（puml 末段 + FCSTM 的 InvalidInitialtr_0021）即可判定。NL04 S11 只说 'If the Flash state is activated, it transitions to Terminate, ending the sequence'，从未要求 Terminate 有子态，故 NL 既不支持也不需要参与判定",
+      "note": "落在题面 wellformedness 目录的「复合态无默认子态 / 入口歧义」，与 batch3 的 0004#0 同型（同为 PlantUML initial target outside child scope）。Terminate 无出边是 NL S11 明确要求的（ending the sequence），因此不能把「死端」当作本条的缺陷点。"
+    },
+    {
+      "case": "0038",
+      "diff_index": 6,
+      "was": "unclassified",
+      "verdict": "nl_named",
+      "element": "choice1 / choice2 / choice3 / Junction2 / Fork2 未声明为伪状态（FCSTM 中是普通 state），Junction3 / Junction1 被声明成 <<join>>（NL 与参考均为 junction）",
+      "nl_evidence": "NL04 逐字点名全部 7 个元素名：S3 'the choice1 state'、S4/S8 'the choice2 state'、S5/S7 'choice3'、S8/S9/S11 'Junction2'、S11 'the Fork2 state'、S6/S7 'Junction3'、S10 'Junction1'",
+      "note": "与 batch4 对 0008#0 的判法一致，保留 batch4 的两点 caveat：(a) NL 通篇称 'the X state'，从未出现 pseudostate/stereotype 字样，「必须是伪状态」由命名约定 + NL 描述的分支/汇合行为推出，不是 NL 逐字义务；(b) join vs junction 的具体 kind 只有参考能判（state_declared 的 kind 只有 leaf/composite/pseudo/any），原 diff 的 predicate_exists=false 只针对 kind 错配那一半；可断言的那一半是 state_declared(choice1, kind='pseudo') = False。跨 case 去重提醒：0008#0 是同型不同 case，不构成重复计数。"
+    },
+    {
+      "case": "0040",
+      "diff_index": 3,
+      "was": "unclassified",
+      "verdict": "nl_named",
+      "element": "接管边标签 `human_steering_cmd || brake_pressed || in (AutoFinal)` 整串成为单一事件名 human_steering_cmd_brake_pressed_in_AutoFinal；human_steering_cmd / brake_pressed 无独立事件声明，in(AutoFinal) 无守卫承载",
+      "nl_evidence": "NL08 S5 逐字点名 'human steering cmd'、'brake pressed'、'in (auto final)' 三个条件；FCSTM 事件表只有那一个复合名，event_declared(...human_steering_cmd) = False",
+      "note": "与 0030#4 同型。此例作者显式写出了 `||` 析取，但未用 guard 记法 `[...]`，PlantUML 视整串为自由文本 trigger；`in (AutoFinal)` 是状态条件却被塞进事件名。可归因性明确（作者选择了错误的记法槽位），非前端切分债务。"
+    },
+    {
+      "case": "0050",
+      "diff_index": 4,
+      "was": "unclassified",
+      "verdict": "nl_named",
+      "element": "接管边跨行标签 `human steering cmd\\nor brake pressed\\nor in (auto final)` 压成单一事件 human_steering_cmd_nor_brake_pressed_nor_in_auto_final",
+      "nl_evidence": "同 0030#4 / 0040#3：NL08 S5 逐字点名三个条件；FCSTM 事件表只有该复合名",
+      "note": "与 0030#4 同型。附带旁证（对 part B 的 0010#6 / 0030#3 有用）：0050 同时写了 `HumanDrivingMode --> [*] : Power Off` 与 `AutonomousMode --> [*] : Power Off`，说明同一 NL08 S6 被至少一个模型自然读成系统级义务而非仅人驾侧义务。"
+    },
+    {
+      "case": "0056",
+      "diff_index": 2,
+      "was": "unclassified",
+      "verdict": "nl_named",
+      "element": "AttackState --Attack Complete--> SearchState 上缺少 uav_count 递减 effect（整串 `Attack Complete [Decrease UAV Count]` 成为事件名 Attack_Complete_Decrease_UAV_Count），全模型无变量、无 effect",
+      "nl_evidence": "NL03 S4 逐字：'After completing the attack, the number of UAVs in the swarm decreases accordingly.' —— NL 点名了递减对象（swarm 中 UAV 数量）与其触发时机（攻击完成），故 effect_declared(source=AttackState, trigger=Attack_Complete, variable=uav_count, sign='negative') = False 是 NL 可支撑的正面断言",
+      "note": "须修正原 reason 的一处事实：FCSTM 显示 `[Decrease UAV Count]` 并未进入 guard 槽位，而是与 'Attack Complete' 一起并入了**事件名**，因此 reason 里「语义读作若 Decrease UAV Count 成立则迁移 / 该条件不可满足」的表述不成立；成立的是「NL 点名的递减 effect 完全缺失」。若坚持 guard 读法则可另判 nl_contradiction；两种读法都可入 E1。"
+    },
+    {
+      "case": "0005",
+      "diff_index": 3,
+      "was": "reference_only",
+      "verdict": "nl_named",
+      "element": "5 处 effect 全缺（参考侧：Cancel/CancelTimer、Start/Start Timer、Door Opened/Stop Timer、Cooking Time Entered/Display+Update Cooking Time）；生成模型无任何 effect、无变量、无状态局部动作",
+      "nl_evidence": "NL10 四句显式点名 timer 与 cooking time 两个对象及其动作：S5 'where the cooking time is displayed and updated'、S6 'canceling or updating the cooking time'、S7 'the system transitions to the Cooking state, where the timer starts'、S8 'opening the door stops the timer'",
+      "note": "词法误判（parent 疑点 1 确认）：reason 原句是「这是 NL 显式义务的丢失，不是参考独有细化」，词法判据被其中「参考独有」四字击中而判为不可入，语义恰恰相反。FCSTM 复核：0005 只有合成的 R45RouteToken，无任何 effect 或用户变量。参考（Dataset 行 53）确实以迁移 effect 承载这 5 处，但可归因性来自 NL 而非参考。"
+    },
+    {
+      "case": "0008",
+      "diff_index": 6,
+      "was": "reference_only",
+      "verdict": "reference_only",
+      "element": "层次归属：containment(DetLight, DetLight.Join2) 等 —— choice2 / Join1 / Join2{ Junction2{TakePicture,WriteMemory,Junction1}, Fork2, Flash, Terminate } 全被 PlantUML 前向引用钉进 DetLight",
+      "nl_evidence": "NL 对这些元素的父子归属沉默。NL04 全篇唯一的归属句是 S11 'In the Fork2 state, which is part of the Join2 substate'，它 (a) 只约束 Fork2 ⊂ Join2 —— gen 满足，(b) 反而把 Join2 自己称作 'substate'，削弱「Join2 应在顶层」的主张。「应在顶层」只来自参考（Dataset 行 55 全平铺、无任何复合态）",
+      "note": "词法判据在此**判对了**（trigger 'NL 未把'，reason 原文即 'NL 未把这些元素归属于 DetLight'）。结构后果（对焦/闪光分支须先进入 DetLight 才能到 TakePicture）在 UML 下合法，不构成无需 oracle 的良构性缺陷，故不能改判 wellformedness。附带发现（不改本行判定）：同一模型 `state DetLight { [*] --> choice2: After (1 s) }` 是一条**带触发的初始边**，那才是 wellformedness 目录内的缺陷，已由 0008#2 覆盖。"
+    },
+    {
+      "case": "0038",
+      "diff_index": 2,
+      "was": "reference_only",
+      "verdict": "nl_named",
+      "element": "Charged=true 的挂载边错位：gen 为 `Junction3 --> Join2 : Charged=true`，应约束 `ChargedFlash --> Junction3`",
+      "nl_evidence": "NL04 S6 逐字：'The ChargedFlash state can lead to Junction3, where the system starts and proceeds to the Join2 state. The transition occurs when Charged=true.' —— 同时点名 ChargedFlash、Junction3、Charged=true；S7 另说 'once the system reaches Junction3, it joins the Join2 state'（无条件），两句合读把该条件定位在 ChargedFlash→Junction3",
+      "note": "词法误判：trigger 是 reason 里的「参考自身」，而该句原意是「参考自身把 Charged=true 挂在 choice3 --> Junction3，与 NL 不一致，以 LLM 实际看到的 NL 为准」。参考（行 55）核实为 `ChargedFlash --> Junction3`（无标签）+ `choice3 --> Junction3:[Charged=true]`，故本条可归因性只能靠 NL——而 NL S6 足够。保守判 nl_named 而非 nl_contradiction 的理由：Junction3 在 FCSTM 里是 `pseudo state`，按 UML junction 静态选择语义，条件放在复合迁移后一段与前一段行为等价，故 reason 中「未充电时仍可进入 Junction3」的危害表述可被反驳；但「NL 点名的条件被挂错边」这一层不受影响。台帐 EXP-0038-GC-001 亦以 NL 6 为据（positive_proposition: 'Charged=true must guard ChargedFlash --> Junction3'）。"
+    },
+    {
+      "case": "0039",
+      "diff_index": 1,
+      "was": "reference_only",
+      "verdict": "nl_named",
+      "element": "缺边 enter_hwy --[dist_to_front<25 && extra_lane=true]--> lane_change（gen 只有无守卫的 enter_hwy --> cruise）",
+      "nl_evidence": "NL05 S3 逐字：'In the HighwayMode state, the system begins in the enter_hwy substate, and can transition to cruise or lane_change based on the distance to the front vehicle (`dist_to_front<25`) and the availability of an extra lane (`extra_lane=true`).' —— 源、两个目标、守卫变量全部 NL 逐字点名",
+      "note": "词法误判（parent 疑点 2 确认）：trigger「参考自身」来自 reason 末句「参考自身的写法削弱了本条的强度」，而该 caveat 指的是同 case #2（uncertain：参考的 enter_hwy --> cruise 无标签，会以 completion 边抢占自己声明的 lane_change 分支），针对**参考侧**自洽性，不改变 NL 的显式点名。旁证：同组 0049 写出了两条 enter_hwy 出边并加互补守卫（其 #1 判 similar）。参考（行 47）确认该边存在。"
+    },
+    {
+      "case": "0049",
+      "diff_index": 4,
+      "was": "reference_only",
+      "verdict": "over_specification",
+      "element": "三条子态级完成边：cruise / straight / intersection --auto_finished=true--> FinishState（另有顶层 AutonomousMode --> FinishState 已覆盖 NL 6/10）",
+      "nl_evidence": "NL05 S6/S10 只把完成关系授予模式级（'The HighwayMode ends when the system transitions to FinishState' / 'The system exits the UrbanMode state by transitioning to FinishState'）；参考（行 47）也只有 HighwayMode --> FinishState 与 UrbanMode --> FinishState 两条模式级边，无任何子态级完成边 —— 三条子态边参考与 NL 都没有，来源唯一为生成方",
+      "note": "按题面要求只标层、不判有害性。供后续有害性判定的信号：(a) 顶层 AutonomousMode --> FinishState 比 NL 6/10 更宽（从 InitialState 也可完成）；(b) cruise 上同时存在 dist_to_exit<2 与 auto_finished=true 两条到 FinishState 的边；(c) 与同 case #3（FinishState 层级绑进 HighwayMode）在元素上重叠，计数须防重复。另一种可辩护框法是把它读成「NL 6/10 的模式级义务被降级到子态级」→ nl_contradiction，但 #3 已承载 FinishState 作用域问题，故此处保守记 over_specification。与 /tmp/refcmp/stratification.json 15:35 版本一致（该行已被移入 over_specification）。"
+    },
+    {
+      "case": "0056",
+      "diff_index": 3,
+      "was": "reference_only",
+      "verdict": "over_specification",
+      "element": "作者自造的第二个正交区域 SearchState{ [*] --> NoIntercept; NoIntercept --Intercepted--> Intercepted; Intercepted --Intercept Resolved--> NoIntercept }，含自造事件 Intercept Resolved",
+      "nl_evidence": "NL03 全文关于拦截只有 S3 'When the UAV swarm is intercepted, it transitions to the formation adjustment state.'，从未要求为拦截状态单独建区域，也没有「拦截解除」事件；参考（行 20）三个区域是 Fly_Along_the_Path / Fly_Along_the_Path_2 / Search_for_the_Target，无拦截记账区 —— 生成方凭空多出",
+      "note": "两点须记档：(a) 有害性信号明确——它正是同 case #1（batch2 判 nl_contradiction）冲突目标的根因；(b) 但该元素本身是**正交区域**成员，按 CLAUDE.md 项目一边界（正交区并发语义不在断言对象内）与 EXTRA_POLICY 的有害性判据（本行 assertable 是 state_declared 存在性断言，只能证明「生成方造了它」，不能证明「因此坏了什么」），是否最终入 E1 需过有害性 + scope 两道判定，本任务不裁。与 15:35 版 stratification 一致（已移入 over_specification）。"
+    }
+  ],
+  "part_b_pool_note": {
+    "wellformedness": "当前词法 wellformedness 层共 33 行（15:35 版 stratification.json；题面的 36 = 33 词法行 + batch1 人工改判进来的 0019#1/0019#5/0029#1）。用 random.seed(505) 从该层抽 8 行，抽中的 8 行全部落在这 33 行内，覆盖率 8/33。",
+    "nl_contradiction": "词法层只有 2 行（0005#1、0047#0），凑不满 8。故 pool = 2 条词法行（强制全查，这才是真正的词法判据抽验）+ 从 batch1..3 人工改判为 nl_contradiction 的 12 行中 random.seed(505) 抽 6 行（0002#2、0010#6、0030#3、0043#0、0049#2、0056#1），作为对 sibling 批次判定的独立交叉复核。每行的 lexical_stratum 字段记的是 15:35 版文件里的词法层，note 中标明人工改判来源。"
+  },
+  "part_b_spotcheck": [
+    {
+      "case": "0013",
+      "diff_index": 1,
+      "lexical_stratum": "wellformedness",
+      "lexical_trigger": "三条初始",
+      "agree": false,
+      "correct_stratum": "uncertain_stratum",
+      "note": "【虚增风险，本次抽验最严重的一处】词法命中的「三条初始边 → 默认进入点不唯一」这一事实**与参考共有**，不可归因生成方：gen 的 puml 用 `--` 显式声明正交区域（行首多余一个 `--` 造出空 region 0，其后 3 个区各一条初始边），而参考（Dataset 行 57）同样是 `state PumpControl{ [*] --> PumpState -- [*] --> WaterState -- [*] --> MethaneState }`；经同一 FCSTM 展平投影，参考也会得到三条 `[*] ->`。真正 gen-only 的只有那个空 region 0（无状态、无迁移、无行为后果）。更硬的证据：本行 assertable 实测**不可评估**——initial_target(composite='...PumpControl', child='...PumpState') 抛 UnsupportedEvidence（\"declares 3 unconditional initial edges, so entry is genuinely ambiguous and no single initial child can be named\"），既拿不出正面断言，也不满足「无需 oracle 即可归因生成方」。且缺陷事实由正交区展平产生，按 CLAUDE.md 项目一边界（正交区并发语义不在断言对象内）本应记 out_of_scope: concurrency，而该 diff 的 out_of_scope 字段为 null。建议：整行剔除或改判 out_of_scope。"
+    },
+    {
+      "case": "0016",
+      "diff_index": 1,
+      "lexical_stratum": "wellformedness",
+      "lexical_trigger": "初始子状态",
+      "agree": true,
+      "correct_stratum": "wellformedness",
+      "note": "gen 的三个 'Region' 是**顺序**嵌套复合态（puml 无任何 `--`，且 PlantUML 前向引用把 Region2 钉成 Region1 的子态、Region3 钉成 Region2 的子态）；Search 全局名碰撞使 Region2/Region3 的 `[*] --> Search` 绑到 SearchMission.Region1.Search，投影得 InvalidInitialtr_0005 / _0007（'PlantUML initial target outside child scope'），两个复合态无合法默认子态。纯凭 gen 可判，无并发成分，不需要 NL 或参考。"
+    },
+    {
+      "case": "0024",
+      "diff_index": 2,
+      "lexical_stratum": "wellformedness",
+      "lexical_trigger": "重入",
+      "agree": false,
+      "correct_stratum": "nl_contradiction",
+      "note": "层错、但仍可入 E1（不影响可入数，只影响下界归属）。`Approaching --> InMotion : exit/Send` 在 UML 下是合法的外层复合态自迁移（FCSTM 路由为 `InMotion -> InMotion : if [R45RouteToken == 7]`），既不是无触发 completion 边抢占已声明分支、也不是带触发的初始边、复合态无默认子态、死端/吸收态/不可达/入口歧义——不在题面 wellformedness 目录内。其缺陷性完全依赖 NL01 的显式义务：S10 'The system remains in the Approaching substate while nearing the destination, until it is ready to stop or decelerate.'（remain-until 被一条与 stop/decelerate 无关的事件破坏），并联 S9 'In the Approaching substate, the system sends the \"Send\" signal and continues to approach the destination.'（'Send' 在 NL 里是 Approaching 内的动作，作者把它写成了出边事件）。故正确层为 nl_contradiction。"
+    },
+    {
+      "case": "0033",
+      "diff_index": 1,
+      "lexical_stratum": "wellformedness",
+      "lexical_trigger": "三条初始",
+      "agree": true,
+      "correct_stratum": "wellformedness",
+      "note": "层正确，但 assertable 需更换。三个同名 `state PumpControl {}` 块被 PlantUML 合并为**顺序**复合态（puml 无 `--`），三条初始边的目标 PumpState/WaterState/MethaneState 均已在顶层声明 → 全部越出子域，投影得 InvalidInitialtr_0005/_0007/_0009，PumpControl 无任何合法默认子态。与 0013#1 的关键区别正在于此：0013 的三条初始边来自作者显式写的 `--` 正交区且参考同构，0033 完全没有区域声明、参考（用 `--`）也不会产生 Invalid 标记。caveat：实测 initial_target(PumpControl, PumpState) 同样抛 UnsupportedEvidence（三条无条件初始边），故该行 predicate_exists=true 偏乐观，正面断言需改挂 containment / state_declared 等谓词。"
+    },
+    {
+      "case": "0035",
+      "diff_index": 0,
+      "lexical_stratum": "wellformedness",
+      "lexical_trigger": "不可达",
+      "agree": true,
+      "correct_stratum": "wellformedness",
+      "note": "gen 全模型无任何 `[*] -->` 边（作者用 `state DoorShut as \"Door Shut\" <<initial>>` 的构造型代替），投影在根注入 UnspecifiedInitial，DoorShut 及全部状态自上电起不可达 → 入口歧义 + 不可达，仅凭 gen 可判。NL10 S1 亦点名 DoorShut（nl_named 同时成立），但 wellformedness 是更强的无 oracle 层，词法判据放对了。"
+    },
+    {
+      "case": "0046",
+      "diff_index": 0,
+      "lexical_stratum": "wellformedness",
+      "lexical_trigger": "初始子状态",
+      "agree": true,
+      "correct_stratum": "wellformedness",
+      "note": "包壳 UAVSwarmStateMachine 有两个**顺序**子态（SearchRegion / MissionRegion，puml 无 `--`）且自身无初始边，根状态也没有 `[*]` → 投影在根与包壳各注入一个 UnspecifiedInitial。实测 initial_target('...UAVSwarmStateMachine', '...SearchRegion') = False，正面断言可评估。仅凭 gen 可判。"
+    },
+    {
+      "case": "0053",
+      "diff_index": 0,
+      "lexical_stratum": "wellformedness",
+      "lexical_trigger": "三条初始",
+      "agree": true,
+      "correct_stratum": "wellformedness",
+      "note": "三条初始边都写在各 wrapper（PumpRegion/WaterRegion/MethaneRegion）内部，PumpControl 这一层无默认进入点 → 注入 PumpControl.UnspecifiedInitial，三个 wrapper 一个都不会被进入。实测 initial_target('...PumpControl', '...PumpControl.PumpRegion') = False。参考虽用 `--` 区域（差异本身含并发成分），但「PumpControl 无默认进入点」这一事实完全由 gen 自身决定（gen 无任何 `--`，是顺序复合态），与并发读法无关，故不落入 0013#1 那类展平陷阱。"
+    },
+    {
+      "case": "0058",
+      "diff_index": 3,
+      "lexical_stratum": "wellformedness",
+      "lexical_trigger": "停滞",
+      "agree": true,
+      "correct_stratum": "wellformedness",
+      "note": "`state WriteMemory { state \"WriteMemory\" as WriteMemory_state }` 无内部初始边 → 注入 UnspecifiedInitial；入边 `TakePicture --> WriteMemory` 指向复合态本身（对比 TurnOn / ChargedFlash 的入边直指内层状态，被 R45 路由成 `[*] -> X : if [token]`），故进入后停在 UnspecifiedInitial，出边 `WriteMemory_state --> Junction1` 永不使能，Junction1 --> TurnOff --> [*] 整条尾部不可达。仅凭 gen 可判（复合态无默认子态 + 不可达）。"
+    },
+    {
+      "case": "0005",
+      "diff_index": 1,
+      "lexical_stratum": "nl_contradiction",
+      "lexical_trigger": "违反 NL",
+      "agree": true,
+      "correct_stratum": "nl_contradiction",
+      "note": "词法层（非人工改判）。NL10 S4/S5 双向显式给出 DoorOpenWithItem <-> DoorShutWithItem：S4 'From DoorOpenWithItem, the system can transition to DoorShutWithItem if the door is closed with zero time set'，S5 'In the DoorShutWithItem state, opening the door transitions the system back to DoorOpenWithItem' —— 二者是由相反门事件互达的替代配置。gen 把 DoorShutWithItem/ReadytoCook/Cooking 钉成 DoorOpenWithItem 的后代（FCSTM 四层嵌套确认），于是 active(DoorShutWithItem) ⟹ active(DoorOpenWithItem)（门开有物与门关有物同时成立），且 S5 的 'back to DoorOpenWithItem' 退化为父态自迁移（FCSTM: `DoorOpenWithItem -> DoorOpenWithItem : if [R45RouteToken == 10]`）并落到自造的 DoorIdleWithItem。是显式义务被违反，不是仅与参考不一致。"
+    },
+    {
+      "case": "0047",
+      "diff_index": 0,
+      "lexical_stratum": "nl_contradiction",
+      "lexical_trigger": "违反 NL",
+      "agree": false,
+      "correct_stratum": "wellformedness",
+      "note": "层错、仍可入 E1。reason 引作被违反义务的 NL07 S1 'There are three region in this diagram' 与 S3 'The orthogonal regions of the active mode of collision avoidance allow for concurrent activation different of collision avoidance controls' **都是并发/正交区要求**，而 CLAUDE.md 明确把正交区并发语义排除在项目一断言对象之外；用它们支撑 nl_contradiction 会踩 scope 边界（而且 gen 源码根本没写 `--`，三者是顺序嵌套复合态，并发已整体退化，属另一类差异）。真正站得住且无需 oracle 的是良构性：Idle/Braking/Clamping 全局名碰撞后，RearEnd 与 Pedestrian 两个复合态只含 InvalidInitialtr_0005 / _0009（'initial target outside child scope: CollisionAvoidanceSystem.Frontend.Idle'），无任何合法默认子态；CollisionAvoidanceSystem 自身也无初始边（UnspecifiedInitial）。与同 case 已在 wellformedness 层的 #1（CollisionAvoidanceSystem 无初始子态）元素不同（#0 是 RearEnd/Pedestrian 塌缩），不构成重复计数，但两行相邻须注意别合并。"
+    },
+    {
+      "case": "0002",
+      "diff_index": 2,
+      "lexical_stratum": "over_specification",
+      "lexical_trigger": "verdict=extra",
+      "agree": true,
+      "correct_stratum": "nl_contradiction",
+      "note": "本行在 15:35 版文件里因 verdict=extra 落在 over_specification；batch2 人工改判为 nl_contradiction，我独立复核**同意 batch2**：NL06 S2 'Within the PumpControl state, there are three main substates: PumpState, WaterState, and MethaneState' 是 60 例中罕见的逐个点名的枚举式基数断言，gen 额外声明 InitialState 使 PumpControl 的非伪直接子态变四个（FCSTM 确认）。附加强化（reason 未写，且是无 oracle 的）：region 0 的唯一初始边指向 InitialState，而 InitialState 无任何出边 —— 吸收态；region 1/2 根本没有初始边，PumpState/WaterState/MethaneState 在展平读法下全不可达。故本行同时具备 wellformedness 备用归属，是「有害的 over-specification」的清晰实例。唯一弱点：S2 的 'main' 一词给「第四个非 main 辅助态」留了一线解释空间。"
+    },
+    {
+      "case": "0010",
+      "diff_index": 6,
+      "lexical_stratum": "nl_named",
+      "lexical_trigger": "NL 第",
+      "agree": true,
+      "correct_stratum": "nl_contradiction",
+      "note": "batch3 人工改判为 nl_contradiction，我独立复核同意。NL08 S6 '5 when power off, it will transit to final state' 的主语是系统整体、未限定模式，而 S1/S2 已把系统顶层配置枚举为 human driving mode 与 autonomous mode 两个；gen 只在 HumanDriving 侧写了 Power Off 出边，AutonomousIdle/AutonomousActive/AutonomousFinal 三态都不消费该事件 → 显式义务半覆盖。旁证：同组 0050 两侧都写了 Power Off，说明系统级读法是自然读法。保留 batch3 已登记的敏感性：若采「NL 必须逐字点名源状态才算可归因」的严口径，本行连同 0030#3、0040#2 降为 reference_only。"
+    },
+    {
+      "case": "0030",
+      "diff_index": 3,
+      "lexical_stratum": "nl_named",
+      "lexical_trigger": "NL 第",
+      "agree": true,
+      "correct_stratum": "nl_contradiction",
+      "note": "与 0010#6 同型同据。FCSTM 复核：0030 只有 `HumanDriving -> [*] : /Power_Off`，Autonomous.Navigating / Autonomous.Parking 均不消费 Power_Off（二者只有 Human_Steering_Cmd_Brake_Pressed 的出边）。同一严口径敏感性适用。"
+    },
+    {
+      "case": "0043",
+      "diff_index": 0,
+      "lexical_stratum": "nl_named",
+      "lexical_trigger": "NL 2",
+      "agree": true,
+      "correct_stratum": "nl_contradiction",
+      "note": "batch2 人工改判为 nl_contradiction，我独立复核同意但带保留。NL06 S2 的枚举式基数断言被违反：gen 的 PumpControl 顶层分解为 Region1 / Region2 两项（puml 用 `--` 分成两区），Region2 装的是 NL 全篇不存在的 Idle/Active。保留意见与 0002#2 同：需把 S2 读成闭枚举，而 'main' 留有余地；若采极宽容读法，本行会退化为「包壳层（台帐 E2a 已排除）+ Idle/Active 的 over_specification」两半。此处不是「仅与参考不一致」——NL 2 确有显式枚举，且 Idle/Active 是 NL 里根本不存在的元素。"
+    },
+    {
+      "case": "0049",
+      "diff_index": 2,
+      "lexical_stratum": "nl_named",
+      "lexical_trigger": "NL 4",
+      "agree": true,
+      "correct_stratum": "nl_contradiction",
+      "note": "batch1 人工改判为 nl_contradiction，我独立复核同意。NL05 S6 显式指派触发：'The HighwayMode ends when the system transitions to FinishState, triggered by the `auto_finished=true` condition.'；S4/S5 把 dist_to_exit<2 指派给另一个动作（'exit the highway'）。gen 把 dist_to_exit<2 直接接到 NL 点名的 FinishState 上（cruise / lane_change 各一条），使距出口 2 公里即宣告自动驾驶完成 → 违反 S6 的显式触发指派。参考（行 47）确认其 dist_to_exit<2 通向参考自造的 exit_hwy（NL 从未点名该状态），故本行**不能**框成「缺 exit_hwy」（那会是 reference_only）——batch1 已做同一纠正，我复核一致。"
+    },
+    {
+      "case": "0056",
+      "diff_index": 1,
+      "lexical_stratum": "nl_named",
+      "lexical_trigger": "NL 第",
+      "agree": true,
+      "correct_stratum": "nl_contradiction",
+      "note": "batch2 人工改判为 nl_contradiction，我独立复核同意，但带 scope caveat。NL03 S3 'When the UAV swarm is intercepted, it transitions to the formation adjustment state.' 是显式义务；gen 让同一 Intercepted 事件在同一活动配置下有两个无区分守卫的目标（区域内 NoIntercept→Intercepted 与 composite 出边 SearchState→FormationAdjustment，FCSTM 两者并存可直接确认），按 UML 内层优先解冲突内层胜出 → S3 不成立。caveat：该冲突发生在作者自造的**正交区域**（同 case #3）内，冲突解的论证依赖区域优先级语义；若严格执行「正交区并发不在项目一断言对象内」，本行的危害论证需改写为不依赖区域优先级的形式（例如直接断 SearchState 侧 Intercepted 的 guard_distinguishable）。"
+    }
+  ],
+  "totals_a": {
+    "nl_named": 8,
+    "wellformedness": 1,
+    "nl_contradiction": 0,
+    "over_specification": 2,
+    "reference_only": 1,
+    "uncertain_stratum": 0
+  },
+  "admissibility_a": {
+    "clean_admissible": 9,
+    "clean_admissible_rows": ["0030#4", "0038#5", "0038#6", "0040#3", "0050#4", "0056#2", "0005#3", "0038#2", "0039#1"],
+    "pending_harm_test": 2,
+    "pending_harm_rows": ["0049#4", "0056#3"],
+    "not_admissible": 1,
+    "not_admissible_rows": ["0008#6"],
+    "note": "12 条中 9 条干净可入（8 nl_named + 1 wellformedness），2 条 over_specification 待有害性 + scope 判定，1 条确认不可入。原词法分层里 6 条 reference_only 中有 3 条（0005#3、0038#2、0039#1）实为 nl_named 误判——即词法 reference_only 层存在 50% 的假阴性率（另 2 条已在 15:35 版被移入 over_specification，1 条判对）。"
+  },
+  "totals_b": {
+    "checked": 16,
+    "agree": 13,
+    "disagree": 3
+  },
+  "disagreements": [
+    {
+      "row": "0013#1",
+      "lexical": "wellformedness",
+      "correct": "uncertain_stratum / 建议 out_of_scope: concurrency",
+      "severity": "虚增可入数（最严重类）",
+      "evidence": [
+        "gen puml 显式含 `--` 正交区分隔符：行首一个多余 `--` 造出空 region 0，其后 3 区各一条 `[*] -->`",
+        "参考（Dataset.xlsx sheet Dataset 行 57 col D）= `state PumpControl{ [*] --> PumpState -- [*] --> WaterState -- [*] --> MethaneState }`，同一投影下同样产生三条初始边 → 「默认进入点不唯一」与参考共有，不可归因生成方",
+        "FCSTM 只把区域记为状态名里的注释文本（'[PlantUML concurrent region 0] states=-'），行为体被展平成单一区域，故该缺陷事实由展平产生",
+        "实测：initial_target(composite='llms_emp_feedback_final_0013.PumpControl', child='...PumpState') → UnsupportedEvidence（'declares 3 unconditional initial edges, so entry is genuinely ambiguous and no single initial child can be named'）；child='...PumpStateA' 同样抛错 → 本行拿不出可评估的正面断言",
+        "CLAUDE.md 项目一边界：正交区并发语义不在断言对象内；该 diff 的 out_of_scope 字段却是 null"
+      ],
+      "gen_only_residual": "唯一 gen-only 元素是空 region 0（无状态、无迁移、无行为后果），写不出有害后果"
+    },
+    {
+      "row": "0024#2",
+      "lexical": "wellformedness",
+      "correct": "nl_contradiction",
+      "severity": "层错，不影响可入数（仍可入 E1，且从上界层移入下界层）",
+      "evidence": [
+        "`Approaching --> InMotion : exit/Send` 是合法的外层复合态自迁移（FCSTM: `Approaching -> [*] : /exit_Send effect{token=7}` + `InMotion -> InMotion : if [token==7]`），不属题面 wellformedness 目录任一项（无触发 completion 抢占 / 带触发初始边 / 复合态无默认子态 / 死端 / 吸收 / 不可达 / 入口歧义）",
+        "缺陷性依赖 NL01 S10 显式 remain-until 义务：'The system remains in the Approaching substate while nearing the destination, until it is ready to stop or decelerate.'",
+        "并联 NL01 S9：'In the Approaching substate, the system sends the \"Send\" signal and continues to approach the destination.' —— 'Send' 是 Approaching 内的动作，被作者写成了出边事件 exit/Send",
+        "词法 trigger 是「重入」，命中的是行为描述而非无 oracle 的良构性缺陷"
+      ]
+    },
+    {
+      "row": "0047#0",
+      "lexical": "nl_contradiction",
+      "correct": "wellformedness",
+      "severity": "层错，不影响可入数（从下界层的一支移到另一支，但避开了 scope 越界）",
+      "evidence": [
+        "reason 引作被违反义务的两句都是并发要求：NL07 S1 'There are three region in this diagram'、S3 'The orthogonal regions of the active mode of collision avoidance allow for concurrent activation different of collision avoidance controls'",
+        "CLAUDE.md 项目一边界把正交区并发语义排除在断言对象外 → 以这两句为据的 nl_contradiction 论证越界",
+        "gen puml 无任何 `--`：CollisionAvoidanceSystem { Frontend / RearEnd / Pedestrian } 是三个顺序嵌套复合态",
+        "无 oracle 即可判的良构性事实：FCSTM 中 RearEnd 只含 InvalidInitialtr_0005、Pedestrian 只含 InvalidInitialtr_0009（均为 'PlantUML initial target outside child scope: CollisionAvoidanceSystem.Frontend.Idle'），两复合态无合法默认子态；CollisionAvoidanceSystem 自身也只有 `[*] -> UnspecifiedInitial`",
+        "reviewer 给的 assertable（state_declared(RearEnd.Idle, kind='any')、containment(Pedestrian, Pedestrian.Idle)）本身就是结构族断言，与 wellformedness 层同源"
+      ]
+    }
+  ],
+  "verdict_on_lexical_layers": {
+    "wellformedness": "不可信到免全量复核，但失效模式已定位、可用廉价机械筛。8 抽 1 虚增（0013#1）+ 1 层错（0024#2）→ 33 行外推约 4 行虚增风险、约 4 行层错。两个筛子即可覆盖：(1) gen puml 含 `--` 且缺陷事实是「多条初始边 / 区域数量 / 区域为空」的行——共 7 行（0002#1、0007#1、0007#2、0013#1、0027#1、0036#1、0043#1），须逐行核对该事实是否与参考共有、是否只在展平后才成立；(2) trigger 是行为描述而非良构性目录词的行（如「重入」「停滞」「永久停在」「无出边」），须确认缺陷性是否实际依赖 NL。目录内的入口类 trigger（初始子状态 / 无初始 / 默认子态 / 不可达+UnspecifiedInitial）在本次抽验中 6/6 全对，可视为高可信子层。",
+    "nl_contradiction": "词法层本身只有 2 行，可信度谈不上统计意义：2 行中 1 对 1 错（0047#0 的 NL 依据落在并发句上）。人工改判进来的 6 行 6/6 全部成立，说明 sibling 批次的 nl_contradiction 判定质量高。真正需要盯的不是「是否只与参考不一致」（16 行里没有一行属此类），而是两个别的失效模式：(a) 被引的 NL 句子是否落在项目一 scope 外（并发/时间）——0047#0 中招、0056#1 有 caveat；(b) 显式枚举的闭读法是否被 'main' 一类限定词削弱——0002#2、0043#0 各有一处。建议对 nl_contradiction 全层（13 行）做一次只查这两点的定向复核，成本远低于全量重判。"
+  }
+}

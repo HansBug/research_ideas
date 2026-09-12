@@ -1,0 +1,110 @@
+{
+ "case": "0020",
+ "group": "NL08",
+ "llm": "Llama",
+ "diffs": [
+  {
+   "verdict": "correct",
+   "ref": "human_mode 简单状态；(参考无 front_distance)",
+   "gen": "HumanDrivingMode 叶状态；HumanDrivingMode -> AutonomousMode: front_distance > 10",
+   "reason": "NL 第1句与第4句均满足；第4句参考模型整句缺失，生成方正确。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "(参考未声明 autonomous_mode 状态体)",
+   "gen": "state AutonomousMode { AutoInitialState, AutoOperationalState, AutoFinalState }",
+   "reason": "NL 第2句满足，且把 auto final 建成具名子状态 AutoFinalState，是全组对 in (auto final) 最可指代的编码。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "human_mode --> [*] : power_off 与 autonomous_mode --> [*] : power_off",
+   "gen": "HumanDrivingMode -> [*]: Power Off 与 AutonomousMode -> [*]: Power Off",
+   "reason": "NL 第5句断电义务在两个模式上都覆盖，与参考完全一致。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "[*] --> human_mode : power_on",
+   "gen": "[*] -> HumanDrivingMode（无触发；模型里根本没有 Power On 事件）",
+   "reason": "NL 第3句明确的 power on 触发在制品中完全不存在，初始迁移无条件发生。",
+   "assertable": "event_declared(event=\"llms_emp_feedback_final_0020.Power_On\") → False；配套 edge_declared(source=\"[*]\", trigger=\"llms_emp_feedback_final_0020.Power_On\", target=\"llms_emp_feedback_final_0020.HumanDrivingMode\") → False",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "human_mode --> autonomous_mode : in (auto_final)（方向反，但保留独立迁移）",
+   "gen": "AutoFinalState -> HumanDrivingMode: human steering cmd, brake pressed",
+   "reason": "两个接管条件被压成一个不可分解事件，且从 AutoFinalState 返回仍必须等这个复合事件——处于 auto final 本身不构成独立的接管条件（NL 第5句第三项）。",
+   "assertable": "event_declared(event=\"llms_emp_feedback_final_0020.human_steering_cmd\") → False（无可单独触发的事件）；\"以 in-state 为守卫、无事件的接管边\"这一形状 19 谓词无法表达",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "(参考无对应元素)",
+   "gen": "AutoInitialState -> AutoOperationalState: Signal Transmission Succeeds；AutoOperationalState -> AutoFinalState: Mission Completed",
+   "reason": "NL 要求 autonomous 有子状态但未指定内部事件，自造内部行为是满足第2句的必要发明，不按 over-specification 记账（与本组其它 pair 同口径）。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "参考在 NL 第5句上自身不自洽（brake_pressed、in(auto_final) 方向反；human_steering_cmd 双向并存产生冲突目标），且漏掉 NL 第4句、未把 autonomous_mode 建成复合状态",
+   "gen": "(生成方在第2、第4句上优于参考)",
+   "reason": "garbled 的第5句无法从 NL 定案三选一还是合取；参考自身矛盾，不能作判定基准。我上面第2个 problem 采用三选一读法，若按合取读法则退化为标签编码问题。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 2,
+ "extra_count": 0,
+ "vs_paper": "论文：format 栏记 \"syntax error: stm DrivingMode\"（resolved YES）、grammar 与 semantic 栏皆 None；F1 0.8462 → 0.875。我核对列 U/Z/AE：除删掉 `stm DrivingMode` 一行外制品未被改动。我判的 2 个 problem 论文语义栏一个都没记。",
+ "vs_ledger": "台帐 2 条：EXP-0020-IT-001 ↔ 我的 Power On 缺失；EXP-0020-TR-001 ↔ 我的 in(auto final) 非独立接管。完全一致，无额外分歧。",
+ "notes": "0020 是 NL08 里结构最完整的之一：唯一同时做到\"auto final 具名子状态\"+\"两模式断电\"的 pair。缺陷集中在触发词一级（Power On 完全缺席、两个接管条件被压成一个事件名）。台帐 TR-001 依赖三选一读法，我已标注该依赖。",
+ "_source_file": "NL08-c.json",
+ "cross_reference": {
+  "case": "0020",
+  "group": "NL08",
+  "llm": "Llama",
+  "counts": {
+   "correct": 3,
+   "similar": 1,
+   "problem": 2,
+   "extra": 0,
+   "uncertain": 1
+  },
+  "out_of_scope": {},
+  "problems_in_scope": 2,
+  "paper": {
+   "format": "syntax error: stm DrivingMode",
+   "grammar": null,
+   "semantic": null,
+   "semantic_resolved": null,
+   "f1_phase1": 0.8461538462,
+   "f1_phase2": 0.875
+  },
+  "ledger": {
+   "status": "expected_issues_found",
+   "e1_ids": [
+    "EXP-0020-IT-001",
+    "EXP-0020-TR-001"
+   ],
+   "e1_categories": [
+    "IT",
+    "TR"
+   ]
+  },
+  "assertable_problems": 2
+ }
+}

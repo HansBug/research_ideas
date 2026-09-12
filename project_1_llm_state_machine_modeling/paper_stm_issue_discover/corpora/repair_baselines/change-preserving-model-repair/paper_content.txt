@@ -1,0 +1,664 @@
+--- Page 1 ---
+Change-Preserving Model Repair
+Gabriele Taentzer1(B), Manuel Ohrndorf2, Yngve Lamo3, and Adrian Rutle3
+1Philipps-Universit¨ at Marburg, Marburg, Germany
+taentzer@informatik.uni-marburg.de
+2Universit¨ at Siegen, Siegen, Germany
+mohrndorf@informatik.uni-siegen.de
+3Western Norway University of Applied Sciences, Bergen, Norway
+{Yngve.Lamo,Adrian.Rutle }@hvl.no
+Abstract. During modeling activities, inconsistencies can easily occur
+due to misunderstandings, lack of information or simply mistakes. In this
+paper, we focus on model inconsistencies that occur due to model editing
+and cause violation of the meta-model conformance. Although temporar-ily accepting inconsistencies helps to keep progress, inconsistencies have
+to be resolved ﬁnally. One form of resolution is model repair. Assuming
+that model changes are state-based, (potentially) performed edit opera-tions can be automatically identiﬁed from state diﬀerences and further
+analyzed. As a result, inconsistent changes may be identiﬁed causing
+a need to repair the model. There may exist an overwhelming number
+of possible repair actions that restore consistency. The edit history may
+help to identify the relevant repairs. Model inconsistencies are repaired bycomputing and applying complement edit operations that are needed to
+re-establish the overall model consistency. In this paper, we clarify under
+which conditions this kind of model repair can be applied. The sound-ness of this approach is shown by formalizing it based on the theory of
+graph transformation. A prototype tool based on the Eclipse Modeling
+Framework and Henshin is used to conduct an initial evaluation.
+Keywords: Model-based engineering
+·Model repair ·Graph
+transformation
+1 Introduction
+Model-based engineering has gained increasing popularity in various disciplines,
+especially in software development. This means that modeling plays a primaryrole throughout the engineering process and thus, it has to be well supported.
+While models are edited, they may get inconsistent for various reasons as, e.g.,
+misunderstandings, lack of information, incomplete modeling actions or simplymistakes. Another source of inconsistency may be diﬀerent interpretations of
+requirements especially where models are developed collaboratively [ 1]. In this
+paper, we focus on model inconsistencies related to the violation of conformanceto the underlying meta-model, especially as they occur during editing processes.
+c/circlecopyrtSpringer-Verlag GmbH Germany 2017
+M. Huisman and J. Rubin (Eds.): FASE 2017, LNCS 10202, pp. 283–299, 2017.DOI: 10.1007/978-3-662-54494-5
+16
+
+--- Page 2 ---
+284 G. Taentzer et al.
+Prior to model repair, model inconsistencies have to be detected. Currently
+many approaches are available that detect inconsistencies fast and correctly, e.g.[2–4]. This may be performed in a check-only mode or integrated with model
+repair as done in various rule-based approaches such as [ 5–9].
+While it is important to allow inconsistencies during modeling processes [ 10],
+they must be resolved eventually. One way of inconsistency resolution is model
+repair. There are various approaches to repair models which capture this problem
+in diﬀerent ways. An overview is given in [ 11], also stating a common problem
+in model repair: “One of the main challenges of model repair is that for any
+given set of inconsistencies, there (possibly) exists an overwhelming number
+of repair updates that restore the consistency. Yet, since the selection of themost suitable repair is ultimately a choice of the developer, approaches to model
+repair must balance the automation level of the technique and the need for user
+guidance in the generation of the repairs.” Roughly, we distinguish between the
+following approaches to model repair: Given an inconsistent model, search-based
+approaches return a repaired model which is consistent, such as [ 12–15]. Syntactic
+and rule-based approaches return a (partially ordered) set of possible repair
+actions instead (see e.g. repair plans in [ 8]). Badger [ 16] is the only model repair
+approach so far that uses the change history: It uses the date of model revisionsto select repair plans but does not consider the performed edit operations to
+select repair actions.
+So far, model repair approaches have not taken the history of user actions into
+account, hence they miss an important information source for repair generation.
+By the performed edit operations, users state how they want to evolve the model.
+Guiding the repair process by the change history can help to identify promisingrepair possibilities from the overwhelming number of possible ones.
+Model changes are either recorded in a state-based manner where just pre-
+and post-states are stored, or in a delta-based manner where information aboutthe performed user actions is stored. Delta-based approaches have the advantage
+of keeping the history of the model evolution. If model changes are given state-
+based, all interesting information about a possible sequence of user actions is
+not immediately available but can be automatically determined assuming that
+all the possible user actions have been speciﬁed before [ 17]. Speciﬁcations of
+edit operations can be computed to a large extent as shown in [ 18]. Hence,
+independent of the approach that is applied to record changes, we will assume
+that the delta information can be automatically computed when needed.
+Fig. 1. Change-preserving
+model repairOur approach is rule-based in the sense that
+anedit operation (EO) is speciﬁed by one or more
+rules depending on its complexity. We assume that arepair action is also speciﬁed by a rule, called repair
+operation (RO), such that the composition of an edit
+operation with a suitable repair operation leads to aconsistency-preserving operation (CPO), i.e., a rule
+that – being applied to a consistent model – yields
+a consistent model again (see Fig. 1). Hence, ROs are complementing preceding
+
+--- Page 3 ---
+Change-Preserving Model Repair 285
+EOs and therefore, preserve already performed model changes. In general, there
+may be several possible ROs for one EO.
+This repair approach is interactive since the user may select among several
+applicable repair actions to repair a model step-by-step. Moreover, it is consis-
+tency improving with each application of a repair action. We will show as a main
+result that, if all the repair operations are causally independent from the subse-
+quent edit operations, all inconsistencies can be resolved without side-eﬀects in
+the sense that no new inconsistencies are introduced while repairing the model,i.e., the repair is fully consistent in that case. In addition, if an edit operation
+does not cause any inconsistency, there is not any repair action to be performed,
+hence, our approach is stable. Our model repairs are not necessarily least change ,
+i.e., repaired models are not necessarily as close as possible to the original model,
+since this is dependent on the speciﬁed CPOs.
+Typical application scenarios are the following ones: If a model consists of
+several viewpoints as, e.g., UML models which consist of several diagrams, edit
+operations in one viewpoint may have to be complemented by actions in otherdiagrams. If one or several of these complements are forgotten in the original
+editing process, they may be easily repaired by our approach. Although this
+complementation might sound a bit mechanical, it cannot be automated in gen-eral since often necessary information is lacking. When, e.g., a new method call
+is inserted in a sequence diagram, it has to be complemented with the deﬁnition
+of a corresponding method in the class model. While the method name mayalready be ﬁxed by the call, its return type as well as its parameters (with name
+and type) still have to be speciﬁed.
+Considering a scenario with just one viewpoint, our approach may also be
+useful to easily complete more complex edit activities that are not available as
+separate edit operations. For example, changes of interfaces have to be repeated
+on implementing classes or attribute changes have to be repeated on their getterand setter methods. Another motivation may be fast editing where just key
+information is given which can be automatically completed to a bigger extent.
+The main contributions of this paper are:
+1. A new process for repairing model inconsistencies taking the history of edit
+operations into account.
+2. A formalization of this process using algebraic graph transformation (see e.g.
+[19]), i.e., a precise formulation of each of its tasks. The main theorem shows
+that all repair processes of our approach are consistency-improving.
+3. A prototypical implementation in Henshin [ 20], a model transformation lan-
+guage based on the Eclipse Modeling Framework and graph transformationconcepts. The prototype is used to conduct a case study where edit processes
+in the bCMS (Barbados Crash Management System) [ 21] are considered.
+The rest of this paper is organized as follows: The running example is pre-
+sented in Sect. 2. Section 3introduces our model repair process. The formaliza-
+tion of our approach follows in Sect. 4. Tool support and an initial evaluation
+are presented in Sect. 5. Finally, we compare with related work and conclude in
+Sects. 6and7.
+
+--- Page 4 ---
+286 G. Taentzer et al.
+2 Running Example
+Let us consider an example: A simple class model of an online shop focusing on
+the customer’s viewpoint covers (at least) orders and a shopping cart collecting
+these orders (see Fig. 2).
+Fig. 2. Class model of an online shop - Versions 0 and 1
+Fig. 3. Class model of an online shop -
+Inconsistency repaired, Version V1-RThe model declares ExpressOrder sa s
+a special kind of orders. This class
+shall implement the interface class
+CreditCardPayment . The interface is
+extended by a method called setCard-
+Number() as shown in Fig. 2. The mod-
+eler has introduced an inconsistency
+here since the class ExpressOrder does
+not implement this method; the model
+has to be repaired. A suitable model
+repair that takes the performed modelchange into account is to execute the indicated completion, i.e., to add the
+method also to the class ExpressOrder as shown in Fig. 3.
+Fig. 4. A sequence diagram for ordering a product - Versions 1 and 2
+Building on our example, we will now specify the behavior related to the
+main use case which is ordering of a product. It is modeled by a simple sequence
+diagram as shown on the left of Fig. 4which – together with the class model
+in Fig. 3– constitutes a consistent view on the system model in the sense that
+all object types and messages used are deﬁned in the class model. (Note that
+attribute values and links are not visible in sequence diagrams.) On the rightof Fig. 4the sequence diagram has been further developed by inserting a new
+
+--- Page 5 ---
+Change-Preserving Model Repair 287
+method call of setProduct on the object of type Order. This method is not deﬁned
+in the current class model; hence, this view of the system model is inconsistentand has to be repaired.
+Fig. 5. A class model of an online shop -
+Inconsistency repaired, version V2-RIn principle, there are many dif-
+ferent repair actions possible, e.g.,adding a method setProduct to class
+Order, removing the message from the
+sequence diagram while keeping thelifeline of type Order, or removing
+also this structure. Since the modeler
+added the message, its removal is apossible repair action. If the modeler
+selects it, our approach is not speciﬁ-
+cally helpful for this repair but could
+be used to identify repairs that are still missing thereafter. But if the modeler
+wants to keep the added message, our repair approach would immediately pro-pose the missing complement operation which is the addition of the method to
+the class model; this is shown in Fig. 5.
+3 Model Repair Approach
+In the following, we informally present our approach to change-preserving model
+repair. The approach relies on edit operations (EOs), consistency-preservingoperations (CPOs) and repair operations (ROs); EOs and CPOs have to be
+deﬁned ﬁrst by the language designer. Thereafter, modelers can repair their
+inconsistent models.
+3.1 Preparing Change-Preserving Model Repair
+Before being able to perform change-preserving model repair, the necessary oper-
+ations for the modeling language and its model editor have to be speciﬁed. Anoverview on the preparation tasks is given in Fig. 6.
+Fig. 6. Preparation for
+change-preserving model
+repairFor a given modeling language which is speciﬁed
+by a meta-model MM, a set of CPOs w.r.t. the MM
+has to be deﬁned. These CPOs are usually deﬁned
+by language designers in cooperation with domainexperts. For identifying reasonable edit operations
+(EOs), we do not consider the original language meta-
+model but an eﬀective meta-model being the original
+one in a relaxed form, i.e., without (most of the) OCL
+constraints and with relaxed multiplicities. The eﬀec-
+tive meta-model deﬁnes the language of all possibleinputs to a model editor (which may cause inconsistencies w.r.t. the original
+meta-model). In [ 18], an automated approach for deriving EOs from eﬀective
+meta-models is presented and evaluated at several modelling languages andeditors.
+
+--- Page 6 ---
+288 G. Taentzer et al.
+For each CPO, one need to identify sub-operations that are reasonable edit
+operations in the modeling language, e.g. EOs for inserting, deleting, and movingmodel parts as well as for changing their attributes [ 18,22]. An EO is completed
+to a CPO by a repair operation (RO); i.e., applying an EO followed by an RO to
+a model, yields the same result as applying the corresponding CPO. In this way,an EO can be seen as a sub-operation of a CPO. It may also happen that an EO
+is not a sub-operation of any CPO or of several CPOs; in the former case the
+application of an EO may lead to irreparable inconsistencies while in the lattercase, the complement ROs w.r.t. each containing CPO are computed. We stick to
+the case where each EO is complemented by at most one RO to each of its CPOs.
+A more general case would be EOs being complemented by sequences of ROs,e.g. adding an interface operation is complemented with adding an operation in
+each realizing class. In the special case that an EO is already a CPO, model
+repair is obviously not needed.
+3.2 Change-Preserving Model Repair
+A change-preserving model repair takes the preceding applications of EOs, i.e.,
+edit steps , into account; edit steps that may cause inconsistencies are followed
+by applications of ROs, called repair steps , that re-establish consistency (see
+Fig.1). To ﬁnd out which ROs shall be applied, the edit steps since the last
+consistent model version are needed. If edit steps are not already provided by
+the model editor, they can be automatically computed as follows: Given two
+model versions M
+1and M2and a set of EOs, we are looking for a sequence
+of edit steps from M1toM2. The algorithm presented in [ 17] yields an edit
+script, i.e., a set of EOs with actual arguments being partially ordered along
+their sequential dependencies. This algorithm is fast in the sense that it doesnot need backtracking. It has been implemented for EMF models and applied in
+several case studies.
+Next, the reported edit steps can be analyzed w.r.t. inconsistencies. Each
+edit step which causes inconsistencies will lead to one of the following two cases:
+1. There exists one or more CPOs that have the applied EO as a sub-operation.
+The modeler chooses one of them and thereby determines the complement RO
+that has to be performed to re-establish consistency w.r.t. the considered edit
+step. In Sect. 2we presented two inconsistent edit steps which are repaired by
+complements.
+2. The edit step introduces a model for which there does not exist any CPO that
+has the applied EO as a sub-operation. In this case the model change cannotbe preserved. It has to be rolled back, at least partly. An example for such
+an EO (in the context of class models) is the insertion of a generalization
+relation between two classes such that the overall generalization structurebecomes cyclic. The model editor usually allows such an EO.
+Ifalleditstepscanberepaired(ifneeded)andeachoftherepairstepsiscausally
+independent of all the edit steps following the edit step it repairs, we can guaranteethe overall consistency of the ﬁnal model after all repairs (see Theorem 1below).
+
+--- Page 7 ---
+Change-Preserving Model Repair 289
+The independence of steps can be checked automatically based on the critical pair
+analysis implemented in Henshin (for more details see Sect. 4.4below).
+4 Formalization
+The formalization of the described model repair approach is a means to clarify
+the assumptions and outcomes of each involved task. Since models can be basi-
+cally considered as graphs, we rely on the theory of algebraic graph transforma-
+tion as presented in [ 19]. In the following, we ﬁrst recall all basic concepts needed
+to precisely deﬁne models, model changes and modeling languages. We deﬁne
+CPOs as graph transformation rules whose applications preserve the model con-
+sistency. Thereafter, change-preserving model repair is formally deﬁned.
+4.1 Deﬁning Modeling Languages
+When formalizing meta-modeling, graphs occur at two levels: the type level (repre-
+senting meta-models) and the instance level (given by all valid instance models).
+This idea is described by the concept of typed graphs , where a ﬁxed type graph
+TGtogether with a set Cof constraints serves as an abstract representation of
+the meta-model. Types are usually structured by an inheritance relation. Mul-
+tiplicities and other annotations are expressed by additional constraints as well
+as additional well-formedness rules. The constraints could be deﬁned by meansof graph constraints, OCL, ﬁrst order logic, etc., however the proposed approach
+is not limited to any particular constraint language. Instances of the type graph
+aretyped graphs being equipped with a structure-preserving mapping to the type
+graph, i.e., a mapping that preserves the source and target functions for edges.
+Deﬁnition 1 (Meta-model and modeling language). A meta-model
+MM =( TG ,C )consists of a type graph TGa n das e t Cof constraints typed
+over TG. All well-typed graphs w.r.t. TGform the set L(TG). All graphs in
+L(TG)satisfying all the constraints in Cform the set L(MM), i.e., the model-
+ing language speciﬁed by MM.
+Example 1 (UML meta-model excerpt). Looking behind the scenes of our initial
+example, the example meta-model presented in Fig. 7is a small and simpliﬁed
+excerpt of the UML meta-model.
+Fig. 7. Small and simpliﬁed excerpt of the UML
+meta-modelIt focuses on classiﬁers with
+their properties and operations
+being core ingredients of classmodels on the one hand and life-
+lines sending messages as core
+concepts of sequence diagramson the other hand. To make the
+Realization relationship between
+interfaces and classes more pre-cise, we require the following
+
+--- Page 8 ---
+290 G. Taentzer et al.
+constraint: Each class has to provide all operations which are deﬁned by imple-
+mented interfaces. Another constraint which is used in the running example is
+this:Each message has to refer to an operation with the same signature belonging
+to a class the receiving lifeline is typed over.
+4.2 Model Changes and Their Consistency
+Model changes may be formalized by graph transformation , i.e. the rule-based
+modiﬁcation of graphs. A rule ris deﬁned by two graphs ( L, R) and a left
+application condition AC.Lis the left-hand side (LHS) of the rule representing
+a pattern that has to be found to apply the rule. In addition, this pattern has
+to fulﬁll the condition ACbefore rule application. After the rule application,
+a pattern equal to R, the right-hand side (RHS), has to occur in the resulting
+graph. The intersection L∩R, i.e. the graph part that is not changed, and the
+union L∪Rhave to form a graph each. The graph part that is to be deleted is
+deﬁned by L\(L∩R), and R\(L∩R) deﬁnes the graph part to be created.
+Agraph transformation step Gr,m=⇒Hbetween two instance graphs Gand H
+is deﬁned by ﬁrst ﬁnding a match mof the left-hand side Lof rule rin the current
+instance graph Gsuch that mis structure-preserving and type-compatible (i.e.,
+mis a typed graph morphism) and second by constructing Hin two passes:
+(1) building D:=G\m(L\(L∩R)), i.e., erasing all the graph items that are to
+be deleted, and (2) constructing H:=D∪(R\(L∩R)), i.e., adding all the graph
+items that are to be created. Note that mhas to fulﬁll the dangling condition ,
+i.e., all adjacent graph edges of a graph node to be deleted have to be deleted
+as well, such that Dbecomes a graph.
+Fig. 8. Rules for adding an operation to an interface class (left) and for sending a new
+message (right)
+Example 1 (Transformation rules). To specify the consistency-preserving oper-
+ations (CPOs) in our running example, we rely on two rules that preserve the
+consistency of the simpliﬁed UML meta-model. On the left of Fig. 8the rule for
+
+--- Page 9 ---
+Change-Preserving Model Repair 291
+synchronously adding a new operation to an interface and a realizing class is
+shown. The rule is denoted in a compact form where all elements denoted withpreserve are in the LHS, all elements denoted with preserve orcreate are in the
+RHS, and all elements denoted with preserve and forbid form a negative applica-
+tion condition. All forbidden elements must not occur in the graph. Note thatthis rule would have to be extended if there are more than one realizing class for
+the same interface. Actually a new operation has to be inserted in all the realiz-
+ing classes. It could also be accomplished with the complement rule in Fig. 10on
+the right. The rule on the right of Fig. 8speciﬁes the synchronous insertion of a
+message call between two lifelines and its operation into the corresponding class.
+Fig. 9. Example object diagram showing an excerpt
+of the class model in Fig. 2and the sequence diagram
+in Fig. 2in abstract syntax evolving over time, diﬀer-
+ent versions are indicated by colors and object namesGiven a UML model in
+abstract syntax, edit and
+model repair actions can beexpressed by graph trans-
+formation steps. Consider,
+e.g., the graph in Fig. 9
+which shows an excerpt of
+the abstract syntax of the
+class model on the right of
+Fig.2and the sequence dia-
+gram on the left of Fig. 4.
+Rule addOperationToInter-
+facecan be applied to the
+subgraph indicated by V0and V1 and adds the object
+marked with V1-R. Apply-
+ing rule sendNewMessage
+thereafter adds all elements
+marked with V2 and V2-R as well.
+For a given meta-model, all available CPOs can be speciﬁed by a graph
+transformation system.
+Deﬁnition 2 (Graph transformation system). Given a set Rof rules, a
+graph transformation (sequence) G
+R=⇒Hconsists of zero or more graph trans-
+formation steps applying rules of R.As e t Rof graph rules, together with a
+type graph TG, are called a graph transformation system GT S =( TG ,R).A
+GT S =( TG ,R)isconsistency-preserving w.r.t. MMif, for every graph Gin
+L(MM), all transformations GR=⇒ Hyield a consistent graph, i.e., His in
+L(MM).
+A modeling language may also be formally deﬁned by a graph grammar GG
+being a GT S =( TG ,R)together with a start graph G0. It deﬁnes a modeling
+language by all graphs Gresulting from transformation sequences starting at
+G0, that is, L(GG)={G∈L(TG)|G0R∗
+=⇒G}. A graph grammar conforms to
+meta-model MMifL(GG)⊆L(MM).
+
+--- Page 10 ---
+292 G. Taentzer et al.
+4.3 Complement Construction
+Our model repair approach is mainly based on the complement construction.
+Given an edit operation (EO), its complement w.r.t. some CPO can be computed.This complement forms the RO to be performed. If an edit operation is already
+consistency-preserving, it is also a CPO leading to an empty complement rule.
+EOs are speciﬁed as sub-rules of corresponding CPOs. An EO has to be large
+enough in the sense that it does not delete nodes that are used as source or target
+for edges in the super-rule, i.e., it has to fulﬁll the dangling condition w.r.t. its
+rule embedding. Otherwise, a complete complement rule cannot be constructed.
+Deﬁnition 3 (Sub-rule). Ar u l e r
+s=( ( Ls,R s),A C s)is a sub-rule of rule
+r=( ( L, R),A C)ifLs⊆L,Rs⊆R, the inclusion of rsinrfulﬁlls the dangling
+condition, and ACcan be decomposed into AC sand a (possibly empty) rest
+application condition.
+Example 2 (Complement rules). A simple EO that just inserts a new operation
+into an interface has to be complemented by doing so in all realizing classes. Thismeans that the computed RO has to be applied as often as possible to repair all
+the aﬀected classes. The left rule in Fig. 10shows the edit rule while the right
+one shows the corresponding repair rule computed as its complement w.r.t. the
+left rule in Fig. 8.
+The left rule in Fig. 11inserts a new message between two lifelines and ignores
+the existence of the corresponding operation in the class model. Since it does
+not delete anything, it trivially fulﬁlls the dangling condition. The right rule in
+Fig.11shows its complement rule w.r.t. to the overall rule shown on the right
+of Fig. 8. It inserts the missing operation and its relation to the message call.
+Fig. 10. Adding an operation to an interface: sub-rule (left) and complement rule
+(right)
+Theorem 4.4 in [ 23] shows that, given a rule rwith a sub-rule rs, there
+is a canonical way to construct a rule ¯ rswith an overlap graph Esuch that
+the sequential composition rs∗E¯rs=r. Such a constructed rule ¯ rsis called
+complement rule ofrsw.r.t. r. Furthermore, Fact 4.8 in [ 23] states that any
+transformation step Gr,m=⇒Hcan be decomposed into two steps Grs,m s=⇒¯Gand
+¯G¯rs,¯m s=⇒ Hof edit step and complement step such that mis an extension of ms
+and ¯ rsis the complement rule of rsw.r.t. r.
+
+--- Page 11 ---
+Change-Preserving Model Repair 293
+Fig. 11. Sending a message: sub-rule (left) and complement rule (right)
+To apply this result to model repair we have to do the following check: Given
+Grs,m s=⇒¯Gwe compute the diﬀerence of pre-conditions w.r.t. some Gr,m=⇒ H.
+This means that the match mhas to complete the match msfor L\Lsand all
+AC\AC shave to be fulﬁlled.
+If an edit rule is already consistency-preserving, it is a CPO as well. In this
+case, the complement transformation would apply the empty rule, i.e., ¯G=H.
+Hence, our approach is stable in the sense of [ 11].
+4.4 Sequential Independence and Conﬂuence of Transformations
+Since the application of complement rules is meant to repair previous edit steps,
+they usually depend on their edit operations and cannot be applied before the
+edit step is performed. For example, a graph node has to be created ﬁrst to
+further connect it with other model parts. However, the application of a comple-ment rule may be independent of all subsequent edit steps. In that case, a model
+repair step is called side eﬀect-free , and may be exchanged with subsequent edit
+steps. This means that repairing steps may be performed ﬂexibly throughoutthe editing process, i.e., immediately after an inconsistent edit step or later –
+allowing temporary inconsistencies.
+Deﬁnition 4 (Sequential independence). Given two transformation steps
+t
+1:G1r1,m 1=⇒¯G2and t2:¯G2¯r2,¯m2=⇒ G3, the execution of t1;t2issequentially
+independent if match m2does not need any element of ¯G2newly created by
+applying r1and does not use any attribute changed in t1, i.e., t2does not need
+the preceding application of r1. Furthermore, match m1is not destroyed by t2.
+The rules r1and r2aresequentially independent if all sequences t1;t2applying
+ﬁrst rule r1and then r2are sequentially independent.
+Example 3 (Independent steps). Considering the edit steps applying ﬁrst the left
+rule in Fig. 10and then the left one in Fig. 11, these two steps are sequentially
+independent of each other since they do not overlap. Actually, any two applica-
+tions of these rules are sequentially independent of each other since they act on
+diﬀerent viewpoints, i.e., they can never overlap. An execution consisting of an
+
+--- Page 12 ---
+294 G. Taentzer et al.
+edit step and its repair step by applying the complement rule is usually sequen-
+tially dependent. Consider e.g. the rules in Fig. 11where the message is ﬁrst
+inserted and then used to add a corresponding operation.
+Checking the sequential independence of rules by hand is tedious. Fortunately
+this is not necessary since the critical pair analysis (CPA) is a well-known tech-
+nique to analyze potential conﬂicts and dependencies of transformation systems.
+The CPA was originally introduced for term rewriting and later generalized to
+graph transformation [ 24]. Henshin contains tool support for the CPA. If there
+does not exist any critical pair for two given rules r1and r2, all transforma-
+tion pairs t1:Gr1,m 1=⇒ H1and t2:Gr2,m 2=⇒ H2applying these two rules are
+independent of each other. In this case, the Local-Church-Rosser Property [ 19]
+holds ensuring that two independent transformation steps may be executed inany order yielding the same result, i.e., they are also sequentially independent
+and conﬂuent.
+4.5 Change-Preserving Model Repair
+The main result in this paper is the following: Given a model change history by
+a sequence of transformation steps where each rule has at least one complement,each step can be complemented such that a consistent graph can be reached
+ﬁnally. The following result ensures that our approach is fully consistent. To
+show it we have to ensure that the repair steps are sequentially independentfrom all edit steps following the edit step it repairs. In that case, repair steps
+can be arbitrarily interleaved with these edit steps. Several repair steps, however,
+may dependent on each other such as, for a method call in an interface class,
+creating ﬁrst the corresponding interface method and then all corresponding
+methods in implementing classes.
+Theorem 1 (Change-preserving model repair). Let be given a meta-model
+MM, a graph transformation system GT S =( TG ,R)with a set R
+s⊆Rof
+subrules and Rsof all complement rules of Rs, a graph GinL(MM),a n da
+transformation sequence GR s=⇒G0n.I fa l lr u l ep a i r s (rsi,¯rsj)inRs×Rsfor
+i>j are sequentially independent then there exists a repairing transformation
+sequence, i.e., a transformation sequence G0nR s=⇒ Hsuch that graph His in
+L(MM).
+This theorem tells us that a repair is easier if not too many edit steps have to be
+considered. Its proof can be found in [ 25]. The main proof idea is to split each
+CPO into an EO and an RO which can be shifted after all EOs due to the localChurch-Rosser property.
+Example 4 (Change-preserving model repair). The two subsequent edit steps in
+our initial example lead both to inconsistencies (of diﬀerent kinds). Each edit
+rule is sequentially independent of its opposite repair rule (i.e., the repair ruleof the other edit rule) since it just inserts elements that are not needed by the
+opposite repair rule.
+
+--- Page 13 ---
+Change-Preserving Model Repair 295
+5 Tool Support and Initial Evaluation
+Tool support. A ﬁrst prototype implementation of change-preserving model
+repair is available at [ 26]. It is based on the Eclipse Modeling Framework (EMF),
+Papyrus, and Henshin and supports the following activities: (1) comparison of
+model versions, (2) recognition of performed edit operations, and (3) provision
+of concrete repair steps.
+Initially the historic version V1and the potentially inconsistent version V2of a
+model have to be compared . The modeler can choose between diﬀerent comparison
+algorithms, e.g. ID-based, signature-based, or similarity-based [ 27]. Having the set
+of common model elements available, the tool derives the elementary changes of
+versions V1and V2, on the level of model elements, references and attributes. We
+call this kind of change description the technical diﬀerence of V1and V2.
+For recognizing performed edit operations, the algorithm requires a rule set
+containing all available EOs for a given model editor. Each edit operation pro-
+duces a pattern of changes in the technical diﬀerence. There is an algorithm pre-
+sented in [ 28] which describes how to transform a graph transformation-based
+rule into a graph pattern which recognizes the corresponding set of changes inthe technical diﬀerence. In this way, we can recognize all performed EOs. By
+hiding all those EOs that are already CPOs, only true sub-operations remain in
+the technical diﬀerence showing some inconsistencies. Now the remaining EOsare recognized on the remaining changes using the same algorithm. This even
+works with incomplete sets of EOs, i.e. elementary changes which cannot be
+recognized as EOs are ignored.
+For each recognized EO we have to calculate all possible embeddings into
+corresponding CPOs (Sect. 4.3). For each pair of CPO and EO rules, a corre-
+sponding complement rule RO can be created, by removing all already executedchanges of the EO from the CPO.
+Next, the available repair steps are determined , i.e. the complement rules still
+have to be provided with parameters for the remaining changes. This means thatwe have to ﬁnd all complete matches of the LHS of an RO in the actual model
+V
+2. Usually, a part of the match is already determined by the corresponding EO.
+Each completed match is reported as a repair to the user. The tool can visualize
+a selected repair by highlighting the parts in the model diagrams that will be
+changed. The user can also test a repair by applying and, if necessary, revert-ing it. The underlying graph transformation logic of the presented approach is
+transparent to the tool user.
+Initial evaluation. For an initial performance estimation, we applied our proto-
+type to the class, sequence and state machine diagrams of the bCMS (Barba-dos Crash Management System) [ 21] case study. The UML model V
+1contains
+approx. 2600 model elements and 22.000 references. The diﬀerence to a model
+V2has been computed in ≈2 s and contains approx. 600 model elements and
+1900 reference changes. 12 inconsistencies were introduced in this edit sequence.
+Including the EOs of our running example, there are 15 CPOs and 12 EOs.
+The additional operations consider changes in state machines, e.g. dangling tran-sitions after deleting a state. The EO detection took ≈500 ms and ﬁlters already
+
+--- Page 14 ---
+296 G. Taentzer et al.
+500 consistent changes of 50 steps. (Approx. 2000 changes are ignored since they
+are not covered by the EOs provided.) The subsequent EO recognition took≈100 ms; it detects 60 changes performed by 12 steps. After the calculation of
+the EO×CPO embeddings in ≈500 ms, a total of 33 concrete repairs were
+found. The initial performance estimation already allows some conclusions to bemade. The performance of the model diﬀerence calculation depends on the size
+of models. The time for the repair calculation, however, mainly depends on the
+size of the calculated diﬀerence and the number of inconsistencies.
+To support larger rule sets eﬃciently, we intend to store rule embeddings in a
+database. Furthermore, an incremental diﬀerence calculation and CPO detectionwould be interesting for an online editing scenario, i.e. suggesting repairs during
+the user edits the model.
+6 Related Work
+Most of the existing model repair techniques can be categorized into syntactic,
+rule- and search-based approaches [ 11]. In this section, we will compare our
+approach to existing techniques of those categories.
+Syntactic and rule-based approaches. A syntactic repair generator derives repair
+plans by analyzing the consistency rules at speciﬁcation time. In rule-based
+approaches a repair tool is conﬁgured with a set of repair rules for frequently
+occurring inconsistencies. Repair rules or plans are suggested and instantiatedat modeling time when inconsistencies occur.
+Our approach is closely related to triple graph grammars (TGGs) [ 29]i nt h e
+sense that the consistency between two kinds of graphs is speciﬁed by rules, calledtriple rules. Those rules can be used to evolve both related graphs simultaneously
+in a consistent manner. If the source graph is changed independently by source
+rules, the corresponding forward rules can be used to synchronize the targetgraph. A corresponding result is shown in [ 30]. In this paper, we consider a more
+general setting where graphs do not have to be sub-structured, edit operations
+may contain add and delete actions, an edit rule may have several (or no) repairrules (and CPOs), and complex application conditions may be used.
+In a wider context, syntactic and rule-based approaches as presented in e.g.
+[5–9,31] are interactive and incremental since each inconsistency is repaired sep-
+arately. While providing full control over the repair process, it may happen,
+however, that the repair of existing inconsistencies leads to new ones. Criteria
+for side-eﬀect-free repair are usually not considered. Moreover, the change his-
+tory is not taken into account to restrict the usually overwhelming number of
+possible repair rules.
+Search-based approaches. Search-based approaches such as [ 14–16] take the
+inconsistent model as input and search for a consistent one which is usually
+related to the original one by least changes. This problem is mostly solved by
+using a constraint solver. Supporting tools may be parameterizable through thedeﬁnition of valid edit operations giving the user the possibility to ﬁnd favored
+
+--- Page 15 ---
+Change-Preserving Model Repair 297
+solutions. Current approaches, however, are somewhat restricted to handle small
+models only; otherwise the search space has to be restricted to user-deﬁned upperbounds w.r.t. instance size, back-tracking or time.
+A search-based tool which considers the model history is Badger [ 16]. The
+regression planning algorithm can take a variety of parameters to guide thesearch process. One of them is to prioritize model elements by their version in the
+model history, e.g., repairs should change preferably newer model elements and
+keep the older ones. Therefore, the algorithm respects the temporal dimensionof the history but does not necessarily preserve the edit operations that have
+taken place.
+7 Conclusion
+To handle model inconsistencies, there are often many possible repair actions toconsider. In this paper, we have proposed a change-preserving model repair app-
+roach to tackle this challenge. Based on the edit operations already performed,
+model repairs are proposed building on the assumption that the latest change of
+the model is the most signiﬁcant. To use this approach, we have to do the fol-lowing: For a given modeling language we specify a set of consistency-preserving
+operations. For a given model editor we identify the set of allowed edit oper-
+ations. The basic idea is to identify the history of performed edit operationssince the last consistent model state, and to analyze these operations for identi-
+fying those causing inconsistencies. If an inconsistent edit operation turns out to
+be a sub-rule of a consistency-preserving operation, the complement operationis constructed which is able to repair this inconsistency. The soundness of our
+approach is shown based on the theory of graph transformation. A prototypical
+implementation illustrates its practical applicability.
+Our approach may be combined with other rule-based approaches: Since
+rule-based approaches usually allow to choose among a large number of repair
+operations, their selection needs more guidance. Preserving already performedchanges seems to be a reasonable criterion. Our approach supports to ﬁnd out if
+a repair operation is a complement of an edit operation such that their sequential
+combination leads to a consistency-preserving operation. Furthermore, a change-
+preserving model repair process is side-eﬀect-free if each edit operation is inde-
+pendent of all repair operations of later applied edit operations. It is up to futurework to further investigate relations between existing rule-based approaches in
+diﬀerent editing scenarios and thereby, integrate change-preservation with other
+important aspects of model repair.
+References
+1. Easterbrook, S., Nuseibeh, B.: Using viewpoints for inconsistency management.
+Softw. Eng. J. 11(1), 31–43 (1996)
+2. Grundy, J.C., Hosking, J.G., Mugridge, W.B.: Inconsistency management for
+multiple-view software development environments. IEEE Trans. Softw. Eng.
+24(11), 960–981 (1998)
+
+--- Page 16 ---
+298 G. Taentzer et al.
+3. Egyed, A.: Instant consistency checking for the UML. In: 28th International Con-
+ference on Software Engineering (ICSE), pp. 381–390. ACM (2006)
+4. Blanc, X., Mounier, I., Mougenot, A., Mens, T.: Detecting model inconsistency
+through operation-based model construction. In: 30th International Conference on
+Software Engineering (ICSE), pp. 511–520. ACM (2008)
+5. Enders, B., Heverhagen, T., Goedicke, M., Tr¨ opfner, P., Tracht, R.: Towards an
+integration of diﬀerent speciﬁcation methods by using the viewpoint framework.
+Trans. SDPS 6(2), 1–23 (2002)
+6. Amelunxen, C., Legros, E., Sch¨ urr, A., St¨ urmer, I.: Checking and enforcement of
+modeling guidelines with graph transformations. In: Sch¨ u r r ,A . ,N a g l ,M . ,Z ¨ undorf,
+A. (eds.) AGTIVE 2007. LNCS, vol. 5088, pp. 313–328. Springer, Heidelberg(2008). doi: 10.1007/978-3-540-89020-1
+22
+7. K¨onigs, A., Sch¨ urr, A.: MDI: a rule-based multi-document and tool integration
+approach. Softw. Syst. Model. 5(4), 349–368 (2006)
+8. Reder, A., Egyed, A.: Computing repair trees for resolving inconsistencies in design
+models. In: International Conference on Automated Software Engineering, pp. 220–
+229. ACM (2012)
+9. Straeten, R.V.D., D’Hondt, M.: Model refactorings through rule-based inconsis-
+tency resolution. In: Proceedings of the ACM Symposium on Applied Computing
+(SAC), pp. 1210–1217. ACM (2006)
+10. Balzer, R.: Tolerating inconsistency. In: Proceedings of the 13th International Con-
+ference on Software Engineering, pp. 158–165. IEEE Computer Society/ACM Press
+(1991)
+11. Macedo, N., Tiago, J., Cunha, A.: A feature-based classiﬁcation of model repair
+approaches. CoRR, vol. abs/1504.03947 (2015)
+12. Straeten, R.V.D., Mens, T., Simmonds, J., Jonckers, V.: Using description logic
+to maintain consistency between UML models. In: Stevens, P., Whittle, J., Booch,
+G. (eds.) UML 2003. LNCS, vol. 2863, pp. 326–340. Springer, Heidelberg (2003).
+doi:10.1007/978-3-540-45221-8 28
+13. Straeten, R.V.D., Puissant, J.P., Mens, T.: Assessing the kodkod model ﬁnder
+for resolving model inconsistencies. In: France, R.B., Kuester, J.M., Bordbar, B.,
+Paige, R.F. (eds.) ECMFA 2011. LNCS, vol. 6698, pp. 69–84. Springer, Heidelberg(2011). doi: 10.1007/978-3-642-21470-7
+6
+14. Sen, S., Baudry, B., Precup, D.: Partial model completion in model driven engi-
+neering using constraint logic programming. In: 17th International Conference onApplications of Declarative Programming and Knowledge Management (INAP
+2007) and 21st Workshop on (Constraint) (2007)
+15. Macedo, N., Guimar˜ aes, T., Cunha, A.: Model repair and transformation with
+echo. In: 28th International Conference on Automated Software Engineering, ASE
+2013, pp. 694–697. IEEE (2013)
+16. Puissant, J.P., Straeten, R.V.D., Mens, T.: Resolving model inconsistencies using
+automated regression planning. Softw. Syst. Model. 14(1), 461–481 (2015)
+17. Kehrer, T., Kelter, U., Taentzer, G.: Consistency-preserving edit scripts in model
+versioning. In: 28th IEEE/ACM International Conference on Automated Software
+Engineering (ASE), pp. 191–201. IEEE (2013)
+18. Kehrer, T., Taentzer, G., Rindt, M., Kelter, U.: Automatically deriving the speciﬁ-
+cation of model editing operations from meta-models. In: Van Gorp, P., Engels, G.
+(eds.) ICMT 2016. LNCS, vol. 9765, pp. 173–188. Springer, Cham (2016). doi: 10.
+1007/978-3-319-42064-6
+12
+
+--- Page 17 ---
+Change-Preserving Model Repair 299
+19. Ehrig, H., Ehrig, K., Prange, U., Taentzer, G.: Fundamentals of Algebraic Graph
+Transformation. Monographs in Theoretical Computer Science. An EATCS Series.
+Springer, Heidelberg (2006)
+20. Arendt, T., Biermann, E., Jurack, S., Krause, C., Taentzer, G.: Henshin: advanced
+concepts and tools for in-place EMF model transformations. In: Petriu, D.C.,
+Rouquette, N., Haugen, Ø. (eds.) MODELS 2010. LNCS, vol. 6394, pp. 121–135.Springer, Heidelberg (2010). doi: 10.1007/978-3-642-16145-2
+9
+21. Capozucca, A., Cheng, B., Guelﬁ, N., Istoan, P.: Oo-spl modelling of the focused
+case study. In: Comparing Modeling Approaches (CMA) International Workshop
+aﬃliated with ACM/IEEE 14th International Conference on Model Driven Engi-
+neering Languages and Systems (CMA@ MODELS2011) (2011)
+22. Rindt, M., Kehrer, T., Kelter, U.: Automatic generation of consistency-preserving
+edit operations for MDE tools. In: Demonstrations Track of the ACM/IEEE 17th
+International Conference on Model Driven Engineering Languages and Systems(MoDELS). CEUR Workshop Proceedings, vol. 1255 (2014)
+23. Golas, U., Habel, A., Ehrig, H.: Multi-amalgamation of rules with application
+conditions in M-adhesive categories. Math. Struct. Comput. Sci. 24(4), 68 (2014)
+24. Plump, D.: Critical pairs in term graph rewriting. In: Pr´ ıvara, I., Rovan, B.,
+Ruziˇcka, P. (eds.) MFCS 1994. LNCS, vol. 841, pp. 556–566. Springer, Heidelberg
+(1994). doi: 10.1007/3-540-58338-6
+102
+25. Taentzer, G., Ohrndorf, M., Lamo, Y., Rutle, A.: Change-preserving model
+repair: extended version. Philipps-Universit¨ at Marburg, Technical report (2017).
+www.uni-marburg.de/fb12/swt/research/publications
+26. Taentzer, G., Ohrndorf, M., Lamo, Y., Rutle, A.: Change-preserving model
+repair - tool support and initial evaluation. pi.informatik.uni-siegen.de/projects/
+SiLift/fase2017/
+27. Kehrer, T., Kelter, U., Pietsch, P., Schmidt, M.: Adaptability of model comparison
+tools. In: IEEE/ACM International Conference on Automated Software Engineer-
+ing (ASE), Essen, Germany, pp. 306–309. ACM (2012)
+28. Kehrer, T., Kelter, U., Taentzer, G.: A rule-based approach to the semantic lift-
+ing of model diﬀerences in the context of model versioning. In: 26th IEEE/ACM
+International Conference on Automated Software Engineering (ASE), Lawrence,KS, USA, pp. 163–172. IEEE (2011)
+29. Sch¨ urr, A.: Speciﬁcation of graph translators with triple graph grammars. In: Mayr,
+E.W., Schmidt, G., Tinhofer, G. (eds.) WG 1994. LNCS, vol. 903, pp. 151–163.Springer, Heidelberg (1995). doi: 10.1007/3-540-59071-4
+45
+30. Ehrig, H., Ehrig, K., Ermel, C., Hermann, F., Taentzer, G.: Information pre-
+serving bidirectional model transformations. In: Dwyer, M.B., Lopes, A. (eds.)FASE 2007. LNCS, vol. 4422, pp. 72–86. Springer, Heidelberg (2007). doi: 10.1007/
+978-3-540-71289-3
+7
+31. Mens, T., Straeten, R.V.D., D’Hondt, M.: Detecting and resolving model incon-
+sistencies using transformation dependency analysis. In: Nierstrasz, O., Whittle,
+J., Harel, D., Reggio, G. (eds.) MODELS 2006. LNCS, vol. 4199, pp. 200–214.Springer, Heidelberg (2006). doi: 10.1007/11880240
+15

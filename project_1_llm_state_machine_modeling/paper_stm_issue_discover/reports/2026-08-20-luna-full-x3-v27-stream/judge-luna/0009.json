@@ -1,0 +1,1581 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0009",
+  "ledger": [
+    {
+      "ledger_id": "EIS-0009-01",
+      "pair": "0009",
+      "D": "D1",
+      "L": "L0",
+      "summary": "高速侧的「驶离高速」动作（`:21` 与 `:25` 的 `dist_to_exit<2`）被接到了 `FinishState` 上，而 NL 第 6 句说进入 FinishState 的条件是 `auto_finished=true`——等于距出口 2 公里就宣告整个自动驾驶完成。",
+      "detail": "NL 里这两件事是分开说的。第 4 句「If the system is in lane_change, it can return to cruise once the lane change is completed or exit the highway if the distance to the exit is less than 2 kilometers (`dist_to_exit<2`)」与第 5 句里的同一条件，说的是「驶离高速」这个局部动作；第 6 句「The HighwayMode ends when the system transitions to FinishState, triggered by the `auto_finished=true` condition」说的是整个自动驾驶阶段的结束，条件是 `auto_finished=true`。\n\n制品把两者合并到了同一个目标上：`:21 cruise --> FinishState : dist_to_exit<2` 与 `:25 lane_change --> FinishState : dist_to_exit<2`，目标都是 `FinishState`；而 `:45 HighwayMode --> FinishState : auto_finished=true` 也指向同一个 `FinishState`。\n\n按第一种读法，后果是语义被并了：车辆只要驶到离高速出口不足 2 公里，系统就会进入那个表示「自动驾驶完成」的状态，而 `auto_finished` 这个条件此时并不成立。\n\n根因是 NL 在高速侧没有为「驶离高速」这个动作命名任何目标状态——第 4、5 句只说了 exit the highway，没说 exit 到哪个状态去。生成侧面对一个没有目标的动作，就把它接到了全文里唯一具名的结束态上。对比城市侧，NL 第 8 句为同一类动作明确命名了 `exit_urban`（那一侧的问题记在 EIS-0009-02）。",
+      "D_basis": "判 D1，两读并立。第一种读法把 NL 第 6 句读作对 FinishState 入口条件的独占规定，于是把 `dist_to_exit<2` 也接到 FinishState 上构成语义合并，缺陷成立。第二种读法注意到 NL 第 6 句用的措辞是 triggered by 而不是 only when——它给出的是一个充分条件而非唯一条件，并没有禁止别的条件也通向 FinishState；再加上 NL 在高速侧从未为「驶离高速」命名过任何目标状态，把它接到全文唯一具名的结束态上是一个与结构完全相容的处理。第二种读法无法被结构事实推翻，构成削弱型反驳，故判 D1。",
+      "L_basis": "判 L0。陈述这条错误只需比对目标词项：NL 第 4、5 句的「驶离高速」在 NL 里没有具名目标，而 `:21`/`:25` 把目标写成了 `FinishState`，与 NL 第 6 句给 `auto_finished=true` 指定的目标同名。这是一次词项层面的比对，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "transition",
+        "defect_qualifier": "incorrect",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0009-02",
+      "pair": "0009",
+      "D": "D2",
+      "L": "L0",
+      "summary": "NL 第 8 句逐字点名的状态 `exit_urban` 在制品里根本没有声明，城市出口条件 `dist_to_exit<0.7` 被接到了 `FinishState` 上（`:38`）——而那个 FinishState 实际位于 `HighwayMode` 内部，于是城市模式的出口动作会把系统送进高速模式。",
+      "detail": "NL 第 8 句逐字为「In the lane_change_urban substate, the system transitions to straight if the lane change is complete or to exit_urban if the distance to the urban exit is less than 0.7 kilometers (`dist_to_exit<0.7`)」。与高速侧不同，这句为出口动作明确命名了目标状态 `exit_urban`。\n\n制品里 `exit_urban` 这个名字一次都没有出现。`:38` 写的是 `lane_change_urban --> FinishState : dist_to_exit<0.7`——条件抄对了，目标换成了 `FinishState`。\n\n更严重的是这个 `FinishState` 的作用域。PlantUML 按名字首次出现的位置确定归属，`FinishState` 首次出现在 `:21`（`cruise --> FinishState : dist_to_exit<2`），而 `:21` 位于 `state HighwayMode {`（:12）与 `}`（:26）之间。所以 `FinishState` 是 `HighwayMode` 的子态。`:38` 这条边写在 `state UrbanMode {`（:28-:43）块内，目标却是高速模式内部的一个状态——跨模式的作用域错误：城市道路上驶近出口，系统会被送进高速模式。\n\n根因有两层。表层是漏建了一个 NL 明确点名的状态。深层是 `FinishState` 的作用域被前向引用规则钉死在 HighwayMode 里（那一层问题单独记在 EIS-0009-03），于是所有指向它的边都继承了这个错误的落点。\n\n这一条在上游论文与第一版台账里都没有记录。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 8 句逐字点名了 `exit_urban` 这个目标状态。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法——`exit_urban` 这个名字在制品全文不存在，`FinishState` 也不是它的别名（NL 第 6、10 句把 FinishState 用作整个自动驾驶阶段的结束态，与「驶离城市道路」不是同一件事），无法解释成「换了个名字表达同一状态」。反驳不存活。",
+      "L_basis": "判 L0。陈述这条错误只需把 NL 第 8 句点名的名字 `exit_urban` 拿去模型里检索，发现全文没有。这是一次词项层面的存在性比对，不需要从模型结构导出新事实，也不需要执行序列。（配套指出的作用域错误属于另一条独立缺陷 EIS-0009-03，其 L 档另判。）",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "state",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0009-03",
+      "pair": "0009",
+      "D": "D2",
+      "L": "L2",
+      "summary": "`FinishState` 因为首次出现在 `:21`（`HighwayMode` 块内）而被钉成 HighwayMode 的子态，于是 `:46 UrbanMode --> FinishState : auto_finished=true` 这条城市侧的完成路径会先把系统路由回 `HighwayMode` 再进入其内部的 FinishState。",
+      "detail": "NL 第 6 句与第 10 句都用裸名 FinishState，没有任何冠词或限定把它们区分成两个不同的状态：第 6 句「The HighwayMode ends when the system transitions to FinishState」，第 10 句「The system exits the UrbanMode state by transitioning to FinishState once `auto_finished=true` is satisfied」。上游的参考模型也确实只建了一个 FinishState，位置在 AutonomousMode 这一层，供两个模式共享。\n\n制品把它建进了 HighwayMode 内部。原因是 PlantUML 按名字首次出现的位置确定作用域：`FinishState` 首次出现在 `:21 cruise --> FinishState : dist_to_exit<2`，而 `:21` 在 `state HighwayMode {`（:12）与 `}`（:26）之间。文件里没有任何一处 `state FinishState` 的显式声明把它提到外层。\n\n后果落在 `:46 UrbanMode --> FinishState : auto_finished=true` 上。这条边写在 AutonomousMode 层，源是 UrbanMode，目标是 HighwayMode 内部的一个叶态。层次状态机里进入一个深层子态必须先进入它的全部祖先，所以这条迁移的实际执行序列是：离开 UrbanMode，进入 HighwayMode，再进入 HighwayMode 内的 FinishState。用一句话说就是「城市模式完成之后，高速模式变为活跃」。\n\n这与 EIS-0009-02 是两条独立的缺陷：那一条说「NL 点名的 exit_urban 没建」，本条说「FinishState 建错了层级」。即使补上 exit_urban，本条仍然成立（`:46` 那条完成路径照样会路由进 HighwayMode）；即使把 FinishState 提到 AutonomousMode 层，EIS-0009-02 也仍然成立（exit_urban 还是没有）。本条在第一版台账里没有记录。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 10 句「The system exits the UrbanMode state by transitioning to FinishState once `auto_finished=true` is satisfied」——退出 UrbanMode 之后应当到达结束态，而不是到达 HighwayMode。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法：NL 第 6、10 句用的是同一个裸名，没有任何文本依据支持「高速有一个 FinishState、城市另有一个」的双状态读法；而单一 FinishState 若归属 HighwayMode，`:46` 的路由后果就无法回避。反驳不存活。",
+      "L_basis": "判 L2。陈述这条错误需要给出一条具体的执行路径——「处于 UrbanMode，`auto_finished` 成立，于是离开 UrbanMode、进入 HighwayMode、再进入 HighwayMode 内的 FinishState」。这条路径依赖层次状态机的进入语义（进入深层子态必先进入其祖先），是对一段带时间维行为的构造，而不是在某个系统状态上读出来的静态事实。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "state",
+        "defect_qualifier": "incorrect",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "INS-0009-03",
+      "pair": "0009",
+      "D": "D1",
+      "L": "L2",
+      "summary": "全文没有任何 `--> [*]` 根级终止汇点；作者用普通状态 `FinishState` 表达 NL 的「结束」，而它被钉在 `HighwayMode` 内部，进去之后还会被 `:45`/`:47` 这些外层成组迁移带走。",
+      "detail": "先给三个可核的事实。其一，全文（`:1`-`:60`）`--> [*]` 出现 0 次，即没有任何状态被声明为终态。其二，`FinishState` 因为首次出现在 `:21` 而归属 `HighwayMode`（同 EIS-0009-03）。其三，AutonomousMode 层有四条以 HighwayMode 或 UrbanMode 为源的成组迁移：`:45 HighwayMode --> FinishState : auto_finished=true`、`:46 UrbanMode --> FinishState : auto_finished=true`、`:47 HighwayMode --> UrbanMode : urban_way=true`、`:48 UrbanMode --> HighwayMode : high_way=true`。\n\n把三者放在一起看：进入 `FinishState` 之后，系统仍然处于 HighwayMode 之内，因此 `:47` 那条以 HighwayMode 为源的成组迁移随时可以把它带到 UrbanMode，`:45` 也可以让它重新进入 HighwayMode。也就是说，作者用来表达「结束」的那个状态并不真正终止任何东西。\n\n本条主张的是由此产生的整体后果：AutonomousMode 内的那些驾驶叶态构成一个环，而这个环没有任何出口。\n\n判读时需要裁的是：NL 有没有对这套控制器下过终止义务。NL 第 6 句用了 ends、第 10 句用了 exits，字面上确有终止的意思；但 NL 第 11 句「The system supports dynamic transitions between HighwayMode and UrbanMode based on the conditions `urban_way=true` and `high_way=true`, respectively, facilitating seamless mode shifts during the drive」描述的是一个在行驶过程中持续切换模式的控制器。",
+      "D_basis": "判 D1，两读并立。第一种读法：NL 第 6、10 句用 ends / exits 表达了终止意图，而作者自己选来承载这个意图的 `FinishState` 在结构上不终止任何东西（它嵌在 HighwayMode 内、会被成组迁移带走），所以作者声明的终止意图在他自己的源文本上就已经失效，缺陷成立。第二种读法：把 FinishState 读作一个持续运行的控制器里的「逻辑完成标记」而非真正的终态——这与 NL 第 11 句描述的行驶中持续切换模式相容。两种读法都与结构事实相容，故判 D1。另需说明本条主张的证成方式有一处弱点：它把结论架在「环必须有出口」这一前提上，而本研究的判定协议并不默认要求反应式控制器的主环有出口（一个不打算终止的控制系统没有终点不构成缺陷），这一点也支持不判 D2。",
+      "L_basis": "判 L2。陈述这条错误属于活性范畴：要说明那些驾驶叶态构成的环没有任何出口，必须排除掉「存在一条离开该环的无限迹」这种可能，也就是对全部执行路径做穷尽考察。这是对行为集合的构造与排除，不是单个系统状态上的静态判断。",
+      "axes": {
+        "defect_locus": "global",
+        "defect_element": null,
+        "defect_qualifier": null,
+        "defect_logic_kind": "nontermination",
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "VU-0009-01",
+      "pair": "0009",
+      "D": "D2",
+      "L": "L2",
+      "summary": "顶层复合态 `CollisionAvoidanceSystem`（:51-:59）没有任何入边，根层唯一的初始边 `:2` 只进入 `AutonomousMode`，因此 NL 第 12 句点名的碰撞规避初态 `collision_avoidance_deactive` 永远不可达。",
+      "detail": "NL 第 12 句逐字为「The collision avoidance system is initially in the collision_avoidance_deactive state.」，第 13 句接着描述它如何在激活与非激活之间往返。这要求碰撞规避这套东西是活的。\n\n制品把它建成了一个与 `AutonomousMode` 并列的顶层复合态：`:51 state CollisionAvoidanceSystem {`，块内有自己的默认入口 `:52 [*] --> collision_avoidance_deactive` 与两条往返边 `:55`、`:58`。\n\n问题在于怎么进到这个块里。根层的初始边只有 `:2 [*] --> AutonomousMode` 一条；全文没有任何以 `CollisionAvoidanceSystem` 为目标的迁移。块内的 `:52` 只能在已经进入这个块之后决定落在哪个子态，它不能把系统带进这个块。所以这整棵子树不可达，NL 第 12、13 句要求的行为一次也不会发生。\n\n还需要确认一点：文件里有没有把两个顶层块声明成并发区。全文没有任何 `--` 并发分隔符（对比同批的 pair 0002 与 pair 0007，那两份用了 `--`，说明这个记法在本语料里是被使用的）。\n\n根因是把「系统里有两个并行运作的部分」直接写成了「两个并列的顶层状态」，而在非并发的状态机里，并列的顶层状态之间是互斥的：机器同一时刻只处在其中一个里，且必须有边才能过去。\n\n本条属于第一版台账漏记、后从各实验臂未被认领的产出中提取回来的一类。同型形态在 pair 0059 上也出现（记为 INS-0059-01）。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 12 句点名了 `collision_avoidance_deactive` 作为碰撞规避系统的初态，而它在制品里不可达。判读中出现过一种反驳：把两个顶层块读作隐式并行的子机，这样 `CollisionAvoidanceSystem` 就不需要入边。这条反驳在本研究的建模对象里不成立——建模对象是 $M = (S, E, V, Tr, A)$，不含正交区并发语义，因此不存在「两个顶层块自动并行」这回事；何况文件里也没有任何 `--` 分隔符去声明它。反驳不存活。",
+      "L_basis": "判 L2。陈述这条错误的核心是一个可达性论证：要说明从根层初始边 `:2` 出发的全部执行路径都到不了 `CollisionAvoidanceSystem`。这需要对行为集合做穷尽排除，不是在某个系统状态上读出来的静态事实。",
+      "axes": {
+        "defect_locus": "global",
+        "defect_element": null,
+        "defect_qualifier": null,
+        "defect_logic_kind": "unreachable",
+        "defect_reference": "language"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:unreachable_component:CollisionAvoidanceSystem",
+          "claims": [
+            "Source component 'CollisionAvoidanceSystem' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0009.CollisionAvoidanceSystem.collision_avoidance_deactive",
+            "llms_emp_feedback_final_0009.CollisionAvoidanceSystem.collision_avoidance_active"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:CollisionAvoidanceSystem:facet:8df90abf7391"
+          ]
+        },
+        {
+          "finding_id": "source:transition:AutonomousMode.UrbanMode:high_way=true:AutonomousMode.HighwayMode",
+          "claims": [
+            "The authored dynamic-mode transition structure may contain a source-direction defect: the UrbanMode-to-HighwayMode edge is represented through a source-mode relation not captured by the raw group, while the raw contract's second alternative was collapsed under HighwayMode."
+          ],
+          "locations": [
+            "NL11",
+            "PUML:L47",
+            "PUML:L48",
+            "tr_0022",
+            "tr_0023"
+          ],
+          "obligations": [
+            "The HighwayMode-to-UrbanMode and UrbanMode-to-HighwayMode dynamic transitions must use their stated source modes and conditions."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:AutonomousMode.UrbanMode:high_way=true:AutonomousMode.HighwayMode:facet:7cc54f5aa69a"
+          ]
+        },
+        {
+          "finding_id": "source:transition:AutonomousMode.HighwayMode.enter_hwy:dist_to_front<25 && extra_lane=true:AutonomousMode.HighwayMode.cruise",
+          "claims": [
+            "The authored enter_hwy-to-cruise transition may use a condition inconsistent with the NL contract."
+          ],
+          "locations": [
+            "NL3",
+            "PUML:L16",
+            "PUML:L17",
+            "tr_0006",
+            "tr_0007"
+          ],
+          "obligations": [
+            "The enter_hwy route to cruise must use the NL-qualified close-front/extra-lane condition."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:AutonomousMode.HighwayMode.enter_hwy:dist_to_front<25 && extra_lane=true:AutonomousMode.HighwayMode.cruise:facet:e462f55384ca"
+          ]
+        },
+        {
+          "finding_id": "source:stable_termination:AutonomousMode.HighwayMode.FinishState",
+          "claims": [
+            "Required termination target 'AutonomousMode.HighwayMode.FinishState' admits a source-level nonterminating continuation."
+          ],
+          "locations": [
+            "AutonomousMode.HighwayMode.FinishState"
+          ],
+          "obligations": [
+            "The NL-designated termination state 'FinishState' must be a stable ending target for its declared behavior."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:stable_termination:AutonomousMode.HighwayMode.FinishState:facet:b92b999ed840",
+            "source:stable_termination:AutonomousMode.HighwayMode.FinishState:facet:c9bb6495b564"
+          ]
+        },
+        {
+          "finding_id": "source:root_target_unreachable:CollisionAvoidanceSystem",
+          "claims": [
+            "No source-graph path reaches target 'CollisionAvoidanceSystem' from the exact root entry 'llms_emp_feedback_final_0009'."
+          ],
+          "locations": [
+            "NL12",
+            "PUML:L51-L52",
+            "CollisionAvoidanceSystem",
+            "CollisionAvoidanceSystem.collision_avoidance_deactive",
+            "llms_emp_feedback_final_0009"
+          ],
+          "obligations": [
+            "The CollisionAvoidanceSystem behavior declared by NL12-NL13 must be reachable from the root machine entry.",
+            "The CollisionAvoidanceSystem behavior must be reachable from the root system entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:root_target_unreachable:CollisionAvoidanceSystem:facet:1494682af07b"
+          ]
+        },
+        {
+          "finding_id": "source:wrong_scope_route:tr_0017",
+          "claims": [
+            "Source transition 'tr_0017' from 'AutonomousMode.UrbanMode.lane_change_urban' to 'AutonomousMode.HighwayMode.FinishState' enters forbidden scope 'AutonomousMode.HighwayMode'."
+          ],
+          "locations": [
+            "NL8",
+            "PUML:L38",
+            "tr_0017",
+            "AutonomousMode.HighwayMode.FinishState"
+          ],
+          "obligations": [
+            "A route triggered from UrbanMode by the urban exit condition must not enter the HighwayMode scope when the NL names an urban exit state."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:wrong_scope_route:tr_0017:facet:9ff9c975a280"
+          ]
+        },
+        {
+          "finding_id": "source:extraneous_transition:tr_0006",
+          "claims": [
+            "Exact source transition 'tr_0006' is present but forbidden."
+          ],
+          "locations": [
+            "tr_0006",
+            "NL3"
+          ],
+          "obligations": [
+            "Every authored transition must be semantically authorized by the NL contract that governs its source and behavior role."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:extraneous_transition:tr_0006:facet:dccd251e4f92"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:9f0b2e6dd5b7467b",
+          "claims": [
+            "The selected dist_to_exit<0.7 route may enter the wrong scope and fail to realize the urban exit target."
+          ],
+          "locations": [
+            "NL8",
+            "tr_0017",
+            "AutonomousMode.UrbanMode.lane_change_urban",
+            "AutonomousMode.HighwayMode.FinishState"
+          ],
+          "obligations": [
+            "The urban lane-change exit route must reach the named urban exit rather than enter the highway completion scope."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:9f0b2e6dd5b7467b:facet:9d3dd519a494"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:unreachable_component:CollisionAvoidanceSystem",
+          "claims": [
+            "Source component 'CollisionAvoidanceSystem' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0009.CollisionAvoidanceSystem.collision_avoidance_deactive",
+            "llms_emp_feedback_final_0009.CollisionAvoidanceSystem.collision_avoidance_active"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:CollisionAvoidanceSystem:facet:8df90abf7391"
+          ]
+        },
+        {
+          "finding_id": "source:containment:AutonomousMode.UrbanMode",
+          "claims": [
+            "Source child 'AutonomousMode.HighwayMode.FinishState' has actual parent 'AutonomousMode.HighwayMode', not required parent 'AutonomousMode.UrbanMode'."
+          ],
+          "locations": [
+            "NL10",
+            "AutonomousMode.HighwayMode.FinishState",
+            "AutonomousMode.HighwayMode",
+            "tr_0021"
+          ],
+          "obligations": [
+            "AutonomousMode.HighwayMode.FinishState must be directly contained in AutonomousMode.UrbanMode.",
+            "The named FinishState must be contained in UrbanMode for the stated UrbanMode completion structure."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:containment:AutonomousMode.UrbanMode:facet:2ce695054239"
+          ]
+        },
+        {
+          "finding_id": "source:transition:AutonomousMode.HighwayMode.enter_hwy:`dist_to_front<25` and `extra_lane=true`:AutonomousMode.HighwayMode.cruise",
+          "claims": [
+            "The required AutonomousMode.HighwayMode.enter_hwy -> AutonomousMode.HighwayMode.cruise transition under `dist_to_front<25` and `extra_lane=true` is absent or loses its condition."
+          ],
+          "locations": [
+            "NL3"
+          ],
+          "obligations": [
+            "AutonomousMode.HighwayMode.enter_hwy must transition directly to AutonomousMode.HighwayMode.cruise under `dist_to_front<25` and `extra_lane=true`."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:AutonomousMode.HighwayMode.enter_hwy:`dist_to_front<25` and `extra_lane=true`:AutonomousMode.HighwayMode.cruise:facet:435165e4e176"
+          ]
+        },
+        {
+          "finding_id": "source:guard_presence:AutonomousMode.HighwayMode.enter_hwy:AutonomousMode.HighwayMode.cruise",
+          "claims": [
+            "The authored enter_hwy-to-cruise edge may realize the wrong condition: it is guarded by dist_to_front>=25 rather than the NL-stated dist_to_front<25 with an extra lane available."
+          ],
+          "locations": [
+            "NL3",
+            "PUML:L16",
+            "tr_0006",
+            "FCSTM:F27"
+          ],
+          "obligations": [
+            "The HighwayMode entry transition to cruise must use the stated front-distance and extra-lane condition."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:guard_presence:AutonomousMode.HighwayMode.enter_hwy:AutonomousMode.HighwayMode.cruise:facet:20ca58576e5c"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:3c0008ab2b36ab6e",
+          "claims": [
+            "The authored distance-to-urban-exit transition may leave UrbanMode by targeting AutonomousMode.HighwayMode.FinishState instead of the required exit_urban target."
+          ],
+          "locations": [
+            "NL8",
+            "PUML:L38",
+            "tr_0017",
+            "FCSTM:F52"
+          ],
+          "obligations": [
+            "The UrbanMode lane-change exit must target the named urban exit rather than a state in HighwayMode."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:3c0008ab2b36ab6e:facet:733d2c3257ac"
+          ]
+        },
+        {
+          "finding_id": "source:stable_termination:AutonomousMode.HighwayMode.FinishState",
+          "claims": [
+            "Required termination target 'AutonomousMode.HighwayMode.FinishState' admits a source-level nonterminating continuation."
+          ],
+          "locations": [
+            "AutonomousMode.HighwayMode.FinishState"
+          ],
+          "obligations": [
+            "The NL-designated termination state 'FinishState' must be a stable ending target for its declared behavior."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:stable_termination:AutonomousMode.HighwayMode.FinishState:facet:b92b999ed840"
+          ]
+        },
+        {
+          "finding_id": "source:root_target_unreachable:CollisionAvoidanceSystem",
+          "claims": [
+            "No source-graph path reaches target 'CollisionAvoidanceSystem' from the exact root entry 'llms_emp_feedback_final_0009'."
+          ],
+          "locations": [
+            "NL12",
+            "NL13",
+            "CollisionAvoidanceSystem",
+            "CollisionAvoidanceSystem.collision_avoidance_deactive",
+            "tr_0024"
+          ],
+          "obligations": [
+            "The collision avoidance component declared by the requirements must be reachable from the system root.",
+            "The CollisionAvoidanceSystem behavior must be reachable from the root system entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:root_target_unreachable:CollisionAvoidanceSystem:facet:ce861353b82a"
+          ]
+        },
+        {
+          "finding_id": "source:wrong_scope_route:tr_0017",
+          "claims": [
+            "Source transition 'tr_0017' from 'AutonomousMode.UrbanMode.lane_change_urban' to 'AutonomousMode.HighwayMode.FinishState' enters forbidden scope 'AutonomousMode.HighwayMode'."
+          ],
+          "locations": [
+            "NL8",
+            "tr_0017",
+            "AutonomousMode.HighwayMode.FinishState"
+          ],
+          "obligations": [
+            "The UrbanMode distance-to-exit route must avoid a HighwayMode ancestor when the named urban exit is required."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:wrong_scope_route:tr_0017:facet:9ff9c975a280"
+          ]
+        },
+        {
+          "finding_id": "source:wrong_scope_route:tr_0021",
+          "claims": [
+            "Source transition 'tr_0021' from 'AutonomousMode.UrbanMode' to 'AutonomousMode.HighwayMode.FinishState' enters forbidden scope 'AutonomousMode.HighwayMode'."
+          ],
+          "locations": [
+            "NL10",
+            "tr_0021",
+            "AutonomousMode.HighwayMode.FinishState"
+          ],
+          "obligations": [
+            "The UrbanMode completion route must avoid entering the HighwayMode scope."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:wrong_scope_route:tr_0021:facet:6d2dfd62d56f"
+          ]
+        },
+        {
+          "finding_id": "source:transition:AutonomousMode.HighwayMode.enter_hwy:dist_to_front<25 && extra_lane=true:AutonomousMode.HighwayMode.cruise",
+          "claims": [
+            "The authored transition from enter_hwy to cruise may realize the wrong condition and omit the required extra-lane qualifier."
+          ],
+          "locations": [
+            "NL3",
+            "PUML:L16",
+            "tr_0006",
+            "AutonomousMode.HighwayMode.enter_hwy",
+            "AutonomousMode.HighwayMode.cruise"
+          ],
+          "obligations": [
+            "The HighwayMode entry path to cruise must be guarded by the stated front-distance and extra-lane condition."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:AutonomousMode.HighwayMode.enter_hwy:dist_to_front<25 && extra_lane=true:AutonomousMode.HighwayMode.cruise:facet:e462f55384ca"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:553c27c2521645b0",
+          "claims": [
+            "The UrbanMode exit target named by NL8 may be absent from the formal state inventory."
+          ],
+          "locations": [
+            "NL8",
+            "AutonomousMode.UrbanMode",
+            "tr_0017",
+            "PUML:L38"
+          ],
+          "obligations": [
+            "The named exit_urban state must exist within UrbanMode."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:553c27c2521645b0:facet:2f00b339c0ab"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:unreachable_component:CollisionAvoidanceSystem",
+          "claims": [
+            "Source component 'CollisionAvoidanceSystem' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0009.CollisionAvoidanceSystem.collision_avoidance_deactive",
+            "llms_emp_feedback_final_0009.CollisionAvoidanceSystem.collision_avoidance_active"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:CollisionAvoidanceSystem:facet:8df90abf7391"
+          ]
+        },
+        {
+          "finding_id": "source:containment:AutonomousMode.UrbanMode",
+          "claims": [
+            "Source child 'AutonomousMode.HighwayMode.FinishState' has actual parent 'AutonomousMode.HighwayMode', not required parent 'AutonomousMode.UrbanMode'."
+          ],
+          "locations": [
+            "NL10"
+          ],
+          "obligations": [
+            "AutonomousMode.HighwayMode.FinishState must be directly contained in AutonomousMode.UrbanMode."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D1",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:containment:AutonomousMode.UrbanMode:facet:2ce695054239"
+          ]
+        },
+        {
+          "finding_id": "source:transition:AutonomousMode.HighwayMode.enter_hwy:the distance to the front vehicle (`dist_to_front<25`):AutonomousMode.HighwayMode.cruise",
+          "claims": [
+            "The required AutonomousMode.HighwayMode.enter_hwy -> AutonomousMode.HighwayMode.cruise transition under the distance to the front vehicle (`dist_to_front<25`) is absent or loses its condition."
+          ],
+          "locations": [
+            "NL3"
+          ],
+          "obligations": [
+            "AutonomousMode.HighwayMode.enter_hwy must transition directly to AutonomousMode.HighwayMode.cruise under the distance to the front vehicle (`dist_to_front<25`)."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:AutonomousMode.HighwayMode.enter_hwy:the distance to the front vehicle (`dist_to_front<25`):AutonomousMode.HighwayMode.cruise:facet:5fc7122feb34"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:9b9567268e81f50c",
+          "claims": [
+            "The authored urban exit edge may leave UrbanMode and target HighwayMode.FinishState instead of the named exit_urban state."
+          ],
+          "locations": [
+            "NL8",
+            "PUML:L38",
+            "tr_0017",
+            "AutonomousMode.HighwayMode.FinishState"
+          ],
+          "obligations": [
+            "The urban lane-change exit transition must target exit_urban within UrbanMode."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:9b9567268e81f50c:facet:8bcdec8d8994"
+          ]
+        },
+        {
+          "finding_id": "source:root_target_unreachable:CollisionAvoidanceSystem.collision_avoidance_deactive",
+          "claims": [
+            "No source-graph path reaches target 'CollisionAvoidanceSystem.collision_avoidance_deactive' from the exact root entry 'llms_emp_feedback_final_0009'."
+          ],
+          "locations": [
+            "NL12",
+            "F51-F58",
+            "F73-F79",
+            "llms_emp_feedback_final_0009.CollisionAvoidanceSystem.collision_avoidance_deactive"
+          ],
+          "obligations": [
+            "The initial collision avoidance state must be reachable from the root machine entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:root_target_unreachable:CollisionAvoidanceSystem.collision_avoidance_deactive:facet:58b452aa7423"
+          ]
+        },
+        {
+          "finding_id": "source:stable_termination:AutonomousMode.HighwayMode.FinishState",
+          "claims": [
+            "Required termination target 'AutonomousMode.HighwayMode.FinishState' admits a source-level nonterminating continuation."
+          ],
+          "locations": [
+            "AutonomousMode.HighwayMode.FinishState"
+          ],
+          "obligations": [
+            "The NL-designated termination state 'FinishState' must be a stable ending target for its declared behavior."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:stable_termination:AutonomousMode.HighwayMode.FinishState:facet:b92b999ed840"
+          ]
+        },
+        {
+          "finding_id": "source:extraneous_transition:tr_0021",
+          "claims": [
+            "Exact source transition 'tr_0021' is present but forbidden."
+          ],
+          "locations": [
+            "tr_0021",
+            "NL10"
+          ],
+          "obligations": [
+            "Every authored transition must be semantically authorized by the NL contract that governs its source and behavior role."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:extraneous_transition:tr_0021:facet:f51a258002d7"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:aac37a626569fb6d",
+          "claims": [
+            "The selected urban exit transition may route into HighwayMode, violating the UrbanMode-local exit semantics."
+          ],
+          "locations": [
+            "NL8",
+            "PUML:L38",
+            "tr_0017",
+            "AutonomousMode.HighwayMode.FinishState"
+          ],
+          "obligations": [
+            "The urban exit route must avoid entering HighwayMode when the requirement names exit_urban as an UrbanMode-local target."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:aac37a626569fb6d:facet:8c14c0a1d5d9"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:536dd6b8d4b1f9a5",
+          "claims": [
+            "The required urban exit state may be absent from the source state inventory."
+          ],
+          "locations": [
+            "NL8",
+            "AutonomousMode.UrbanMode.lane_change_urban",
+            "PUML:L38",
+            "F52",
+            "tr_0017"
+          ],
+          "obligations": [
+            "UrbanMode must contain the named exit_urban state required by NL8."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:536dd6b8d4b1f9a5:facet:2f00b339c0ab"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:167c4efea0957e8f",
+          "claims": [
+            "The authored urban exit edge may have the wrong target scope and endpoint."
+          ],
+          "locations": [
+            "NL8",
+            "tr_0017",
+            "AutonomousMode.HighwayMode.FinishState",
+            "PUML:L38",
+            "F52"
+          ],
+          "obligations": [
+            "The NL8 urban exit transition must target exit_urban within UrbanMode."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:167c4efea0957e8f:facet:0cf862230e29"
+          ]
+        },
+        {
+          "finding_id": "source:root_target_unreachable:CollisionAvoidanceSystem",
+          "claims": [
+            "No source-graph path reaches target 'CollisionAvoidanceSystem' from the exact root entry 'llms_emp_feedback_final_0009'."
+          ],
+          "locations": [
+            "NL12",
+            "NL13",
+            "tr_0001",
+            "tr_0024",
+            "CollisionAvoidanceSystem",
+            "CollisionAvoidanceSystem.collision_avoidance_deactive"
+          ],
+          "obligations": [
+            "The CollisionAvoidanceSystem behavior declared by NL12-NL13 must be reachable from the root system entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:root_target_unreachable:CollisionAvoidanceSystem:facet:ce861353b82a"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型将 enter_hwy 在 dist_to_front<25 且 extra_lane=true 时转入 lane_change，但没有建模“仅 dist_to_front<25 时进入 cruise”的明确路径；同时未给出 enter_hwy 到 cruise 的完整条件语义。",
+          "reason": "规格第3条要求根据前车距离和额外车道可用性在 cruise 与 lane_change 之间转移。模型虽有 dist_to_front>=25 到 cruise 的路径，但对 dist_to_front<25 且 extra_lane 不可用的情况没有去向，因而不能完整表示该要求。",
+          "where": "HighwayMode 内 enter_hwy 的转移"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "模型把 cruise 在 dist_to_exit<2 时直接转入 FinishState。",
+          "reason": "规格第4、5条要求此时退出高速公路；规格第6条又规定HighwayMode以 auto_finished=true 转入 FinishState。模型没有表示高速出口对应的退出状态，且以 dist_to_exit<2 直接进入FinishState，混淆了“退出高速”和“自动驾驶完成”两个不同事件。",
+          "where": "HighwayMode 内 cruise 的转移"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "模型把 lane_change_urban 在 dist_to_exit<0.7 时直接转入 FinishState。",
+          "reason": "规格第8条要求转入 exit_urban；模型缺少 exit_urban 状态，并错误地将城市道路出口条件连接到FinishState。规格第10条明确只有 auto_finished=true 才从UrbanMode转入FinishState。",
+          "where": "UrbanMode 内 lane_change_urban 的转移"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "模型使用 dist_to_front>=25 进入 cruise，而规格没有规定该非阻塞条件，且未处理 dist_to_front<25、extra_lane=false 的情况。",
+          "reason": "模型因此产生未覆盖的输入组合：前车距离小于25米但没有额外车道时，enter_hwy 无可用转移；同时将>=25作为进入cruise的唯一条件是对规格“基于距离和额外车道在两者间选择”的不完整实现。",
+          "where": "HighwayMode 内 enter_hwy 的条件覆盖"
+        },
+        {
+          "finding_id": "baseline_issue_5",
+          "issue": "模型将高速/城市前向距离条件写成 dist_to_front<15 && high_way=true 以及 dist_to_front<10 && urban_way=true。",
+          "reason": "规格第12条描述的是“在高速模式前向距离<15米或在城市模式前向距离<10米”作为激活条件；若模式信号的规范值并非显式布尔变量，模型的表达方式可能不符合给定条件命名，但更关键的是模型未明确将这些条件与当前HighwayMode/UrbanMode状态绑定，依赖外部标志可能导致模式状态与high_way/urban_way不一致时错误激活。",
+          "where": "CollisionAvoidanceSystem 的激活条件"
+        },
+        {
+          "finding_id": "baseline_issue_6",
+          "issue": "模型在AutonomousMode复合状态内部引用FinishState，但FinishState没有在模型中声明，且没有定义其属于AutonomousMode还是顶层状态。",
+          "reason": "规格要求HighwayMode和UrbanMode退出到FinishState。PlantUML中目标状态未声明，层级和可达语义不明确，可能导致模型无法正确解析或无法表达统一的结束状态。",
+          "where": "AutonomousMode 与 FinishState 的层级关系"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": []
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "HighwayMode 中从 `lane_change` 或 `cruise` 退出高速时，模型直接转到 `FinishState`，而规范要求退出高速并支持继续驱动模式切换；同时规范第4、5条仅规定退出高速条件，不等同于自动完成。",
+          "reason": "`FinishState` 是 HighwayMode 由 `auto_finished=true` 结束时的目标状态。将 `dist_to_exit<2` 也连接到 FinishState，会把接近出口错误建模为自动驾驶完成，且没有表示高速退出后的后续状态或模式切换。",
+          "where": "`lane_change --> FinishState : dist_to_exit<2`；`cruise --> FinishState : dist_to_exit<2`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "UrbanMode 中从 `lane_change_urban` 接近城市出口时，模型直接转到 `FinishState`，与规范所述转入 `exit_urban` 子状态不一致。",
+          "reason": "规范第8条明确要求目标为 `exit_urban`，模型未定义或进入该子状态，而是直接结束自动驾驶。",
+          "where": "`lane_change_urban --> FinishState : dist_to_exit<0.7`"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "模型缺少 `exit_urban` 子状态。",
+          "reason": "规范明确要求在城市出口距离小于 0.7 km 时进入 `exit_urban`，但 UrbanMode 中只有 `enter_urban`、`lane_change_urban`、`straight` 和 `intersection`，无法表示该规定的行为。",
+          "where": "`state UrbanMode` 的子状态定义"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "HighwayMode 的 `enter_hwy` 仅在 `dist_to_front>=25` 时进入 `cruise`，但规范只规定根据 `dist_to_front<25` 且 `extra_lane=true` 转入 `lane_change`，没有规定必须以 `dist_to_front>=25` 作为进入 cruise 的完整条件。",
+          "reason": "该转换增加了规范未定义的条件，并且在 `dist_to_front<25 && extra_lane=false` 等情况下没有任何转移；如果 cruise 表示正常巡航，模型应明确覆盖规范要求的可达行为或保留未满足条件时的状态语义。",
+          "where": "`enter_hwy --> cruise : dist_to_front>=25`"
+        },
+        {
+          "finding_id": "baseline_issue_5",
+          "issue": "碰撞避免系统从非激活态进入激活态的前车距离条件没有明确限定为对应驾驶模式的互斥模式，只使用了 `high_way=true` 和 `urban_way=true`。",
+          "reason": "规范要求高速模式前车距离小于15米、城市模式小于10米。模型允许两个模式条件同时为真时任一条件触发，且没有表达当前所处模式或模式互斥约束；在动态模式转换语义下，这可能导致非当前模式的阈值触发。",
+          "where": "`collision_avoidance_deactive --> collision_avoidance_active` 中的 `(dist_to_front<15 && high_way=true) || (dist_to_front<10 && urban_way=true)`"
+        },
+        {
+          "finding_id": "baseline_issue_6",
+          "issue": "HighwayMode 和 UrbanMode 到 `FinishState` 的结束转换使用了复合状态外部转换，但 `FinishState` 未定义为 AutonomousMode 的子状态。",
+          "reason": "`FinishState` 在模型中没有状态声明，也没有作为 AutonomousMode 的子状态定义。按 PlantUML 状态机语义，这可能创建顶层状态而不是 AutonomousMode 内部的结束子状态，无法可靠表达规范要求的两个模式结束并进入统一 FinishState。",
+          "where": "`HighwayMode --> FinishState : auto_finished=true`；`UrbanMode --> FinishState : auto_finished=true`"
+        },
+        {
+          "finding_id": "baseline_issue_7",
+          "issue": "模型没有明确表示 AutonomousMode 从 `InitialState` 开始后只能在其内部模式间运行并最终到达 FinishState，且 `FinishState` 没有纳入 AutonomousMode 的初始/终止结构。",
+          "reason": "规范将 AutonomousMode、HighwayMode、UrbanMode 和 FinishState描述为同一自动驾驶流程的层级状态。模型定义了 AutonomousMode 的初始伪状态，但未定义 FinishState，也未给 AutonomousMode 配置完成后的终止路径，因此层级生命周期不完整。",
+          "where": "`state AutonomousMode` 整体结构及 `FinishState` 相关转换"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0009",
+    "ledger_assessments": [
+      {
+        "ledger_id": "EIS-0009-01",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "方法首轮没有直接指认高速侧 dist_to_exit<2 到 FinishState 的迁移。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "方法次轮没有直接指认高速侧 dist_to_exit<2 到 FinishState 的迁移。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "方法第三轮没有直接指认高速侧 dist_to_exit<2 到 FinishState 的迁移。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_issue_1和4仅讨论 enter_hwy 条件，未涉及高速出口边。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格没有输出。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "baseline_issue_1直接指认 cruise/lane_change 在 dist_to_exit<2 时进入 FinishState。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0009-02",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "hypothesis:9f0b2e6dd5b7467b",
+            "source:wrong_scope_route:tr_0017"
+          ],
+          "reason": "hypothesis:9f0b2e6dd5b7467b和source:wrong_scope_route:tr_0017都指认同一城市出口迁移错误进入 HighwayMode.FinishState。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "hypothesis:3c0008ab2b36ab6e",
+            "hypothesis:553c27c2521645b0",
+            "source:wrong_scope_route:tr_0017"
+          ],
+          "reason": "方法次轮同时指认 tr_0017 的错作用域和 exit_urban 的缺失。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "hypothesis:167c4efea0957e8f",
+            "hypothesis:536dd6b8d4b1f9a5",
+            "hypothesis:9b9567268e81f50c",
+            "hypothesis:aac37a626569fb6d"
+          ],
+          "reason": "第三轮的四个城市出口端点/作用域主张及 exit_urban 缺失主张均覆盖该条目。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_3"
+          ],
+          "reason": "baseline_issue_3直接指认城市出口条件错误进入 FinishState且缺少 exit_urban。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格没有输出。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_2",
+            "baseline_issue_3"
+          ],
+          "reason": "baseline_issue_2和3分别覆盖城市出口错接及 exit_urban 缺失。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0009-03",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "method_run1没有指认 UrbanMode 的 auto_finished 完成边或 FinishState 的错误层级路由；稳定终止问题属于 INS 条目。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:wrong_scope_route:tr_0021"
+          ],
+          "reason": "source:wrong_scope_route:tr_0021直接指认 UrbanMode 完成迁移进入 HighwayMode.FinishState。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "第三轮的 containment issue要求 FinishState 属于 UrbanMode，不能覆盖冻结条目所主张的共享 AutonomousMode 层级；其余相关输出指向 tr_0017 或终止性。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_6"
+          ],
+          "reason": "baseline_issue_6指认 FinishState 未声明且未确立为 AutonomousMode 子状态，覆盖结束态层级错误的静态部分。",
+          "confidence": "medium"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格没有输出。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_6"
+          ],
+          "reason": "baseline_issue_6直接指认两个模式到 FinishState 的层级归属错误。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "INS-0009-03",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:stable_termination:AutonomousMode.HighwayMode.FinishState"
+          ],
+          "reason": "source:stable_termination:AutonomousMode.HighwayMode.FinishState直接主张该 FinishState 存在非终止延续。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:stable_termination:AutonomousMode.HighwayMode.FinishState"
+          ],
+          "reason": "同一稳定终止 issue 覆盖 FinishState 不真正终止的主张。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:stable_termination:AutonomousMode.HighwayMode.FinishState"
+          ],
+          "reason": "同一稳定终止 issue 覆盖 INS-0009-03 的不终止性质。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_run1没有直接主张 FinishState 进入后可被外层迁移带走或驾驶环无出口。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格没有输出。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_issue_7泛称生命周期不完整，未主张 FinishState 的非终止延续或驾驶环无出口。",
+          "confidence": "medium"
+        }
+      },
+      {
+        "ledger_id": "VU-0009-01",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:unreachable_component:CollisionAvoidanceSystem",
+            "source:root_target_unreachable:CollisionAvoidanceSystem"
+          ],
+          "reason": "组件不可达和根目标不可达两个 finding 都直接覆盖碰撞规避系统不可达。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:unreachable_component:CollisionAvoidanceSystem",
+            "source:root_target_unreachable:CollisionAvoidanceSystem"
+          ],
+          "reason": "组件不可达及根目标不可达 finding 直接覆盖该条目。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:unreachable_component:CollisionAvoidanceSystem",
+            "source:root_target_unreachable:CollisionAvoidanceSystem.collision_avoidance_deactive",
+            "source:root_target_unreachable:CollisionAvoidanceSystem"
+          ],
+          "reason": "组件、顶层目标和 collision_avoidance_deactive 初态的不可达 finding 均覆盖同一可达性缺陷。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_run1没有指认 CollisionAvoidanceSystem 或其初态不可达。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格没有输出。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_issue_5讨论激活条件，issue_7讨论 AutonomousMode 生命周期，均未主张碰撞规避组件不可达。",
+          "confidence": "high"
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "method_run1",
+        "emitted_id": "hypothesis:9f0b2e6dd5b7467b",
+        "matched_ledger_ids": [
+          "EIS-0009-02"
+        ],
+        "false_positive": false,
+        "reason": "直接指向 NL8 的城市出口迁移 tr_0017 错误地进入 HighwayMode.FinishState，覆盖城市出口目标缺失/错接。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:extraneous_transition:tr_0006",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "这是 enter_hwy 到 cruise 的额外迁移问题，台账没有该位置和性质的条目。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:root_target_unreachable:CollisionAvoidanceSystem",
+        "matched_ledger_ids": [
+          "VU-0009-01"
+        ],
+        "false_positive": false,
+        "reason": "明确断言 CollisionAvoidanceSystem 从根入口不可达，与碰撞规避组件不可达条目同处同性质。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:stable_termination:AutonomousMode.HighwayMode.FinishState",
+        "matched_ledger_ids": [
+          "INS-0009-03"
+        ],
+        "false_positive": false,
+        "reason": "明确断言 HighwayMode 内 FinishState 存在不终止延续，覆盖该结束状态不是真正终止汇点的活性问题。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:transition:AutonomousMode.HighwayMode.enter_hwy:dist_to_front<25 && extra_lane=true:AutonomousMode.HighwayMode.cruise",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "仅涉及 enter_hwy 到 cruise 的条件语义，台账未记录该迁移。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:transition:AutonomousMode.UrbanMode:high_way=true:AutonomousMode.HighwayMode",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "涉及 HighwayMode/UrbanMode 动态切换的源方向，台账条目均不主张该迁移。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:unreachable_component:CollisionAvoidanceSystem",
+        "matched_ledger_ids": [
+          "VU-0009-01"
+        ],
+        "false_positive": false,
+        "reason": "组件整体从根入口不可达，直接覆盖 VU-0009-01。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:wrong_scope_route:tr_0017",
+        "matched_ledger_ids": [
+          "EIS-0009-02"
+        ],
+        "false_positive": false,
+        "reason": "同一条城市出口迁移被指向 HighwayMode 内 FinishState，覆盖城市出口目标/作用域错误。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:3c0008ab2b36ab6e",
+        "matched_ledger_ids": [
+          "EIS-0009-02"
+        ],
+        "false_positive": false,
+        "reason": "直接主张 NL8 城市出口没有到达 exit_urban 而进入 HighwayMode.FinishState。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:553c27c2521645b0",
+        "matched_ledger_ids": [
+          "EIS-0009-02"
+        ],
+        "false_positive": false,
+        "reason": "直接主张 NL8 点名的 exit_urban 不在状态清单中。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:containment:AutonomousMode.UrbanMode",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 把 FinishState 的要求父级主张为 UrbanMode；冻结台账要求的是共享的 AutonomousMode 层，性质和要求层级不一致。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:guard_presence:AutonomousMode.HighwayMode.enter_hwy:AutonomousMode.HighwayMode.cruise",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "是 enter_hwy 条件错误，台账没有对应条目。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:root_target_unreachable:CollisionAvoidanceSystem",
+        "matched_ledger_ids": [
+          "VU-0009-01"
+        ],
+        "false_positive": false,
+        "reason": "明确断言碰撞规避组件不可从根进入。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:stable_termination:AutonomousMode.HighwayMode.FinishState",
+        "matched_ledger_ids": [
+          "INS-0009-03"
+        ],
+        "false_positive": false,
+        "reason": "同一 FinishState 的非终止延续，覆盖 INS 的不终止主张。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:transition:AutonomousMode.HighwayMode.enter_hwy:`dist_to_front<25` and `extra_lane=true`:AutonomousMode.HighwayMode.cruise",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "涉及未记账的 HighwayMode 入口条件迁移。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:transition:AutonomousMode.HighwayMode.enter_hwy:dist_to_front<25 && extra_lane=true:AutonomousMode.HighwayMode.cruise",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "涉及未记账的 HighwayMode 入口条件迁移。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:unreachable_component:CollisionAvoidanceSystem",
+        "matched_ledger_ids": [
+          "VU-0009-01"
+        ],
+        "false_positive": false,
+        "reason": "组件整体不可达，直接覆盖 VU-0009-01。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:wrong_scope_route:tr_0017",
+        "matched_ledger_ids": [
+          "EIS-0009-02"
+        ],
+        "false_positive": false,
+        "reason": "同一城市出口边错误进入 HighwayMode scope。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:wrong_scope_route:tr_0021",
+        "matched_ledger_ids": [
+          "EIS-0009-03"
+        ],
+        "false_positive": false,
+        "reason": "同一 UrbanMode 完成迁移 tr_0021 错误进入 HighwayMode.FinishState，覆盖 EIS-0009-03 的层次路由缺陷。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "hypothesis:167c4efea0957e8f",
+        "matched_ledger_ids": [
+          "EIS-0009-02"
+        ],
+        "false_positive": false,
+        "reason": "直接主张 NL8 城市出口迁移的目标端点和作用域错误。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "hypothesis:536dd6b8d4b1f9a5",
+        "matched_ledger_ids": [
+          "EIS-0009-02"
+        ],
+        "false_positive": false,
+        "reason": "直接主张 NL8 要求的 exit_urban 状态缺失。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "hypothesis:9b9567268e81f50c",
+        "matched_ledger_ids": [
+          "EIS-0009-02"
+        ],
+        "false_positive": false,
+        "reason": "直接主张城市出口边进入 HighwayMode.FinishState 而非 exit_urban。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "hypothesis:aac37a626569fb6d",
+        "matched_ledger_ids": [
+          "EIS-0009-02"
+        ],
+        "false_positive": false,
+        "reason": "直接主张城市出口路线违反 UrbanMode 本地出口语义并进入 HighwayMode。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:containment:AutonomousMode.UrbanMode",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 FinishState 应直接属于 UrbanMode，与冻结条目要求其位于 AutonomousMode 共享层不一致。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:extraneous_transition:tr_0021",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "仅主张 tr_0021 是多余迁移，未主张其进入 HighwayMode 的层级错位；不能用性质拼接覆盖 EIS-0009-03。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:root_target_unreachable:CollisionAvoidanceSystem",
+        "matched_ledger_ids": [
+          "VU-0009-01"
+        ],
+        "false_positive": false,
+        "reason": "碰撞规避顶层组件不可达，直接对应 VU-0009-01。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:root_target_unreachable:CollisionAvoidanceSystem.collision_avoidance_deactive",
+        "matched_ledger_ids": [
+          "VU-0009-01"
+        ],
+        "false_positive": false,
+        "reason": "明确断言 NL12 指定的碰撞规避初态不可达。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:stable_termination:AutonomousMode.HighwayMode.FinishState",
+        "matched_ledger_ids": [
+          "INS-0009-03"
+        ],
+        "false_positive": false,
+        "reason": "同一 FinishState 的非终止延续，直接覆盖 INS-0009-03。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:transition:AutonomousMode.HighwayMode.enter_hwy:the distance to the front vehicle (`dist_to_front<25`):AutonomousMode.HighwayMode.cruise",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "涉及未记账的 enter_hwy 条件迁移。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:unreachable_component:CollisionAvoidanceSystem",
+        "matched_ledger_ids": [
+          "VU-0009-01"
+        ],
+        "false_positive": false,
+        "reason": "组件整体不可达，直接对应 VU-0009-01。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "仅涉及 enter_hwy 的条件覆盖和 cruise/lane_change 选择，台账无对应条目。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "EIS-0009-01"
+        ],
+        "false_positive": false,
+        "reason": "同一 HighwayMode cruise 的 dist_to_exit<2 边错误进入 FinishState，直接覆盖 EIS-0009-01。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [
+          "EIS-0009-02"
+        ],
+        "false_positive": false,
+        "reason": "同一 UrbanMode lane_change_urban 的城市出口边错误进入 FinishState且缺少 exit_urban。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "仅涉及 enter_hwy 条件覆盖，台账无该迁移条目。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_5",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "涉及碰撞避免激活条件绑定，台账的碰撞条目是组件不可达而非激活条件。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_6",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "泛称 FinishState 未声明和层级不明确，未准确主张 EIS-0009-03 所需的实际 HighwayMode 归属及城市完成路径路由。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0009-01"
+        ],
+        "false_positive": false,
+        "reason": "同一高速侧 cruise/lane_change 的 dist_to_exit<2 迁移错误接到 FinishState。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "EIS-0009-02"
+        ],
+        "false_positive": false,
+        "reason": "同一城市出口迁移错误接到 FinishState而非 exit_urban。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [
+          "EIS-0009-02"
+        ],
+        "false_positive": false,
+        "reason": "直接主张 UrbanMode 缺少 NL8 点名的 exit_urban 状态。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "仅涉及 enter_hwy 到 cruise 的条件限制，台账无对应条目。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_5",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "仅涉及碰撞避免激活条件和模式绑定，未涉及碰撞规避组件不可达。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_6",
+        "matched_ledger_ids": [
+          "EIS-0009-03"
+        ],
+        "false_positive": false,
+        "reason": "主张 HighwayMode/UrbanMode 到 FinishState 的层级归属未置于 AutonomousMode，覆盖共享结束态层级错误。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_7",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "泛化描述 AutonomousMode 生命周期不完整，没有指认 FinishState 实际嵌入 HighwayMode及由此产生的 UrbanMode 路由。",
+        "confidence": null
+      }
+    ],
+    "pair_reason": "语义对齐后，EIS-0009-01仅由 baseline_run3 命中；EIS-0009-02由三轮方法和 baseline_run1/run3 命中；EIS-0009-03由 method_run2及 baseline_run1/run3 命中；INS-0009-03由三轮方法命中；VU-0009-01由三轮方法命中。其余输出均为台账外问题或性质/位置不一致，判为 false positive。"
+  },
+  "status": "ok",
+  "attempts": 1
+}

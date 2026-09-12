@@ -1,0 +1,124 @@
+{
+ "case": "0036",
+ "group": "NL03",
+ "llm": "Kimi",
+ "diffs": [
+  {
+   "verdict": "problem",
+   "ref": "state Raster_Scanning { ... } —— 三个区域被包在『目标搜索』这一 composite 里，且 Raster_Scanning: do / Target_search",
+   "gen": "-- 分隔符写在图的顶层，Region1 / Region2 直接是根的并发区域，没有任何代表『搜索态』的 composite",
+   "reason": "NL 第 2 句说三个区域是『搜索任务进行期间』所处的区域，即区域必须归属于搜索状态；本模型没有这个上层状态，区域直接挂在根上，区域归属与搜索语义的绑定丢失。",
+   "assertable": "state_declared(state='llms_emp_feedback_final_0036.RasterScanning', kind='composite')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "三个区域各自承载实质行为（飞行/编队、飞行/打击、搜索目标）",
+   "gen": "region0 = { InitialState }（无出边）、region1 = Region1、region2 = Region2",
+   "reason": "三个区域槽位里第一个只放了一个无出边的 InitialState，实质行为区域只有两个，NL 的三区域数量断言不满足；且在并发读法下 region0 是恒定无用区域，在顺序读法下（顶层 -- 并非标准 PlantUML 并发写法）机器起于 InitialState 且永不离开，两种读法下都有缺陷。",
+   "assertable": "state_declared(state='llms_emp_feedback_final_0036.Region3', kind='any')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "Raster_Scanning --> [*]: when (NumberofCru == 0)",
+   "gen": "模型内无任何 final 状态，也无 mission-complete 事件",
+   "reason": "NL 第 2 句『Before the mission is completed』预设完成条件；本模型两个区域各自内部无限循环，永不结束。",
+   "assertable": "terminates(scope='[*]')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "state Raster_Scanning { r1 -- r2 -- r3 }（正交区域）",
+   "gen": "顶层 -- 分隔出三个并发区域",
+   "reason": "本 case 与 0056 是本组唯一采用 -- 并发写法的两例，正交风格与参考一致；区域挂载位置与数量问题已在第 1、2 条单列，此条只记录并发建模本身。",
+   "assertable": null,
+   "predicate_exists": false,
+   "out_of_scope": "concurrency"
+  },
+  {
+   "verdict": "similar",
+   "ref": "Strike_the_Target: exit/ NumberofCru--",
+   "gen": "Attack --> AttackReady : Attack Complete / UAV Count Decreased",
+   "reason": "递减写在 UML 标准的 trigger / effect 槽位，作者源已表达；FCSTM 前端未切分 / 而合成事件名 Attack_Complete_UAV_Count_Decreased，属表示债务。台帐判 E3 正确。",
+   "assertable": "effect_declared(source='llms_emp_feedback_final_0036.Region2.Attack', trigger='llms_emp_feedback_final_0036.Attack_Complete', variable='uav_count', sign='negative')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "region1: Fly_Along_the_Path --> Formation_Adjustment : Intercepted; Formation_Adjustment --> Fly_Along_the_Path",
+   "gen": "Region1: TargetSearch --> FormationAdjustment : Interception Detected; FormationAdjustment --> TargetSearch : Formation Adjusted",
+   "reason": "第一区域与参考 region1 一一对应，含回归边，符合 NL 第 3 句。",
+   "assertable": "edge_declared(source='llms_emp_feedback_final_0036.Region1.TargetSearch', trigger='llms_emp_feedback_final_0036.Interception_Detected', target='llms_emp_feedback_final_0036.Region1.FormationAdjustment')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "region2: Fly_Along_the_Path_2 --> Strike_the_Target : Mission_assignment...; Strike_the_Target --> Fly_Along_the_Path_2 : Strike_successful",
+   "gen": "Region2: AttackReady --> Attack : Task Assignment Received; Attack --> AttackReady : Attack Complete / ...",
+   "reason": "第二区域结构与参考 region2 同构（含一个待命/飞行态 + 打击态 + 回归边），符合 NL 第 4 句；这也是本 case Phase-II F1 全组最高（0.5714）的原因。",
+   "assertable": "edge_declared(source='llms_emp_feedback_final_0036.Region2.AttackReady', trigger='llms_emp_feedback_final_0036.Task_Assignment_Received', target='llms_emp_feedback_final_0036.Region2.Attack')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "Raster_Scanning: do / Target_search",
+   "gen": "TargetSearch : UAV Swarm Performing Target Search（描述行）",
+   "reason": "同本组其他 case，NL 对 do-activity 支撑较弱，描述行承载同一语义，统一按 similar 不计问题数。",
+   "assertable": "action_declared(state='llms_emp_feedback_final_0036.Region1.TargetSearch', phase='during')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "Strike_the_Target 被拦截自环；when (NumberofCru == 0)；第三区域 Search_for_the_Target 仅自环 + do/Determine_a_new_target",
+   "gen": "—",
+   "reason": "参考侧存疑同 0006。特别是第三区域：除『存在第三个区域』外 NL 没有给出任何可推内容，任何 LLM 都无法复现其 do/Determine_a_new_target，却会计入 FN——这直接影响本组全部 6 例的 'missing regions' 判定公平性。",
+   "assertable": null,
+   "predicate_exists": false,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 3,
+ "extra_count": 0,
+ "vs_paper": "论文：format/grammar 栏 None；语义栏『1. mising regions』，semantic_resolved=1.0（作者声称已修）。F1 Phase-I 0.4103 → Phase-II 0.5714（TP 8→12，本组最高）。论文声称 regions 已修好，但实际只有 2 个实质区域、且区域挂在根上而非搜索态内，我判的第 1、2 条 problem 恰是论文认定『已解决』之处的残留缺陷；第 3 条（完全无终态）论文未记录。",
+ "vs_ledger": "台帐 status=representation_boundary，0 条 E1，唯一 observation 为 uav_concurrency_or_textual_effect_boundary（E3），理由是『作者源已包含相应文本或区域』。对递减（我的第 5 条 similar）这一判断成立；但把区域问题一并归入表示边界过宽：第 1 条（缺少承载区域的搜索 composite）和第 2 条（region0 只有一个无出边状态、实质区域只有 2 个）都能在作者源直接读出，不依赖并发 lowering 能力，属可补的 E1 候选。第 3 条（无终态）台帐亦未收。",
+ "notes": "Kimi 是本组结构上最接近参考的一份：两个实质区域与参考 region1/region2 几乎同构，这解释了它 Phase-II F1 最高。它的问题集中在『第三区域用一个无出边 InitialState 顶替』、『区域没有归属到搜索态』、『完全没有终止』。递减写在标准 / effect 槽位，属作者已表达，台帐 E3 成立。",
+ "_source_file": "NL03-0036.json",
+ "cross_reference": {
+  "case": "0036",
+  "group": "NL03",
+  "llm": "Kimi",
+  "counts": {
+   "correct": 2,
+   "similar": 3,
+   "problem": 3,
+   "extra": 0,
+   "uncertain": 1
+  },
+  "out_of_scope": {
+   "concurrency": 1
+  },
+  "problems_in_scope": 3,
+  "paper": {
+   "format": null,
+   "grammar": null,
+   "semantic": "1. mising regions",
+   "semantic_resolved": 1.0,
+   "f1_phase1": 0.4102564103,
+   "f1_phase2": 0.5714285714
+  },
+  "ledger": {
+   "status": "representation_boundary",
+   "e1_ids": [],
+   "e1_categories": []
+  },
+  "assertable_problems": 3
+ }
+}

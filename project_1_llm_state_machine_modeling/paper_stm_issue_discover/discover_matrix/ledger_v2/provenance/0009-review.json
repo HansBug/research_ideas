@@ -1,0 +1,137 @@
+{
+ "case": "0009",
+ "group": "NL05",
+ "llm": "GPT-4o",
+ "diffs": [
+  {
+   "verdict": "correct",
+   "ref": "[*] --> AutonomousMode; state AutonomousMode { [*] --> InitialState; InitialState --> HighwayMode:high_way=true; InitialState --> UrbanMode:urban_way=true }",
+   "gen": "[*] --> AutonomousMode; state AutonomousMode { [*] --> InitialState; InitialState --> HighwayMode : high_way=true; InitialState --> UrbanMode : urban_way=true }",
+   "reason": "NL 1/2 要求 AutonomousMode 为外层复合态、内部以 InitialState 起始、再按 high_way/urban_way 分岔。生成侧与参考侧结构完全一致，FCSTM 投影确认 InitialState/HighwayMode/UrbanMode 均在 AutonomousMode 之内。",
+   "assertable": null,
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "enter_hwy --> cruise （无守卫，靠 completion transition 兜底）",
+   "gen": "enter_hwy --> cruise : dist_to_front>=25",
+   "reason": "NL 3 只给了一个联合条件 dist_to_front<25 & extra_lane=true 却指向 cruise 与 lane_change 两个目标，本身有歧义。参考模型用「cruise 不带守卫」来消歧，生成侧改用互补守卫 dist_to_front>=25，语义上说得通且判定性更强（参考侧的无标签边在 FCSTM 语义下会立刻触发，反而使参考自己的 enter_hwy --> lane_change 实际不可达）。不算问题。",
+   "assertable": null,
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "cruise --> exit_hwy: dist_to_exit<2; lane_change --> exit_hwy: dist_to_exit<2; exit_hwy --> [*]（局部退出）与 HighwayMode --> FinishState : auto_finished=true（全局完成）分离",
+   "gen": "cruise --> FinishState : dist_to_exit<2; lane_change --> FinishState : dist_to_exit<2",
+   "reason": "NL 4/5 的 dist_to_exit<2 是「驶离高速」这一局部退出动作，NL 6 明确只有 auto_finished=true 才使系统进入 FinishState。生成侧把两者合并到同一个 FinishState，等于让距出口 2 公里即宣告整个自动驾驶完成，与 NL 6 直接冲突。",
+   "assertable": "not any(edge_declared(source=\"llms_emp_feedback_final_0009.AutonomousMode.HighwayMode.cruise\", trigger=\"llms_emp_feedback_final_0009.dist_to_exit_2\", target=\"llms_emp_feedback_final_0009.AutonomousMode.HighwayMode.FinishState\"))",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "lane_change_urban --> exit_urban: dist_to_exit<0.7; exit_urban --> [*]",
+   "gen": "lane_change_urban --> FinishState : dist_to_exit<0.7（模型完全没有 exit_urban 状态）",
+   "reason": "与高速侧不同，NL 8 逐字点名了 exit_urban 这个状态（\"or to exit_urban if the distance to the urban exit is less than 0.7 kilometers\"）。生成侧既没有声明 exit_urban，也把 0.7 公里的城市出口条件接到了 FinishState 上。更严重的是 FCSTM 投影显示该 FinishState 实际位于 HighwayMode 内部，所以城市模式的出口动作会把系统送进 HighwayMode——跨模式的作用域错误。这一条论文与台帐都没有记录。",
+   "assertable": "state_declared(state=\"llms_emp_feedback_final_0009.AutonomousMode.UrbanMode.exit_urban\", kind=\"any\")",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "FinishState 声明在 AutonomousMode 层级，被 HighwayMode 与 UrbanMode 共享：HighwayMode --> FinishState : auto_finished = true; UrbanMode --> FinishState : auto_finished = true; FinishState --> [*]",
+   "gen": "FinishState 首次出现在 state HighwayMode { ... } 块内（cruise --> FinishState），按 PlantUML 首次提及身份归属 HighwayMode；UrbanMode --> FinishState 于是成为跨层边",
+   "reason": "NL 6 与 NL 10 都用裸名 FinishState、无冠词区分，参考模型也确实只建了一个位于 AutonomousMode 层级的共享 FinishState。生成侧把它嵌进 HighwayMode，导致 UrbanMode 的 auto_finished 完成路径经 FCSTM 的 R45RouteToken=21 路由回 HighwayMode 再进入 HighwayMode.FinishState，即「城市模式完成后 HighwayMode 变为活跃」。这是独立于上一条的层次归属缺陷，台帐未记录。",
+   "assertable": "containment(parent=\"llms_emp_feedback_final_0009.AutonomousMode\", child=\"llms_emp_feedback_final_0009.AutonomousMode.FinishState\")",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "intersection --> straight",
+   "gen": "无该边（intersection 只能通过 UrbanMode 层的 auto_finished / high_way 组边离开）",
+   "reason": "NL 7/9 只规定了进入 intersection 的条件，从未规定 intersection 的出边。参考侧的 intersection --> straight 属于参考模型自行补充、NL 未要求的内容，因此缺失它不构成对 NL 的违反，只是行为上不如参考丰富。",
+   "assertable": null,
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "AutonomousMode 内用 -- 分隔出正交并发区承载 collision_avoidance_deactive / active",
+   "gen": "顶层另建顺序兄弟复合态 state CollisionAvoidanceSystem { [*] --> collision_avoidance_deactive; ... }",
+   "reason": "NL 12/13 把碰撞规避描述成与驾驶模式并行的子系统，参考侧用 -- 并发区表达。生成侧改为顺序兄弟复合态，是并发到顺序的语义降级；但本研究建模对象为 FSM/HSM/EFSM 不含正交并发，且生成侧至少保留了完整的两态双向结构与初始边，故记为 similar 并标出并发类。",
+   "assertable": null,
+   "predicate_exists": true,
+   "out_of_scope": "concurrency"
+  },
+  {
+   "verdict": "similar",
+   "ref": "五条独立迁移 collision_avoidance_deactive --> collision_avoidance_active，各带一个条件",
+   "gen": "一条迁移，守卫为四个析取项 pedestrian_detected || (dist_to_rear<5 && vel>30) || (dist_to_front<15 && high_way=true) || (dist_to_front<10 && urban_way=true)",
+   "reason": "NL 12 用 \"such as ... or ... or ...\" 列举触发条件，析取合并与拆成多条边语义等价。生成侧的四个析取项与 NL 12 逐项对应，且比参考侧更贴近 NL（参考多出一条 NL 里根本没有的 dist_to_rear<15 & vel>60）。",
+   "assertable": null,
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "collision_avoidance_deactive --> collision_avoidance_active:Collision_Avoidance_Module: dist_to_rear<15 & vel>60；以及 line 51 源端写作 collision_avoidance_active:Collision_Avoidance_Module --> ...",
+   "gen": "生成侧无对应内容",
+   "reason": "参考模型自身可疑：(1) dist_to_rear<15 & vel>60 这条迁移在 NL 12 中完全没有依据，属参考侧过度规定；(2) 标签 Collision_Avoidance_Module: 前缀不是合法的 trigger/guard 分隔写法，line 51 的源端 collision_avoidance_active:Collision_Avoidance_Module 在 PlantUML 中无法解析为单一状态名。论文 §7 已自认参考模型是人工重建且主观，此处证据不足以判定谁对，故标 uncertain。",
+   "assertable": null,
+   "predicate_exists": false,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "InitialState : 初始状态（带描述的叶态）",
+   "gen": "state InitialState { }（空复合括号）",
+   "reason": "空的复合括号在 FCSTM 投影中被还原为叶态 state InitialState，与参考的叶态一致，仅写法差异，不影响语义。",
+   "assertable": null,
+   "predicate_exists": true,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 3,
+ "extra_count": 0,
+ "vs_paper": "论文该 case 三栏全为 null（format/grammar/semantic 均无记录），plantuml_accuracy 46/46、grammar 98/98，f1_phase1 = f1_phase2 = 0.9574。我判的 3 个 problem 论文一个都没记；论文也未察觉 FinishState 被嵌进 HighwayMode 导致的跨模式作用域错误。",
+ "vs_ledger": "台帐有 EXP-0009-IT-001（highway_exit_collapsed_into_finish），对应我的第 3 条 problem（cruise/lane_change 的 dist_to_exit<2 接 FinishState）。我的另两条 problem——缺 exit_urban 且城市 0.7 公里出口接 FinishState、FinishState 被嵌进 HighwayMode——台帐均未记录。台帐另有一条 E2c 观察 parallel_collision_subsystem_boundary，与我的并发类 similar 一致。",
+ "notes": "0009 是 NL05 六例中语法最规整的之一，enter_hwy 的互补守卫 dist_to_front>=25 甚至优于参考。它的问题集中在「局部退出 vs 全局完成」这一个语义轴上：高速与城市两侧都把出口距离条件接到了 FinishState，且因 PlantUML 首次提及身份把 FinishState 绑到 HighwayMode 内部，使 UrbanMode 完成时反而进入 HighwayMode。台帐只覆盖了高速侧一半。",
+ "_source_file": "NL05-a.json",
+ "cross_reference": {
+  "case": "0009",
+  "group": "NL05",
+  "llm": "GPT-4o",
+  "counts": {
+   "correct": 1,
+   "similar": 5,
+   "problem": 3,
+   "extra": 0,
+   "uncertain": 1
+  },
+  "out_of_scope": {
+   "concurrency": 1
+  },
+  "problems_in_scope": 3,
+  "paper": {
+   "format": null,
+   "grammar": null,
+   "semantic": null,
+   "semantic_resolved": null,
+   "f1_phase1": 0.9574468085,
+   "f1_phase2": 0.9574468085
+  },
+  "ledger": {
+   "status": "mixed",
+   "e1_ids": [
+    "EXP-0009-IT-001"
+   ],
+   "e1_categories": [
+    "IT"
+   ]
+  },
+  "assertable_problems": 3
+ }
+}

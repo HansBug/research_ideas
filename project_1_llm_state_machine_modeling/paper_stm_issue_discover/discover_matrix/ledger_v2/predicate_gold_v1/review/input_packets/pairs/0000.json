@@ -1,0 +1,228 @@
+{
+  "instructions": [
+    "Recover obligation O from the complete NL, author PlantUML, ledger reasoning, and cited formal semantics before proposing any executable property.",
+    "Do not infer inputs from state-name similarity, old planned mappings, v60 actual outputs, reference models, or execution results.",
+    "State missing quantifier, scope, timing, domain, bound, or environment information explicitly instead of inventing it."
+  ],
+  "ledger_items": [
+    {
+      "axes": {
+        "defect_element": "transition",
+        "defect_locus": "element",
+        "defect_logic_kind": null,
+        "defect_qualifier": "other",
+        "defect_reference": "requirement"
+      },
+      "d_basis": "判 D2。被违反的义务有成文出处，即 NL 第 5 句「when power off, it will transit to final state」；该句的主语是运行中的系统，因此把断电边接在初始伪状态上不满足它。三个独立判读臂都尝试过为制品找一种能与结构事实相容的第二种读法（例如把 `[*] --> FinalState : Power Off` 读成「系统级的断电总是回到终态，不必逐态给边」），但该读法与 UML 语义冲突：初始伪状态在机器启动后不再活跃，其出边在运行期不可能被触发。反驳不存活，故不降 D1。",
+      "d_tier": "D2",
+      "detail": "NL 第 5 句逐字为「when power off, it will transit to final state」。它的主语是已经在运行的系统，所以这条边的源端应当是某个运行态。制品把它写成了 `:14 [*] --> FinalState : Power Off`，源端是顶层的初始伪状态。\n\n由此产生两个可分别陈述的后果。其一，两个运行态都不消费 Power Off：`HumanDrivingMode`（:4-:5，空复合态）与 `AutonomousMode`（:7-:10）的出边只有 `:12` 的 `front_distance > 10` 和 `:13` 的接管边，机器一旦运行起来就没有断电通路。其二，顶层同时存在 `:2 [*] --> HumanDrivingMode : Power On` 与 `:14 [*] --> FinalState : Power Off` 两条初始边，二者竞争同一个起点；若冷启动时先到达的事件是 Power Off，机器会直接落到 `FinalState`，等价于「还没开机就已经关机」。而 `FinalState` 只是一个普通命名状态（全文件没有把它声明为终态，也没有 `--> [*]`），所以机器实际上不会真正终止，只是停在一个没有出边的状态里。\n\n根因不在生成模型的语义理解，而在上游论文自己的语法修复阶段。上游工作簿列 I（Phase-I 原始生成）这一格写的是 `HumanDriving --> FinalState : Power Off`，语义是对的，但它被嵌在 `state HumanDriving { ... }` 的块体内，构成结构违法，被记为语法幻觉「transition does not connect two state」。列 Z（语法检查后）的修法是把源端改成 `[*]` —— 结构合法了，语义被破坏了。列 AD（语义幻觉）为空、列 AG 语义 resolved 记 1.0，说明这个由修复动作注入的缺陷没有被后续的语义检查捕获。\n\n同一份 NL 的另一个 case 可作对照：`0030` 的 Phase-I 同样产出 `[*] --> FinalState : Power Off`，而上游语义栏把它记为「missing final state」并改成 `HumanDriving --> [*] : Power Off`。同一缺陷形状在同一份 NL 的两个 case 上一个被抓、一个被漏，说明上游的语义检查不可复现。",
+      "l_basis": "判 L2。本条记录的缺陷主张不止「少了一条边」这一层——它同时断言「冷启动时若先来 Power Off，机器会直接落到 FinalState」。要陈述后半句必须给出一条从初始伪状态出发的执行序列，也就是构造一条带时间维的行为，而不是读某个静态快照。若把主张收窄成「两个运行态没有 Power Off 出边」，那部分确实只需词项比对；但台账记录的是含轨迹论证的完整形态，故按 L2 归档。",
+      "l_tier": "L2",
+      "ledger_id": "EIS-0000-01",
+      "ledger_json_pointer": "/items/EIS-0000-01",
+      "origin_family": "expected_issue（原台账已记录）",
+      "pair_id": "0000",
+      "source_text": {
+        "l_basis_rule": "「冷启动时给出 Power Off 会直接落到 FinalState（等于没开机就关机）」是一条轨迹论证，须构造行为",
+        "l_decided_by": "人工逐条",
+        "meta_review": "**判 D2**：三臂一致认定它违反了 NL 里这句「when power off, it will transit to final state」，且三方都尝试过推翻、都没找到站得住的第二种读法 —— 义务有成文条文可引、反驳不存活，是 `D2-lit`。",
+        "statement": "NL 第5句要求运行中的系统在断电时进入终态。生成制品里 Power Off 的源端是顶层伪初始，任何运行态（HumanDrivingMode / AutonomousMode）都没有断电出边；顶层同时存在 `[*] --> HumanDrivingMode : Power On` 和 `[*] --> FinalState : Power Off` 两条初始边，冷启动时给出 Power Off 会直接落到 FinalState（等于没开机就关机）；而 FinalState 只是普通命名状态、无出边，模型永远不会真正 terminate。此外这是**论文自己的语法修复阶段引入**的：workbook 列 I（Phase-I 原始生成）写的是 `HumanDriving --> FinalState : Power Off`（语义正确，但因嵌在 `state HumanDriving { ... }` 体内而结构违法，被记为语法幻觉 \"transition does not connect two state\"），列 Z（语法检查后）把源端改成 `[*]`，语义随之被破坏；列 AD（语义幻觉）为空、AG 语义 resolved 记 1.0，说明该注入缺陷未被后续语义检查捕获。对照 0030：同一份 NL 下 Phase-I 同样出现 `[*] --> FinalState : Power Off`，论文语义栏把它记为 \"missing final state\" 并改成 `HumanDriving --> [*] : Power Off`；同一缺陷形状在同一 NL 的两个 case 上一个被抓一个被漏，说明语义检查不可复现。",
+        "verdict_reason": null
+      },
+      "summary": "断电义务被接错了源端：`:14` 写的是 `[*] --> FinalState : Power Off`，即从顶层初始伪状态出发，于是两个运行态 `HumanDrivingMode`（:4）与 `AutonomousMode`（:7）都没有任何 Power Off 出边，运行中的系统无法关机。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0000/0000.md",
+        "sha256": "sha256:76679cf53917a6885c2d93e7675fffe11f6d5a645aa851c1cd1f9779f362d5e7"
+      }
+    },
+    {
+      "axes": {
+        "defect_element": "trigger",
+        "defect_locus": "element",
+        "defect_logic_kind": null,
+        "defect_qualifier": "other",
+        "defect_reference": "requirement"
+      },
+      "d_basis": "判 D1，两读并立。第一种读法把标签里的逗号读成析取（三选一触发），这时 `in (AutoFinal)` 被当成事件，构成范畴错误，缺陷成立。第二种读法把逗号读成合取，即「收到转向指令且踩下刹车」为触发、`in (AutoFinal)` 为写在标签里的状态守卫——这种读法与制品的结构事实完全相容：AutoFinal 存在、迁移源端是包含 AutoFinal 的 AutonomousMode、语义上也讲得通。由于第二种读法是一种称职的读法且无法被结构事实推翻，它构成一个削弱型反驳，故不判 D2。注意两种读法都不能让制品变成对 NL 的忠实编码（单一自由文本标签在任一读法下都丢失了结构信息），D1 说的是「这条缺陷主张的具体形态存在第二种站得住的读法」，不是「制品没问题」。",
+      "d_tier": "D1",
+      "detail": "NL 第 5 句逐字为「transit to human driving mode when receive human steering cmd, brake pressed, in (auto final)」，其中列出了三样东西：一个驾驶员转向指令、一个刹车踏板动作、以及一个「处于 auto final」的状态条件。制品在 `:13` 把三者原样拼成了一个标签：`AutonomousMode --> HumanDrivingMode : Human Steering Cmd, Brake Pressed, in (AutoFinal)`。\n\nPlantUML 的迁移标签在冒号之后是自由文本，工具不会把逗号解析成析取或合取。把这份制品投影成形式化状态机后，整个标签变成单一事件名 `Human_Steering_Cmd_Brake_Pressed_in_AutoFinal`。后果是：机器只能对这个「三合一」事件整体作出反应，无法对单独的 human steering cmd 或单独的 brake pressed 作出反应。\n\n更进一步，三样东西里的第三样 `in (AutoFinal)` 在范畴上不是事件而是状态条件——NL 第 2 句保证 auto final 是 autonomous mode 的一个子状态，制品也确实在 `:9` 建了 `AutoNavigating --> AutoFinal : Condition Met`。状态条件本应表达为守卫或表达为「从 AutoFinal 出发的边」，把它塞进事件名意味着：仅仅进入 AutoFinal 不会交还控制权，而 AutoFinal 除了这个复合事件之外没有任何其它出边。\n\n根因是把自然语言里的枚举直接抄成了标签文本，没有先判定这三样在状态机里各自应当落到哪个语法位（触发事件 / 守卫 / 源状态）。上游论文的 SysML 语法检查对此没有报警（该格 grammar 记 12/13、grammar_resolved 记 1.0），因为标签在语法上是合法的自由文本。",
+      "l_basis": "判 L1。陈述这条错误需要的是一个静态事实：把 `:13` 的标签按 PlantUML 的解析规则投影之后，得到的事件集合里只有一个事件名，而不是三个。这要从模型结构导出（需要知道标签如何被解析成事件），比单纯的词项比对深一层；但它只涉及模型的一个静态切面，不需要任何执行序列或可达性论证，故不到 L2。",
+      "l_tier": "L1",
+      "ledger_id": "EIS-0000-02",
+      "ledger_json_pointer": "/items/EIS-0000-02",
+      "origin_family": "expected_issue（原台账已记录）",
+      "pair_id": "0000",
+      "source_text": {
+        "l_basis_rule": "三个条件被压成单一事件名 —— 静态可导出的事件结构事实",
+        "l_decided_by": "人工逐条",
+        "meta_review": ":13 的复合自由文本标签既可读作三选一析取（支持范畴错误论），也可读作合取（steering cmd 与 brake pressed 为触发、in(AutoFinal) 为标签内的状态守卫），后者与结构完全相容。",
+        "statement": "NL 第5句的三个接管条件被压成**一个不可分解的事件标签**：pyfcstm 投影得到单一事件 `Human_Steering_Cmd_Brake_Pressed_in_AutoFinal`，模型无法对单独的 human steering cmd 或 brake pressed 作出响应；更关键的是 `in (AutoFinal)` 本质是**状态条件**（NL 第2句保证 auto final 是 autonomous mode 的子状态），把它塞进事件名是范畴错误——制品里 AutoFinal 确实存在，但仅凭进入 AutoFinal 不会交还控制权，AutoFinal 除该复合事件外无其他出边。无论按\"三选一\"还是\"合取\"读法，单一自由文本标签都不是忠实编码；论文 SysML 语法检查（grammar 12/13、grammar_resolved=1.0）未对此报警。",
+        "verdict_reason": null
+      },
+      "summary": "NL 第 5 句的三个接管条件在 `:13` 被压成一个不可分解的自由文本标签 `Human Steering Cmd, Brake Pressed, in (AutoFinal)`，模型因此无法对其中任何单一条件作出响应。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0000/0000.md",
+        "sha256": "sha256:76679cf53917a6885c2d93e7675fffe11f6d5a645aa851c1cd1f9779f362d5e7"
+      }
+    },
+    {
+      "axes": {
+        "defect_element": "trigger",
+        "defect_locus": "element",
+        "defect_logic_kind": null,
+        "defect_qualifier": "extraneous",
+        "defect_reference": "language"
+      },
+      "d_basis": "判 D2。被违反的义务不来自 NL 而来自建模语言本身：UML 2.5.1 规定初始伪状态的出边不得带触发或守卫。这是一条可引的成文规定，且判定只需读那两行，不依赖对 NL 的任何解释。三个判读臂一致认定成立，也没有人能给出一种让「带标签的根层初始边」合法的读法。需要如实记下的一点是：三臂在给理由时都只说「它成立」，没有一臂主动引出上面这条语言规定，出处是本次重写时补齐的。",
+      "d_tier": "D2",
+      "detail": "全文件根层（不在任何 `state X { }` 块内）的 `[*] -->` 只有两条：`:2` 逐字 `[*] --> HumanDrivingMode : Power On`，`:14` 逐字 `[*] --> FinalState : Power Off`。两条的冒号后都有标签。\n\nUML 2.5.1 对初始伪状态的规定是：从初始伪状态出发的迁移不得带触发事件，也不得带守卫条件（该迁移是隐式立即执行的）。两条边都违反了这条规定。合起来的后果是这台状态机没有确定的启动状态：系统上电之后，在 Power On 或 Power Off 到达之前，它不处在任何状态里。\n\n需要排除一个容易误判的地方：`:8` 的 `  [*] --> AutoNavigating` 确实是一条不带标签的裸初始边，但它写在 `state AutonomousMode {`（:7）与 `}`（:10）之间，属于 AutonomousMode 这个复合态的内部默认入口，只在进入 AutonomousMode 之后才起作用，不能充当根层的默认入口。\n\n根因是把 NL 第 3 句「when power on, the system turn into human driving mode」里的「power on」当成了一个需要显式建模的事件。在状态机的建模惯例里，上电通常就是机器开始运行本身，对应的是无标签的默认入口边；把它写成初始伪状态上的带标签边，等于要求「机器要先运行起来，才能收到让它开始运行的事件」。\n\n同一份 NL 下另外三份制品出现了同型形态，各自也已作为独立条目记录（INS-0030-01 / INS-0040-01 / INS-0050-01），四份可以横向对比。",
+      "l_basis": "判 L0。陈述这条错误只需就地读根层那两行，看它们的冒号后面有没有内容——是一次纯词法层面的模式匹配，既不需要从模型结构导出任何新事实，也不需要构造任何执行序列。唯一需要留意的是「哪几行算根层」，而那只是看缩进与花括号配对，仍在词法层面。",
+      "l_tier": "L0",
+      "ledger_id": "INS-0000-04",
+      "ledger_json_pointer": "/items/INS-0000-04",
+      "origin_family": "pyfcstm inspect 诊断归一化",
+      "pair_id": "0000",
+      "source_text": {
+        "l_basis_rule": "NL 点名的元素模型没有／模型多出 NL 未点名的元素 —— 词项对比即可陈述",
+        "l_decided_by": "规则档",
+        "meta_review": "**判 D2**：三臂一致判它成立，⚠️ 但都没给出可引的 NL 原句或领域义务 —— ⛔ 建议你顺手核一眼它的义务出处，若拿不出出处应降到 D1。",
+        "statement": "根复合态没有**无条件**默认入口：全文件根层的 `[*] -->` 只有两条，stm0.puml:2 逐字 `[*] --> HumanDrivingMode : Power On` 与 stm0.puml:14 逐字 `[*] --> FinalState : Power Off`，**两条都带标签**。UML 2.5.1 规定初始伪状态的出边不得带 trigger / guard，故这台机器没有无条件起点 —— 事件不来就不进入任何状态。⚠️ stm0.puml:8 `  [*] --> AutoNavigating` 确实是一条裸初始边，但它属 `AutonomousMode`（:7-:10 块内），不计入根层。⭐ 同型形态在同组另外三份制品上都已作为条目摆出（INS-0030-01 / INS-0040-01 / INS-0050-01），本条恢复后四份可横向对比。",
+        "verdict_reason": null
+      },
+      "summary": "根层的两条初始边 `:2 [*] --> HumanDrivingMode : Power On` 与 `:14 [*] --> FinalState : Power Off` 都带标签，于是这台机器没有无条件的默认入口——不来事件就不进入任何状态。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0000/0000.md",
+        "sha256": "sha256:76679cf53917a6885c2d93e7675fffe11f6d5a645aa851c1cd1f9779f362d5e7"
+      }
+    }
+  ],
+  "ledger_sha256": "sha256:b5a38d3d24a51e980e5b9f5afc7c8c66aded59f3b51f16afe67e0deb592d0e36",
+  "metadata_refs": [
+    {
+      "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0000/source_meta.json",
+      "role": "SOURCE_META",
+      "selected_fields": {
+        "selected_stage": "phase_ii_semantic",
+        "source_locator": "sheet=STM Results; row=0; excel_row=2; selected_cell=AE2; selected=Result with Semantic Checking",
+        "source_pair_id": "llms_emp_feedback_final_0000",
+        "stm0_role": "author_feedback_final_plantuml"
+      },
+      "sha256": "sha256:f1ef515bc16dca07d48ed1e3e94bd302dcc4cfdf7539ca67f1de7a084a78de14"
+    },
+    {
+      "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0000/fcstm_meta.json",
+      "role": "FCSTM_META",
+      "selected_fields": {
+        "academic_eligible": false,
+        "academic_ineligibility_reason": "whole_model_behavior_equivalence_and_simulation_not_claimed; use only the working-contract attribution-scoped source-static capability",
+        "artifact_role": "r4_5_attribution_scoped_discover_input",
+        "parse_status": "ok",
+        "simulation_status": "ineligible",
+        "source_static_discover_eligible": true
+      },
+      "sha256": "sha256:2c9724c47270f2f9380d12f266a24f6fcd3d34b6dc6f46140593aaf748b55bd8"
+    }
+  ],
+  "nl": {
+    "lines": [
+      {
+        "number": 1,
+        "text": "1 The human driving mode is represented by a simple state. 2 The autonomous mode has sub-states and is represented by a sub machine state. 3. when power on, the system turn into human driving mode 4when front_distance > 10, auto transport to autonomous state 4. transit to human driving mode when receive human steering cmd, brake pressed, in (auto final) 5 when power off, it will transit to final state"
+      }
+    ],
+    "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0000/nl.txt",
+    "role": "AUTHOR_NL",
+    "sha256": "sha256:f1c3dc88371b8256352e7ab6ee7eb42424de6e11dfde70d185f224dd1d05a7a8"
+  },
+  "packet_sha256": "sha256:7dce93674b28947f1a34db57eb96d4044e057df13fca7bc58f4448c5f0944f36",
+  "pair_id": "0000",
+  "plantuml": {
+    "lines": [
+      {
+        "number": 1,
+        "text": "@startuml"
+      },
+      {
+        "number": 2,
+        "text": "[*] --> HumanDrivingMode : Power On"
+      },
+      {
+        "number": 3,
+        "text": ""
+      },
+      {
+        "number": 4,
+        "text": "state HumanDrivingMode {"
+      },
+      {
+        "number": 5,
+        "text": "}"
+      },
+      {
+        "number": 6,
+        "text": ""
+      },
+      {
+        "number": 7,
+        "text": "state AutonomousMode {"
+      },
+      {
+        "number": 8,
+        "text": "[*] --> AutoNavigating"
+      },
+      {
+        "number": 9,
+        "text": "AutoNavigating --> AutoFinal : Condition Met"
+      },
+      {
+        "number": 10,
+        "text": "}"
+      },
+      {
+        "number": 11,
+        "text": ""
+      },
+      {
+        "number": 12,
+        "text": "HumanDrivingMode --> AutonomousMode : front_distance > 10"
+      },
+      {
+        "number": 13,
+        "text": "AutonomousMode --> HumanDrivingMode : Human Steering Cmd, Brake Pressed, in (AutoFinal)"
+      },
+      {
+        "number": 14,
+        "text": "[*] --> FinalState : Power Off"
+      },
+      {
+        "number": 15,
+        "text": "@enduml"
+      }
+    ],
+    "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0000/stm0.puml",
+    "role": "AUTHOR_PLANTUML",
+    "sha256": "sha256:4fe07b05bdcfaac1c961d1176fb099d8240818160caa6edfb57928c6be2efc8a"
+  },
+  "schema_version": "paper1.predicate-gold.review-input-packet.v1",
+  "visibility": {
+    "execution_results_visible": false,
+    "other_track_conclusions_visible": false,
+    "planned_predicate_mapping_visible": false,
+    "v60_actual_predicate_visible": false
+  }
+}

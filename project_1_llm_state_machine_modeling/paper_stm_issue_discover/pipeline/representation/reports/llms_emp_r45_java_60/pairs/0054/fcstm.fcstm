@@ -1,0 +1,37 @@
+def int R45RouteToken = 0;
+state llms_emp_feedback_final_0054 named "llms_emp_feedback_final_0054" {
+    event Reached_Cruising_Cruise named "Reached Cruising/Cruise";
+    event Approached_Decelerate named "Approached/Decelerate";
+    event Closed_SendDeparted named "Closed/SendDeparted";
+    event Arrived_Stop_Send_Arrived named "Arrived/Stop, Send Arrived";
+    event _obstacle_detected named "[obstacle detected]";
+    state InMotion named "InMotion" {
+        state Accelerating named "Accelerating" {
+            enter abstract Accelerate;
+        }
+        state Cruising named "Cruising";
+        state Approaching named "Approaching" {
+            during abstract Send;
+        }
+        [*] -> Accelerating;
+        Accelerating -> Cruising : /Reached_Cruising_Cruise;
+        Accelerating -> Approaching : /Approached_Decelerate;
+        Cruising -> Approaching : /Approached_Decelerate;
+        Accelerating -> [*] : /Arrived_Stop_Send_Arrived effect { R45RouteToken = 7; };
+        Cruising -> [*] : /Arrived_Stop_Send_Arrived effect { R45RouteToken = 7; };
+        Approaching -> [*] : /Arrived_Stop_Send_Arrived effect { R45RouteToken = 7; };
+        Accelerating -> [*] : /_obstacle_detected effect { R45RouteToken = 8; };
+        Cruising -> [*] : /_obstacle_detected effect { R45RouteToken = 8; };
+        Approaching -> [*] : /_obstacle_detected effect { R45RouteToken = 8; };
+    }
+    state DoorsClosing named "DoorsClosing";
+    state Stopping named "Stopping";
+    state EmergencyStopping named "EmergencyStopping" {
+        during abstract EmergencyStop;
+        during abstract SendObstacleDetected;
+    }
+    InMotion -> Stopping : if [R45RouteToken == 7] effect { R45RouteToken = 0; };
+    InMotion -> EmergencyStopping : if [R45RouteToken == 8] effect { R45RouteToken = 0; };
+    [*] -> DoorsClosing;
+    DoorsClosing -> InMotion : /Closed_SendDeparted;
+}

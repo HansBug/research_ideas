@@ -1,0 +1,86 @@
+{
+ "case": "0042",
+ "group": "NL09",
+ "llm": "DeepSeek",
+ "diffs": [
+  {
+   "verdict": "problem",
+   "ref": "[*] --> Off（无触发）",
+   "gen": "[*] --> Off : keyOff",
+   "reason": "初始伪态出边带触发。UML 禁止初始伪态出边带事件；行为上根状态没有任何无条件初始迁移（R4.5 保留了该触发，且未像 0032/0035 那样合成 UnspecifiedInitial），因此模型必须先收到一个 keyOff 才能进入 Off，NL 第 1、2 句的冷启动路径（上电→Off→start→Operate）不可达。同时把 NL 明确赋给关机的 keyOff 误挂到上电边上。",
+   "assertable": "occupancy_after(source='[*]', trigger='llms_emp_feedback_final_0042.start', target='llms_emp_feedback_final_0042.Operate', within_cycles=2)  # False。注意：S 族没有任何谓词能表达『初始边必须不带触发』——edge_declared 强制要求 trigger 绑定，initial_target 只报目标不报触发，所以唯一暴露途径是行为族",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "Off --> Operate: start / Operate --> Off",
+   "gen": "Off --> Operate : start / Operate --> Off : keyOff",
+   "reason": "开关机两条边齐备，且关机用 NL 第 2 句明写的 keyOff，比参考的 shutOff 更贴合 NL。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "state Operate { [*] --> Idle; Idle→AoC; AoC→Braking; Braking→AoC; Braking→Idle }",
+   "gen": "state Operate { [*] --> Idle; Idle→AoC; AoC→Braking; Braking→AoC : accelerate; Braking→Idle; AoC→Idle }",
+   "reason": "三个 NL 点名子态、默认子态 Idle 齐备；Braking --accelerate--> AoC 覆盖了参考的 releaseBrake 语义。本组六个模型中语义覆盖最完整的一个。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "Off --> [*]: keyOff",
+   "gen": "（无终态）",
+   "reason": "无终止边。NL09 未要求终止，该义务只来自参考模型。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "（参考无此边）",
+   "gen": "AcceleratingOrCruising --> Idle : stop",
+   "reason": "NL 第 3 句列出 stopping，从加速/巡航直接停下由 NL 直接许可，不判 extra。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 1,
+ "extra_count": 0,
+ "vs_paper": "论文 format 栏『syntax error: stm DeviceStateMachine』resolved=YES；grammar 与 semantic 栏均 None（论文认为本 case 无语义问题）。F1 0.9524 → 0.9524（Phase-II 未改动）。论文完全没有记录 [*] --> Off : keyOff 这条带触发初始边——这正是 REVIEW_SPEC 第 17 行所举『丢失/错置触发条件』类真问题的镜像形态（生成侧多出非法触发）。",
+ "vs_ledger": "台帐 status=no_supported_finding，expected_issue_count=0。我判的这条 problem 台帐未记为 E1。它可用 occupancy_after 从 [*] 正向断言，绑定全为作者元素，具备 E1 条件；但若投影选择静默丢弃初始边触发，则退化为纯源级良构性违反且无行为证人，此时 19 个谓词无法表达（记录为谓词词汇缺口）。",
+ "notes": "DeepSeek 的 Operate 内部语义覆盖是六者中最完整的（含 Braking→AoC 返回），但顶层犯了唯一一处 UML 良构性错误。论文与台帐都漏掉了它，而论文却给了本组第三高的 F1（0.952），再次说明元素级 F1 对良构性缺陷不敏感。",
+ "_source_file": "NL09-b.json",
+ "cross_reference": {
+  "case": "0042",
+  "group": "NL09",
+  "llm": "DeepSeek",
+  "counts": {
+   "correct": 2,
+   "similar": 2,
+   "problem": 1,
+   "extra": 0,
+   "uncertain": 0
+  },
+  "out_of_scope": {},
+  "problems_in_scope": 1,
+  "paper": {
+   "format": "syntax error: stm DeviceStateMachine",
+   "grammar": null,
+   "semantic": null,
+   "semantic_resolved": null,
+   "f1_phase1": 0.9523809524,
+   "f1_phase2": 0.9523809524
+  },
+  "ledger": {
+   "status": "no_supported_finding",
+   "e1_ids": [],
+   "e1_categories": []
+  },
+  "assertable_problems": 1
+ }
+}

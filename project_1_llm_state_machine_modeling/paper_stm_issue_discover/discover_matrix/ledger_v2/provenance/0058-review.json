@@ -1,0 +1,137 @@
+{
+ "case": "0058",
+ "group": "NL04",
+ "llm": "Claude",
+ "diffs": [
+  {
+   "verdict": "problem",
+   "ref": "state Join2 <>;  Join2 --> Fork2;  Fork2 --> Junction2;  Fork2 --> Flash",
+   "gen": "state Join2 <<join>>（顶层）+ state Join2 { state fork2 <<fork>>; fork2 --> Junction2; fork2 --> Flash }（第二次打开，无初始、无入边）",
+   "reason": "fork2 嵌在 Join2 内却没有任何进入它的关系（既无 [*] 也无 Join2 --> fork2），于是 Junction3 --> Join2 与 choice2 --> Join2 进入后停滞，Junction2/Flash 经此分支不可达；NL 第 11 句要求的 Join2 --> Fork2 缺失。与台帐 EXP-0058-IT-001 一致。",
+   "assertable": "edge_declared(source='llms_emp_feedback_final_0058.Join2', trigger='<无触发>', target='llms_emp_feedback_final_0058.Join2.fork2')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "AutoFocus 是叶状态，AutoFocus --> choice1:[memFull=true]",
+   "gen": "state AutoFocus { state \"AutoFocus\" as AutoFocus_state }（无初始）；fork1 --> AutoFocus；AutoFocus_state --> choice1 : [memFull=true]",
+   "reason": "包壳 composite 没有初始子状态，fork1 --> AutoFocus 指向 composite，进入后落点未定义，AutoFocus_state 及其出边 choice1 不可达（投影插入 AutoFocus.UnspecifiedInitial）。论文与台帐均未记录。",
+   "assertable": "initial_target(composite='llms_emp_feedback_final_0058.AutoFocus', child='llms_emp_feedback_final_0058.AutoFocus.AutoFocus_state')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "DetLight 是叶状态，DetLight --> choice2:<>{prob=0.4}",
+   "gen": "state DetLight { state \"DetLight\" as DetLight_state }（无初始）；fork1 --> DetLight；DetLight_state --> choice2",
+   "reason": "与第 2 条同型：fork1 --> DetLight 进入 composite 后无定义子状态，DetLight_state 与 choice2 分支不可达（投影插入 DetLight.UnspecifiedInitial）。论文与台帐均未记录。",
+   "assertable": "initial_target(composite='llms_emp_feedback_final_0058.DetLight', child='llms_emp_feedback_final_0058.DetLight.DetLight_state')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "WriteMemory 是叶状态，TakePicture --> WriteMemory --> Junction1 --> TurnOff --> [*]",
+   "gen": "state WriteMemory { state \"WriteMemory\" as WriteMemory_state }（无初始）；TakePicture --> WriteMemory；WriteMemory_state --> Junction1",
+   "reason": "同型缺陷但后果最严重：TakePicture --> WriteMemory 进入后停滞，导致 Junction1 --> TurnOff --> [*] 整条尾部不可达，相机永远无法完成 NL 第 10 句的关机与终止。论文与台帐均未记录。",
+   "assertable": "reaches(source='llms_emp_feedback_final_0058.TakePicture', target='llms_emp_feedback_final_0058.TurnOff', within_cycles=5)",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "state choice1 <>; state choice2 <>; state choice3 <>; state Junction1 <>; state Junction2 <>; state Junction3 <>",
+   "gen": "choice1 / choice2 / choice3 / Junction1 / Junction2 / Junction3 从未声明，仅由迁移隐式产生为普通状态",
+   "reason": "10 个伪状态中只有 fork1 / fork2 / Join1 / Join2 带 stereotype；6 个 choice/junction 退化为普通状态，NL 逐句点名的 choice、junction 语义丢失。伪状态结构在范围内，正常判。",
+   "assertable": "state_declared(state='llms_emp_feedback_final_0058.choice2', kind='pseudo')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "TurnOn/AutoFocus/DetLight/ChargedFlash/WriteMemory 各有 execTime=[(max),(min)]",
+   "gen": "TurnOn_state : {max=2s, min=2s}；AutoFocus_state : {max=2s, min=1s}；DetLight_state : {max=1s, min=0s}；ChargedFlash_state : {max=4s, min=2s}；WriteMemory_state : {max=3s, min=2s}",
+   "reason": "5 处执行时间 max+min 全部保留，与 0048 并列本组最好。时间类差异标 out_of_scope: timing；19 谓词无状态 timing 查询，无法断言（同台帐 E2c）。但要注意：这套『composite 包壳 + 子状态承载时间注解』的写法正是第 2、3、4 条入口缺陷的直接来源，时间保真与结构完整在本 case 是同一处设计的两面。",
+   "assertable": null,
+   "predicate_exists": false,
+   "out_of_scope": "timing"
+  },
+  {
+   "verdict": "similar",
+   "ref": "—",
+   "gen": "state \"\"TurnOn\"\" as TurnOn_state（双引号重复）、文件末尾 @enduml\"（多余引号）",
+   "reason": "workbook 单元格文本的转义损伤，R4.5 前端已按 source_input.workbook_doubled_state_quotes 与 source_input.workbook_trailing_end_quote 归一化，不应归因给 LLM，但说明该行制品经过了 CSV/Excel 往返。",
+   "assertable": null,
+   "predicate_exists": false,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "choice2 --> Join2（无守卫）;  choice2 --> Join1 : [sunny=true];  Join1 --> Junction2",
+   "gen": "choice2 --> Join2;  choice2 --> Join1 : [sunny=true];  Join1 --> Junction2",
+   "reason": "本组唯一把 NL 第 8 句三条边完全按参考写法（无守卫到 Join2 + sunny=true 到 Join1 + Join1 到 Junction2）实现的一份。",
+   "assertable": "edge_declared(source='llms_emp_feedback_final_0058.choice2', trigger='llms_emp_feedback_final_0058._sunny_true', target='llms_emp_feedback_final_0058.Join1')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "[*] --> TurnOn; TurnOn --> fork1; fork1 --> AutoFocus; fork1 --> DetLight; fork1 --> choice3; choice3 --> ChargedFlash; ChargedFlash --> Junction3:[Charged=true]; choice3 --> Junction3; Junction3 --> Join2; Junction2 --> TakePicture; TakePicture --> WriteMemory; WriteMemory --> Junction1; Junction1 --> TurnOff; TurnOff --> [*]; Flash --> Terminate; Fork2 --> Junction2; Fork2 --> Flash",
+   "gen": "同名同向的 17 条边均存在（ChargedFlash/WriteMemory 等以 _state 子状态为端点），fork1 带 <<fork>> 且三条出边齐全",
+   "reason": "闪光分支三条边齐备、memFull/Charged/sunny 三处守卫均用标准 [ ... ] 且位置正确，边覆盖与 0048 并列最完整；这解释了它 Phase-I/II F1 都是 0.9091 的全组最高。",
+   "assertable": "edge_declared(source='llms_emp_feedback_final_0058.ChargedFlash.ChargedFlash_state', trigger='llms_emp_feedback_final_0058._Charged_true', target='llms_emp_feedback_final_0058.Junction3')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "choice1 --> Join1; choice1 --> Junction1; fork/join 无正交区域; state X <> 退化; NL 第 11 句『Fork2 … is part of the Join2 substate』",
+   "gen": "state Join2 { state fork2 <<fork>> … }",
+   "reason": "参考侧存疑同 0008，此外 NL 第 11 句字面把 Fork2 描述成 Join2 的子状态（参考实际是 Join2 --> Fork2 的顺序关系），本 case 与 0008 都据此嵌套，属 NL 诱导的错误；台帐 EXP-0058-IT-001 仍然成立（即便按嵌套读法也必须给 fork2 一个入口），但归因时应记下 NL 表述本身有误导。另需记录：论文对本 case 语义栏为 None、F1 两阶段均 0.9091 为全组最高，却存在 4 处 composite 入口停滞使尾部不可达，说明论文的元素重合式度量对入口与可达性完全不敏感。",
+   "assertable": null,
+   "predicate_exists": false,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 5,
+ "extra_count": 0,
+ "vs_paper": "论文：format 栏『syntax error: fork fork1』(resolved YES)；grammar 栏 None；语义栏 None（唯一一例论文认为无语义幻觉）。F1 Phase-I 0.9091 → Phase-II 0.9091（TP 30，FP 2，FN 4，全组最高且两阶段未变）。我判的 5 个 problem 论文 0 条命中——包括让整条关机尾部不可达的第 4 条。这是本批中论文评价与实际语义质量落差最大的一例。",
+ "vs_ledger": "台帐 status=mixed，1 条 E1：EXP-0058-IT-001（join2_fork2_activation_missing）对应我的第 1 条。observation camera_timing_adapter_missing（E2c）对应我的第 6 条 timing。我的第 2、3、4 条是与 EXP-0058-IT-001 完全同型的另外三处（AutoFocus / DetLight / WriteMemory 包壳无初始），台帐只收了 Join2 那一处，遗漏三处；三者都能用 initial_target 或 reaches 直接断言，属应补的 E1 候选，其中第 4 条会使 terminates(scope='[*]') 为假，学术上比已收的那条更严重。第 5 条（6 个 choice/junction 未声明为伪状态）台帐亦未收。",
+ "notes": "Claude 在 NL 边覆盖、守卫位置、执行时间保真三项上都是本组最好（NL 第 8 句是唯一完全正确的一例），但它为承载时间注解而给每个计时状态套一层同名 composite，且从不给包壳写初始子状态，于是 AutoFocus / DetLight / WriteMemory / Join2 四处一进入就停滞，TurnOff 与全局终态不可达。论文语义栏记 None、F1 全组最高，台帐只收了四处中的一处。5 个 problem 全部在范围内（timing 条目按 similar 处理未计入）。",
+ "_source_file": "NL04-0058.json",
+ "cross_reference": {
+  "case": "0058",
+  "group": "NL04",
+  "llm": "Claude",
+  "counts": {
+   "correct": 2,
+   "similar": 2,
+   "problem": 5,
+   "extra": 0,
+   "uncertain": 1
+  },
+  "out_of_scope": {
+   "timing": 1
+  },
+  "problems_in_scope": 5,
+  "paper": {
+   "format": "syntax error: fork fork1",
+   "grammar": null,
+   "semantic": null,
+   "semantic_resolved": null,
+   "f1_phase1": 0.9090909091,
+   "f1_phase2": 0.9090909091
+  },
+  "ledger": {
+   "status": "mixed",
+   "e1_ids": [
+    "EXP-0058-IT-001"
+   ],
+   "e1_categories": [
+    "IT"
+   ]
+  },
+  "assertable_problems": 5
+ }
+}

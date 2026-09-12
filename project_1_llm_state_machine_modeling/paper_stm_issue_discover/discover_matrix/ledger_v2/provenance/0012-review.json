@@ -1,0 +1,77 @@
+{
+ "case": "0012",
+ "group": "NL09",
+ "llm": "GPT-4",
+ "diffs": [
+  {
+   "verdict": "correct",
+   "ref": "[*] --> Off / Off --> Operate: start / Operate --> Off",
+   "gen": "[*] --> Off / Off --> Operate : start / Operate --> Off : keyOff",
+   "reason": "顶层骨架与参考同构；关机边用 NL 第 2 句明写的 keyOff，比参考的 shutOff 更贴合 NL。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "Off --> [*]: keyOff（有触发的终止边）",
+   "gen": "Off --> Terminate（无触发）",
+   "reason": "Off 出边中存在一条无触发迁移，使 Off 不再是稳定等待态：任何没有 start 事件的周期都会不可逆地落入 Terminate 汇态。因此 NL 第 1、2 句要求的 start→Operate 只有在上电后第一个周期立刻给出 start 才成立，而 Operate --keyOff--> Off 之后的再次启动一般不可达。按 UML 完成迁移优先级读则更严重，start 直接不可达。注意 pyfcstm 按声明顺序选边（fcstm 第 24 行 start 边在第 25 行无触发边之前），故同周期竞争由 start 胜出——所以『无触发边吃掉 start 信号』这一说法需要修正为『Off 不可驻留』，不能用 occupancy_after 暴露。",
+   "assertable": "persists_until(state='llms_emp_feedback_final_0012.Off', release='active(\"llms_emp_feedback_final_0012.Operate\")', bound=4)  # 正确模型为 True，本模型为 False",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "[*]（真终态）",
+   "gen": "state Terminate 带说明文本 final",
+   "reason": "Terminate 是普通状态加一行描述文字 final，不是 PlantUML 终态；作为汇态与终态语义近似，NL 也未要求终止，故不单独计问题。但这意味着论文『missing final state / resolved=1.0』的修补实际并未产生终态（terminates(scope='[*]') 为 False）。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "Braking --> AcceleratingorCruising: releaseBrake",
+   "gen": "（无此边）",
+   "reason": "同 0003：releaseBrake 是参考独有细化，NL 第 3 句刻意不写元素间关系，缺失不判问题。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 1,
+ "extra_count": 0,
+ "vs_paper": "论文 format / grammar 栏 None；semantic 栏『1. missing final state』resolved=1.0。F1 0.950 → 0.9756。但本制品中的『修补』产物是 Off --> Terminate 无触发边加一个名为 Terminate 的普通状态：既没有真终态（论文声称已修实际未修），又新引入了我判定的这条 problem。论文完全没有记录这条无触发边。F1 与 0003 相同（0.9756），说明该指标对这条缺陷不敏感。",
+ "vs_ledger": "台帐 status=no_supported_finding，expected_issue_count=0。我判的这条 problem 台帐未记为 E1，是本组最实质的漏检；它可用现有 P 族谓词 persists_until 正向断言，绑定全部为作者自有元素，具备 E1 条件。",
+ "notes": "用户提出的『无触发边抢占 start』方向正确但机制需修正：在 pyfcstm 声明顺序选边下同周期不被抢占，真正的缺陷是 Off 不可驻留 + Terminate 是不可退出汇态。两种语义读法（UML 完成迁移优先 / 任意交错）下 NL 的 start→Operate 义务都不再被保证。",
+ "_source_file": "NL09-a.json",
+ "cross_reference": {
+  "case": "0012",
+  "group": "NL09",
+  "llm": "GPT-4",
+  "counts": {
+   "correct": 1,
+   "similar": 2,
+   "problem": 1,
+   "extra": 0,
+   "uncertain": 0
+  },
+  "out_of_scope": {},
+  "problems_in_scope": 1,
+  "paper": {
+   "format": null,
+   "grammar": null,
+   "semantic": "1. missing final state",
+   "semantic_resolved": 1.0,
+   "f1_phase1": 0.95,
+   "f1_phase2": 0.9756097561
+  },
+  "ledger": {
+   "status": "no_supported_finding",
+   "e1_ids": [],
+   "e1_categories": []
+  },
+  "assertable_problems": 1
+ }
+}

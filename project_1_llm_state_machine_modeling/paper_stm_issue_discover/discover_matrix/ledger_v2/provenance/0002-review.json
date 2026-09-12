@@ -1,0 +1,101 @@
+{
+ "case": "0002",
+ "group": "NL06",
+ "llm": "GPT-4o",
+ "diffs": [
+  {
+   "verdict": "problem",
+   "ref": "state PumpControl { [*] --> PumpState; -- ; [*] --> WaterState; -- ; [*] --> MethaneState }",
+   "gen": "state PumpControl { [*] --> InitialState; state PumpState {...}; -- ; state WaterState {...}; -- ; state MethaneState {...} }",
+   "reason": "NL 3 明确 \"The system first transitions to the PumpState substate\"，参考侧第一个区域的初始边直接指向 PumpState。生成侧把 PumpControl 的初始边指向了一个 NL 中不存在的 InitialState，进入 PumpControl 后落点错误。",
+   "assertable": "initial_target(composite=\"llms_emp_feedback_final_0002.PumpControl\", child=\"llms_emp_feedback_final_0002.PumpControl.PumpState\")",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "三个区域各自的唯一状态都由该区域的初始边直接进入，PumpState/WaterState/MethaneState 都可达",
+   "gen": "PumpControl 的第一个区域含 {InitialState, PumpState}，唯一的边是 [*] --> InitialState；WaterState、MethaneState 所在的第二、三区域没有任何初始边",
+   "reason": "FCSTM 投影确认 PumpControl 体内只有一条 [*] -> InitialState，而 InitialState 没有任何出边。结果是 NL 2 点名的三个子态 PumpState、WaterState、MethaneState 全部不可达，PumpControl 唯一能到达的状态是一个死端。NL 3/4/5 分别要求系统能进入这三个子态，此处全部落空。这是独立于上一条（初始落点错）的可达性缺陷，台帐与论文均未记录。",
+   "assertable": "reaches(source=\"[*]\", target=\"llms_emp_feedback_final_0002.PumpControl.PumpState\", within_cycles=3)",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "extra",
+   "ref": "PumpControl 只有 PumpState、WaterState、MethaneState 三个非伪状态",
+   "gen": "额外声明 InitialState，使 PumpControl 的直接非伪子态变为四个",
+   "reason": "NL 2 是 60 例中少见的逐个点名的数量断言：\"there are three main substates: PumpState, WaterState, and MethaneState\"。InitialState 既不在 NL 中也不在参考中，属过度规定，并直接违反这条枚举式基数断言。",
+   "assertable": "cardinality(scope=\"llms_emp_feedback_final_0002.PumpControl\", count=3)",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "extra",
+   "ref": "三个子态均为叶态，无更深层次；模型零事件、零行为迁移",
+   "gen": "PumpState 内嵌 RunningState、WaterState 内嵌 MonitoringWaterFlow、MethaneState 内嵌 MonitoringMethaneFlow；自造四个事件 Activate Pump / Deactivate Pump / Start Monitoring / Stop Monitoring，并各带一条到区域终态的边",
+   "reason": "NL06 全文（5 句）没有命名任何触发事件，也没有描述任何比这三个子态更深的层次。NL 3 的 \"where the pump is activated or controlled\" 只是对 PumpState 语义的说明，不是要求一个 RunningState 子态和一对激活/停用事件。Deactivate Pump、Stop Monitoring 更是完全无 NL 依据。参考侧这些内容全部没有，属过度规定。",
+   "assertable": "event_declared(event=\"llms_emp_feedback_final_0002.Deactivate_Pump\")",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "用两个 -- 把 PumpControl 分成三个并发区，每区一个具名子态",
+   "gen": "同样用两个 -- 分成三个区，PumpState 在第一区、WaterState 在第二区、MethaneState 在第三区",
+   "reason": "区域划分方式与参考一致（一区一具名子态），论文记的 semantic hallucination \"should use region to seperate three states\" 在这份 Phase-II 制品里确实已落实。并发结构本身超出本研究 FSM/HSM/EFSM 范围，故标 out_of_scope 而不计入问题。",
+   "assertable": null,
+   "predicate_exists": true,
+   "out_of_scope": "concurrency"
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "参考把三个子态写成三个正交并发区，意味着三者同时活跃",
+   "gen": "生成侧沿用了同样的并发读法",
+   "reason": "参考模型自身可疑：NL 3 说 \"The system **first** transitions to the PumpState substate\"，NL 4/5 用 \"can also transition to\"、\"can transition to\"，这套顺序性措辞在三区并发读法下失去意义（并发区是进入 PumpControl 时同时激活，谈不上 first）。NL 通篇没有出现 region、concurrent、parallel、simultaneously 等词，因此「三个主子态」究竟是并发区还是顺序子态在 NL 中是欠定的。论文 §4.2(4) 只是 assume 参考语义正确，此处无法判定，故标 uncertain。这一条对 NL06 全组 6 例都适用，并直接影响论文把 \"missing regions\" 记为语义幻觉的合理性。",
+   "assertable": null,
+   "predicate_exists": false,
+   "out_of_scope": "concurrency"
+  }
+ ],
+ "problem_count": 2,
+ "extra_count": 2,
+ "vs_paper": "论文记了一条 semantic hallucination \"1. should use region to seperate three states\"，semantic_resolved = 1.0；plantuml_accuracy 10/10、grammar 12/12；f1_phase1 = 0.8889，f1_phase2 = 0.875（Phase-II 反而下降）。论文声称的「已用 region 分隔」在这份制品里确实成立（我判为 similar），但论文完全没有记录真正的两个语义缺陷：初始边指向 NL 中不存在的 InitialState、以及三个 NL 点名子态全部不可达。",
+ "vs_ledger": "台帐有一条 E1：EXP-0002-IT-001（wrong_initial_substate，eval_assert 为 initial_child(PumpControl) == PumpControl.PumpState），对应我的第 1 条 problem。我的第 2 条 problem（三个子态全部不可达、PumpControl 唯一可达状态是死端 InitialState）台帐未记录——台帐只否证了初始落点，没有把「NL 2/3/4/5 要求的三个子态一个都进不去」写成独立命题（可用 reaches 或 occupancy_after 断言）。两条 extra 台帐亦未记录。",
+ "notes": "0002 是 NL06 组里唯一区域划分与参考一致、却把行为彻底做废的一份：加了一个 NL 里没有的 InitialState 当入口，而它没有出边，于是整个 PumpControl 变成「进得去、出不来、三个正主都到不了」。同时它是本组唯一自造出完整事件集与更深层子态的模型（四个事件、三个内嵌态），在一个 NL 完全不提触发的领域里属明显过度规定。",
+ "_source_file": "NL06-a.json",
+ "cross_reference": {
+  "case": "0002",
+  "group": "NL06",
+  "llm": "GPT-4o",
+  "counts": {
+   "correct": 0,
+   "similar": 1,
+   "problem": 2,
+   "extra": 2,
+   "uncertain": 1
+  },
+  "out_of_scope": {
+   "concurrency": 2
+  },
+  "problems_in_scope": 4,
+  "paper": {
+   "format": null,
+   "grammar": null,
+   "semantic": "1. should use region to seperate three states",
+   "semantic_resolved": 1.0,
+   "f1_phase1": 0.8888888889,
+   "f1_phase2": 0.875
+  },
+  "ledger": {
+   "status": "expected_issues_found",
+   "e1_ids": [
+    "EXP-0002-IT-001"
+   ],
+   "e1_categories": [
+    "IT"
+   ]
+  },
+  "assertable_problems": 2
+ }
+}

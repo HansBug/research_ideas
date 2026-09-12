@@ -1,0 +1,130 @@
+{
+ "case": "0019",
+ "group": "NL05",
+ "llm": "GPT-4",
+ "diffs": [
+  {
+   "verdict": "correct",
+   "ref": "AutonomousMode 复合态含 InitialState、HighwayMode、UrbanMode、FinishState；FinishState 位于 AutonomousMode 层级并被两个模式共享；HighwayMode <--> UrbanMode 双向切换",
+   "gen": "同构：state AutonomousMode { [*] --> InitialState; ...; HighwayMode --> UrbanMode : urban_way=true; UrbanMode --> HighwayMode : high_way=true }，FinishState 在 AutonomousMode 层级",
+   "reason": "NL 1/2/11 与 NL 6/10 对 FinishState 的共享要求都被满足。FCSTM 投影确认 FinishState 声明在 AutonomousMode 内、HighwayMode 与 UrbanMode 之外，是六例中把 FinishState 放对层级的三例之一。",
+   "assertable": null,
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "enter_hwy --> cruise（无守卫）; enter_hwy --> lane_change: dist_to_front<25 & extra_lane=true —— 两条边条件不同",
+   "gen": "enter_hwy --> cruise: dist_to_front<25 & extra_lane=true; enter_hwy --> lane_change: dist_to_front<25 & extra_lane=true —— 两条边条件完全相同",
+   "reason": "NL 3 虽然把 cruise 与 lane_change 写在同一个条件从句下（本身歧义），但两个目标互斥，模型必须给出可区分依据。生成侧对两个不同目标使用逐字相同的条件，FCSTM 投影中它们共享同一个 event dist_to_front_25_extra_lane_true 且均无守卫，形成不可区分的冲突目标。参考侧靠 cruise 无守卫消歧，0009/0049 靠互补守卫消歧，只有 0019 与 0029 没有消歧。",
+   "assertable": "guard_distinguishable(source=\"llms_emp_feedback_final_0019.AutonomousMode.HighwayMode.enter_hwy\", trigger=\"llms_emp_feedback_final_0019.dist_to_front_25_extra_lane_true\")",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "[*] --> collision_avoidance_deactive（并发区内的初始边）",
+   "gen": "state CollisionAvoidanceSystem { collision_avoidance_deactive --> collision_avoidance_active: ...; collision_avoidance_active --> collision_avoidance_deactive: ... } —— 无任何初始边",
+   "reason": "NL 12 首句明确 \"The collision avoidance system is initially in the collision_avoidance_deactive state\"，是显式的初态要求。生成侧只声明了两个状态与两条互逆边，没有初始边；FCSTM 投影因此注入 CollisionAvoidanceSystem.UnspecifiedInitial，该复合态默认进入点未定义。",
+   "assertable": "initial_target(composite=\"llms_emp_feedback_final_0019.CollisionAvoidanceSystem\", child=\"llms_emp_feedback_final_0019.CollisionAvoidanceSystem.collision_avoidance_deactive\")",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "HighwayMode --> FinishState : auto_finished = true; UrbanMode --> FinishState : auto_finished = true —— 从复合态边界发出的组迁移，模式内任一子态都可完成",
+   "gen": "ExitHighway --> FinishState: auto_finished=true; exit_urban --> FinishState: auto_finished=true —— 只有出口子态可完成",
+   "reason": "NL 6 的主语是 HighwayMode 整体（\"The HighwayMode ends when...\"），NL 10 同理（\"The system exits the UrbanMode state by...\"）。生成侧把完成条件的源收窄到 ExitHighway / exit_urban，于是 auto_finished=true 在 cruise、lane_change、enter_hwy、straight、intersection 等状态里根本不被消费——必须先满足 dist_to_exit<2（或 <0.7）走到出口态才能完成自动驾驶，这是 NL 未授权的前置条件。台帐与论文均未记录。",
+   "assertable": "occupancy_after(source=\"llms_emp_feedback_final_0019.AutonomousMode.HighwayMode.cruise\", trigger=\"llms_emp_feedback_final_0019.auto_finished_true\", target=\"llms_emp_feedback_final_0019.AutonomousMode.FinishState\")",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "cruise --> exit_hwy: dist_to_exit<2; lane_change --> exit_hwy: dist_to_exit<2; lane_change_urban --> exit_urban: dist_to_exit<0.7",
+   "gen": "cruise --> ExitHighway: dist_to_exit<2; lane_change --> ExitHighway: dist_to_exit<2; lane_change_urban --> exit_urban: dist_to_exit<0.7",
+   "reason": "ExitHighway 与参考的 exit_hwy 仅命名风格差异（同一状态），且 FCSTM 确认 ExitHighway 因首次提及在 HighwayMode 内而正确归属 HighwayMode。0019 是六例中唯一把高速与城市两侧的局部出口态都建全、且没有把出口条件接到 FinishState 的模型。",
+   "assertable": null,
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "extra",
+   "ref": "[*] --> AutonomousMode（无触发）; [*] --> InitialState（无触发）",
+   "gen": "[*] --> AutonomousMode: Autonomous mode start; [*] --> InitialState: Start of autonomous driving mode",
+   "reason": "NL 1 只说系统起始于 AutonomousMode 并进入 InitialState，从未命名任何触发事件。生成侧在两条初始边上凭空造了 Autonomous_mode_start 与 Start_of_autonomous_driving_mode 两个事件（FCSTM 中确实被投影为 declared event），属参考模型没有、NL 也未要求的过度规定。",
+   "assertable": "event_declared(event=\"llms_emp_feedback_final_0019.Autonomous_mode_start\")",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "intersection --> straight",
+   "gen": "无该边",
+   "reason": "NL 未规定 intersection 的出边，参考侧的该边属参考自行补充，缺失不违反 NL。",
+   "assertable": null,
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "AutonomousMode 内用 -- 并发区承载碰撞规避",
+   "gen": "顶层顺序兄弟复合态 CollisionAvoidanceSystem",
+   "reason": "并发降级为顺序，与 0009 同类。本研究不含正交并发，故记 similar 并标并发类。",
+   "assertable": null,
+   "predicate_exists": true,
+   "out_of_scope": "concurrency"
+  },
+  {
+   "verdict": "similar",
+   "ref": "五条独立迁移，第四/五条为 dist_to_front<15 & highway = true 与 dist_to_front<10 & urban=true",
+   "gen": "单条析取守卫，第三项写成自然语言散文 \"(dist_to_front<15 in hwy mode or <10 in urban mode)\"",
+   "reason": "语义与 NL 12 一致，但形式化程度是六例中最低的：该析取项混入了 \"in hwy mode\" 这样的散文表述，FCSTM 投影出的 event 名直接把散文吞进去。由于本组所有 case 的碰撞守卫都被投影成不透明 event 名，散文与公式在当前表示下同样不可求值，故不升级为 problem，但需记录其形式化质量最差。",
+   "assertable": null,
+   "predicate_exists": true,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 3,
+ "extra_count": 1,
+ "vs_paper": "论文只记了一条 format hallucination（syntax error: note right: Autonomous driving mode，已 resolved=YES），grammar 与 semantic 两栏均为 null；f1_phase1 = 0.9385，f1_phase2 = 0.9560（本组唯一 Phase-II 有提升的 case）。我判的 3 个 problem 论文一个都没记——尤其 GC 的守卫不可区分与碰撞子系统缺初态，都是语义级缺陷却落在论文空白的 semantic 栏里。",
+ "vs_ledger": "台帐有两条 E1：EXP-0019-GC-001 对应我的第 2 条 problem（相同条件冲突目标）、EXP-0019-IT-001 对应我的第 3 条 problem（碰撞子系统缺初态）。我的第 4 条 problem（NL 6/10 的模式级完成被收窄到出口态）台帐未记录。台帐另有 E2c 并发观察，与我的并发类 similar 一致。",
+ "notes": "0019 在「把出口态建全」这件事上是六例中最好的（ExitHighway + exit_urban 都有，且没有把出口条件接到 FinishState），却在两处栽了：enter_hwy 的两个目标条件逐字相同，以及碰撞子系统忘了初始边。值得注意的是台帐接受了 EXP-0019-IT-001，其 FCSTM 证据正是 compiler 合成的 UnspecifiedInitial 节点（在 source_trace 的 attribution_exclusions 里）——这个先例说明「缺初始边」是可入 E1 的，而 0029/0043/0053 同样出现 UnspecifiedInitial 却被排除，标准不一致。",
+ "_source_file": "NL05-a.json",
+ "cross_reference": {
+  "case": "0019",
+  "group": "NL05",
+  "llm": "GPT-4",
+  "counts": {
+   "correct": 2,
+   "similar": 3,
+   "problem": 3,
+   "extra": 1,
+   "uncertain": 0
+  },
+  "out_of_scope": {
+   "concurrency": 1
+  },
+  "problems_in_scope": 4,
+  "paper": {
+   "format": "syntax error: note right: Autonomous driving mode",
+   "grammar": null,
+   "semantic": null,
+   "semantic_resolved": null,
+   "f1_phase1": 0.938547486,
+   "f1_phase2": 0.956043956
+  },
+  "ledger": {
+   "status": "mixed",
+   "e1_ids": [
+    "EXP-0019-GC-001",
+    "EXP-0019-IT-001"
+   ],
+   "e1_categories": [
+    "GC",
+    "IT"
+   ]
+  },
+  "assertable_problems": 3
+ }
+}

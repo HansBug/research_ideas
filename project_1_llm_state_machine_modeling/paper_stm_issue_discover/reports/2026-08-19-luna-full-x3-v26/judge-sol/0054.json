@@ -1,0 +1,489 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0054",
+  "ledger": [
+    {
+      "ledger_id": "INS-0054-01",
+      "pair": "0054",
+      "D": "D2",
+      "L": "L2",
+      "summary": "`Stopping` 由 `:14 InMotion --> Stopping : Arrived/Stop, Send Arrived` 隐式声明，只有这一条入边、没有任何出边；父为根、根层无成组出边、全文无 `--> [*]`，到站停车后系统永久停住。",
+      "detail": "`Stopping` 这个名字在全文只出现一次，就是 `:14` 的箭头右侧。它没有被 `state Stopping { }` 显式定义，也没有任何迁移以它为源端。\n\n退路不存在：它的父是根，根层除 `:2 [*] --> DoorsClosing` 外没有其它可继承的成组出边；全文没有任何 `--> [*]`。它是可达的：`:2` → `:13` → `:14`。所以这是一个可达的死锁。\n\n同文件对照可以定案。作者在 `:2` 与 `:5` 两处都用了 `[*]` 来表达初始伪状态，说明他掌握这个记法；但全文一处 `--> [*]` 都没有，即他从未把任何状态标为终态。所以「到站即有意终点」这个读法拿不到作者的任何表态支持。加之同一 pair 的 `EmergencyStopping` 也是同样的死端（记在 INS-0054-02），两处一起看更像是漏写。\n\n从 NL 看，第 2 句只说了怎么进 `Stopping`，没说这是终点。这是列车控制系统，到站是一次行程的结束而不是设备生命周期的结束。\n\n同一份 NL 的 pair 0004、0024、0034 上出现了同型的 Stopping 死锁。",
+      "D_basis": "判 D2。这是一个可达且无任何出路的非预期终止：状态可达、无出边、无可继承的成组出边、全文无终止声明。判读中考虑过的第二种读法是「到站即为有意终态」，但同文件对照压过了它：作者在 `:2`/`:5` 用过 `[*]` 表达初始伪态，却全文没有一处 `--> [*]`；且同一 pair 的 EmergencyStopping 呈现相同死端形态，该读法解释不了它。反驳不存活。",
+      "L_basis": "判 L2。陈述这条错误需要先给出一条到达 `Stopping` 的路径（`:2` → `:13` → `:14`），再穷尽检查全部迁移以确认没有任何一条以它为源，并确认根层无成组出边、全文无终止符。这些都是对行为的构造与排除。",
+      "axes": {
+        "defect_locus": "global",
+        "defect_element": null,
+        "defect_qualifier": null,
+        "defect_logic_kind": "unintended_terminal",
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "INS-0054-02",
+      "pair": "0054",
+      "D": "D2",
+      "L": "L2",
+      "summary": "`EmergencyStopping` 只有 `:15` 一条入边——`:17`、`:18` 两行是 do 动作描述而不是出边——父为根、根层无成组出边、全文无终止符，一旦因障碍进入紧急停车就再也出不来。",
+      "detail": "`:15 InMotion --> EmergencyStopping : [obstacle detected]` 是它唯一的入边。`:17 EmergencyStopping : do/Emergency Stop` 与 `:18 EmergencyStopping : do/Send Obstacle Detected` 用的是 `状态名 : 文本` 语法，声明的是状态内的 do 动作，不是迁移。全文没有任何迁移以它为源端。\n\n退路不存在：父是根，根层除 `:2` 外没有其它可继承的成组出边；全文没有任何 `--> [*]`。它是可达的：`:2` → `:13` → `:15`。所以这是一个可达的死锁。\n\n同一份 NL 的另外两份制品都给了这个状态出路：pair 0024 的 `:19 EmergencyStopping --> InMotion:exit/Send Obstacle Detected`，pair 0034 的 `:11 EmergencyStopping --> [*] : Obstacle Cleared`。可见 NL 本身并没有妨碍作者建出恢复边或终止边，0054 是自己漏写了。\n\n从领域看，紧急停车是一个安全响应而不是生命周期的结束：障碍解除后列车需要能够恢复行驶，或者至少需要一个明确的终止。永久卡在紧急停车态意味着这列车此后既不能走也不能正常结束。\n\n本 pair 还有一个同类死端 `Stopping`，记在 INS-0054-01。",
+      "D_basis": "判 D2。这是一个可达且无任何出路的非预期终止。判读中考虑过的第二种读法是「这是有意的吸收态，人工复位在建模范围之外」，但它不存活——作者没有用任何方式声明这是合法终态（全文无 `--> [*]`，名字也不含终止语义），而「紧急制动后永久无法恢复」在列车控制这个领域是明确不可接受的后果，该读法没有回应它。同一份 NL 的其它制品对同一个状态给出了恢复边或显式终态，说明这条义务是可实现的。",
+      "L_basis": "判 L2。陈述这条错误需要先给出一条到达 `EmergencyStopping` 的路径（`:2` → `:13` → `:15`），再穷尽检查全部迁移以确认没有任何一条以它为源（并确认 `:17`/`:18` 是动作行不是迁移），还要确认根层无成组出边、全文无终止符。这些都是对行为的构造与排除。",
+      "axes": {
+        "defect_locus": "global",
+        "defect_element": null,
+        "defect_qualifier": null,
+        "defect_logic_kind": "unintended_terminal",
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "VU-0054-01",
+      "pair": "0054",
+      "D": "D1",
+      "L": "L0",
+      "summary": "`:15 InMotion --> EmergencyStopping : [obstacle detected]` 只写了守卫、没有触发事件；按严格 UML 它是完成迁移，而 `InMotion` 内部没有终态，急停响应将永不触发。",
+      "detail": "`:15` 的标签是 `[obstacle detected]`——方括号形式，即一个守卫条件，冒号后没有任何事件名。\n\n按严格的 UML 语义，不带触发的迁移是完成迁移：它只在源状态完成时求值。源是复合态 `InMotion`（:4-:11），复合态的完成意味着它的内部区域到达终态；而 `InMotion` 内部没有任何 `--> [*]`（`:5`-`:10` 只有默认入口边与三条阶段间迁移）。所以 `InMotion` 永远不会完成，`:15` 永远不会被求值——障碍检测的响应不会发生。\n\n本条属于第一版台账漏记、后从各实验臂未被认领的产出中提取回来的一类。",
+      "D_basis": "判 D1，两读并立。第一种读法按严格 UML：无触发即完成迁移，而 `InMotion` 无内部终态、永不完成，因此这条急停响应永不触发。第二种读法按 PlantUML 常见的条件迁移用法：守卫成立即可迁移——而这恰好忠实对应 NL 的措辞，NL 第 2 句「or to the EmergencyStopping state if an obstacle is detected」与第 3 句「When an obstacle is detected」都只给了条件、没有点名任何信号。两种语义都与逐字结构相容，故判 D1。",
+      "L_basis": "判 L0。陈述这条错误只需就地读 `:15` 这一行，看冒号后是方括号守卫还是事件名——只有守卫、没有事件。这是纯词法层面的检查，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "trigger",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:reachable_deadlock:Stopping",
+          "claims": [
+            "Source state 'Stopping' is reachable, non-final, and has no enabled continuation in the certified fragment."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0054.Stopping"
+          ],
+          "obligations": [
+            "A reachable non-final behavior must admit a continuation or valid termination."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D1",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:reachable_deadlock:Stopping:facet:503d89daad7a"
+          ]
+        },
+        {
+          "finding_id": "source:reachable_deadlock:EmergencyStopping",
+          "claims": [
+            "Source state 'EmergencyStopping' is reachable, non-final, and has no enabled continuation in the certified fragment."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0054.EmergencyStopping"
+          ],
+          "obligations": [
+            "A reachable non-final behavior must admit a continuation or valid termination."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D1",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:reachable_deadlock:EmergencyStopping:facet:503d89daad7a"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:guarded_completion_unfireable:tr_0008",
+          "claims": [
+            "Transition tr_0008 is a guarded completion transition from InMotion, but that composite has no final-state exit."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0054.puml:line:15",
+            "tr_0008",
+            "InMotion"
+          ],
+          "obligations": [
+            "Under the declared UML-derived label profile, a guard-only transition from a composite state is a completion transition and requires a reachable composite completion."
+          ],
+          "basis": [
+            "representation_debt"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:guarded_completion_unfireable:tr_0008:facet:114474396a2c"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:initial_target:InMotion:InMotion.Accelerating",
+          "claims": [
+            "Source composite 'llms_emp_feedback_final_0054' has no initial transition to required child 'InMotion.Accelerating'."
+          ],
+          "locations": [
+            "NL5"
+          ],
+          "obligations": [
+            "llms_emp_feedback_final_0054 must initially enter InMotion.Accelerating."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_target:InMotion:InMotion.Accelerating:facet:2fadec9f43d5"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": []
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "障碍物检测迁移的触发条件与规格不一致",
+          "reason": "规格要求在检测到障碍物时进入 EmergencyStopping，但模型将其写成带方括号的守卫条件 `[obstacle detected]`，没有按规格表达为障碍物检测事件/触发信号；这使该迁移的触发语义不明确，且未体现“检测到障碍物”这一事件。",
+          "where": "`InMotion --> EmergencyStopping : [obstacle detected]`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "EmergencyStopping 中的动作和信号被建模为 do 活动，而非进入该状态时包含的动作",
+          "reason": "规格明确说进入 EmergencyStopping 状态后包括执行 `Emergency Stop` 并发送 `Obstacle Detected` 信号。模型使用 `do/`，表示状态内持续活动，可能在离开状态前持续执行，而不是进入时动作；同时将发送信号建模为 do 活动，未明确体现一次性发送。",
+          "where": "`EmergencyStopping : do/Emergency Stop` 与 `EmergencyStopping : do/Send Obstacle Detected`"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "Approaching 子状态的发送动作类型与规格不符或语义不完整",
+          "reason": "规格要求在 Approaching 子状态中发送 `Send` 信号，并持续接近目的地。模型只定义了 `do/Send`，未明确这是信号发送，也未建模“继续接近目的地”的行为；若 `Send` 被解释为信号，则缺少信号语义标注。",
+          "where": "`Approaching : do/Send`"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "缺少 Approaching 保持至准备停车或减速的明确行为/转换语义",
+          "reason": "规格要求系统在 Approaching 中继续保持并接近目的地，直到准备停车或减速。模型没有从 Approaching 出发的任何迁移，也没有显式的内部保持条件或“准备停车/减速”触发条件，因此未表达该状态的终止条件和所述持续行为。",
+          "where": "`Approaching` 状态及其迁移"
+        },
+        {
+          "finding_id": "baseline_issue_5",
+          "issue": "到达后的动作/信号语法表达与规格信号不完全对应",
+          "reason": "规格要求由 `Arrived/Stop, Send Arrived` 信号触发到达并执行 Stop、发送 Arrived。模型标签虽包含相同文本，但 PlantUML 中逗号会把动作内容写成未区分的标签文本，未明确 `Stop` 与 `Send Arrived` 是触发后的动作，而不是信号名称的一部分；该表示不足以准确建模规格中的事件/动作划分。",
+          "where": "`InMotion --> Stopping : Arrived/Stop, Send Arrived`"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "从 InMotion 到 EmergencyStopping 的触发条件与规格不一致或不完整",
+          "reason": "规格要求在检测到障碍物时转入 EmergencyStopping，模型把条件写成方括号守卫条件，未明确表示“障碍物检测”这一触发事件；若按规格中的事件语义，模型缺少对应的 obstacle detected 触发信号。",
+          "where": "`InMotion --> EmergencyStopping : [obstacle detected]`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "EmergencyStopping 中“Obstacle Detected”信号的动作表示不符合规格的明确语义",
+          "reason": "规格要求进入 EmergencyStopping 时包含动作“Emergency Stop”并发送“Obstacle Detected”信号。模型将发送动作标为 `do` 活动，而不是进入动作（`entry`），因此不能保证在进入该状态时立即执行；同时 `Send Obstacle Detected` 的动作语法也未明确表达信号发送是否为独立动作。",
+          "where": "`EmergencyStopping : do/Send Obstacle Detected`"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "DoorsClosing 到 InMotion 的触发信号动作文本存在格式/语义歧义",
+          "reason": "规格明确要求由“Closed/SendDeparted”信号触发，若该写法表示事件 Closed、动作 SendDeparted，则模型基本匹配；但模型没有对该信号标注为信号事件，无法确认它是触发信号而非普通事件。该问题属于表达不清，可能导致模型语义无法与规格一一对应。",
+          "where": "`DoorsClosing --> InMotion : Closed/SendDeparted`"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "Arrived 转换标签中的动作分隔方式与规格不一致",
+          "reason": "规格要求由 `Arrived` 触发，并执行 `Stop`、发送 `Arrived`。模型把两个动作用逗号写在同一动作字符串中，未明确建模为两个独立动作或明确的发送动作，因此不能可靠表达“停止并发送到达信号”的动作序列。",
+          "where": "`InMotion --> Stopping : Arrived/Stop, Send Arrived`"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0054",
+    "ledger_assessments": [
+      {
+        "ledger_id": "INS-0054-01",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:reachable_deadlock:Stopping"
+          ],
+          "reason": "输出指认同一状态 Stopping，并明确主张其可达、非终态且没有可继续执行的出路，与台账的可达非预期终止/死锁性质相同。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格只讨论 InMotion 到 EmergencyStopping 的守卫完成迁移不可触发，不涉及 Stopping 的无出路。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格主张根复合状态缺少到 InMotion.Accelerating 的初始迁移，位置和性质都不同于 Stopping 的可达死锁。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格没有输出 finding。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "虽有 issue 涉及到达 Stopping 的迁移标签，但只质疑事件/动作槽位表达；没有主张 Stopping 无出边或成为非预期终止。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "虽有 issue 涉及到达 Stopping 的 Arrived 转换标签，但只质疑动作分隔和发送动作表达；没有主张 Stopping 无出路。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "INS-0054-02",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:reachable_deadlock:EmergencyStopping"
+          ],
+          "reason": "输出指认同一状态 EmergencyStopping，并明确主张其可达、非终态且无任何可用延续，与台账的一旦进入即无法退出的可达死锁性质相同。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格讨论的是进入 EmergencyStopping 的迁移因缺少触发而不可触发，不是 EmergencyStopping 到达后没有出路。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格讨论根层初始进入目标，不涉及 EmergencyStopping 的无出路。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格没有输出 finding。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "相关输出分别质疑进入 EmergencyStopping 的触发槽位以及状态内 do 动作的建模方式，均未主张该状态没有出边或不终止。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "相关输出分别质疑进入 EmergencyStopping 的触发槽位以及发送信号采用 do 活动，均不等同于该状态可达后无出路。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "VU-0054-01",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格的两个输出主张 Stopping 和 EmergencyStopping 到达后的无出路；没有指认 InMotion→EmergencyStopping 迁移缺少触发事件及其不可触发性质。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:guarded_completion_unfireable:tr_0008"
+          ],
+          "reason": "输出指认第15行同一条 InMotion→EmergencyStopping 迁移，主张它是仅带守卫的完成迁移，而 InMotion 没有可达完成条件，因此不可触发；与台账的位置和缺少触发所致性质完全一致。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格主张缺少到 InMotion.Accelerating 的初始迁移，不涉及第15行迁移的触发槽位。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格没有输出 finding。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "baseline_issue_1 指认同一条 InMotion→EmergencyStopping 迁移，明确断言方括号内容只是守卫且缺少 obstacle detected 事件/触发信号；这与台账的触发缺失性质相同，即使其对严格完成语义只表述为不明确。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "baseline_issue_1 指认同一条 InMotion→EmergencyStopping 迁移，并断言模型只写守卫、缺少 obstacle detected 触发事件；与台账的触发槽位缺失相同。",
+          "confidence": "high"
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "VU-0054-01"
+        ],
+        "false_positive": false,
+        "reason": "指认 InMotion→EmergencyStopping 的同一迁移，并主张方括号守卫没有表达规格所需的障碍检测触发事件，对应 VU-0054-01。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 EmergencyStopping 的动作应为进入动作而不是 do 活动；冻结台账没有该动作时机/记法槽位缺陷，且这不是该状态无出路。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 Approaching 中 Send 的信号类型及持续接近行为表达不完整；冻结台账没有对应条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 Approaching 缺少保持、终止条件或出迁移；台账的无出路条目位于 Stopping 和 EmergencyStopping，不能因同属“缺少出路”上位类别而对齐。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_5",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 InMotion→Stopping 标签中的事件/动作分隔不准确；台账只记录 Stopping 到达后的无出路，不记录该入边标签槽位问题。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "VU-0054-01"
+        ],
+        "false_positive": false,
+        "reason": "指认同一条急停迁移，并明确主张仅有守卫而缺少 obstacle detected 触发信号，对应 VU-0054-01。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 EmergencyStopping 中发送信号应是 entry 动作而非 do 活动；冻结台账没有此动作时机问题。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 DoorsClosing→InMotion 的 Closed/SendDeparted 标签存在信号类型歧义；与三项冻结台账的位置均不同。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 InMotion→Stopping 的动作分隔和发送语义不清；不等同于 Stopping 状态自身无出路。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:reachable_deadlock:EmergencyStopping",
+        "matched_ledger_ids": [
+          "INS-0054-02"
+        ],
+        "false_positive": false,
+        "reason": "同一 EmergencyStopping 状态、同一可达非终态无延续性质，直接覆盖 INS-0054-02。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:reachable_deadlock:Stopping",
+        "matched_ledger_ids": [
+          "INS-0054-01"
+        ],
+        "false_positive": false,
+        "reason": "同一 Stopping 状态、同一可达非终态无延续性质，直接覆盖 INS-0054-01。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:guarded_completion_unfireable:tr_0008",
+        "matched_ledger_ids": [
+          "VU-0054-01"
+        ],
+        "false_positive": false,
+        "reason": "指认第15行同一迁移，并主张 guard-only 完成迁移因 InMotion 无完成出口而不可触发，直接覆盖 VU-0054-01。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:initial_target:InMotion:InMotion.Accelerating",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张根复合状态缺少初始进入 InMotion.Accelerating 的迁移；冻结台账没有该初始目标缺失问题，且其位置和性质与三项条目均不同。",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "按“同一处且同一性质”逐项对齐：Stopping 与 EmergencyStopping 的可达非终态无出路分别只由 method_run1 的对应死锁 issue 覆盖；InMotion→EmergencyStopping 的守卫-only、缺少触发事件问题由 method_run2 及 baseline_run2/run3 的对应 issue 覆盖。其余输出讨论初始目标、do/entry 动作、Approaching 行为或其他标签槽位，均不对应冻结台账中的三项主张。"
+  },
+  "status": "ok",
+  "attempts": 2
+}

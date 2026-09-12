@@ -1,0 +1,79 @@
+[
+  {
+    "pair": "0040",
+    "verdicts": [
+      {
+        "record_id": "EIS-0040-01",
+        "arm": "甲",
+        "hit": false,
+        "equivalence_form": null,
+        "argument": "台账 01 的命题是：断电义务只覆盖一半作用域——作者源只有第 24 行 `HumanDriving --> [*] : Power Off`，缺少 Autonomous 激活期间的断电边，故自动驾驶期间无法断电。甲已发布的 3 条 issue 分别锚在：[1] 第 16/18 行的 Autonomous 进入占据、[2] 第 23 行的融合事件标签、[3] front_distance 变量缺失，没有任何一条以 power_off 事件、终态 [*] 或 Autonomous 的退出作用域为对象。也无任何一条的为假蕴含「Autonomous 缺断电边」为假（三条主张在补上 Autonomous--power_off-->[*] 之后仍然全部成立，反向蕴含也不成立）。",
+        "note": "甲的 4 条被归因策略排除的发现全部围绕 human_steering_cmd / brake_pressed 的事件与边，同样不涉及断电作用域；即该记录在甲这里属「从没发现」，不属「发现了但没发布」。"
+      },
+      {
+        "record_id": "EIS-0040-01",
+        "arm": "乙",
+        "hit": false,
+        "equivalence_form": null,
+        "argument": "同一判据下逐条查乙的 4 条已发布 issue：[1] occupancy_after(HumanDriving, front_distance_10, Autonomous)、[2] front_distance 变量缺失、[3] event_declared(human_steering_cmd)、[4] event_declared(brake_pressed)。四者的对象分别是第 16/18 行与第 23 行，没有一条指向第 24 行那条只挂在 HumanDriving 上的 Power Off 边，也没有一条主张终态在 Autonomous 下不可达。不存在从任一主张为假到台账 01 为假的蕴含链。",
+        "note": "乙 coverage_status = partial，但材料中未列出任何被排除发现或覆盖缺口条目，因此无法区分该记录是「从没发现」还是「预算耗尽未发布」；无论哪种，依 §三 均不计命中。"
+      },
+      {
+        "record_id": "EIS-0040-01",
+        "arm": "丙",
+        "hit": false,
+        "equivalence_form": null,
+        "argument": "丙的 4 条已发布 issue 为：[1] front_distance 变量缺失、[2] front_distance_10 后未占据 Autonomous、[3] human_steering_cmd 未独立声明、[4] brake_pressed 未独立声明，对象分别是第 16/18 行与第 23 行。无一条以 power_off、终态或 Autonomous 的断电作用域为对象；补上 Autonomous 的断电边不会改变这四条中的任何一条，故既非直接对应，也不构成合取项、对偶或更根本原因。",
+        "note": "丙的 4 条被归因策略排除的发现全部属 REQ-008 / REQ-009（human_steering_cmd、brake_pressed 的事件存在性与边关系），同样不触及断电作用域；属「从没发现」。"
+      },
+      {
+        "record_id": "EIS-0040-02",
+        "arm": "甲",
+        "hit": true,
+        "equivalence_form": "直接对应",
+        "argument": "台账 02 的命题：第 23 行的显式析取被投影成单一事件 `human_steering_cmd_brake_pressed_in_AutoFinal`，三个被 NL 逐字点名的条件各自无声明，判定为 event_declared(...human_steering_cmd) = False。甲 [2] 逐字主张同一件事——「模型把 NL 分别点名的三个并列要素压合成单一事件名 human_steering_cmd_brake_pressed_in_AutoFinal，使这三个独立要素在词表中均无对应声明」，并给出 AST-REQ-005D-1 / 005E-1 / 005F-1 三个声明检查皆为 False。两个命题锚在作者源第 23 行同一条迁移标签上（该复合标签全文仅出现一次），且甲自己写明「单次模型编辑即可同时解除三条要求」，与台账「动其一必动其二」的同源判据一致。",
+        "note": ""
+      },
+      {
+        "record_id": "EIS-0040-02",
+        "arm": "乙",
+        "hit": true,
+        "equivalence_form": "直接对应",
+        "argument": "乙 [3] 主张「模型将 human_steering_cmd 与 brake_pressed、in(AutoFinal) 一起融合为单一事件 human_steering_cmd_brake_pressed_in_AutoFinal，因此 event_declared(human_steering_cmd) 返回 False」，与台账 02 的 primary_predicate 判定逐字同一（台账：`event_declared(...human_steering_cmd) = False`），并指向同一个融合事件名，即作者源第 23 行那条唯一的复合标签；乙 [4] 对 brake_pressed 给出同一根因。乙未单列 in(AutoFinal) 这一支，但台账 02 的判定谓词本就落在 human_steering_cmd 上，且三支来自同一条标签的同一次编辑，故这不是 §2.2 的「更弱的命题」——乙证明的不是某物存在，而是台账所指的那条声明检查本身为假。",
+        "note": "在 EIS-0040-02 上，甲多点了 in_AutoFinal 一支。依 §五.3 不做整体印象打分：判据是命题是否指向第 23 行同一处失误，多一支不改变所指缺陷，故与甲同判命中。"
+      },
+      {
+        "record_id": "EIS-0040-02",
+        "arm": "丙",
+        "hit": true,
+        "equivalence_form": "直接对应",
+        "argument": "丙 [3] 主张「模型只声明融合信号 human_steering_cmd_brake_pressed_in_AutoFinal，把三种不同触发合并为一个事件」，独立事件 human_steering_cmd 不存在；丙 [4] 对 brake_pressed 同理。这与台账 02「投影得到单一事件 human_steering_cmd_brake_pressed_in_AutoFinal…event_declared(...human_steering_cmd) = False」是同一命题的同一表述，锚点同为作者源第 23 行的唯一复合标签。与甲、乙用同一严格度衡量，三者在本条上所指的作者源编辑完全相同。",
+        "note": "丙另有 4 条被排除发现（REQ-008/009 的事件存在性与边关系）指向同一根因，但本条已由已发布 issue [3][4] 承载，不依赖那些未发布条目。"
+      },
+      {
+        "record_id": "EIS-0040-03",
+        "arm": "甲",
+        "hit": true,
+        "equivalence_form": "直接对应",
+        "argument": "台账 03 的判定谓词是 occupancy_after、方向 entry，其可观察命题为「front_distance>10 把系统送进 Autonomous 后无任何子状态处于激活」，根因是第 18 行 `[*] --> AutoInitial : Enter Autonomous Mode` 这条带触发的初始迁移（该初始迁移全文只出现一次）。甲 [1] 主张 AST-REQ-004-1（primary，occupancy_after）为 False：从 HumanDriving 触发 front_distance_10 后运行时占据未落到 Autonomous；并明确排除边缺失解释（AST-REQ-004-2 为 True，边已声明），进一步指名机制「目标是复合状态但缺少默认进入到子状态的正确解析」。在该作者源中，边已声明而占据仍为假的唯一成因就是第 18 行的带触发初始迁移，故两命题指向同一条作者编辑。注意甲用的是行为谓词而非结构存在性，不触 §2.2「用结构存在性冒充行为验证」。",
+        "note": "甲论证里并列了第二种可能「占据判定所期望的稳态与模型定义不一致」（即怀疑判定侧），这一支不指向作者源缺陷；但其首选机制与已发布主张本身仍锚在第 18 行，故不影响命中判定。"
+      },
+      {
+        "record_id": "EIS-0040-03",
+        "arm": "乙",
+        "hit": true,
+        "equivalence_form": "直接对应",
+        "argument": "乙 [1] 主张 occupancy_after(source=HumanDriving, trigger=front_distance_10, target=Autonomous) 返回 False，并同样声明结构层 edge_declared（REQ-004b）为 True、失败发生在运行时仿真。这与台账 03 的 primary_predicate（occupancy_after）与 entry 方向的可观察命题是同一命题：在层次语义下「未占据复合状态 Autonomous」即「Autonomous 内无子状态激活」，正是台账那句「进入自动驾驶后无任何子状态处于激活」。乙未把机制点名到第 18 行的带触发初始迁移，但裁决标准是命题是否指向同一处作者编辑而非论证是否解释了机制（§二：不是措辞是否相同）；在本作者源中，边已声明而占据为假的唯一可能编辑就是第 18 行。故与甲同判。",
+        "note": "本条的不确定点：乙（与丙）只给出可观察面而未指名初始迁移。我按 §五.2 用与甲完全相同的严格度处理——甲的机制说明属论证质量差异，不改变三者所指的作者源缺陷；若反过来只因甲多写一句机制就判甲命中而乙不命中，即是对论证质量而非命题同一性打分。"
+      },
+      {
+        "record_id": "EIS-0040-03",
+        "arm": "丙",
+        "hit": true,
+        "equivalence_form": "直接对应",
+        "argument": "丙 [2] 主张仿真显示从 HumanDriving 发送 front_distance_10 后系统并未占用 Autonomous，且明确写出 stm_text 中该边存在但 occupancy_after 返回 False。命题与台账 03 的 occupancy_after / entry 判定同一，且同样以行为仿真而非边存在性作为证据（不触 §2.2 的以次充好禁令）。该占据为假在本作者源中只能由第 18 行带触发的初始迁移造成，故指向同一处失误。与甲、乙在同一严格度下同判。",
+        "note": "与乙同样未点名初始迁移这一机制；判定理由见乙一行的说明，三份产出在本条上用同一把尺子。"
+      }
+    ]
+  }
+]

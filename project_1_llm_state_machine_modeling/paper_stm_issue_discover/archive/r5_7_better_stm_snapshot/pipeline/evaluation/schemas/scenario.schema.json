@@ -1,0 +1,299 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:paper-stm-repair:r4:scenario-suite:v0",
+  "title": "R4 scenario suite v0",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "example_id",
+    "traceability",
+    "canonical_output_path",
+    "source_meta_path",
+    "source_stm0_path",
+    "source_nl_path",
+    "r4_dry_run_decision",
+    "scenarios"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "r4.scenario_suite.v0"
+    },
+    "example_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "r4_dry_run_decision": {
+      "enum": [
+        "complete",
+        "focused",
+        "blocked",
+        "supplementary"
+      ]
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/scenario"
+      }
+    },
+    "traceability": {
+      "$ref": "#/$defs/traceability"
+    },
+    "source_nl_path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_stm0_path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_meta_path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "canonical_output_path": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "evidenceLocator": {
+      "type": "object",
+      "required": [
+        "kind",
+        "path",
+        "description"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "nl",
+            "stm0",
+            "canonical",
+            "r3_report",
+            "r3_loss_ledger",
+            "r3_summary",
+            "source_meta",
+            "rubric",
+            "scenario",
+            "pr_comment",
+            "other"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "json_pointer": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "line_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "event": {
+      "type": "object",
+      "required": [
+        "event",
+        "guard",
+        "source_ref"
+      ],
+      "properties": {
+        "event": {
+          "type": "string"
+        },
+        "guard": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "scenario": {
+      "type": "object",
+      "required": [
+        "scenario_id",
+        "source_nl_ref",
+        "source_stm_ref",
+        "initial_state",
+        "event_sequence",
+        "expected_observation",
+        "oracle_type",
+        "is_regression_gate",
+        "blocking_on_failure",
+        "evidence_locator",
+        "limitations"
+      ],
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "pattern": "^R4\\.SCENARIO\\.[A-Za-z0-9_.-]+$"
+        },
+        "source_nl_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_stm_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "initial_state": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "event_sequence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/event"
+          }
+        },
+        "expected_observation": {
+          "type": "object",
+          "required": [
+            "kind",
+            "description"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "state_reached",
+                "transition_exists",
+                "transition_forbidden",
+                "trace_prefix",
+                "human_assertion",
+                "blocked_reason"
+              ]
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1
+            },
+            "target_state": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "transition_ref": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "oracle_type": {
+          "enum": [
+            "reachability",
+            "transition_presence",
+            "forbidden_transition",
+            "trace_prefix",
+            "human_assertion",
+            "placeholder"
+          ]
+        },
+        "is_regression_gate": {
+          "type": "boolean"
+        },
+        "blocking_on_failure": {
+          "type": "boolean"
+        },
+        "evidence_locator": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/evidenceLocator"
+          }
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "oracle_type": {
+                "const": "placeholder"
+              }
+            },
+            "required": [
+              "oracle_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "is_regression_gate": {
+                "const": false
+              },
+              "blocking_on_failure": {
+                "const": false
+              }
+            }
+          }
+        }
+      ]
+    },
+    "traceability": {
+      "type": "object",
+      "required": [
+        "source_nl_path",
+        "source_stm0_path",
+        "source_meta_path",
+        "canonical_output_path"
+      ],
+      "properties": {
+        "source_nl_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_stm0_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_meta_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "canonical_output_path": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,67 @@
+#!/usr/bin/env python3
+"""Verify the protected IEEEtran archive, tree, manifest, and work copies."""
+from pathlib import Path
+import hashlib, re, tempfile, zipfile, sys
+
+ROOT = Path(__file__).resolve().parents[1]
+archive = ROOT / "template/source/IEEEtran-1.8b-ctan.zip"
+tree = ROOT / "template/official-original"
+expected_archive = "e0cd4f5afbd42c8076092280e72b3e0a5111efe501d35de9f715cfb8da313cb4"
+errors = []
+
+def sha(path):
+    h = hashlib.sha256()
+    with path.open("rb") as fh:
+        for block in iter(lambda: fh.read(1024 * 1024), b""):
+            h.update(block)
+    return h.hexdigest()
+
+if not archive.is_file(): errors.append("protected archive missing")
+elif sha(archive) != expected_archive: errors.append("archive SHA-256 differs from provenance")
+if not tree.is_dir(): errors.append("protected extracted tree missing")
+manifest = ROOT / "template/MANIFEST.sha256"
+if not manifest.is_file(): errors.append("template manifest missing")
+
+with tempfile.TemporaryDirectory() as td:
+    extracted = Path(td) / "tree"
+    if archive.is_file():
+        with zipfile.ZipFile(archive) as zf: zf.extractall(extracted)
+        def inventory(base):
+            return {p.relative_to(base).as_posix(): sha(p) for p in base.rglob("*") if p.is_file()}
+        actual = inventory(tree) if tree.is_dir() else {}
+        fresh = inventory(extracted)
+        if actual != fresh:
+            missing = sorted(set(fresh) - set(actual)); extra = sorted(set(actual) - set(fresh))
+            changed = sorted(k for k in set(actual) & set(fresh) if actual[k] != fresh[k])
+            errors.append(f"tree mismatch missing={missing[:3]} extra={extra[:3]} changed={changed[:3]}")
+        actual_dirs = {p.relative_to(tree).as_posix() for p in tree.rglob("*") if p.is_dir()} if tree.is_dir() else set()
+        fresh_dirs = {p.relative_to(extracted).as_posix() for p in extracted.rglob("*") if p.is_dir()}
+        if actual_dirs != fresh_dirs:
+            errors.append("protected directory set differs from archive extraction")
+
+if manifest.is_file():
+    manifest_text = manifest.read_text(encoding="utf-8")
+    if archive.is_file() and f"{expected_archive}  template/source/IEEEtran-1.8b-ctan.zip" not in manifest_text:
+        errors.append("manifest archive entry missing or stale")
+    for path in ["IEEEtran.cls", "IEEEtran.bst"]:
+        if not re.search(rf"^[0-9a-f]{{64}}  {re.escape(path)}$", manifest_text, re.M):
+            errors.append(f"manifest work-copy entry missing: {path}")
+    entries = {}
+    for line in manifest_text.splitlines():
+        match = re.match(r"^([0-9a-f]{64})  (.+)$", line)
+        if match:
+            entries[match.group(2)] = match.group(1)
+    for rel, expected in entries.items():
+        path = ROOT / rel
+        if path.is_file() and sha(path) != expected:
+            errors.append(f"manifest hash mismatch: {rel}")
+        elif not path.is_file() and not rel.endswith("IEEEtran-1.8b-ctan.zip"):
+            errors.append(f"manifest file missing: {rel}")
+
+for work, source in [(ROOT / "IEEEtran.cls", tree / "IEEEtran/IEEEtran.cls"), (ROOT / "IEEEtran.bst", tree / "IEEEtran/bibtex/IEEEtran.bst")]:
+    if not work.is_file() or not source.is_file() or sha(work) != sha(source):
+        errors.append(f"work copy mismatch: {work.name}")
+
+if errors:
+    print("TEMPLATE INTEGRITY FAIL"); print("\n".join(f"- {e}" for e in errors)); sys.exit(1)
+print(f"TEMPLATE INTEGRITY PASS: archive {expected_archive[:12]}..., protected tree and cls/bst work copies agree")

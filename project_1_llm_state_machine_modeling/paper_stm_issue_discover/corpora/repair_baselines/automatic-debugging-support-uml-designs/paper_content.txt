@@ -1,0 +1,666 @@
+--- Page 1 ---
+arXiv:cs/0011017v1  [cs.SE]  13 Nov 2000Automatic Debugging Support for UML
+Designs∗
+Johann Schumann
+RIACS / NASA Ames, Moﬀett Field, CA, USA,
+schumann@ptolemy.arc.nasa.gov
+http://ase.arc.nasa.gov
+Abstract
+Design of large software systems requires rigorous applica tion of
+software engineering methods covering all phases of the sof tware pro-
+cess. Debugging during the early design phases is extremely impor-
+tant, because late bug-ﬁxes are expensive.
+In this paper, we describe an approach which facilitates deb ugging
+of UML requirements and designs. The Uniﬁed Modeling Langua ge
+(UML) is a set of notations for object-orient design of a soft ware sys-
+tem. We have developed an algorithm which translates requir ement
+speciﬁcations in the form of annotated sequence diagrams in to struc-
+tured statecharts. This algorithm detects conﬂicts betwee n sequence
+diagrams and inconsistencies in the domain knowledge. Afte r synthe-
+sizing statecharts from sequence diagrams, these statecha rts usually
+are subject to manual modiﬁcation and reﬁnement. By using th e
+“backward” direction of our synthesis algorithm, we are abl e to map
+modiﬁcations made to the statechart back into the requireme nts (se-
+quence diagrams) and check for conﬂicts there. Fed back to th e user
+conﬂicts detected by our algorithm are the basis for deducti ve-based
+debugging of requirements and domain theory in very early de velop-
+ment stages. Our approach allows to generate explanations o n why
+there is a conﬂict and which parts of the speciﬁcations are aﬀe cted.
+∗In M. Ducass´ e (ed), proceedings of the Fourth International W orkshop on Automated
+Debugging (AADEBUG 2000), August 2000, Munich. COmputer Rese arch Repository
+(http://www.acm.org/corr/), cs.SE/0011017; whole proceedings : cs.SE/0010035.
+1
+
+--- Page 2 ---
+2 AADEBUG 2000
+1 Introduction
+Size and complexity of software systems has increased tremendou sly. There-
+fore, the development of high-quality software requires rigorous application
+of sophisticated software engineering methods. One such method which has
+become very popular is the Uniﬁed Modeling Language. UML [12] has be en
+developed by the “three amigos” Booch, Jacobson, and Rumbaugh as a com-
+mon framework for designing and implementing object-oriented sof tware.
+UML contains many diﬀerent notations to describe the static and dy namic
+behavior of a system on all diﬀerent levels and phases of the softwa re design
+process.
+Although UML provides a common notational framework for require -
+ments and design, UML, as any other language, does not eliminate bu gs and
+errors. These bugs must be found and ﬁxed in order to end up with a cor-
+rectly working and reliable system. It is well known, that debugging a large
+software system is a critical issue and can be a major cost-driving f actor.
+Changes which have to be applied to the system (e.g., to ﬁx a bug) are be-
+coming substantially more expensive, the later they are detected ( Figure 1).
+When an error is detected early during the deﬁnition phase, its cost is rel-
+atively low, because it only inﬂuences the requirements deﬁnition. Bu gﬁxes
+in a product already shipped can be up to 60–100 times more expensiv e [8].
+Definition Development1.5 - 6 60 - 100
+1relative cost to change
+after Release
+Figure 1: Relative costs for changes/bugﬁxes on diﬀerent stages (based on
+[8]).
+Therefore, it is mandatory to start with debugging as early in the pr oject
+
+--- Page 3 ---
+Debugging Support for UML Designs 3
+as possible. In this paper, we will discuss an approach which support s de-
+bugging of scenarios (more precisely UML sequence diagrams) with r espect
+to given domain knowledge. This is done as a part of an algorithm [13]
+which can synthesize UML statecharts from a number of sequence diagrams.
+This synthesis step can be seen as a transformation from requirem ents to
+system design. It does not only facilitate fast and justiﬁable design from
+requirements (sequence diagrams), but also substantially helps to debug the
+generated designs. Because sequence diagrams usually cover only parts of
+the system’s intended behavior, the generated statecharts nee d to be reﬁned
+andmodiﬁedmanually. Byapplying thesynthesis algorithmina“backwa rd”
+way, the reﬁned statechart can be checked against the requirem ents. Each
+conﬂict is reported to the user and indicates a bug.
+For practical applicability of any debugging aid, the presentation of the
+bug, its cause and eﬀect is of major importance. In our approach, we rely on
+logic-based explanation technology: all conﬂicts correspond to fa ilure in log-
+ical reasoning about sequence diagrams, statecharts, and doma in knowledge.
+Ongoing work, as discussed in the conclusions, uses methods from a utomated
+deduction to point the user to the exact place where the conﬂict oc curred
+and which parts of the models and speciﬁcation are aﬀected.
+This paper is organized as follows: Section 2 gives an overview of majo r
+UML notations and a typcial iterative software design process. Th en we
+will describe how sequence diagrams are annotated for a justiﬁed s ynthesis
+of statecharts (Section 4). Based on this algorithm we discuss met hods for
+debugging a sequence diagram and a synthesized statechart. In S ection 7 we
+discuss future work and conclude.
+Throughout this paper, we will use one example to illustrate our ap-
+proach. The example concerns the interaction between an espres so vending
+machine and a user who is trying to obtain a cup of coﬀee. This example
+(based on the ATM example discussed in [13, 6]) is rather small, yet com -
+plex enough to illustrate the main issues. The requirements present ed here
+are typical scenarios for user interaction with the machine (e.g., ins erting a
+coin, selecting the type of coﬀee the user wants, reaction on invalid choices,
+and pressing the cancel button). More details of the requirement s will be
+discussed when the corresponding UML notations have been introd uced.
+
+--- Page 4 ---
+4 AADEBUG 2000
+2 UML
+The Uniﬁed Modeling Language is the result of an eﬀort to bring toget her
+several diﬀerent object-oriented software design methods. UM L has been
+developed by Booch, Jacobson and Rumbaugh [12] and has gained wid e-
+spread acceptance. A variety of tools support the development in UML;
+among them are Rhapsody [10], Rational’s Rose [9], or Argo/UML [1].
+On the top-level, requirements are usually given in the form of use cases ,
+describing goals for the user and system interactions. For more de tail and
+reﬁnement, UML contains three major groups of notations: class diagrams
+fordescribing thestaticstructure, interaction diagrams forrequirements, and
+state diagrams andactivity diagrams for deﬁning dynamic system behavior.
+Below, we will illustrate the notations which are important for our app roach
+to debugging of UML designs.
+2.1 Software Development with UML
+Although no explicit development process is prescribed for UML, UML de-
+sign usually follows the steps of Inception, Elaboration, Construct ion, and
+Transition, used in an iterative manner. In this paper, we will not elab orate
+ontheprocess model. Fordetails, cf., e.g., [4]. The importanceof sup port for
+debugging of UML designs on the level of sequence diagrams (requir ements),
+and statecharts becomes evident, when we look at a graphical rep resentation
+of an iterative development process (Figure 2). The design starts by analyz-
+ing the (physical) process at the lower left part of the ﬁgure. The r esult of
+the analysis comprises the requirements (e.g., as a set of sequence diagrams),
+andknowledge about the domain (henceforth called domain theory). Based
+on these, a modelof the system is developed, consisting of class diagrams,
+statecharts and activity diagrams. This model must now be implemen ted.
+Modern software engineering tools provide automatic code-gener ation (or at
+least support) for this step. Finally, the produced system must be veriﬁed
+against the physical process, and its performance tuned.
+Traditionally, the way to get a working system is simulation (process–
+requirements–model), and testing (requirements–model–system ). Here, er-
+rors and bugs have to be found and removed. Within an iterative design
+process, these steps are performed over and over again, depict ed by the cir-
+cular arcs. To keep these iterations fast (and thus cost-eﬀectiv e), powerful
+techniquesfor debuggingrequirements againstdomainknowledge, andmodels
+
+--- Page 5 ---
+Debugging Support for UML Designs 5
+against requirements are vital. Our approach supports this kind of debug-
+ging and it will be discussed in the next section, following a short descr iption
+of the basic concepts of class diagrams, sequence diagrams, and s tatecharts.
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1Code GenerationAnalysisDevelopment
+Performance tuning/
+-verificationTesting Simulation
+SystemModelRequirements
+specification
+Process
+Figure 2: Iterative Design Process
+2.2 Class Diagram
+Aclass diagram is a notation for modeling the static structure of a system.
+It describes the classes in a system and the relationships between t hem.
+Figure 3 shows an example of a class diagram for our coﬀee-vending m a-
+chine example. In an object-oriented fashion, the main class (here “coﬀee
+machine”) is broken down into sub-classes. The aggregation relatio n (✸)
+shows when one class is part ofanother one. The generalization relation
+(✄) shows when one class is an instance of another. For further details,
+see e.g., [12].
+2.3 Statecharts
+Statecharts [5, 12], are ﬁnite state machines extended with hierarchy and
+orthogonality. They allow a complex system to be expressed in a comp act
+and elegant way. Figure 4 shows a simple example of a statechart. No des can
+either be simple nodes (A1, A2, A3, B, and C), or composite nodes (n ode A
+
+--- Page 6 ---
+6 AADEBUG 2000
+top-level
+device
+Coin
+checkerCup
+dispenserCoffee-type
+selectorCancel
+handling
+ControllerMachinedialog physical
+Figure 3: A Class Diagram for the Coﬀee machine.
+in the ﬁgure) which themselves contain other statecharts. The init ial node
+in a statechart is marked by •. Transitions between states have labels of the
+forme[c]/a. If event eoccurs and guard cholds, then the transition may
+be selected to ﬁre which results in action abeing taken and a state change
+occurring. This behavior is extended in a natural way to handle comp osite
+nodes.
+2.4 Sequence Diagrams
+Scenarios describe concrete examples of the system’s intended be havior. In
+UML scenarios can be expressed as sequence diagrams . Asequence diagram
+(SD) shows the interaction between objects of a system over time . The SD in
+Figure 5 is an example for interactions between the objects “User” , the user
+interface of the coﬀee machine (“Coﬀee-UI”), and the machine (“ Control”)
+itself. The vertical lines represent the time-line for the given objec t, deﬁning
+the object’s life during the interaction. Messages (like “Insert coin ”) are
+exchanged between the objects. Figure 6 is a diﬀerent scenario fo r our coﬀee-
+machine. It describes an invalid selection by the user (e.g., choosing s ugar
+and sweetener at the same time).
+
+--- Page 7 ---
+Debugging Support for UML Designs 7
+Figure 4: Example of a Statechart.
+3 Extending Sequence Diagrams
+The simplicity of sequence diagrams makes them suitable for express ing re-
+quirements as they can be easily understood by customers, requir ements
+engineers and software developers alike. Unfortunately, the lack of semantic
+content in sequence diagrams makes them ambiguous and therefor e diﬃcult
+to interpret. Let us assume that in our example, there exists an ad ditional
+sequence diagram, SD0, identical to SD1 in Figure 5 except that the re are
+two “Insert coins” messages adjacent to each other. There are three possible
+waystointerpret theconjunctionofthetwoSDs—eitheracupofc oﬀeecosts
+one or two coins (ridiculous!), or it costs just one coin, in which case S D0 is
+incorrect. The other case (two coins needed) invalidates SD1. In p ractice,
+such ambiguities are often resolved by examining the informal requir ements
+documentation but, in some cases, ambiguities may go undetected le ading to
+costly software errors.
+For the automatic generation of (conﬂict-free) designs, such do cuments
+are usually too informal. On the other hand, the need to provide a fu ll
+formal domain theory containing all semantic informationis clearly to omuch
+a burden for the designer and thus not acceptable in practice.
+Our approach allows fora compromise: the user canannotatemess ages in
+a sequence diagram with a pre/post-condition style speciﬁcation ex pressed in
+OCL, UML’s logic-based speciﬁcation and constraint language. For s uccess-
+ful conﬂict detection (and statechart synthesis), only a small pe rcentage of
+messages need to be annotated at all. This speciﬁcations should inclu de the
+
+--- Page 8 ---
+8 AADEBUG 2000
+Ingr. not availableDisplay Ready Light
+Check selection
+No Coffee messageInsert coin
+Request Selection
+Enter SelectionControl Coffee-UI User
+Release Coin
+Request take coin
+Take coin
+Display Ready Light
+Figure 5: Interaction with a coﬀee
+vending machine (SD1).Coffee-UI
+Display Ready Light
+Check selection
+Display Ready LightInsert coin
+Request Selection
+Enter Selection
+selection not validRequest Selection
+Cancel
+Take coinRequest take coinRelease CoinAcknowledge CancelUser Control
+Figure 6: Another interaction with a
+coﬀee vending machine (SD2).
+declaration of global state variables , where a state variable represents some
+important aspect of the system, e.g., whether or not a coin is in the c oﬀee-
+vending machine. Pre- and post-conditions should then include refe rences to
+those variables. Our experience with the case studies carried out s o far (see
+Conclusions) is that the state variables and their data types usually directly
+“fall out” from the class diagram. Note that not every message ne eds to be
+given a speciﬁcation, although, clearly, the more semantic informat ion that
+is supplied, the better the quality of the conﬂict detection. Curren tly, our
+algorithm only exploits constraints of the form var=value, but there may
+be something to be gained from reasoning about other constraints using an
+automated theorem prover, e.g., [7] or constraint solving techniqu es.
+Fig. 7 gives speciﬁcations for selected messages in our coﬀee-mach ine
+example. Here, thestatevariablesarethebooleanvariables CoinInMachine,
+CoinInReturnSlot, CoffeeTypeSelected , the variable Coinreﬂecting the
+number of coins inthe machine (0, or 1), and SelectedCoffeeType . In order
+to talk about all values of the state variables at a given point, we use the
+notion of a state vector . This is a vector of values of the state variables. In
+our example, the state vector has the following form:
+<CoinInMachine^, CoinInReturnSlot^, CoffeeTypeSelecte d^,
+Coin^, SelectedCoffeeType^>
+
+--- Page 9 ---
+Debugging Support for UML Designs 9
+The notation varˆ extends the possible value for a state variable by an
+undetermined value, denoted by a “?”, i.e., varˆ∈Dom(var)∪{?}. For use
+with our algorithm, we will annotate each message of a sequence diag ram
+with a statevector where the values of the state variables are det ermined by
+the algorithm described below.
+4 Automatic Synthesis of Statecharts from
+Sequence Diagrams
+The framework for debugging UML designs is based upon an algorithm for
+automaticsynthesis ofstatechartsfromsequence diagramsand adomainthe-
+ory [13]. The process to convert a number of SDs into a structured statechart
+consists of several steps: in the ﬁrst step, each SD is annotated and conﬂicts
+between the SD and the domain theory (and hence, other SDs) are detected
+and reported to the user. Then, a statechart for each of the ob jects in the
+SD is generated; and all statecharts for an object are merged int o a single
+statechart. The ﬁnal step of the synthesis introduces hierarch y by grouping
+nodes into composite nodes, thus enhancing readability. In this pap er, we
+are only concerned with the ﬁrst, conﬂict detection part (as a bas is for de-
+bugging), and the ﬁnal result, the statechart. For details on the algorithm
+see [13].
+There are two kinds of constraints imposed on a sequence diagram: con-
+straints on the state vector given by the OCL speciﬁcation, and co nstraints
+onthe ordering ofmessages given by the SD itself. These constrain ts must be
+solved and arising conﬂicts be reported to the user. More formally, the pro-
+cess of conﬂict detection can be written as follows. An annotated s equence
+diagram is a sequence of messages m1,...,m n, with
+spre
+0m1−→spost
+0,spre
+1m2−→...mr−1−→spost
+r−1,spre
+rmr−→spost
+r (1)
+where the spre
+i,spost
+iare the state vectors immediately before and after mes-
+sagemiis being sent. Siwill be used to denote either spre
+iorspost
+i;spre
+i[j]
+denotes the element at position jinspre
+i(similarly for spost
+i).
+In the ﬁrst step of the synthesis process, we assign values to the variables
+in the state vectors as shown in Figure 8. The variable instantiations of
+the initial state vectors are obtained directly from the message sp eciﬁcations
+(lines 1,2): if message miassigns a value yto a variable of the state vector in
+
+--- Page 10 ---
+10 AADEBUG 2000
+CoinInMachine, CoinInReturnSlot, CoffeeTypeSelected : B oolean
+Coin : 0..1
+SelectedCoffeeType : enum {none,Espresso,Cappuchino,Mi lk}
+context insert coin
+pre: CoinInMachine = F ;
+post: CoinInMachine = T and Coin = 1 ;
+context Enter Selection (CT
+:enum {none,Espresso,Cappuchino,Milk})
+pre: CoffeeTypeSelected = F ;
+post: CoffeeTypeSelected = T and SelectedCoffeeType = CT;
+context Take coin
+pre: CoinInReturnSlot = T ;
+post: CoinInReturnSlot = F and CoinInMachine = F ;
+context Display Ready Light
+pre: CoinInReturnSlot = F and CoinInMachine = F ;
+post:
+context Request Selection
+pre: CoffeeTypeSelected = F ;
+post:
+context Release coin
+pre: Coin = 1 ;
+post: CoffeeTypeSelected = F and CoinInReturnSlot = T and
+Coin=0 and CoinInMachine = F and
+SelectedCoffeeType = none ;
+context Request take coin
+pre: CoinInReturnSlot = T ;
+post:
+context Acknowledge cancel
+pre: CoinInMachine = T ;
+post:
+Figure 7: Domain theory for messages in the coﬀee-machine example .
+
+--- Page 11 ---
+Debugging Support for UML Designs 11
+Input.An annotated SD
+Output.A SD with extended annotations
+1foreach message mido
+2ifmihas a precond vj=ythenspre
+i[j] :=yelsespre
+i[j] :=?ﬁ
+3ifmihas a postcond vj=ythenspost
+i[j] :=yelsespost
+i[j] :=?ﬁ
+4foreach state vector Skdo
+5ifthere is some Sl/ne}ationslash=Skand some uniﬁer φwithφ(Sk) =φ(Sl)then
+6unifySkandSl;
+7propagate instantiations with frame axiom:
+8foreach j,iwithi >0:ifspre
+i[j] =?thenspre
+i[j] :=spost
+i−1[j]ﬁ
+9 ifspost
+i[j] =?thenspost
+i[j] :=spre
+i[j]ﬁ
+10ifthere is some i,jwithspost
+i[j]/ne}ationslash=spre
+i+1[j]then
+11Report Conﬂict;
+12break;
+Figure 8: Extending the state vector annotations.
+its pre- or post-condition, then this variable assignment is used. Ot herwise,
+the variable in the state vector is set to an undetermined value ?. Sin ce each
+message is speciﬁed independently, the initial state vectors will con tain a lot
+of unknown values. Most (but not all) of these can be given a value in o ne
+of two ways: two state vectors, SkandSl(k/ne}ationslash=l), are considered the same if
+they areuniﬁable (line6). This means thatthere exists a variableass ignment
+φsuch that φ(Sk) =φ(Sl). This situation indicates a potential loop within
+a SD. The second means for assigning values to variables is the applica tion
+of the frame axiom (lines 8,9), i.e., we can assign unknown variables of a
+pre-condition with the value from the preceeding post-condition, a nd vice
+versa. This means that values of state variables are propagated a s long as
+they are not changed by a speciﬁc pre- or post-condition. This also assumes
+that there are no hidden side-eﬀects between messages.
+Aconﬂict(line11)isdetectedandreportedifthestatevectorimme diately
+following a message and the state vector immediately preceding the n ext
+message diﬀer.
+Example. Let us consider how this algorithm operates on the ﬁrst few
+messages ofSD1fromFigure5. When annotatingtheﬁrst message (“Display
+
+--- Page 12 ---
+12 AADEBUG 2000
+Ready Light”), we obtain the following state vector on the side of th e user-
+interface: S1=<F,F,?,?,?> . The values of the ﬁrst two state variables
+are determined by the message’s pre-condition in the domain theory . The
+state-vector S2on the receiving side of our message only consists of “?”. As
+a pre-condition for the message “Insert coin” we have CoinInMachine = F .
+Thus we have S3=<F,?,?,?,?> as the state vector. All other messages
+in SD1 are annotated in a similar way. Now, our algorithm (lines 4–12)
+tries to unify state vectors and propagate the variable assignmen ts. In our
+case, the attempt to unify S2withS3would assign the value Fto the ﬁrst
+variable in S2, yielding S2=<F,?,?,?,?> . Now, both state vectors are
+equal. Then, variable values are propagated using the frame axiom. In our
+case, we can propagate the value of CoinInReturnSlot = F (fromS1) into
+S2andS3, because the domain theory does not prescribe speciﬁc values of
+this state variable at these messages. Hence, its current value Fcan be used
+in the other state vectors, ﬁnally yielding S2=S3=<F,F,?,?,?> . After
+performing all uniﬁcation and propagation steps, we obtain an anno tated
+sequence diagram as shown in Figure 9. The conﬂict indicated there w ill be
+discussed in the next section.
+5 Debugging a Sequence Diagram
+The algorithm from the previous section detects conﬂicts of a SD wit h the
+domain theory (and thus with other sequence diagrams). Any such conﬂict
+which is detected corresponds to a bug which needs to be ﬁxed. The bug can
+be in the sequence diagrams, which means that one or more sequenc es of ac-
+tions are not compatible with the domain theory, and henceforth wit h other
+SDs. Such a situation often occurs when sequence diagrams and do main the-
+ory for a large system are developed by diﬀerent requirements eng ineers. Our
+algorithm is capable of directly pointing to the location where the conﬂ ict
+with the domain theory occurs. The respective message, togethe r with the
+instantiated pre- and post-conditions, as well as the required sta te vector val-
+ues are displayed. This feature allows to easily debug the sequence d iagram.
+Of course, the error could be in the domain theory instead. For exa mple, one
+designer could have set up pre- or post-conditions which are too re strictive
+to be applicable for scenarios, speciﬁed by other designers. In tha t case, the
+domain theory must be debugged and modiﬁed. Our algorithm can also pro-
+vide substantial support here, because it is able to display the exac t location
+
+--- Page 13 ---
+Debugging Support for UML Designs 13
+where the conﬂicting state variables have been instantiated. Espe cially in
+long sequence diagrams the place where a state variable is instantiat ed and
+the place where the conﬂict occurs can be far apart. The current version of
+our algorithm provides only rudimentary feed-back as demonstrat ed in the
+example below. Future work (which also allows richer OCL constructs to
+be used) requires more elaborate, human-readable descriptions o f the error
+trace. Automated theorem provers and work on proof presenta tion, like the
+ILF system [2, 3] will be used for that purpose. Such a system will no t
+onlyexplainthe possible reasons for a conﬂict, but can also give (heuristics-
+driven) hints to the user on how to ﬁx the problem.
+Example. The following example shows, how conﬂict detection can be used
+for debugging: Figure 9 shows SD1 from Figure 5 after the state ve ctors have
+been extended by our algorithm of Figure 8. Our procedure has det ected a
+conﬂict with the domain theory. As an output it provides the messag es and
+state vectors which are involved in the conﬂict:
+Conflict in SD1: Object Coffee-UI
+statevector after "Insert coin" = <T,F,T,1,none> [Msg 2]
+statevector before "Request Selection" = <T,F,F,1,none> [ Msg 3]
+conflict in variable "CoffeeTypeSelected"
+conflict occurred as consequence of unification of
+statevector after "Display Ready Light" = <F,F,T,0,none> [ Msg 1]
+statevector after "Display Ready Light" = <F,F,T,0,none> [ Msg 11]
+statevector after "Take coin" = <F,F,T,0,none> [Msg 10]
+This arises because state vectors SV1 (state vector before “Dis play Ready
+Light”) and SV2 (after “Take coin”) are uniﬁed (Figure 9 shows the instan-
+tiations of the vectors after uniﬁcation). This corresponds to th e fact that
+the coﬀee machine returns to its initial state after “Take coin” is ex ecuted.
+The state vectors tell us that there is a potential loop at this point . A second
+execution of this loop causes the state variable “CoﬀeeTypeSelect ed” to true,
+when the system asks for a selection. However, the domain theory tells us
+that this variable must be false as a pre-condition of the “Request S election”
+message. Hence, there is a conﬂict, which represents the fact th at the de-
+veloper probably did not account for the loop when designing the dom ain
+theory.
+The user must now decide on a resolution of this conﬂict — i.e., to debug
+this situation. The user either
+
+--- Page 14 ---
+14 AADEBUG 2000
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1Control Coffee-UI User
+No Coffee message
+Display Ready LightDisplay Ready Light
+Insert coin
+Request Selection
+Enter Selection
+Ingr. not available<F,F,T,0,none>
+<F,F,T,0,none>
+<T,F,F,1,none>
+<T,F,F,1,none>
+<T,F,T,1,CT>
+Release Coin
+Request take coin
+Take coin<T,F,T,1,CT><T,F,T,1,CT>
+<F,T,T,0,none>
+<F,T,T,0,none>
+<F,T,T,0,none>
+<F,F,T,0,none><F,T,T,0,none>
+<F,F,T,0,none>
+<F,F,T,0,none><F,F,T,0,none>
+<T,F,T,1,none>
+<T,F,F,1,none>
+Check selection<T,F,T,1,CT>SV1
+SV2CONFLICT
+Figure 9: Sequence Diagram SD1 with extended annotations. A conﬂ ict has
+occurred.
+•cantellthesystemthattheloopisnotpossible, inwhichcasetheuniﬁ er
+that detected the loop is discarded. This amounts to modifying the
+annotated sequence diagram (by restricting possible interpretat ions).
+The user can
+•modify the sequence diagram at some other point, e.g., by adding mes -
+sages; or
+•modify the domain theory. In our example, the action taken might
+be that the domain theory is updated by giving “Release coin” the
+additional postcondition CoffeeTypeSelected = false . This extra
+post-condition resets the value of the variable (i.e., the selection) w hen
+the user is asked to remove the coin. The position of the change has
+been obtained by systematically going backwards from SV2. Althoug h
+possible locations are automatically given by the system, the decision
+where to ﬁx the bug ( at “Release coin” or at “Take coin”) must be
+made by the user. Here, the second possibility was chosen, becaus e the
+speciﬁcation for that message modiﬁed a state variable which is relat ed
+to the variable which caused the conﬂict.
+
+--- Page 15 ---
+Debugging Support for UML Designs 15
+6 Debugging a Synthesized Statechart
+When the statechart synthesis algorithm successfully terminates , it has gen-
+erated a human-readable, hierarchically structured statechart , reﬂecting the
+information contained in the SDs and the domain theory. In general, how-
+ever, sequence diagrams usually describe only parts of the intende d dynamic
+behavior ofasystem. Therefore, thegeneratedstatechart ca nonlybea skele-
+tonrather than a full-ﬂedged system design. Thus, the designer usua lly will
+extend, reﬁne, and modify the resulting statechart manually. Our approach
+takes this into account by generating a well structured, human-r eadable stat-
+echart which facilitates manual reﬁnement and modiﬁcation.
+However, these manual actions can be sources of errors which will have
+to be found and removed from the design. In the following, we descr ibe two
+approaches, addressing this problem.
+6.1 Classical Debugging
+Thetraditionalwaytoﬁndbugsinastatechartistorunsimulationsa ndlarge
+numbersoftestcases. Mostcommercialtoolsforstatecharts, likeBetterstate,
+Statemate, or Rhapsody support these techniques. Some tools a lso provide
+moreadvancedmeansforanalysis, likedetectionofdeadlocks, dea dbranches,
+non-deterministic choices, or even model checking for proving mor e elaborate
+properties. In this paper, we will not discuss these techniques.
+6.2 Debugging w.r.t. Requirements
+Whenever a design (in our case the statechart) is modiﬁed, care mu st be
+taken that all requirements speciﬁcations are still met, or that an appro-
+priate update is made. Traditionally, this is done manually by updating
+the requirements document (if it is done at all). Bugs are usually not d e-
+tected(andnoteven searched for)until theﬁnished implementat ion istested.
+Thereby, late detection of bugs leads to increased costs. By cons idering the
+“reverse” direction of our synthesis algorithm, we are able to
+•check that all sequence diagrams are still valid, i.e., that they repre sent
+a possible sequence of events and actions of the system
+•detectconﬂictsbetweenthecurrentdesign(statechart)ando neormore
+SDs, and
+
+--- Page 16 ---
+16 AADEBUG 2000
+•detect inconsistencies with respect to the domain theory.
+Thebasicprincipleofthattechniqueisthatwetakeonesequence dia gram
+aftertheother, togetherwiththedomaintheory, andcheckifth atsequenceof
+messages is a possible execution sequence in the given statechart. Here again
+we use logic-based techniques, similar to those described above (un iﬁcation
+of state vectors, value propagation with the frame axiom). An inco nsistency
+between the (modiﬁed) statechart and the SD indicates a bug (in th e SD
+or SC). By successively applying patches to the SD (by removing or a dding
+messages to the SD) the algorithm searches for possible ways to ob tain an
+updated and consistent SD. Since in general more than one possible ﬁx for
+an inconsistency exists, we perform an iterative deepening search resulting
+in a solution with the fewest modiﬁcations to the sequence diagram. W e are
+aiming to extend this search by applying heuristics to select “good” ﬁ xes.
+Here again, the form of feed-back to the user is of major importan ce. We
+are envisioning that the system can update the requirements and p rovide
+explanations for conﬂicts in a similar way as described above.
+Example. The statechart in Figure 10 has been reﬁned. The transition
+betweenN2andN3has been extended in such a way that ﬁrst event e2, then
+e3with action a3has to occur before the state N3is reached. The original
+statechart has been generated from a sequence diagram as show n on the
+right-hand side of Fig. 10. The modiﬁcation of the statechart is pro pagated
+back to the sequence diagrams where the change is clearly marked. In this
+example, the extension could be made without causing a conﬂict. How ever,
+it is advisable for the designer and/or the requirements engineer to carefully
+observe these changes in order to make sure that these modiﬁed r equirements
+still meet the original intended system behavior.
+7 Future Work and Conclusions
+We have presented a method for debugging UML sequence diagrams and
+statechartsduringearlystagesinthesoftwaredevelopment pro cess. Basedon
+analgorithm, designedforjustiﬁedsynthesisofstatecharts, we haveidentiﬁed
+two points where conﬂicts (as a basis for debugging) can be detect ed: during
+extending the annotations of a SD (conﬂicts w.r.t. the domain theor y), and
+updating of sequence diagrams based upon a reﬁned or modiﬁed sta techart.
+The algorithm which is described in [13] has been implemented in Java
+and has been used for several smaller case studies in the area of ob ject-
+
+--- Page 17 ---
+Debugging Support for UML Designs 17
+Object 1
+e1/a1
+e2e2
+e3/a3Object 1
+e3
+a3e2e1
+a1
+CHANGESN2
+N3N1Object2
+Figure 10: Statechart with manual reﬁnement (the removed tran sition is
+shownasadashedline, thenewelements arebold), andthesequenc e diagram
+as updated by our algorithm (right).
+oriented systems, user interfaces, and agent-based systems [1 1]. Current
+work on this part include integration this algorithm into a commercial U ML
+tool (MagicDraw). Currently we are extending our synthesis algor ithm to
+provide the debugging facilities described in this paper. Future work will
+mainly focus on integrating and extending explanation technology int o our
+system.
+Debugginglargedesignswithlengthyandcomplexdomaintheoriesvita lly
+depends upon an elaborate way of providing feed-back to the user . Starting
+from the basic information about a conﬂict (i.e., a failed uniﬁcation), w e will
+usetheoremprovingtechniques ofabductionandcounter-examp le generation
+to provide asmuch feed-back aspossible onwhere thebug might be, andhow
+to ﬁx the problem1. These techniques will be combined with tools capable of
+presenting a logic statement in human-readable, problem-speciﬁc w ay (e.g.,
+ILF [2, 3]). Only, if debugging feedback can be given in the notation of the
+engineering domain rather than in some logic framework, such debug ging
+aids will be accepted in practice.
+It is believed that UML (and tools based upon this notation) will have
+a substantial impact on how software development is made. By prov iding
+techniques which do not only facilitate design by synthesis, but also p rovide
+powerful means todebug requirements anddesigns inearlystages we areable
+to contribute to tools which are useful in design of large software s ystems.
+1This problem essentially is equivalent to ﬁnding which hypotheses are m issing or
+wrong when a conjecture cannot be proven valid.
+
+--- Page 18 ---
+18 AADEBUG 2000
+References
+[1]Argo/UML . University of California, Irvine, 1999.
+http://argouml.tigris.org.
+[2] B. I. Dahn and A. Wolf. Natural Language Presentation and Combi-
+nation of Automatically Generated Proofs , volume 3 of Applied Logic
+Series, pages 175–192. Kluwer Academic Publishers, 1996.
+[3] B. I. Dahn et al. Integration of Automated and Interactive The orem
+Proving in ILF. In Proc. CADE-14 , volume 1249 of LNAI, pages 57–60.
+Springer, 1997.
+[4] M. Fowler. UML Distilled . Addison Wesley, 1997.
+[5] D. Harel. Statecharts: A visual formalism for complex systems. Science
+of Computer Programming , 8:231–274, 1987.
+[6] T. M¨ annist¨ o, T. Syst¨ a, and J. Tuomi. SCED Report and User M anual.
+Report A-1994-5, Dept of Computer Science, University of Tampe re,
+1994.
+[7] M. Moser, O. Ibens, R. Letz, J. Steinbach, Chr. Goller, J. Schu -
+mann, and K. Mayr. The Model Elimination Provers SETHEO and
+E-SETHEO. Journal of Automated Reasoning , 18:237–246, 1997.
+[8] R. Pressman. Software Engineering - a Practitioneer’s Approach .
+McGraw-Hill, 1997.
+[9]Rational Rose . Rational Software Corporation, Cupertino, CA, 1999.
+[10]Rhapsody . I-Logix Inc., Andover, MA, 1999.
+[11] J. Schumann and J. Whittle. Automatic synthesis of agent desig ns in
+uml. InProc. of Goddard Workshop on Agent-based Systems . Springer,
+2000.
+[12] Uniﬁed Modeling Language Speciﬁcation, Version 1.3, 1999. Availa ble
+from Rational Software Corporation, Cupertino, CA.
+[13] J. Whittle and J. Schumann. Generating Statechart Designs Fr om Sce-
+narios. In Proc. ICSE 2000 , 2000.

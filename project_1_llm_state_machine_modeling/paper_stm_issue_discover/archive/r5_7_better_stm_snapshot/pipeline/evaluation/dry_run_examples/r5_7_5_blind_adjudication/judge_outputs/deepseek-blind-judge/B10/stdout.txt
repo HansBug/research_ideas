@@ -1,0 +1,83 @@
+I have all the input materials inline in the prompt. Let me proceed with the blind adjudication.
+
+```json
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B10",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "deepseek-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "not_better",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "NL contains only discrete event/condition triggers (power on, front_distance > 10, human steering/brake, power off). No second/millisecond duration, interval timing, execution-time bounds, or periodic tick/timer cues. Pure T0 discrete state/transition logic. No T0.5 caveat and no T1 stress semantics.",
+      "evidence_references": ["NL"]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "candidate_parse_status is parse_ok per mechanical_checks. provenance_checks confirm change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true, and candidate is not byte-identical to canonical (candidate_same_as_canonical_stm0=false). Candidate file present, structurally readable FCSTM with state declarations, transitions, event declarations, and guard variable.",
+      "evidence_references": ["candidate STM_k", "mechanical_checks", "provenance_checks"]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "change_ledger_available=true and hash_chain_complete=true establish attributable provenance. Changes from canonical to candidate are structural/semantic, not mere formatting: hierarchy flattening (Autonomous moved from sub-state of HumanDriving to top-level sibling), extraction of front_distance > 10 from event label to explicit guard syntax with variable declaration, removal of Power_Off wildcard transition, removal of Enter_Autonomous event and transition. All are attributable delta, not normalization or format conversion noise.",
+      "evidence_references": ["canonical STM_0", "candidate STM_k", "provenance_checks"]
+    },
+    "G3": {
+      "status": "fail",
+      "reason": "Candidate introduces multiple critical regressions against NL-supported behavior: (1) Power_Off → FinalState transition completely deleted — canonical's wildcard transition '! * -> FinalState : Power_Off' has no counterpart in candidate, violating NL requirement 'when power off, it will transit to final state'. (2) Return-to-HumanDriving loop broken — NL requires 'transit to human driving mode when receive human steering cmd, brake pressed', but candidate transition 'Autonomous -> InitialState' sends control to top-level InitialState (a sibling of HumanDriving), not back inside HumanDriving; HumanDriving becomes unreachable after first Power_On entry. (3) Hierarchy destroyed — NL states Autonomous 'is represented by a sub machine state', canonical correctly nests Autonomous inside HumanDriving, but candidate flattens Autonomous to top-level sibling, semantically breaking the sub-machine relationship. (4) Enter_Autonomous event deleted with no replacement.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G4": {
+      "status": "pass",
+      "reason": "Candidate extracts 'front_distance > 10' from canonical's opaque event label 'Front_Distance_10' into explicit guard syntax 'if [front_distance > 10]' with a declared integer variable. NL explicitly frames this as a numeric condition ('when front_distance > 10'), making the guard extraction a genuine, NL-supported improvement over the canonical event-label encoding. This is one clearly improved target.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G5": {
+      "status": "fail",
+      "reason": "The guard extraction improvement (G4 pass) is overshadowed by fundamental semantic fidelity failures. NL describes a system with a HumanDriving composite containing an Autonomous sub-machine; canonical preserves this hierarchy and all four NL-specified transitions (Power On entry, Front Distance guard to Autonomous, Human Steering/Brake return to HumanDriving, Power Off to Final). Candidate destroys the hierarchy, deletes Power_Off entirely, and breaks the return-to-HumanDriving transition by routing to a sibling InitialState instead. The guard extraction does not repair or compensate for these losses — it improves one local predicate while the surrounding state machine's core topology and termination behavior are broken. Textual similarity of labels cannot offset structural/topological regression.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "No leakage detected in input packet — no primary_expected_verdict, expected_verdict, source_case_id, source_slug, semantic_evidence_status, target_closure_expected, or case-specific construction-intent language present. Confidence is high: the regressions (Power_Off deletion, hierarchy destruction, broken return loop) are unambiguous from direct comparison of transitions and states. Evidence references explicitly cite NL clauses and STM elements. Human escalation not required for this dry-run. All eligibility fields set per protocol (headline_eligible=false, repair_effectiveness_eligible=false, real_repair_run_id=null).",
+      "evidence_references": ["this JSON output", "input_packet.json", "NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    }
+  },
+  "evidence_references": [
+    "NL clause 1: 'when power on, the system turn into human driving mode' — satisfied by both canonical and candidate",
+    "NL clause 2: 'when front_distance > 10, auto transport to autonomous state' — improved in candidate via explicit guard syntax",
+    "NL clause 3: 'transit to human driving mode when receive human steering cmd, brake pressed, in (auto final)' — broken in candidate; Autonomous->InitialState does not return to HumanDriving",
+    "NL clause 4: 'when power off, it will transit to final state' — deleted in candidate; no Power_Off transition exists",
+    "NL clause 2 structural: 'The autonomous mode has sub-states and is represented by a sub machine state' — hierarchy destroyed in candidate",
+    "canonical: wildcard transition '! * -> FinalState : Power_Off' — candidate has no equivalent",
+    "canonical: nested Autonomous inside HumanDriving — candidate places Autonomous as sibling",
+    "canonical: 'Autonomous -> startHumanDriving : Human_Steering_Cmd_or_Brake_Pressed' — candidate equivalent 'Autonomous -> InitialState' targets wrong parent scope",
+    "candidate: guard extraction 'if [front_distance > 10]' with 'def int front_distance = 0' — genuine improvement over canonical event label"
+  ],
+  "rationale": "Candidate STM_k makes one genuine improvement: extracting the front_distance > 10 condition from an opaque event label into explicit guard syntax, which aligns with NL's explicit numeric-condition framing. However, this local improvement comes at the cost of three severe regressions: (1) complete deletion of the Power_Off → FinalState transition, violating NL requirement 4; (2) destruction of the Autonomous-as-sub-machine hierarchy, violating NL structural description; (3) breaking the return-to-HumanDriving transition loop, making HumanDriving unreachable after initial entry and violating NL requirement 3. The Enter_Autonomous event is also deleted without replacement. A single guard extraction cannot compensate for the loss of an entire termination path, the destruction of containment semantics, and the breakage of the mode-return loop. The candidate is unambiguously not better than canonical STM_0. Primary_verdict is not_better, not partial (because regressions are critical, not minor), and not unknown (because regressions are directly observable from transition comparison).",
+  "observed_anti_gaming_risk_flags": [
+    "semantic_deletion: Power_Off wildcard transition removed entirely with no replacement, eliminating the only path to FinalState on power-off",
+    "hierarchy_loss: Autonomous flattened from sub-state of HumanDriving to top-level sibling, breaking NL's sub-machine-state semantics",
+    "unreachable_state: HumanDriving becomes unreachable after first Power_On entry because no transition targets it from any other state",
+    "trace_loss: NL requirement 4 (Power Off -> Final) has zero trace in candidate — no event, no transition, no guard",
+    "under_repair: candidate removes more behavior (Enter_Autonomous, Power_Off, hierarchy) than it adds (one guard extraction)"
+  ],
+  "forbidden_claims": [
+    "This blind dry-run is not repair effectiveness evidence.",
+    "The guard extraction improvement does not imply overall repair quality.",
+    "Parse success alone does not constitute semantic improvement."
+  ],
+  "confidence": "high",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "Input packet contains only mechanical/provenance facts and generic semantic modeling conventions. No primary_expected_verdict, expected_verdict, source_case_id, source_slug, semantic_evidence_status, target_closure_expected, or case-specific construction-intent language detected. The neutral_change_observation and adjudication_question are protocol boilerplate, not answer-key leakage."
+  }
+}
+```

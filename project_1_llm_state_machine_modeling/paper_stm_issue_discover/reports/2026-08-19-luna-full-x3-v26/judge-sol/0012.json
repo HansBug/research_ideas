@@ -1,0 +1,337 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0012",
+  "ledger": [
+    {
+      "ledger_id": "EIS-0012-01",
+      "pair": "0012",
+      "D": "D2",
+      "L": "L0",
+      "summary": "`:11 Off --> Terminate` 是一条不带任何触发的完成迁移，使 `Off` 不再是可驻留的等待态——上电后或 `keyOff` 返回 `Off` 之后，只要没有已排队的 `start`，系统就会无事件地滑向 `Terminate`。",
+      "detail": "NL 第 1 句要求「Once the device is powered on, the system enters the `Operate` state」，第 2 句要求「The system can be turned on with the `start` signal and turned off with the `keyOff` signal」——这两句合起来给出的是一个可以反复开关的设备。\n\n制品里 `Off` 有两条出边：`:3 Off --> Operate : start` 带触发，`:11 Off --> Terminate` 不带任何触发。无触发的迁移在 UML 里是完成迁移，进入源状态后立即可发，不需要等待任何事件。\n\n后果是 `Off` 不可驻留：系统一进入 `Off`（无论是 `:2` 的冷启动，还是 `:10 Operate --> Off : keyOff` 之后），只要 `start` 没有已经排在队里，机器就会不等任何事件地走 `:11` 去 `Terminate`，而 `Terminate` 是个死端（那一层单独记在 INS-0012-01）。于是 NL 第 1、2 句要求的 start→Operate 只在「上电后第一个周期立刻给出 start」这一种情形下才成立，`keyOff` 之后的再次启动一般不可达。若按 UML 完成迁移优先于事件触发迁移的规则读，情况更严重——`start` 直接不可达。\n\n这里需要把一个说法纠正过来，因为它容易被写错。本条承重的**不是**「无触发边吃掉了 start 信号」。实际的选边行为是：投影工具按声明顺序选边，`start` 那条边声明在无触发边之前，所以同一周期内两条竞争时 `start` 会胜出。真正成立的主张是**`Off` 不可驻留**——只要那一个周期内 `start` 没到，机会就永远失去了。\n\n这一点可以被观测到：断言「在 `Off` 收到 `start` 后处于 `Operate`」实测为假，原因是该断言同时要求触发被消费，而无触发的完成迁移使得 `start` 在 `Off` 处根本不会被消费。\n\n修法是删掉 `:11` 或给它补一个触发。这与 INS-0012-01 记录的「Terminate 是假终态」是两处不同的编辑（那一条要改的是 `Terminate` 本身的性质），两条不重复。",
+      "D_basis": "判 D2。被违反的义务有成文出处：NL 第 1 句要求上电后进入 `Operate`，这是无条件的；NL 第 2 句要求 `start` 与 `keyOff` 可以反复开关。制品里 `Off` 不可驻留使这两条都无法保证。判读中出现过一种反驳：主张这是「一次性会话」的设计意图，`keyOff` 之后故意终止、不再重启。这条反驳不存活——NL 第 2 句明写 start 与 keyOff 两个信号可以反复切换，与「故意终止不再重启」正面冲突。",
+      "L_basis": "判 L0。陈述这条错误只需就地读 `:11` 这一行，看 `Off --> Terminate` 后面有没有冒号跟触发——没有，它就是完成迁移。这是纯词法层面的模式匹配；由此推出的「Off 不可驻留」是完成迁移语义的直接含义，不需要构造具体执行序列，也不需要可达性论证。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "trigger",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "INS-0012-01",
+      "pair": "0012",
+      "D": "D2",
+      "L": "L2",
+      "summary": "作者用「普通状态加一行描述文字」冒充了终止伪状态：`:11 Off --> Terminate` 顺手声明了一个顶层普通状态 `Terminate`，`:12 Terminate : final` 只是给它挂了说明文字——它没有任何出边，进去就是真死锁。",
+      "detail": "PlantUML 里把一个状态标成终止有两种写法：`X --> [*]`，或者给状态加 `<<end>>` 构造型。作者两种都没用。\n\n他写的是 `:11 Off --> Terminate` 与 `:12 Terminate : final`。前一行在建一条通向 `Terminate` 的边、并顺带声明了这个状态；后一行是 `状态名 : 文本` 的描述语法，只往状态框里加一行显示文字，不改变它的任何性质。所以 `Terminate` 是一个普通的顶层命名状态，投影时也被忠实保留为普通状态，没有合成任何终止元素。\n\n后果是真死锁。全文检索 `Terminate` 只命中 `:11` 与 `:12` 两处，其中 `:11` 里它在箭头右侧（是目标不是源），所以没有任何迁移以它为源端；它又位于顶层、不在任何 `state X { }` 块内，因此不存在外层复合态的成组迁移能把机器带出去。进入 `Terminate` 之后机器不会终止，只是永远停在那里。\n\n配套说明一个诊断码的适用性，以免误判。结构分析工具从两个角度报了同一个状态：一是「叶态无出边」，二是拓扑上「既不是根出口汇点、也走不到任何出口汇点」，反例类型为死锁。其中第一个码对「嵌在复合态里、而外层有成组迁移」的叶态有系统性假阳性——它只数叶态自身的出边，完全不做外层检查。本条不受这个假阳性影响，因为 `Terminate` 是顶层状态，压根没有外层可言。\n\n本条与 EIS-0012-01 是两处不同的编辑：那一条要改 `:11` 这条无触发边（删掉或补触发），本条要改 `Terminate` 的性质（应当写成 `Off --> [*]`）。",
+      "D_basis": "判 D2。这是一个可达且无任何出路的非预期终止：状态可达（`:2` → `:11`）、自身无出边、顶层无外层可继承。这一类判定不依赖领域知识也不依赖形式化规约。三个判读臂一致认定成立，且没有任何一臂能拿出「作者显式声明合法终止」的依据——恰恰相反，`:12` 的那行 `final` 说明作者本意就是要一个终态，只是用错了记法，所以「他有意让机器停在活状态里」这个读法自己就站不住。",
+      "L_basis": "判 L2。陈述这条错误需要两件事同时成立：`Terminate` 可达（给出路径 `:2` → `:11`），以及从它出发不存在任何后继——后者要穷尽检查全部迁移，还要确认它没有外层可以继承成组迁移。两者都是对行为的构造与排除。",
+      "axes": {
+        "defect_locus": "global",
+        "defect_element": null,
+        "defect_qualifier": null,
+        "defect_logic_kind": "unintended_terminal",
+        "defect_reference": "requirement"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:stable_termination:Off",
+          "claims": [
+            "Required termination target 'Off' admits a source-level nonterminating continuation."
+          ],
+          "locations": [
+            "Off"
+          ],
+          "obligations": [
+            "The NL-designated termination state 'off' must be a stable ending target for its declared behavior."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:stable_termination:Off:facet:bed4b7f9e09b"
+          ]
+        },
+        {
+          "finding_id": "source:initial_target:None:Operate",
+          "claims": [
+            "Source composite 'llms_emp_feedback_final_0012' has no initial transition to required child 'Operate'."
+          ],
+          "locations": [
+            "NL1"
+          ],
+          "obligations": [
+            "llms_emp_feedback_final_0012 must initially enter Operate."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_target:None:Operate:facet:c76bc5839961"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "ok",
+      "findings": []
+    },
+    {
+      "cell": "method_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:stable_termination:Off",
+          "claims": [
+            "Required termination target 'Off' admits a source-level nonterminating continuation."
+          ],
+          "locations": [
+            "Off"
+          ],
+          "obligations": [
+            "The NL-designated termination state 'off state' must be a stable ending target for its declared behavior."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:stable_termination:Off:facet:698a56386272"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型允许系统从 `Off` 无条件进入 `Terminate` 终止状态。",
+          "reason": "规格只定义了通过 `start` 从关机状态开机，以及通过 `keyOff` 关机；没有定义关机后自动终止或任何到终止状态的行为。该额外无条件转换改变了系统生命周期，并使 `Off` 不是可保持的关机状态。",
+          "where": "顶层状态图：`Off --> Terminate`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "内部状态转换没有覆盖规格所说的基于用户动作在 `Idle`、`Accelerating or Cruising` 和 `Braking` 之间进行转换的完整行为。",
+          "reason": "规格明确指出应根据加速、制动或停止等动作在这些状态之间转换，但模型只定义了单向链路：Idle→AcceleratingOrCruising→Braking→Idle，未表示例如从制动恢复到加速/巡航、从加速/巡航停止回到 Idle，或其他由停止、制动动作触发的合理状态转换。因此模型对“在不同子状态之间根据动作转换”的描述覆盖不足。",
+          "where": "`Operate` 内部：`Idle --> AcceleratingOrCruising : accelerate`、`AcceleratingOrCruising --> Braking : brake`、`Braking --> Idle : stop`"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型增加了规范未定义的 Off 到终止状态（Terminate）的无条件转换。",
+          "reason": "规范仅说明系统可通过 keyOff 关闭，并未规定关闭后自动进入终止状态，也未定义 Terminate 状态。该转换会使系统从 Off 立即离开并结束，而不是保持可再次接收 start 信号的关机状态；因此与规范中可通过 start 开机的状态机语义不一致，至少属于未获规范支持的额外行为。",
+          "where": "Off --> Terminate : 无条件转换；以及 Terminate : final"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型增加了从 Off 到 Terminate 的无条件转换，并将 Terminate 标记为 final。",
+          "reason": "规范只定义了通过 `start` 从关机状态进入 `Operate`，以及通过 `keyOff` 关闭系统；没有定义系统从 `Off` 自动进入终止状态，也没有定义 `Terminate` 状态。该额外转换可能导致系统在未收到 `start` 时离开 `Off`，与“可用 start 信号开机”的行为边界不符。",
+          "where": "`Off --> Terminate` 与 `Terminate : final`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "`Operate` 内缺少从 `Idle` 直接进入 `Braking` 的停止/制动触发路径（若“stopping”包括从空闲状态停止）。",
+          "reason": "规范说明 Operate 内的子状态根据加速、制动或停止等用户动作进行转换，但模型仅定义 `AcceleratingOrCruising --> Braking : brake` 和 `Braking --> Idle : stop`。模型没有为 Idle 或 AcceleratingOrCruising 明确建模停止动作；尤其从 `AcceleratingOrCruising` 到 `Idle` 的直接停止路径缺失，若停止动作不要求先进入 Braking，则不符合该行为描述。",
+          "where": "`state Operate` 内的子状态转换"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0012",
+    "ledger_assessments": [
+      {
+        "ledger_id": "EIS-0012-01",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "`source:stable_termination:Off` 仅称 Off 有一个“非终止延续”，并把 Off 当作应稳定终止目标；它没有指认 `Off --> Terminate`，也没有主张该迁移缺少触发、从而使 Off 不可驻留。`source:initial_target:None:Operate` 则是初始目标缺失，二者均非该台账的同处同性质主张。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格没有输出 issue。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "`source:stable_termination:Off` 仅主张 Off 存在非终止延续，未定位到 `Off --> Terminate` 这条边或其无触发完成迁移性质，不能覆盖 Off 不可驻留的台账主张。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "`baseline_issue_1` 明确定位顶层 `Off --> Terminate`，主张它是规格未定义的无条件转换，并明确说明它使 Off 不能保持、不能等待再次 start。这与台账指认的同一迁移及“缺少触发导致 Off 不可驻留”的性质一致。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "`baseline_issue_1` 明确指认 Off 到 Terminate 的无条件转换，说明其令系统立即离开 Off、不能保持以再次接收 start；这就是同一条无触发边造成的 Off 不可驻留。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "`baseline_issue_1` 明确定位 `Off --> Terminate`，称其为无条件转换，并主张未收到 start 时会离开 Off；与台账的同一迁移及缺触发/不可驻留性质相同。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "INS-0012-01",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "两个 finding 分别主张 Off 的非终止延续和复合态未初始进入 Operate；均未主张 `Terminate : final` 只是描述文字、Terminate 是普通状态，或它可达且无出路。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格没有输出 issue。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "finding 只涉及 Off 的非终止延续，未涉及 Terminate 的终止伪状态记法或其普通状态死锁性质。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "`baseline_issue_1` 把 Terminate 当作终止状态，并批评进入它的无条件边；没有主张 Terminate 未被正确声明为终止伪状态，也没有主张普通 Terminate 可达无出路。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "`baseline_issue_1` 虽提到 `Terminate : final`，但将其作为自动终止这一额外行为的背景，未断言该语法只是描述文本、未形成终止伪状态，亦未断言死锁。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "`baseline_issue_1` 将 `Terminate : final` 作为模型增加终止状态的背景，主张的是 Off 的无条件离开；未主张 Terminate 作为普通状态没有出路的记法或无出路缺陷。",
+          "confidence": "high"
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:stable_termination:Off",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 只在 Off 层面主张存在非终止延续，既未定位 `Off --> Terminate`，也未主张该边无触发；也未涉及 Terminate 被错误写成普通状态且无出路。故不能语义对应任一冻结台账条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:initial_target:None:Operate",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 主张复合态没有初始迁移至 Operate，属于初始目标/初始迁移问题；两个台账条目分别是 Off 到 Terminate 的触发缺失，以及 Terminate 的终止记法和无出路问题，均不同处且不同性质。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:stable_termination:Off",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 仅称 Off 存在非终止延续，没有指认导致台账缺陷的 `Off --> Terminate` 无触发边，也未涉及 Terminate 的普通状态死锁。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0012-01"
+        ],
+        "false_positive": false,
+        "reason": "明确指认顶层 `Off --> Terminate` 无条件转换，并主张它使 Off 无法保持和等待 start，语义对应 EIS 的同一迁移、同一缺触发/不可驻留缺陷。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 主张 Operate 内部子状态之间的动作转换覆盖不足；它不涉及 Off 到 Terminate 的无触发边，也不涉及 Terminate 的终止伪状态记法或无出路。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0012-01"
+        ],
+        "false_positive": false,
+        "reason": "明确主张 Off 到 Terminate 的无条件转换会立即离开 Off，不能再次接收 start，覆盖 EIS 的同一边及不可驻留性质。提及 `Terminate : final` 未形成对 INS 的记法/死锁断言。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0012-01"
+        ],
+        "false_positive": false,
+        "reason": "明确指认 `Off --> Terminate` 为无条件转换并指出其使系统在没有 start 时离开 Off，覆盖 EIS 的同一迁移和缺触发导致的不可驻留。对 `Terminate : final` 的提及并未断言 INS 所述的记法错误或死锁。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该 issue 讨论 Operate 内 Idle、Braking 等子状态的停止/制动路径，和两条冻结台账在 Off/Terminate 的位置及性质均不相同。",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "仅三条 baseline_issue_1 明确指认同一条顶层无触发迁移 `Off --> Terminate`，并主张其使 Off 不能等待 start、产生未规定的自动终止，故覆盖 EIS-0012-01。没有任何输出主张 `Terminate` 是被描述文字而非终止伪状态、且作为普通顶层状态可达无出路的记法/死锁缺陷，故 INS-0012-01 在六格均未命中。方法侧两类 finding 只定位 Off 或初始进入 Operate，未指认 `Off --> Terminate` 的无触发性质及该边，不能据此对 EIS 计覆盖。"
+  },
+  "status": "ok",
+  "attempts": 1
+}

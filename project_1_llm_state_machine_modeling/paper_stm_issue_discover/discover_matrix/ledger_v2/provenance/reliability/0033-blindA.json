@@ -1,0 +1,50 @@
+{
+  "case": "0033",
+  "diffs": [
+    {
+      "verdict": "problem",
+      "ref": "state PumpControl{\\n[*] --> PumpState\\n--\\n[*] --> WaterState\\n--\\n[*] --> MethaneState\\n}",
+      "gen": "PumpControl -down-> PumpState : Activate Pump\\nPumpControl -down-> WaterState : Monitor Water Flow\\nPumpControl -down-> MethaneState : Monitor Methane Flow\\nstate PumpControl { [*] --> PumpState ... }",
+      "reason": "NL 第 2 句显式点名「Within the PumpControl state, there are three main substates: PumpState, WaterState, and MethaneState」。gen 在三个 `state PumpControl {}` 块之前就先写了 `PumpControl -down-> PumpState` 等三条迁移，PlantUML 因此把 PumpState / WaterState / MethaneState 首次绑定在顶层，成为 PumpControl 的兄弟态而非子态。FCSTM 投影确认：PumpControl 内部只剩三个 `InvalidInitialtr_*` 标记，其命名即「PlantUML initial target outside child scope: PumpState/WaterState/MethaneState」，而三个真实状态与 PumpControl 同层声明。NL 点名的层次包含关系完全丢失，PumpControl 成为没有任何真实子态的复合态。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "state PumpControl{ [*] --> PumpState -- [*] --> WaterState -- [*] --> MethaneState }（一次声明、三个正交区，各区一个 [*]）",
+      "gen": "state PumpControl { [*] --> PumpState ... }\\nstate PumpControl { [*] --> WaterState ... }\\nstate PumpControl { [*] --> MethaneState ... }（同名复合态声明三次，全无 -- 分隔）",
+      "reason": "良构性：三个重名 `state PumpControl {}` 块被合并为同一个复合态的同一个区域（gen 中没有任何 `--`），于是该单一区域里出现了三条 `[*] -->` 默认入口。FCSTM 投影确认 PumpControl 内并列存在 `[*] -> InvalidInitialtr_0005`、`[*] -> InvalidInitialtr_0007`、`[*] -> InvalidInitialtr_0009`，即复合态没有唯一默认子态，且三个目标全部越出该复合态作用域。参考正是用三个正交区各带一个 [*] 来表达 NL 第 2 句的三子态；正交区的并发执行语义本身在范围外，但「一个区域里塞三个互相冲突且越界的默认入口」是范围内的良构性缺陷。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "[*]-->PumpControl（无标签）",
+      "gen": "[*] -down-> PumpControl : begin",
+      "reason": "良构性：初始边带触发。FCSTM 投影生成了事件 `begin` 并落成 `[*] -> PumpControl : /begin`。NL 第 1 句「The system begins in the PumpControl state」只说明起点，没有点名任何名为 begin 的事件；参考的初始边无标签。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "extra",
+      "ref": "（参考中三个子态均无出边，PumpControl 内无 final）",
+      "gen": "PumpState --> [*] : Pump Deactivated\\nWaterState --> [*] : Water Flow Stabilized\\nMethaneState --> [*] : Methane Flow Stabilized",
+      "reason": "NL 五句中没有任何关于「泵停用」「水流稳定」「甲烷流稳定」或子态终止的描述，参考也完全没有 final 状态。gen 凭空增加了三个终止事件与三条到 final 的边。由于源状态实际位于 PumpControl 之外（见 diff 1），这三条边在投影中还退化为无效 final 边界——FCSTM 记录了 `InvalidFinaltr_0006/0008/0010`，命名为「PlantUML final boundary outside source ancestry: @final:PumpControl」。三条同一成因合并为一条 extra。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "（参考仅用三个区域的默认入口表达进入三个子态，无显式触发）",
+      "gen": "PumpControl -down-> PumpState : Activate Pump\\nPumpControl -down-> WaterState : Monitor Water Flow\\nPumpControl -down-> MethaneState : Monitor Methane Flow",
+      "reason": "NL 第 3、4、5 句分别说「The system first transitions to the PumpState substate, where the pump is activated or controlled」「can also transition to the WaterState substate, indicating that the pump is controlling or monitoring the water flow」「can transition to the MethaneState substate, indicating that the pump is controlling or monitoring the methane flow」。gen 为这三次转移各给了一个与 NL 措辞对应的触发（Activate Pump / Monitor Water Flow / Monitor Methane Flow），有 NL 依据，不是凭空新增；参考则只用区域默认入口表达。写法差异说得通。副作用是因目标是兄弟态，投影把它们变成了 `!PumpControl -> PumpState` 形式的组退出边（该副作用的根因已在 diff 1 记账）。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "PumpState / WaterState / MethaneState",
+      "gen": "PumpState / WaterState / MethaneState",
+      "reason": "NL 第 2 句点名的三个子态名称在 gen 中全部存在且与参考完全同名，数量也是三个（不存在漏项或多项）。问题只在于它们的归属层级与默认入口（已单独记账），名称与数量本身正确。",
+      "out_of_scope": null
+    }
+  ],
+  "problem_count": 3,
+  "extra_count": 1,
+  "notes": "拆分粒度原则：以「一个可独立修复的缺陷成因」为一条 diff。本 case 的三个 problem 对应三处可独立修复的成因：(a) 三个子态被绑到顶层而非 PumpControl 内（修复方式：把 `PumpControl -down-> X` 三条边移到状态块之后或直接删除）；(b) 重名复合态块合并出三条冲突默认入口（修复方式：改成一个块加两个 `--`）；(c) 初始边带触发（修复方式：删掉 `: begin`）。三条 `X --> [*]` 是同一成因，合并为一条 extra；三条 `PumpControl -down-> X` 是同一成因，合并为一条 similar。\n\n逐句核对 NL（5 句）：\nNL1「The system begins in the PumpControl state, from which it can transition to different substates based on specific conditions」——部分满足：起点确实是 PumpControl，但初始边被加了造出来的 begin 事件；「based on specific conditions」在 gen 中体现为三个触发（无守卫），NL 本身欠定，可接受。\nNL2「Within the PumpControl state, there are three main substates: PumpState, WaterState, and MethaneState」——未满足：三个状态名齐备且与参考同名，但它们实际位于 PumpControl 之外（FCSTM 投影确认与 PumpControl 同层），PumpControl 内只剩三个越界初始标记，NL 点名的「Within」包含关系丢失。\nNL3「The system first transitions to the PumpState substate, where the pump is activated or controlled」——部分满足：有 `PumpControl -down-> PumpState : Activate Pump`，措辞对应 NL；但目标是兄弟态而非子态。\nNL4「The system can also transition to the WaterState substate, indicating that the pump is controlling or monitoring the water flow」——同上，有 Monitor Water Flow 触发。\nNL5「Similarly, the system can transition to the MethaneState substate, indicating that the pump is controlling or monitoring the methane flow」——同上，有 Monitor Methane Flow 触发。\n\n范围外说明：参考用三个正交区表达 NL 第 2 句的三子态，正交区的并发执行语义在本研究问题定义之外，因此我没有把「gen 没用正交区」本身判为问题；diff 2 判 problem 的依据是范围内的良构性事实——单一区域内出现三条互相冲突且越出作用域的 `[*] -->` 默认入口，复合态没有唯一默认子态。\n\n参考模型自身问题：本 case 未发现参考与 NL 冲突。参考 5 行 PlantUML 与 NL 第 1、2 句完全对应，初始边无标签、三个区域各有唯一默认入口，结构合规。参考没有为 NL 第 3、4、5 句的「transitions to ... substate」给出显式触发，属参考比 NL 更简略，但不构成错误。"
+}

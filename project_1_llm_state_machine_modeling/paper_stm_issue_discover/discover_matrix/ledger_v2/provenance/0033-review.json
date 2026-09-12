@@ -1,0 +1,92 @@
+{
+ "case": "0033",
+ "group": "NL06",
+ "llm": "Kimi",
+ "diffs": [
+  {
+   "verdict": "problem",
+   "ref": "state PumpControl { [*] --> PumpState; -- ; [*] --> WaterState; -- ; [*] --> MethaneState } —— 三者都在 PumpControl 之内",
+   "gen": "PumpControl -down-> PumpState : Activate Pump 等三条顶层边先提及三个状态，按 PlantUML 首次提及身份它们成为顶层状态；FCSTM 确认 PumpState / WaterState / MethaneState 与 PumpControl 平级",
+   "reason": "NL 2 明确 \"Within the PumpControl state, there are three main substates: PumpState, WaterState, and MethaneState\"。生成侧把三者声明成了 PumpControl 的兄弟而非子态，层次归属整体错位。这与直接子态/后代状态之争无关——它们根本不在 PumpControl 内部的任何层级。",
+   "assertable": "containment(parent=\"llms_emp_feedback_final_0033.PumpControl\", child=\"llms_emp_feedback_final_0033.PumpControl.PumpState\")",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "每个区域一条初始边，指向该区域内的具名子态",
+   "gen": "三个重名的 state PumpControl { ... } 块被 PlantUML 合并为同一状态体，内含三条 [*] --> PumpState / WaterState / MethaneState，但目标已在 PumpControl 之外；FCSTM 投影出 InvalidInitialtr_0005 / 0007 / 0009（\"PlantUML initial target outside child scope\"）三个非法初始标记",
+   "reason": "NL 3 要求系统首先进入 PumpState。生成侧的三条初始边目标全部越出了 PumpControl 的子作用域，投影因此把它们替换成三个 Invalid 标记——PumpControl 没有任何有效的默认进入点，NL 3/4/5 描述的三个进入动作在 PumpControl 的入口处一个都无法实现。同时三条初始边并存本身也使默认进入点不唯一。",
+   "assertable": "initial_target(composite=\"llms_emp_feedback_final_0033.PumpControl\", child=\"llms_emp_feedback_final_0033.PumpControl.PumpState\")",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "用两个 -- 把 PumpControl 分成三个正交并发区，一区一具名子态",
+   "gen": "全文没有任何 -- 分隔符；改用三个重名的 state PumpControl { ... } 块，PlantUML 将其合并为单一区域",
+   "reason": "论文对该 case 记的 semantic hallucination 是 \"1. missing regions\" 且声称 semantic_resolved = 1.0，但我审的这份 Phase-II 制品里完全没有区域分隔符——三个重名块合并后是一个区域，不是三个。也就是说论文声称已修复的语义缺陷在最终制品中依然存在。并发结构本身超出本研究 FSM/HSM/EFSM 范围，故标 out_of_scope；但「参考用区域承载的三主子态分解在生成侧不存在」是真实的结构语义损失。",
+   "assertable": "cardinality(scope=\"llms_emp_feedback_final_0033.PumpControl\", count=3)",
+   "predicate_exists": true,
+   "out_of_scope": "concurrency"
+  },
+  {
+   "verdict": "extra",
+   "ref": "零 declared event、零行为迁移；无任何终结边",
+   "gen": "自造七个事件 begin / Activate Pump / Monitor Water Flow / Monitor Methane Flow / Pump Deactivated / Water Flow Stabilized / Methane Flow Stabilized，并写了三条 PumpState --> [*] : Pump Deactivated 之类的终结边（FCSTM 投影为 InvalidFinaltr_0006 / 0008 / 0010，\"final boundary outside source ancestry\"）",
+   "reason": "NL06 五句话没有命名任何触发事件，也从未提到停用、稳定或终止。begin、Pump Deactivated、Water Flow Stabilized、Methane Flow Stabilized 全属凭空发明，参考侧一个都没有。这三条终结边还因源状态位于 PumpControl 之外而全部投影为非法终态边界，即过度规定同时产出了畸形结构。",
+   "assertable": "event_declared(event=\"llms_emp_feedback_final_0033.Water_Flow_Stabilized\")",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "参考把三个主子态写成三个正交并发区，三者同时活跃",
+   "gen": "生成侧无区域结构",
+   "reason": "参考模型自身可疑：NL 3 的 \"first transitions to PumpState\" 与 NL 4/5 的 \"can also transition to\" 是顺序性措辞，在并发区读法下无意义；NL 通篇无 region / concurrent / parallel / simultaneously 字样。三个主子态是并发还是顺序在 NL 中欠定，因此论文对本组普遍记录的 \"missing regions\" 语义幻觉建立在一个未经独立验证的参考读法上。",
+   "assertable": null,
+   "predicate_exists": false,
+   "out_of_scope": "concurrency"
+  }
+ ],
+ "problem_count": 3,
+ "extra_count": 1,
+ "vs_paper": "论文记了一条 format hallucination（syntax error: stm PumpControlSystem {，已 resolved=YES）与一条 semantic hallucination \"1. missing regions\"，semantic_resolved = 1.0；plantuml_accuracy 14/15、grammar 12/12；f1_phase1 = 0.5333，f1_phase2 = 0.7059。这里有明确的记录与制品不符：论文声称 missing regions 已修复（resolved = 1.0），但这份 Phase-II 制品中没有任何 -- 分隔符，区域缺失依然存在。论文另外两条真实缺陷（三个子态被声明在 PumpControl 之外、三条初始边越界）也未记录。",
+ "vs_ledger": "台帐有一条 E1：EXP-0033-SH-001（required_pump_states_outside_parent，eval_assert 为 all(states(path='...PumpControl.'+name)) for PumpState/WaterState/MethaneState），对应我的第 1 条 problem，我确认成立且证据链清楚。我另判两条 problem 台帐未记录：三条初始边越界导致 PumpControl 无有效默认进入点（FCSTM 已投影出 InvalidInitialtr_* 三个标记）、以及区域分解缺失。一条 extra（七个自造事件与三条非法终结边）台帐亦未记录。",
+ "notes": "0033 是 NL06 组结构最畸形的一份：用三个重名 state PumpControl 块代替区域，导致三个 NL 点名子态被推到顶层、三条初始边越界、三条终结边越界，FCSTM 一共注入了六个 Invalid 标记。特别值得记录的是台帐在此接受了「结构族谓词矛盾」作为 E1，而这条 E1 的证据与 0043/0053 的 UnspecifiedInitial 同属投影侧合成标记（都在 source_trace 的 attribution_exclusions 中），标准应当统一。",
+ "_source_file": "NL06-b.json",
+ "cross_reference": {
+  "case": "0033",
+  "group": "NL06",
+  "llm": "Kimi",
+  "counts": {
+   "correct": 0,
+   "similar": 0,
+   "problem": 3,
+   "extra": 1,
+   "uncertain": 1
+  },
+  "out_of_scope": {
+   "concurrency": 2
+  },
+  "problems_in_scope": 3,
+  "paper": {
+   "format": "syntax error: stm PumpControlSystem {",
+   "grammar": null,
+   "semantic": "1. missing regions",
+   "semantic_resolved": 1.0,
+   "f1_phase1": 0.5333333333,
+   "f1_phase2": 0.7058823529
+  },
+  "ledger": {
+   "status": "expected_issues_found",
+   "e1_ids": [
+    "EXP-0033-SH-001"
+   ],
+   "e1_categories": [
+    "SH"
+   ]
+  },
+  "assertable_problems": 3
+ }
+}

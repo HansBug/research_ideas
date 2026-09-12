@@ -1,0 +1,41 @@
+def int R45RouteToken = 0;
+state llms_emp_feedback_final_0046 named "llms_emp_feedback_final_0046" {
+    event Start_Mission named "Start Mission";
+    event Intercepted named "Intercepted";
+    event Task_Assignment_Received named "Task Assignment Received";
+    event Formation_Adjusted named "Formation Adjusted";
+    event Attack_Completed_UAV_Count_Decreased named "Attack Completed / UAV Count Decreased";
+    event Mission_Completed named "Mission Completed";
+    state UnspecifiedInitial named "Unspecified initial";
+    state UAVSwarmStateMachine named "UAVSwarmStateMachine" {
+        state SearchRegion named "SearchRegion" {
+            state Idle named "Idle\n[PlantUML body] Initial State";
+            state Searching named "Searching\n[PlantUML body] Target Search State";
+            state FormationAdjustment named "FormationAdjustment\n[PlantUML body] Formation Adjustment State";
+            state Attacking named "Attacking\n[PlantUML body] Attack State";
+            [*] -> Idle;
+            Idle -> Searching : /Start_Mission;
+            Searching -> FormationAdjustment : /Intercepted;
+            Searching -> Attacking : /Task_Assignment_Received;
+            FormationAdjustment -> Searching : /Formation_Adjusted;
+            Attacking -> Searching : /Attack_Completed_UAV_Count_Decreased;
+            Idle -> [*] : /Mission_Completed effect { R45RouteToken = 9; };
+            Searching -> [*] : /Mission_Completed effect { R45RouteToken = 9; };
+            FormationAdjustment -> [*] : /Mission_Completed effect { R45RouteToken = 9; };
+            Attacking -> [*] : /Mission_Completed effect { R45RouteToken = 9; };
+        }
+        state MissionRegion named "MissionRegion" {
+            state MissionActive named "MissionActive\n[PlantUML body] Mission Active State";
+            state MissionComplete named "MissionComplete\n[PlantUML body] Mission Complete State";
+            [*] -> MissionActive;
+            MissionActive -> MissionComplete : /Mission_Completed;
+            MissionActive -> [*] : /Start_Mission effect { R45RouteToken = 10; };
+            MissionComplete -> [*] : /Start_Mission effect { R45RouteToken = 10; };
+        }
+        state UnspecifiedInitial named "Unspecified initial";
+        SearchRegion -> MissionRegion : if [R45RouteToken == 9] effect { R45RouteToken = 0; };
+        MissionRegion -> SearchRegion : if [R45RouteToken == 10] effect { R45RouteToken = 0; };
+        [*] -> SearchRegion;
+    }
+    [*] -> UnspecifiedInitial;
+}

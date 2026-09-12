@@ -1,0 +1,85 @@
+{
+  "case": "0019",
+  "diffs": [
+    {
+      "verdict": "problem",
+      "ref": "[*] --> AutonomousMode\\nstate AutonomousMode {\\n [*] --> InitialState",
+      "gen": "[*] --> AutonomousMode: Autonomous mode start\\nstate AutonomousMode {\\n[*] --> InitialState: Start of autonomous driving mode",
+      "reason": "良构性：两条初始边都带触发。FCSTM 投影确认生成了两个事件 `Autonomous_mode_start`、`Start_of_autonomous_driving_mode`，并落成 `[*] -> AutonomousMode : /Autonomous_mode_start` 与 `[*] -> InitialState : /Start_of_autonomous_driving_mode`。参考两条初始边均无标签。NL 第 1 句「The system begins in the AutonomousMode state, which transitions into the InitialState substate, marking the starting point」只描述起点，没有点名任何事件，因此这两个事件是被凭空造出来并挂在初始边上的。两处同一成因合并为一条。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "--\\n [*] --> collision_avoidance_deactive\\n collision_avoidance_deactive --> collision_avoidance_active:...",
+      "gen": "state CollisionAvoidanceSystem {\\ncollision_avoidance_deactive --> collision_avoidance_active: ...\\ncollision_avoidance_active --> collision_avoidance_deactive: ...\\n}（块内没有任何 [*] -->）",
+      "reason": "NL 第 12 句显式点名「The collision avoidance system is initially in the collision_avoidance_deactive state」。gen 的 CollisionAvoidanceSystem 复合态内没有初始伪状态，FCSTM 投影插入了 `state UnspecifiedInitial` 并给出 `[*] -> UnspecifiedInitial`，即复合态无默认子态。这同时是良构性问题和 NL 点名元素的缺失。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "state AutonomousMode { ... -- \\n [*] --> collision_avoidance_deactive ... }（避碰作为 AutonomousMode 的第二个正交区，随 AutonomousMode 一同进入）",
+      "gen": "state CollisionAvoidanceSystem { ... }（顶层独立复合态，全模型没有任何指向它的迁移）",
+      "reason": "良构性：CollisionAvoidanceSystem 没有任何入边，根初始只指向 AutonomousMode（FCSTM 投影中它与 AutonomousMode 同层且无入边），因此整个避碰子系统不可达，NL 第 12、13 句描述的行为在运行中永远不会发生。参考用正交区解决入口问题（正交区并发语义本身在范围外），但本条判定依据的是范围内的不可达缺陷 —— gen 既没有用正交区，也没有提供任何其他进入方式。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "intersection --> straight",
+      "gen": "enter_urban --> intersection: intersection=true\\nstraight --> intersection: intersection=true\\n（intersection 无任何出边）",
+      "reason": "良构性：intersection 在 UrbanMode 内没有任何出边（FCSTM 投影中该状态只有被提升的组迁移 `intersection -> [*] : /high_way_true`），是区域内的吸收态。后果是一旦进入路口，就再也到不了 exit_urban，NL 第 10 句「The system exits the UrbanMode state by transitioning to FinishState once auto_finished=true is satisfied」在该构型下不可满足，只能靠切回 HighwayMode 逃离。参考有 `intersection --> straight` 承载返回。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "FinishState --> [*]",
+      "gen": "ExitHighway --> FinishState: auto_finished=true\\nexit_urban --> FinishState: auto_finished=true\\n（FinishState 无出边，模型无 final）",
+      "reason": "gen 的 FinishState 没有出边、AutonomousMode 也永不完成；参考用 `FinishState --> [*]` 收尾。但 NL 第 6、10 句把 FinishState 本身就描述为终点（「The HighwayMode ends when the system transitions to FinishState」），一个按名义即为终点的状态成为死端与其设计角色一致，NL 也未要求存在 final 伪状态，故不判 problem。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "enter_hwy --> cruise\\n enter_hwy --> lane_change: dist_to_front<25 & extra_lane=true",
+      "gen": "enter_hwy --> cruise: dist_to_front<25 & extra_lane=true\\nenter_hwy --> lane_change: dist_to_front<25 & extra_lane=true",
+      "reason": "gen 给两条出边加了完全相同的守卫，条件成立时二者同时使能，构成不确定选择。NL 第 3 句「can transition to cruise or lane_change based on the distance to the front vehicle (dist_to_front<25) and the availability of an extra lane (extra_lane=true)」本身把这一对条件同时挂给了两个目标，措辞歧义；gen 的读法是字面读法，说得通、不违反 NL。不确定选择不属于口径 3 列出的三类可判 problem 情形。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "collision_avoidance_deactive --> collision_avoidance_active:Collision_Avoidance_Module: pedestrian_detected（及另外 4 条分别带 dist_to_rear<5 & vel>30、dist_to_rear<15 & vel>60、dist_to_front<15 & highway=true、dist_to_front<10 & urban=true 的并列边）",
+      "gen": "collision_avoidance_deactive --> collision_avoidance_active: pedestrian_detected | (dist_to_rear<5 & vel>30) | (dist_to_front<15 in hwy mode or <10 in urban mode)",
+      "reason": "NL 第 12 句以「such as detecting pedestrians ..., the rear distance being less than 5 meters with a velocity over 30 km/h ..., or the front distance being less than 15 meters in highway mode or 10 meters in urban mode」列出并列触发条件。gen 把五条并列边压成一条析取守卫，析取语义与并列迁移等价，属写法差异；缺点是「in hwy mode or <10 in urban mode」这一段是自然语言而非形式化表达式（FCSTM 投影把整串当成一个事件名）。NL 第 12 句本身也是散文，故不判 problem。参考另有的 dist_to_rear<15 & vel>60 是比 NL 更具体的内容。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "exit_hwy --> [*]（在 HighwayMode 内）\\nHighwayMode --> FinishState : auto_finished = true\\nUrbanMode --> FinishState : auto_finished = true",
+      "gen": "ExitHighway --> FinishState: auto_finished=true\\nexit_urban --> FinishState: auto_finished=true",
+      "reason": "参考用 HighwayMode/UrbanMode 整体的组迁移进入 FinishState；gen 把 auto_finished=true 收窄到只能从 ExitHighway / exit_urban 出发（FCSTM 投影仍把它规约为 `HighwayMode -> FinishState` 的路由）。NL 第 6 句「The HighwayMode ends when the system transitions to FinishState, triggered by the auto_finished=true condition」与第 10 句均未规定源子态，gen 的收窄是较窄但说得通的读法。ExitHighway 与参考 exit_hwy 是同一状态的不同命名。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "enter_urban --> straight（无守卫）",
+      "gen": "enter_urban --> straight: Road ahead is clear",
+      "reason": "NL 第 7 句「or straight if the road ahead is clear」点名了这个条件。gen 保留了它，参考侧则把这条边写成无标签迁移、丢掉了 NL 点名的条件，此处 gen 比参考更贴合 NL。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "InitialState --> HighwayMode:high_way=true / InitialState --> UrbanMode:urban_way=true / cruise --> lane_change: dist_to_front<25 & extra_lane=true / cruise --> exit_hwy: dist_to_exit<2 / lane_change --> cruise / lane_change --> exit_hwy: dist_to_exit<2 / enter_urban --> lane_change_urban: dist_to_front<15 & extra_lane=true / enter_urban --> intersection: intersection=true / lane_change_urban -->straight / lane_change_urban --> exit_urban: dist_to_exit<0.7 / straight --> lane_change_urban: dist_to_front<15 & extra_lane=true / straight --> intersection: intersection=true / HighwayMode --> UrbanMode : urban_way = true / UrbanMode --> HighwayMode : high_way = true",
+      "gen": "（同名同守卫的对应迁移全部存在；lane_change --> cruise 额外带 \"Lane change completed\" 标签，AutonomousMode / HighwayMode / UrbanMode 三层嵌套与默认子态 enter_hwy / enter_urban 均与参考一致）",
+      "reason": "NL 第 2、3、4、5、7、8、9、11 句涉及的状态、层次与守卫在 gen 中逐条存在且守卫文本与参考一致（FCSTM 投影确认 AutonomousMode 内含 HighwayMode、UrbanMode、InitialState、FinishState，HighwayMode 内 `[*] -> enter_hwy`，UrbanMode 内 `[*] -> enter_urban`）。`lane_change --> cruise: Lane change completed` 为 NL 第 4 句「once the lane change is completed」点名的条件，参考未标注，属 gen 更贴合 NL。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "uncertain",
+      "ref": "enter_hwy --> cruise\\nlane_change --> cruise\\nintersection --> straight",
+      "gen": "enter_hwy --> cruise: dist_to_front<25 & extra_lane=true\\nlane_change --> cruise: Lane change completed\\n（无 intersection --> straight）",
+      "reason": "参考侧存疑：参考的 `enter_hwy --> cruise`、`lane_change --> cruise`、`intersection --> straight` 都是无标签的 completion 边，会在源状态完成时即发。其中 `enter_hwy --> cruise` 与参考自己声明的 `enter_hwy --> lane_change: dist_to_front<25 & extra_lane=true` 在同一 completion 事件上竞争，参考自己的 lane_change 分支是否真能被取到无法确定；NL 第 3 句也未消解这一歧义。因此在「enter_hwy 两条出边该如何加守卫」这一点上我不以参考形态为基准（gen 的做法已单独判为 similar）；对应地，参考的 `intersection --> straight` 虽然承载了返回语义、其缺失确实在 gen 中造成吸收态（已单独判 problem），但该边本身在参考中也是无标签即发边，语义强度存疑，一并在此记录。",
+      "out_of_scope": null
+    }
+  ],
+  "problem_count": 4,
+  "extra_count": 0,
+  "notes": "拆分粒度原则：以「一个可独立修复的缺陷成因」为一条 diff。两条带触发初始边是同一成因（作者把描述性文字当事件挂到初始边），合并为一条；避碰子系统的「无默认子态」与「无入边不可达」是两个可独立修复的缺陷（补 [*] 与补入口是两处不同修改），拆为两条；十余处与参考同名同守卫的正确迁移按对象归并为一条 correct，不逐条铺开。\n\n逐句核对 NL（13 句）：\nNL1（起于 AutonomousMode，转入 InitialState 子态）——满足，但两条初始边被加了造出来的触发。\nNL2（InitialState 按 high_way=true / urban_way=true 分别进入 HighwayMode / UrbanMode）——满足，守卫文本与参考一致。\nNL3（HighwayMode 起于 enter_hwy，可按 dist_to_front<25 与 extra_lane=true 转 cruise 或 lane_change）——满足；两条出边守卫相同导致不确定选择，判 similar。\nNL4（lane_change 可返回 cruise，或 dist_to_exit<2 时出高速）——满足，且 gen 额外标注了「Lane change completed」。\nNL5（cruise 下 dist_to_front<25 且有额外车道转 lane_change；dist_to_exit<2 出高速）——满足。\nNL6（HighwayMode 在 auto_finished=true 时转 FinishState）——满足，但收窄为只能从 ExitHighway 出发，判 similar。\nNL7（UrbanMode 起于 enter_urban，可转 lane_change_urban / straight / intersection）——满足，且「Road ahead is clear」比参考更贴合 NL。\nNL8（lane_change_urban 转 straight，或 dist_to_exit<0.7 转 exit_urban）——满足。\nNL9（straight 检测到路口转 intersection；dist_to_front<15 且有额外车道转 lane_change_urban）——满足，但 intersection 成为无出边的吸收态。\nNL10（auto_finished=true 时 UrbanMode 转 FinishState）——满足，但在 intersection 构型下不可达。\nNL11（HighwayMode 与 UrbanMode 按 urban_way=true / high_way=true 双向切换）——满足。\nNL12（避碰系统初始处于 collision_avoidance_deactive，在行人检测 / 后距<5 且速>30 / 高速前距<15 或城区前距<10 时激活）——未满足：复合态无初始子态，且整个避碰复合态不可达；触发条件本身以析取守卫表达，判 similar。\nNL13（无危险时返回 collision_avoidance_deactive）——迁移存在但因不可达而无效。\n\n参考模型自身问题：\n(1) `enter_hwy --> cruise` 无标签 completion 边，与参考自己的 `enter_hwy --> lane_change: dist_to_front<25 & extra_lane=true` 竞争，参考声明的守卫分支能否取到存疑。\n(2) `enter_urban --> straight` 无守卫，丢掉了 NL 第 7 句点名的「if the road ahead is clear」。\n(3) 避碰区的迁移标签写成 `collision_avoidance_active:Collision_Avoidance_Module` 形式，状态名里混进了模块名，是版式/命名瑕疵。\n(4) `dist_to_rear<15 & vel>60` 在 NL 第 12 句中未出现，属参考比 NL 更具体。\n(5) `InitialState : 初始状态` 混入中文标注，非错误但为版式瑕疵。"
+}

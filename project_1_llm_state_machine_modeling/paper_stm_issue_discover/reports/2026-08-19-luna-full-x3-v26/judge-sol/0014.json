@@ -1,0 +1,1227 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0014",
+  "ledger": [
+    {
+      "ledger_id": "EIS-0014-01",
+      "pair": "0014",
+      "D": "D2",
+      "L": "L0",
+      "summary": "制品顶层完全没有初始伪状态——全文没有任何根层 `[*] -->`，冷启动时的初始配置未定义，而 NL 第 1 句明确要求系统从 `DoorsClosing` 开始。",
+      "detail": "NL 第 1 句逐字为「The system starts in the DoorsClosing state and transitions to InMotion when the doors are closed, triggered by the \"Closed/SendDeparted\" signal.」。前半句给出的是初始化要求。\n\n制品在 `:2` 写 `state DoorsClosing`——只是声明这个状态存在，没有把它标成起点。全文（`:1`-`:28`）唯一的 `[*]` 出现在 `:7`，而 `:7` 位于 `state InMotion {`（:6）与 `}`（:18）之间，是 InMotion 的内部默认入口，不是根层的。所以根层没有任何初始伪状态。\n\n后果是冷启动时机器不知道该处在哪个状态。投影时这一点被显式记录下来：生成了一个名为 `UnspecifiedInitial` 的占位状态以及一条 `[*] -> UnspecifiedInitial` 的边，表示「作者没有指定初始状态」。\n\n根因是把 NL 第 1 句只当成了一条迁移要求而漏掉了初始化要求。那句话其实说了两件事——从哪里开始、以及在什么条件下走到 InMotion；制品只建了后者（`:4 DoorsClosing --> InMotion: Closed/SendDeparted`）。对照同一份 NL 的 pair 0004，那份在 `:2` 写了 `[*] --> DoorsClosing`，说明 NL 本身并没有妨碍作者建出这条边。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 1 句「The system starts in the DoorsClosing state」。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法——`:2` 的 `state DoorsClosing` 只是状态声明，PlantUML 里它不蕴含任何初始语义（同文件的 `:7` 证明作者知道 `[*] -->` 这个记法），而投影结果也确认初始状态未指定。反驳不存活。",
+      "L_basis": "判 L0。陈述这条错误只需检索全文根层有没有 `[*] -->` 这种形式的行，发现一条都没有。这是纯词法层面的存在性检查，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "transition",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0014-02",
+      "pair": "0014",
+      "D": "D1",
+      "L": "L1",
+      "summary": "NL 第 8 句逐字要求 `Accelerating` 有一个入口动作 `Entry/Accelerate`，而作者把整串文本搬到了 `:7 [*] --> Accelerating : Entry/Accelerate` 的标签位置——按 PlantUML 的标签约定它被读成「触发 Entry、效果 Accelerate」，于是 `Accelerating` 不再声明任何 entry 动作，初始迁移反而被挂上了本不该有的触发。",
+      "detail": "NL 第 8 句逐字为「The system enters the Accelerating substate when motion begins, marked by the \"Entry/Accelerate\" action.」。这是全语料里少数逐字点名动作相位的句子之一——它明确说这是一个 entry 动作。在 PlantUML 里表达 entry 动作的写法是在状态体内写 `Accelerating : entry / Accelerate`。\n\n制品把这串文本原样搬到了迁移标签上：`:7 [*] --> Accelerating : Entry/Accelerate`。PlantUML 的迁移标签遵循 `触发 / 效果` 的约定，所以这串文本被拆成触发 `Entry` 与效果 `Accelerate`。投影结果确认了这一点：生成了一个名为 `Entry_Accelerate`、显示名为 `Entry/Accelerate` 的事件，边写成 `[*] -> Accelerating : /Entry_Accelerate`。\n\n后果有两个。其一，`Accelerating` 状态本身没有声明任何 entry 动作，NL 第 8 句点名的相位没有兑现。其二，`InMotion` 的默认入口边被挂上了一个触发，而 UML 规定初始伪状态的出边不得带触发。\n\n需要说明这属于作者侧的问题而不是表示层降级：降级的直接原因就写在作者的源文本里（他把动作放进了标签槽位），换任何一个遵循 PlantUML 约定的解析器结果都一样。\n\n根因是记法槽位用错：动作有它专属的位置（状态体内的 entry/exit/do 段），把它写进迁移标签会被按另一套语法解读。",
+      "D_basis": "判 D1，两读并立。第一种读法按记法槽位判：NL 第 8 句点名的是 entry 相位，而制品里 `Accelerating` 的 entry 段是空的，动作跑到了迁移标签上并被拆成触发加效果，义务未兑现。第二种读法按行为等价判：`:7` 是进入 `Accelerating` 的唯一入口迁移，标签拆开后效果 `Accelerate` 恰好在这条唯一入口上执行——凡是进入 `Accelerating` 就会执行 `Accelerate`，这与声明一个 entry 动作在行为上等价，差别只是记法位置从状态的 entry 段挪到了迁移标签。第二种读法与结构事实相容且行为可核，构成削弱型反驳，故判 D1。需要注意 D1 只针对「动作相位有没有兑现」这一条主张；同一行还带来的「初始迁移不得有触发」是另一个层面的问题。",
+      "L_basis": "判 L1。陈述这条错误需要导出一个静态事实：`:7` 那串标签按 PlantUML 的 `触发 / 效果` 约定被拆成什么、落到了哪个语法槽位上，以及 `Accelerating` 的 entry 段实际是空的。这要把记法的解析规则应用一遍才能得出，比查某个字符串在不在深一层；但它只涉及模型的静态切面，不需要执行序列，故不到 L2。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "effect",
+        "defect_qualifier": "other",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0014-03",
+      "pair": "0014",
+      "D": "D2",
+      "L": "L1",
+      "summary": "`:25 Entry: Emergency Stop` 在 PlantUML 里不是动作语法而是「给一个名为 Entry 的状态加描述」，于是 NL 第 3 句要求的 Emergency Stop 动作被降级成了 `EmergencyStopping` 内部的一个虚假子状态。",
+      "detail": "NL 第 3 句逐字为「When an obstacle is detected, the system enters the EmergencyStopping state, which includes the actions \"Emergency Stop\" and sends the \"Obstacle Detected\" signal.」。这要求 `EmergencyStopping` 带一个 Emergency Stop 动作。\n\n制品在 `:24` 开 `state EmergencyStopping {`，块内写了 `:25 Entry: Emergency Stop` 与 `:26 EmergencyStopping: Obstacle Detected`。\n\n`:25` 这一行的语法是 `名字 : 文本`，PlantUML 会把它理解成「给名为 `Entry` 的那个状态加一行描述文字」。而 `Entry` 这个名字之前没出现过，于是它被顺手声明成一个新状态，且因为这行写在 `EmergencyStopping` 块内，它成了 `EmergencyStopping` 的子状态。投影结果确认：产生了一个名为 `Entry`、显示名为 `Entry\\n[PlantUML body] Emergency Stop` 的状态；又因为 `EmergencyStopping` 突然有了子状态却没有默认入口，还连带生成了 `EmergencyStopping.UnspecifiedInitial` 与一条 `[*] -> UnspecifiedInitial` 的占位边。\n\n后果是双重的：`EmergencyStopping` 既没有拿到 NL 要求的动作，又莫名变成了一个带子状态的复合态。而 NL 第 4 句只把子状态授予了 `InMotion`（「Within the InMotion state, the system operates in three substates」），没有任何一句给 `EmergencyStopping` 子结构。\n\n根因与 EIS-0014-02 同类：动作被写进了错误的语法槽位。PlantUML 里表达入口动作的正确写法是 `EmergencyStopping : entry / Emergency Stop`——名字位要写状态自己的名字。作者把相位名写到了名字位上。\n\n本条与 VU-0014-01 分工不同：本条说 Emergency Stop 这个动作变成了状态，那一条说 Obstacle Detected 这个输出信号被吞进了描述文字。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 3 句「which includes the actions \"Emergency Stop\"」。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法——`:25` 的解析结果是一个状态而不是一个动作，这一点由投影结果直接确认，不存在「换一种解释就成了动作」的余地；而附带产生的虚假复合结构也没有任何 NL 依据。反驳不存活。",
+      "L_basis": "判 L1。陈述这条错误需要导出一个静态解析事实：`Entry: Emergency Stop` 按 PlantUML 的 `名字 : 文本` 规则被解析成一个名为 `Entry` 的状态，而不是 `EmergencyStopping` 的入口动作。这要把解析规则应用一遍并看清作用域归属，比查某个字符串在不在深一层；但它只涉及静态切面，不需要执行序列，故不到 L2。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "effect",
+        "defect_qualifier": "other",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0014-04",
+      "pair": "0014",
+      "D": "D2",
+      "L": "L0",
+      "summary": "NL 第 9 句要求 `Approaching` 发出 `Send` 信号，而制品里 `Approaching`（:14-:17）只有两行描述文本，`Send` 这个动作在模型的任何相位、任何迁移上都不存在。",
+      "detail": "NL 第 9 句逐字为「In the Approaching substate, the system sends the \"Send\" signal and continues to approach the destination.」。这是一条输出动作要求。上游参考模型用 `Entry/Send` 承载了它。\n\n制品在 `:14` 开 `state Approaching {`，块内两行都是描述文字：`:15 Approaching: Nearing Destination` 与 `:16 Approaching: Ready to Stop/Decelerate`。两行都是 `状态名 : 文本` 语法，只往状态框里加显示文字，不产生任何动作。\n\n检索全模型也找不到这个动作：`Approaching` 在投影后只有一个显示名字符串，没有任何 enter 或 during 抽象动作；全文也没有任何迁移的效果位上出现 `Send`。\n\n所以这不是相位差异（entry 还是 do）、也不是命名差异，而是这个输出动作在模型里根本没有载体。\n\n根因与本 pair 的另外两条同源：作者用 `状态名 : 文本` 这一种语法承载了本该分别落到不同槽位的东西——`:15` 是对状态含义的描述（无害），`:16` 想表达的可能是一条迁移，而 NL 第 9 句要求的输出动作则被整个漏掉了。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 9 句「the system sends the \"Send\" signal」。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法——`Send` 这个字符串在制品的动作位、效果位上一处都不出现，`:15`/`:16` 两行是纯描述文字，没有任何结构可以被解释成「这个输出已经建出来了」。反驳不存活。",
+      "L_basis": "判 L0。陈述这条错误只需把 NL 第 9 句点名的 `Send` 拿去模型里检索动作位与效果位，发现一处都没有。这是一次词项层面的存在性比对，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "effect",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "VU-0014-01",
+      "pair": "0014",
+      "D": "D2",
+      "L": "L0",
+      "summary": "NL 第 3 句要求 `EmergencyStopping` 发出 `Obstacle Detected` 信号，而 `:26 EmergencyStopping: Obstacle Detected` 只是把这串字吞进了状态的描述文字里；模型里唯一的 `Obstacle Detected` 是 `:21` 上的输入触发，不是输出。",
+      "detail": "NL 第 3 句逐字为「When an obstacle is detected, the system enters the EmergencyStopping state, which includes the actions \"Emergency Stop\" and sends the \"Obstacle Detected\" signal.」。这里 `Obstacle Detected` 出现了两次角色：句首的「检测到障碍」是进入这个状态的输入条件，句尾的「sends the Obstacle Detected signal」是进入之后要发出的输出信号。\n\n制品只建了输入那一侧。`:21 InMotion --> EmergencyStopping: Obstacle Detected` 把它用作触发事件，这是对的。输出那一侧写成了 `:26 EmergencyStopping: Obstacle Detected`——`状态名 : 文本` 语法，结果这串字被并进状态的显示名里（投影后 `EmergencyStopping` 的名字变成 `EmergencyStopping` 后接 `[PlantUML body] Obstacle Detected`），状态内没有任何 enter 或 during 动作。\n\n所以模型里 `Obstacle_Detected` 只有一个身份：输入触发。NL 要求的那次输出没有载体。\n\n根因是同一个名字承担两种角色时，只建出了先出现的那一种。这类错误在输入与输出同名的场合特别隐蔽——文本里能搜到这个名字，看起来像是建了，实际只建了一半。\n\n本条属于第一版台账漏记、后从各实验臂未被认领的产出中提取回来的一类。它与 EIS-0014-03 分工不同：那一条说 Emergency Stop 这个动作被解析成了一个虚假子状态，本条说 Obstacle Detected 这个输出被吞进了描述文字。两处都在 `EmergencyStopping` 块内，但一处产生了多余的状态、一处丢失了输出，修法不同。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 3 句「and sends the \"Obstacle Detected\" signal」。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法——`:26` 是描述语法不是动作语法，投影结果确认那串字进了状态名；而模型里唯一的 `Obstacle_Detected` 用在输入触发位上，输入不能顶替输出。反驳不存活。",
+      "L_basis": "判 L0。陈述这条错误只需检索模型的动作位与效果位上有没有 `Obstacle Detected` 这个输出，发现没有（它只出现在 `:21` 的触发位与 `:26` 的描述文字里）。这是一次词项层面的存在性与角色比对，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "effect",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:unreachable_component:Stopping",
+          "claims": [
+            "Source component 'Stopping' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0014.Stopping"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D1",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:Stopping:facet:e64dc7f48eb3"
+          ]
+        },
+        {
+          "finding_id": "source:initial_contract:InMotion",
+          "claims": [
+            "Formal diagnostic W_INITIAL_UNCONDITIONAL_MISSING is present at exact reference llms_emp_feedback_final_0014.InMotion."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0014.InMotion"
+          ],
+          "obligations": [
+            "Every entered composite must provide a valid unconditional initial entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:InMotion:facet:a1184dc6e6ab"
+          ]
+        },
+        {
+          "finding_id": "source:initial_contract:llms_emp_feedback_final_0014",
+          "claims": [
+            "Source composite 'llms_emp_feedback_final_0014' has no initial transition to required child 'DoorsClosing'."
+          ],
+          "locations": [
+            "NL1",
+            "PUML:L2",
+            "F34"
+          ],
+          "obligations": [
+            "The system must start in DoorsClosing."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:llms_emp_feedback_final_0014:facet:5c85f87df514"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:7cff7e0bb47cc227",
+          "claims": [
+            "EmergencyStopping does not realize the required Emergency Stop action and Obstacle Detected signal behavior."
+          ],
+          "locations": [
+            "NL3",
+            "PUML:L24-PUML:L26",
+            "F27-F31"
+          ],
+          "obligations": [
+            "EmergencyStopping must include the Emergency Stop action and send the Obstacle Detected signal."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:7cff7e0bb47cc227:facet:6f2a07cd2307"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:785e74309e0d0785",
+          "claims": [
+            "The Approaching substate has no authored Send signal behavior or explicit continuation while nearing the destination."
+          ],
+          "locations": [
+            "NL9",
+            "PUML:L14-PUML:L16",
+            "F14",
+            "F21",
+            "F24"
+          ],
+          "obligations": [
+            "Approaching must send Send and continue approaching while nearing the destination."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:785e74309e0d0785:facet:9f878a96d73d"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_component:DoorsClosing",
+          "claims": [
+            "Source component 'DoorsClosing' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "NL1",
+            "inspect:W_UNREACHABLE_STATE:DoorsClosing",
+            "F10",
+            "F34",
+            "llms_emp_feedback_final_0014.DoorsClosing"
+          ],
+          "obligations": [
+            "DoorsClosing must be reachable from the system root and serve as the startup state.",
+            "The system must be able to reach the required initial DoorsClosing state from the machine root."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:unreachable_component:DoorsClosing:facet:5cf48b46a2ec",
+            "source:unreachable_component:DoorsClosing:facet:5eb944a130f1"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:8046710c25162170",
+          "claims": [
+            "The source inventory does not contain an abstract action realization for Emergency Stop."
+          ],
+          "locations": [
+            "NL3",
+            "PUML:L25",
+            "F28"
+          ],
+          "obligations": [
+            "The EmergencyStopping behavior must realize the explicitly required Emergency Stop action."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:8046710c25162170:facet:c7204768837f"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:d4e7dafbc7ba2795",
+          "claims": [
+            "The EmergencyStopping source body has no modeled send effect for the Obstacle Detected signal."
+          ],
+          "locations": [
+            "NL3",
+            "PUML:L26",
+            "F27",
+            "F8"
+          ],
+          "obligations": [
+            "The EmergencyStopping behavior must send the explicitly required Obstacle Detected signal."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:d4e7dafbc7ba2795:facet:d43b1e25ff14"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:initial_contract:llms_emp_feedback_final_0014",
+          "claims": [
+            "Source composite 'llms_emp_feedback_final_0014' has no initial transition to required child 'DoorsClosing'."
+          ],
+          "locations": [
+            "NL1",
+            "PUML:L1",
+            "F34",
+            "F9"
+          ],
+          "obligations": [
+            "llms_emp_feedback_final_0014 must initially enter DoorsClosing.",
+            "The system must initially target DoorsClosing.",
+            "The system starts in DoorsClosing."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:llms_emp_feedback_final_0014:facet:5c85f87df514"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:270f731ac60a259e",
+          "claims": [
+            "EmergencyStopping does not contain a realized Emergency Stop action."
+          ],
+          "locations": [
+            "NL3",
+            "PUML:L24",
+            "PUML:L25",
+            "F27-F28"
+          ],
+          "obligations": [
+            "EmergencyStopping must realize the Emergency Stop action."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:270f731ac60a259e:facet:9a463acf56fb"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:9c2f7c5a89029619",
+          "claims": [
+            "EmergencyStopping does not realize the required Obstacle Detected signal effect."
+          ],
+          "locations": [
+            "NL3",
+            "PUML:L24",
+            "PUML:L26",
+            "F27",
+            "F8"
+          ],
+          "obligations": [
+            "EmergencyStopping must realize the Obstacle Detected signal effect."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:9c2f7c5a89029619:facet:d43b1e25ff14"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:e61ec58fe441cf55",
+          "claims": [
+            "The required Send signal effect in Approaching is absent."
+          ],
+          "locations": [
+            "NL9",
+            "PUML:L14-F16",
+            "F14"
+          ],
+          "obligations": [
+            "Approaching must realize the Send signal effect."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:e61ec58fe441cf55:facet:4717c8c5b5ab"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:4cd6b112cc18491c",
+          "claims": [
+            "The required Emergency Stop action is not realized as an action element owned by EmergencyStopping."
+          ],
+          "locations": [
+            "NL3",
+            "PUML:L25",
+            "F27",
+            "F28"
+          ],
+          "obligations": [
+            "EmergencyStopping includes the Emergency Stop action."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:4cd6b112cc18491c:facet:9a463acf56fb"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_component:DoorsClosing",
+          "claims": [
+            "Source component 'DoorsClosing' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "NL1",
+            "F4",
+            "F34",
+            "llms_emp_feedback_final_0014.DoorsClosing"
+          ],
+          "obligations": [
+            "The specified initial DoorsClosing behavior is reachable from the system root."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:DoorsClosing:facet:5937509b258d"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:initial_contract:InMotion",
+          "claims": [
+            "Formal diagnostic W_INITIAL_UNCONDITIONAL_MISSING is present at exact reference llms_emp_feedback_final_0014.InMotion."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0014.InMotion"
+          ],
+          "obligations": [
+            "Every entered composite must provide a valid unconditional initial entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:InMotion:facet:a1184dc6e6ab"
+          ]
+        },
+        {
+          "finding_id": "source:initial_contract:llms_emp_feedback_final_0014",
+          "claims": [
+            "Source composite 'llms_emp_feedback_final_0014' has no initial transition to required child 'DoorsClosing'."
+          ],
+          "locations": [
+            "NL1",
+            "F34"
+          ],
+          "obligations": [
+            "llms_emp_feedback_final_0014 must initially enter DoorsClosing.",
+            "The system must initialize directly into DoorsClosing."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:llms_emp_feedback_final_0014:facet:5c85f87df514"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:7cabdeeee5111eca",
+          "claims": [
+            "Approaching lacks the required Send signal effect."
+          ],
+          "locations": [
+            "NL9",
+            "PUML:L14-PUML:L17",
+            "F14"
+          ],
+          "obligations": [
+            "Approaching must send the Send signal."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:7cabdeeee5111eca:facet:4717c8c5b5ab"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_component:DoorsClosing",
+          "claims": [
+            "Source component 'DoorsClosing' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "NL1",
+            "llms_emp_feedback_final_0014.DoorsClosing"
+          ],
+          "obligations": [
+            "The system's declared starting state must be reachable from the machine root."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:DoorsClosing:facet:5cf48b46a2ec"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "将“检测到障碍物”错误建模为转移标签，而未明确表示规范要求的障碍物检测触发事件及其发送信号语义",
+          "reason": "规范要求在检测到障碍物时进入 EmergencyStopping，并在该状态执行“Emergency Stop”且发送“Obstacle Detected”信号。模型只把 `Obstacle Detected` 放在转移上，未建模为触发条件/事件与状态内发送动作的清晰组合，且状态内的同名文本不是发送动作标注。",
+          "where": "InMotion 到 EmergencyStopping 的转移：`InMotion --> EmergencyStopping: Obstacle Detected`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "未建模 EmergencyStopping 状态发送“Obstacle Detected”信号的动作",
+          "reason": "状态内部的 `EmergencyStopping: Obstacle Detected` 是普通状态描述/内部文字，而非明确的 entry/do/exit 动作或信号发送语句；因此不能保证进入该状态后实际发送规范要求的信号。",
+          "where": "EmergencyStopping 状态：`EmergencyStopping: Obstacle Detected`"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "“Entry/Accelerate”被错误放在从复合状态初始伪状态到 Accelerating 的转移上",
+          "reason": "规范要求系统进入 Accelerating 子状态时执行 `Entry/Accelerate` 动作。该模型把 Entry 当作转移标签，而不是 Accelerating 的进入动作；从语义上不能准确表达进入 Accelerating 时执行加速动作。",
+          "where": "InMotion 内部初始转移：`[*] --> Accelerating : Entry/Accelerate`"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "未建模 Approaching 状态发送 `Send` 信号以及持续停留的行为",
+          "reason": "规范明确要求在 Approaching 中发送 `Send` 信号，并在接近目的地时保持该子状态，直到准备停止或减速。模型仅包含两条无触发器、无动作语义的状态内部文字，既没有 `Send` 动作，也没有表示保持/自循环或其他可执行状态行为。",
+          "where": "Approaching 状态：`Approaching: Nearing Destination` 与 `Approaching: Ready to Stop/Decelerate`"
+        },
+        {
+          "finding_id": "baseline_issue_5",
+          "issue": "引入了规范未要求的“准备停止/减速”内部动作或状态语义，并且没有对应转移",
+          "reason": "规范只要求系统持续处于 Approaching，直到准备停止或减速；它没有规定在 Approaching 内执行 `Ready to Stop/Decelerate` 这一动作。模型将其作为状态描述，既改变了语义又没有定义后续行为。",
+          "where": "Approaching 状态中的 `Ready to Stop/Decelerate` 描述"
+        },
+        {
+          "finding_id": "baseline_issue_6",
+          "issue": "发送信号名称与规范不一致",
+          "reason": "规范要求到达时执行 `Stop` 并发送 `Arrived` 信号，即 `Arrived/Stop, Send Arrived`。模型写成 `SendArrived`，缺少规范中的发送动作分隔/空格语义，不能明确表示发送 `Arrived` 信号。",
+          "where": "Arrived 转移标签：`Arrived/Stop, SendArrived`"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "未显式表示系统从 DoorsClosing 开始",
+          "reason": "规格明确要求系统 starts in DoorsClosing。模型只声明了 DoorsClosing，并直接定义其到 InMotion 的转换，没有顶层初始伪状态[*]到 DoorsClosing 的箭头，因此从模型结构上无法确认系统初始进入 DoorsClosing。",
+          "where": "顶层状态初始化；DoorsClosing 附近"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "缺少发送“Send”信号的动作",
+          "reason": "规格要求进入 Approaching 后系统发送“Send”信号并继续接近目的地。模型仅有“Nearing Destination”和“Ready to Stop/Decelerate”两条状态注释，没有 Send 动作或发送信号的转换。",
+          "where": "InMotion 内的 Approaching 状态"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "未明确建模发送“Obstacle Detected”信号",
+          "reason": "规格将“检测到障碍物”作为进入 EmergencyStopping 的条件，并要求该状态执行“Emergency Stop”且发送“Obstacle Detected”信号。模型的转换标签只有 Obstacle Detected（更像触发条件），状态体中的“EmergencyStopping: Obstacle Detected”只是状态描述，不表示发送动作，因此缺少明确的信号发送语义。",
+          "where": "InMotion --> EmergencyStopping: Obstacle Detected；EmergencyStopping 状态体"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "动作名称写成 SendArrived，未按规格写成 Send Arrived",
+          "reason": "规格指定到达事件的信号/动作为“Arrived/Stop, Send Arrived”。模型写成“Arrived/Stop, SendArrived”，文本标识与规定的动作名称不一致；若信号名按字面匹配，这会导致动作名称不符合规格。",
+          "where": "InMotion --> Stopping 转换"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "从 InMotion 进入 EmergencyStopping 的触发条件和信号标注不完整/不一致。",
+          "reason": "规格要求在检测到障碍物时进入该状态，并执行“Emergency Stop”且发送“Obstacle Detected”信号。模型只把 `Obstacle Detected` 写成转移标签，没有明确体现“检测到障碍物”这一触发事件与发送该信号的动作之间的关系；同时 EmergencyStopping 内部虽有 `Entry: Emergency Stop` 和状态说明 `Obstacle Detected`，但未明确建模发送信号的动作。",
+          "where": "`InMotion --> EmergencyStopping: Obstacle Detected`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "EmergencyStopping 状态中的“Obstacle Detected”未明确表示发送信号动作。",
+          "reason": "规格明确要求进入 EmergencyStopping 时发送 `Obstacle Detected` 信号。该模型行是状态内部描述/注释式状态文本，而不是带有 `send` 语义的进入动作、do 动作或转移动作，因此不能确认实现了发送信号。",
+          "where": "`state EmergencyStopping { ... EmergencyStopping: Obstacle Detected }`"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "Approaching 子状态未建模为持续保持状态的行为或循环。",
+          "reason": "规格要求系统在接近目的地时保持在 Approaching，直到准备停止或减速。模型只包含两条状态描述，没有自循环、内部转移或明确的保持语义；其中 `Ready to Stop/Decelerate` 还被表示成静态文本，未表示事件触发的行为。",
+          "where": "`state Approaching { Approaching: Nearing Destination; Approaching: Ready to Stop/Decelerate }`"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "Approaching 子状态的要求“发送 Send 信号”缺失。",
+          "reason": "规格第9条明确要求在 Approaching 中发送 `Send` 信号。模型中没有 `Send` 动作或信号标注，只有 `Nearing Destination` 和 `Ready to Stop/Decelerate` 两条描述，因此该要求未被实现。",
+          "where": "整个 `state Approaching { ... }` 定义"
+        },
+        {
+          "finding_id": "baseline_issue_5",
+          "issue": "“Entry/Accelerate”动作的建模位置与规格语义不完全匹配。",
+          "reason": "规格要求“进入 Accelerating 子状态时”执行 `Entry/Accelerate`。模型将 `Entry/Accelerate` 放在初始伪状态到 Accelerating 的转移标签上，而不是 Accelerating 的 entry 动作；若从其他路径重新进入 Accelerating，模型也没有保证执行该 entry 动作。",
+          "where": "`[*] --> Accelerating : Entry/Accelerate`"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0014",
+    "ledger_assessments": [
+      {
+        "ledger_id": "EIS-0014-01",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:llms_emp_feedback_final_0014",
+            "source:unreachable_component:DoorsClosing"
+          ],
+          "reason": "前者直接断言根复合状态没有到所需子状态 DoorsClosing 的初始迁移；后者在同一根入口与 DoorsClosing 位置断言规定的启动状态不可达，是该缺失初始入口的直接启动后果。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:llms_emp_feedback_final_0014",
+            "source:unreachable_component:DoorsClosing"
+          ],
+          "reason": "根初始契约 finding 直接指出未初始进入 DoorsClosing；不可达 finding 也明确以系统根和指定初始 DoorsClosing 为范围描述同一冷启动缺陷后果。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:llms_emp_feedback_final_0014",
+            "source:unreachable_component:DoorsClosing"
+          ],
+          "reason": "两条分别直接断言缺少根到 DoorsClosing 的初始迁移，以及规定的起始状态从机器根不可达，均落在冻结条目的根层初始化位置。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本轮没有输出顶层初始伪状态缺失、系统未从 DoorsClosing 开始或其等价启动后果。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "明确指出仅声明 DoorsClosing 而没有顶层 [*] 到 DoorsClosing 的箭头，正是冻结条目的同处缺失。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本轮没有关于根层初始入口或 DoorsClosing 启动配置的输出。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0014-02",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "没有 finding 主张 Entry/Accelerate 被放入初始迁移标签而非 Accelerating 的 entry 动作槽位；InMotion 无条件初始入口诊断是另一种性质。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本轮没有涉及 Accelerating 的 Entry/Accelerate 动作槽位错放。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "InMotion 初始契约诊断只主张无有效无条件初始入口，没有主张 Accelerating entry 动作被错放到迁移标签。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_3"
+          ],
+          "reason": "明确定位 [*] --> Accelerating : Entry/Accelerate，并主张该文本错误位于迁移标签而不是 Accelerating 的进入动作，位置和槽位性质完全一致。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本轮没有输出 Entry/Accelerate 的记法槽位问题。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_5"
+          ],
+          "reason": "明确指出 Entry/Accelerate 位于初始伪状态到 Accelerating 的迁移标签，而非 Accelerating 的 entry 动作，命中同一错位。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0014-03",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "hypothesis:7cff7e0bb47cc227",
+            "hypothesis:8046710c25162170"
+          ],
+          "reason": "两条都定位 EmergencyStopping/L25，并断言所需 Emergency Stop 没有被实现为动作；这是冻结条目所述 L25 被解析成虚假状态后造成的同一动作槽位缺失。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "hypothesis:270f731ac60a259e",
+            "hypothesis:4cd6b112cc18491c"
+          ],
+          "reason": "两条均在 EmergencyStopping 的 L25 断言 Emergency Stop 未实现为该状态拥有的动作元素，直接覆盖冻结条目的动作错槽及缺失主张。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本轮没有关于 Emergency Stop 动作或 L25 解析归属的输出。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出虽在部分理由中复述 Emergency Stop 要求，但没有断言 L25 的 Emergency Stop 动作缺失、错槽或被解析成状态；不能仅凭背景提及命中。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本轮 EmergencyStopping 输出只针对 Obstacle Detected 的发送动作，没有主张 Emergency Stop 的动作实现错误。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出将 Entry: Emergency Stop 作为已有内部内容提及，实际缺陷断言集中在 Obstacle Detected 发送；没有提出 Emergency Stop 被解析成虚假子状态或动作缺失。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0014-04",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "hypothesis:785e74309e0d0785"
+          ],
+          "reason": "明确定位 Approaching，并断言没有已建模的 Send 信号行为，和冻结条目的动作缺失同处同性质。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "hypothesis:e61ec58fe441cf55"
+          ],
+          "reason": "直接断言 Approaching 所需 Send 信号效果缺失。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "hypothesis:7cabdeeee5111eca"
+          ],
+          "reason": "直接断言 Approaching 缺少所需 Send 信号效果。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_4"
+          ],
+          "reason": "该 issue 虽还讨论持续行为，但独立明确断言 Approaching 没有 Send 动作，足以命中本条。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_2"
+          ],
+          "reason": "明确指出 Approaching 只有注释且缺少 Send 动作或发送信号转换。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_4"
+          ],
+          "reason": "明确定位整个 Approaching 定义并断言第 9 条要求的 Send 信号缺失。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "VU-0014-01",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "hypothesis:7cff7e0bb47cc227",
+            "hypothesis:d4e7dafbc7ba2795"
+          ],
+          "reason": "组合 issue 明确包含 EmergencyStopping 未实现 Obstacle Detected 信号行为；专门 issue 又定位 L26 并断言没有 modeled send effect，均命中同一输出缺失。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "hypothesis:9c2f7c5a89029619"
+          ],
+          "reason": "明确定位 EmergencyStopping/L26 并断言所需 Obstacle Detected 信号效果未实现。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本轮没有 EmergencyStopping 发送 Obstacle Detected 的输出。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1",
+            "baseline_issue_2"
+          ],
+          "reason": "issue 1 的完整主张明确说只把同名文本放在转移/描述位置而没有状态内发送动作；issue 2 更直接断言 L26 只是描述而非发送动作。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_3"
+          ],
+          "reason": "明确区分 L21 的触发标签与 L26 的描述文字，并断言缺少 EmergencyStopping 的 Obstacle Detected 发送语义。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1",
+            "baseline_issue_2"
+          ],
+          "reason": "两条都明确断言 EmergencyStopping 中的 Obstacle Detected 仅为标签或描述，没有建模为发送动作，命中冻结条目的输出缺失。",
+          "confidence": "high"
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:unreachable_component:Stopping",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 Stopping 从根入口不可达；冻结台账没有 Stopping 可达性条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:initial_contract:InMotion",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 InMotion 缺少有效无条件初始入口。冻结 EIS-0014-02 主张的是 Accelerating entry 动作错放槽位，并明确把初始迁移带触发视为另一层问题，故不能对齐。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:initial_contract:llms_emp_feedback_final_0014",
+        "matched_ledger_ids": [
+          "EIS-0014-01"
+        ],
+        "false_positive": false,
+        "reason": "直接指出根复合状态没有到所需 DoorsClosing 的初始迁移。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "hypothesis:7cff7e0bb47cc227",
+        "matched_ledger_ids": [
+          "EIS-0014-03",
+          "VU-0014-01"
+        ],
+        "false_positive": false,
+        "reason": "在 EmergencyStopping 同时明确断言 Emergency Stop 动作和 Obstacle Detected 发送行为均未实现，分别覆盖两个冻结条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "hypothesis:785e74309e0d0785",
+        "matched_ledger_ids": [
+          "EIS-0014-04"
+        ],
+        "false_positive": false,
+        "reason": "明确断言 Approaching 没有 Send 信号行为；附带的 continuation 主张不妨碍其覆盖已有台账条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:unreachable_component:DoorsClosing",
+        "matched_ledger_ids": [
+          "EIS-0014-01"
+        ],
+        "false_positive": false,
+        "reason": "在机器根与规定启动状态 DoorsClosing 上断言不可达，是缺少根初始入口的直接启动后果，且 obligations 明确要求其作为 startup state。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "hypothesis:8046710c25162170",
+        "matched_ledger_ids": [
+          "EIS-0014-03"
+        ],
+        "false_positive": false,
+        "reason": "定位 L25 并断言 Emergency Stop 没有抽象动作实现，覆盖该行错槽后动作缺失的主张。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "hypothesis:d4e7dafbc7ba2795",
+        "matched_ledger_ids": [
+          "VU-0014-01"
+        ],
+        "false_positive": false,
+        "reason": "定位 L26 并断言 EmergencyStopping 没有 Obstacle Detected 的发送效果。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:initial_contract:llms_emp_feedback_final_0014",
+        "matched_ledger_ids": [
+          "EIS-0014-01"
+        ],
+        "false_positive": false,
+        "reason": "直接断言系统根没有初始进入 DoorsClosing。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:270f731ac60a259e",
+        "matched_ledger_ids": [
+          "EIS-0014-03"
+        ],
+        "false_positive": false,
+        "reason": "定位 EmergencyStopping/L25 并断言 Emergency Stop 动作未实现。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:9c2f7c5a89029619",
+        "matched_ledger_ids": [
+          "VU-0014-01"
+        ],
+        "false_positive": false,
+        "reason": "断言 EmergencyStopping 未实现 Obstacle Detected 信号效果。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:e61ec58fe441cf55",
+        "matched_ledger_ids": [
+          "EIS-0014-04"
+        ],
+        "false_positive": false,
+        "reason": "直接断言 Approaching 的 Send 信号效果缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:4cd6b112cc18491c",
+        "matched_ledger_ids": [
+          "EIS-0014-03"
+        ],
+        "false_positive": false,
+        "reason": "明确断言 Emergency Stop 未作为 EmergencyStopping 拥有的动作元素实现。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:unreachable_component:DoorsClosing",
+        "matched_ledger_ids": [
+          "EIS-0014-01"
+        ],
+        "false_positive": false,
+        "reason": "断言指定初始 DoorsClosing 从系统根不可达，描述同一缺失根初始入口的后果。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:initial_contract:InMotion",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "这是 InMotion 无有效无条件初始入口的诊断，不是台账中的 Accelerating entry 动作错槽主张。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:initial_contract:llms_emp_feedback_final_0014",
+        "matched_ledger_ids": [
+          "EIS-0014-01"
+        ],
+        "false_positive": false,
+        "reason": "直接断言根复合状态没有初始进入 DoorsClosing。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "hypothesis:7cabdeeee5111eca",
+        "matched_ledger_ids": [
+          "EIS-0014-04"
+        ],
+        "false_positive": false,
+        "reason": "直接断言 Approaching 缺少所需 Send 信号效果。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:unreachable_component:DoorsClosing",
+        "matched_ledger_ids": [
+          "EIS-0014-01"
+        ],
+        "false_positive": false,
+        "reason": "在机器根和声明的起始状态上断言不可达，覆盖冻结初始化缺失的直接后果。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "VU-0014-01"
+        ],
+        "false_positive": false,
+        "reason": "尽管其对触发事件是否明确的表述偏宽，完整主张仍明确指出只建了转移标签而没有 EmergencyStopping 内的 Obstacle Detected 发送动作。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "VU-0014-01"
+        ],
+        "false_positive": false,
+        "reason": "直接断言 L26 是描述文字而非发送动作，所需 Obstacle Detected 输出未建模。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [
+          "EIS-0014-02"
+        ],
+        "false_positive": false,
+        "reason": "明确指出 Entry/Accelerate 错放在初始迁移标签而不是 Accelerating 的 entry 动作。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [
+          "EIS-0014-04"
+        ],
+        "false_positive": false,
+        "reason": "明确包含 Approaching 缺少 Send 动作的主张；其额外持续行为主张没有对应台账，但该 issue 仍真实覆盖 EIS-0014-04。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_5",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 Ready to Stop/Decelerate 引入多余内部语义且无对应转移；冻结台账没有这一多余或缺失转移条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_6",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 SendArrived 与 Send Arrived 名称/分隔不一致；冻结台账没有 Arrived 发送动作命名条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0014-01"
+        ],
+        "false_positive": false,
+        "reason": "明确指出顶层没有 [*] 到 DoorsClosing，系统起始状态未被结构化表示。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "EIS-0014-04"
+        ],
+        "false_positive": false,
+        "reason": "明确断言 Approaching 缺少 Send 动作。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [
+          "VU-0014-01"
+        ],
+        "false_positive": false,
+        "reason": "明确区分输入触发与状态内输出，并断言 Obstacle Detected 发送语义缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "仅主张 SendArrived 的动作名称不符合规范；冻结台账没有该问题。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "VU-0014-01"
+        ],
+        "false_positive": false,
+        "reason": "完整主张明确包含 EmergencyStopping 未建模 Obstacle Detected 发送动作；对触发关系的附加批评不影响该覆盖。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "VU-0014-01"
+        ],
+        "false_positive": false,
+        "reason": "直接断言 EmergencyStopping 中的 Obstacle Detected 只是描述，不是发送信号动作。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 Approaching 缺少保持、自循环或内部转移；冻结台账只有 Send 输出缺失，没有持续保持建模条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [
+          "EIS-0014-04"
+        ],
+        "false_positive": false,
+        "reason": "直接断言 Approaching 的 Send 信号要求缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_5",
+        "matched_ledger_ids": [
+          "EIS-0014-02"
+        ],
+        "false_positive": false,
+        "reason": "明确指出 Entry/Accelerate 位于初始迁移标签而非 Accelerating 的 entry 动作槽位。",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "按“同一处且同一性质”逐项对齐。根层缺少到 DoorsClosing 的初始入口由直接初始契约 finding 命中；将 DoorsClosing 表述为从根入口不可达的 finding 也指向同一冷启动缺陷后果，计入该条。InMotion 的无条件初始入口诊断属于初始伪状态出边合法性问题，而冻结台账 EIS-0014-02 的主体是 Accelerating entry 动作错放槽位，台账还明确将前者视为另一层问题，故不互相命中。Emergency Stop 的输出若只断言动作在 L25 未实现，仍是对同一错槽解析所造成动作缺失的直接主张，计入 EIS-0014-03。"
+  },
+  "status": "ok",
+  "attempts": 1
+}

@@ -1,0 +1,106 @@
+{
+ "case": "0059",
+ "group": "NL05",
+ "llm": "Claude",
+ "diffs": [
+  {
+   "verdict": "correct",
+   "ref": "state AutonomousMode { [*] --> InitialState; InitialState 双分岔; state HighwayMode { enter_hwy, cruise, lane_change, exit_hwy }; state UrbanMode { enter_urban, lane_change_urban, straight, intersection, exit_urban }; HighwayMode <--> UrbanMode 双向; HighwayMode/UrbanMode --> FinishState : auto_finished = true }",
+   "gen": "结构逐项同构；FCSTM 确认 exit_hwy 与 exit_urban 都在正确的模式内、FinishState 在 AutonomousMode 层级被两模式共享、双向切换齐备",
+   "reason": "0059 是六例中与参考结构最接近的一份：NL 1/2/4/5/6/7/8/9/10/11 的状态集、层次归属、守卫与模式级完成关系全部对齐，且没有把局部出口与全局完成混淆。这是本组唯一同时满足「exit_hwy 与 exit_urban 都在、FinishState 层级正确、两条模式级完成边都在复合态边界」的 case。",
+   "assertable": null,
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "enter_hwy --> cruise; enter_hwy --> lane_change: dist_to_front<25 & extra_lane=true",
+   "gen": "只有 enter_hwy --> cruise（无守卫）；没有 enter_hwy --> lane_change",
+   "reason": "NL 3 显式写明 enter_hwy 可转向 cruise 或 lane_change，参考也声明了两条边。生成侧删掉 lane_change 分支，lane_change 只能经 cruise 二次到达，丢失了 NL 明确给出的 source-target 关系。台帐排除为 E2b（认为行为可等价），我在声明层面判 problem，但强度受下一条 uncertain 削弱。",
+   "assertable": "edge_declared(source=\"llms_emp_feedback_final_0059.AutonomousMode.HighwayMode.enter_hwy\", trigger=\"llms_emp_feedback_final_0059._dist_to_front_25_extra_lane_true\", target=\"llms_emp_feedback_final_0059.AutonomousMode.HighwayMode.lane_change\")",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "enter_hwy --> cruise 无任何标签，在 FCSTM 语义下是每周期触发的 completion transition",
+   "gen": "enter_hwy --> cruise 同样无标签",
+   "reason": "参考模型自身可疑：无标签边立即触发会使参考自己声明的 enter_hwy --> lane_change 不可达，即参考的两个目标在行为上塌缩成一个。0059 照抄了这条无标签边并删掉 lane_change 分支，实际行为与参考一致。论文 §7 自认参考是人工重建且主观、§4.2(4) 只是 assume 其语义正确，此处无法判定谁对，故标 uncertain。这一条同时适用于 0039。",
+   "assertable": null,
+   "predicate_exists": false,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "守卫直接写成裸表达式，如 InitialState --> HighwayMode:high_way=true",
+   "gen": "守卫写成方括号形式，如 InitialState --> HighwayMode : [high_way=true]",
+   "reason": "UML 惯例中守卫本就写在方括号内，0059 的写法在建模规范上更正确；但 PlantUML 没有原生守卫语法，冒号后全部内容都是标签，FCSTM 因此投影出名为 \"[high_way=true]\" 的事件（标识符加了下划线前缀 _high_way_true）。纯记法差异，不改变任何一条迁移的语义。",
+   "assertable": null,
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "intersection --> straight",
+   "gen": "无该边",
+   "reason": "NL 7/9 只规定进入 intersection 的条件，未规定其出边；参考侧该边属自行补充，缺失不违反 NL。本组仅 0049 写出了这条边。",
+   "assertable": null,
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "exit_hwy --> [*]; exit_urban --> [*]; FinishState --> [*]",
+   "gen": "无这三条终结边；exit_hwy / exit_urban 只能通过模式级 auto_finished / urban_way 组边离开，FinishState 无出边",
+   "reason": "NL 1-13 通篇没有提到整个自动驾驶模式如何终止（NL 6/10 只说进入 FinishState），也没有要求出口态完成其所在区域。参考侧这三条终结边属参考自行补充的 UML 完整性写法，NL 未要求，缺失不构成语义损失。",
+   "assertable": null,
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "AutonomousMode 内用 -- 并发区承载碰撞规避；出边守卫用 in(front_inactive) & in(rear_inactive) & in(pedestrian_inactive)",
+   "gen": "顺序兄弟复合态 state CollisionAvoidanceSystem { [*] --> collision_avoidance_deactive; ... }；激活守卫用布尔标志 in_highway / in_urban，去激活守卫用 front_inactive && rear_inactive && pedestrian_inactive",
+   "reason": "并发降级为顺序，与本组其余 case 同类，标 out_of_scope。守卫用布尔标志替代参考的 in(...) 状态测试（参考的 in(front_inactive) 指向的是 NL07 子机的状态），在没有该子机的情况下用标志表达是合理折衷，语义说得通。",
+   "assertable": null,
+   "predicate_exists": true,
+   "out_of_scope": "concurrency"
+  }
+ ],
+ "problem_count": 1,
+ "extra_count": 0,
+ "vs_paper": "论文三栏全为 null，plantuml_accuracy 35/35、grammar 86/86，f1_phase1 = f1_phase2 = 0.9773（本组最高）。这一次论文 f1 与我的独立判定方向一致：0059 确实是六例中缺陷最少的。我判的唯一 problem（缺 enter_hwy --> lane_change）论文未记录，但该条本身强度存疑（见 uncertain 条）。",
+ "vs_ledger": "台帐 0059 状态为 candidate_only、零条 E1，两条观察：E2c parallel_collision_subsystem_boundary（对应我的并发类 similar）、E2b indirect_enter_highway_lane_change（对应我唯一的 problem）。也就是说台帐与我在 0059 上分歧仅一处，且我承认该处受参考模型自身写法削弱。我没有发现台帐遗漏的 E1。",
+ "notes": "0059 是 NL05 最干净的一份，也是唯一没有触碰本组主导失败模式（把局部出口塌缩进 FinishState）的模型。它唯一的实质缺失是 enter_hwy --> lane_change，而这条恰好是参考模型自己也因无标签边而实际失效的分支——换句话说 0059 复现的是参考的实际行为而非参考的声明。这提示：若把 NL05 用作评测样本，enter_hwy 的分支歧义应先在参考侧修正（给 cruise 一个显式互补守卫，如 0009/0049 所做），否则 0039/0059 会因忠于行为而被机械比对扣分。",
+ "_source_file": "NL05-b.json",
+ "cross_reference": {
+  "case": "0059",
+  "group": "NL05",
+  "llm": "Claude",
+  "counts": {
+   "correct": 1,
+   "similar": 4,
+   "problem": 1,
+   "extra": 0,
+   "uncertain": 1
+  },
+  "out_of_scope": {
+   "concurrency": 1
+  },
+  "problems_in_scope": 1,
+  "paper": {
+   "format": null,
+   "grammar": null,
+   "semantic": null,
+   "semantic_resolved": null,
+   "f1_phase1": 0.9772727273,
+   "f1_phase2": 0.9772727273
+  },
+  "ledger": {
+   "status": "candidate_only",
+   "e1_ids": [],
+   "e1_categories": []
+  },
+  "assertable_problems": 1
+ }
+}

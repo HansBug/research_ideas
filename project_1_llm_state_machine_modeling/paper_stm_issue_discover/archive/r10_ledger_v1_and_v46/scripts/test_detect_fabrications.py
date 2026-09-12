@@ -1,0 +1,262 @@
+"""The fabrication detector has to be checked, or "0 fabricated" means nothing.
+
+`detect_fabrications.py` is what scores a new run, so a silent failure in it reads
+as a clean result.  Two parts can fail silently:
+
+  * `_parse_call` -- a predicate call it cannot parse is skipped, not reported
+  * `_default_entry_of` -- brace-depth scanning that returns None for a composite
+    that does have an unconditional entry would clear a real fabrication
+
+Both are checked against the real corpus, where the answers are known
+independently: pair 0029's `HighwayMode` and `UrbanMode` each carry a synthetic
+`[*] -> UnspecifiedInitial` beside a token-guarded authored entry, and pair 0006's
+`UAVSwarmStateMachine` carries an authored `[*] -> Searching` and no synthetic one.
+
+The end-to-end arm re-creates the old refs behaviour rather than reverting the fix,
+because the detector's job is to catch a *recurrence*.
+
+Run:
+    PYTHONPATH=<repo root> pytest project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix
+"""
+
+from __future__ import annotations
+
+import pathlib
+import sys
+
+import pytest
+
+HERE = pathlib.Path(__file__).resolve().parent
+if str(HERE) not in sys.path:
+    sys.path.insert(0, str(HERE))
+
+import detect_fabrications as detect  # noqa: E402
+
+R0029 = "llms_emp_feedback_final_0029"
+R0006 = "llms_emp_feedback_final_0006"
+MODEL_DIR = detect.REPORT / "fcstm"
+
+
+def _model(case: str) -> str:
+    return (MODEL_DIR / f"llms_emp_feedback_final_{case}.fcstm").read_text()
+
+
+@pytest.mark.parametrize(
+    "expression, predicate, bindings",
+    [
+        (
+            'initial_target(composite="A.B", child="A.B.C") is True',
+            "initial_target",
+            {"composite": "A.B", "child": "A.B.C"},
+        ),
+        (
+            'occupancy_after(source="A.X", trigger="A.e", target="A.Y", within_cycles=2) is True',
+            "occupancy_after",
+            {"source": "A.X", "trigger": "A.e", "target": "A.Y", "within_cycles": "2"},
+        ),
+        # Single quotes and extra whitespace occur in real scripts.
+        (
+            "containment( parent='A.P' , child='A.P.Q' )  is  True",
+            "containment",
+            {"parent": "A.P", "child": "A.P.Q"},
+        ),
+    ],
+)
+def test_the_call_parser_reads_the_shapes_real_scripts_use(expression, predicate, bindings):
+    parsed = detect._parse_call(expression)
+    assert parsed is not None, expression
+    assert parsed == (predicate, bindings)
+
+
+def test_the_call_parser_reports_failure_instead_of_a_wrong_parse():
+    """A skipped call is a missed fabrication, so the failure has to be visible."""
+
+    assert detect._parse_call("not a call at all") is None
+    assert detect._parse_call("") is None
+
+
+def test_the_default_entry_scan_finds_the_synthetic_entry_on_the_real_corpus():
+    """These two are exactly the composites matrix-v16 fabricated findings about."""
+
+    model = _model("0029")
+    assert (
+        detect._default_entry_of(model, f"{R0029}.HighwayMode")
+        == f"{R0029}.HighwayMode.UnspecifiedInitial"
+    )
+    assert (
+        detect._default_entry_of(model, f"{R0029}.UrbanMode")
+        == f"{R0029}.UrbanMode.UnspecifiedInitial"
+    )
+
+
+def test_the_default_entry_scan_does_not_invent_one():
+    """A composite whose only entry is authored must not be reported as synthetic."""
+
+    model = _model("0006")
+    entry = detect._default_entry_of(model, f"{R0006}.UAVSwarmStateMachine")
+    assert entry == f"{R0006}.UAVSwarmStateMachine.Searching", entry
+    # A composite that does not exist has no entry, rather than a wrong one.
+    assert detect._default_entry_of(model, f"{R0006}.NoSuchComposite") is None
+
+
+def _audit_bundle(tmp_path, cell, pair, requirement_id, expression):
+    """A one-issue audit record, in the shape `build_gist.py` writes."""
+
+    import json
+
+    record = {
+        "pair": pair,
+        "terminal": "completed",
+        "assertions": [{"assertion_id": "AST-1", "expression": expression}],
+        "terminal_artifact": {
+            "issues": [
+                {
+                    "requirement_id": requirement_id,
+                    "title": "probe",
+                    "assertion_ids": ["AST-1"],
+                }
+            ]
+        },
+    }
+    (tmp_path / f"{cell}-audit.json").write_text(json.dumps(record))
+    return tmp_path
+
+
+def test_a_false_resting_on_an_omission_placeholder_is_not_a_fabrication(tmp_path):
+    """Policy reversal, recorded here rather than in a deleted assertion.
+
+    This test used to assert the opposite, and it was left asserting it after the pipeline
+    changed -- so the eval suite has been red since `8f5cb3ba` while every commit body reported
+    "eval 侧 21 passed" (which was only `test_holdout_stays_clean.py`).
+
+    `initial_target(composite=HighwayMode, child=HighwayMode.enter_hwy)` is False because the
+    projection made `HighwayMode`'s entry target `UnspecifiedInitial`. The old reading: the
+    finding rests on a converter-owned element, therefore representation debt, therefore
+    publishing it is a fabrication. The current reading, and the correct one: the projection
+    inserted that placeholder *because the author wrote no initial edge at all*, so the False
+    says exactly what the sentence asked about -- the author did not declare the entry. Its
+    presence is the defect, not an artefact standing between the evidence and the defect.
+
+    That is the same distinction `exclusion_roles` draws in the pipeline (`omission_surrogate`
+    vs `carrier`), and the waiver here requires both halves: an omission placeholder *and* a
+    declarative predicate. A behavioural predicate running *through* an inserted node is still a
+    genuine confound -- see the test below.
+    """
+
+    bundle = _audit_bundle(
+        tmp_path, "0029-claude-opus-4-7", "0029", "REQ-006",
+        f'initial_target(composite="{R0029}.HighwayMode", '
+        f'child="{R0029}.HighwayMode.enter_hwy") is True',
+    )
+    assert detect.scan(bundle) == []
+
+
+def test_the_omission_waiver_needs_a_declarative_predicate(tmp_path):
+    """The half that keeps the waiver from swallowing behavioural evidence.
+
+    A run that passes through an inserted node is not made author-owned by the node standing in
+    for an omission -- the trace went somewhere the author never wrote, so what the assertion
+    observed is the projection's behaviour, not the model's.
+    """
+
+    bundle = _audit_bundle(
+        tmp_path, "0029-claude-opus-4-7", "0029", "REQ-006",
+        f'occupancy_after(source="{R0029}.HighwayMode.UnspecifiedInitial", '
+        f'trigger="{R0029}.brake", target="{R0029}.HighwayMode.enter_hwy") is True',
+    )
+    found = detect.scan(bundle)
+    assert found, "a behavioural claim through an inserted node must still be reported"
+
+
+def test_an_issue_whose_assertion_no_longer_fails_is_reported(tmp_path):
+    """The horizon guard turns yesterday's fabrication into a refusal.
+
+    Pair 0006's `Searching --detected--> Intercepted --(completion)--> Adjusting`
+    was published as a defect over one cycle; the predicate now refuses that
+    horizon, so an issue resting on it no longer stands.
+    """
+
+    bundle = _audit_bundle(
+        tmp_path, "0006-claude-opus-4-7", "0006", "REQ-003",
+        f'occupancy_after(source="{R0006}.UAVSwarmStateMachine.Searching", '
+        f'trigger="{R0006}.Interception_Detected", '
+        f'target="{R0006}.UAVSwarmStateMachine.FormationAdjustment", '
+        f'within_cycles=1) is True',
+    )
+    found = detect.scan(bundle)
+    assert len(found) == 1, found
+    assert found[0]["defect_class"].startswith("published-issue-no-longer-false")
+
+
+def test_a_genuine_defect_is_left_alone(tmp_path):
+    """Otherwise the gate would reject the run for finding what it should find."""
+
+    bundle = _audit_bundle(
+        tmp_path, "0029-claude-opus-4-7", "0029", "REQ-012",
+        f'occupancy_after(source="{R0029}.HighwayMode.cruise", '
+        f'trigger="{R0029}.dist_to_exit_2", '
+        f'target="{R0029}.HighwayMode.exit_hwy", within_cycles=1) is True',
+    )
+    assert detect.scan(bundle) == []
+
+
+def test_an_unparseable_assertion_is_reported_rather_than_skipped(tmp_path):
+    """A skipped issue would read as a clean one."""
+
+    bundle = _audit_bundle(
+        tmp_path, "0029-claude-opus-4-7", "0029", "REQ-999", "this is not a call"
+    )
+    found = detect.scan(bundle)
+    assert len(found) == 1, found
+    assert found[0]["defect_class"] == "unparseable-assertion"
+
+
+def test_a_failed_scan_is_recorded_as_a_failure_not_as_a_clean_result(tmp_path, monkeypatch):
+    """The one way this evidence could lie is by being silently absent.
+
+    `build_gist.py` writes the scan into the audit bundle so a gist carries the
+    check rather than the claim.  If the scan raises -- a missing corpus file, a
+    predicate that cannot load -- the bundle must say so, because an empty
+    `findings` list and a missing file read identically to someone counting zeros.
+    """
+
+    import json
+    import sys as _sys
+
+    import build_gist
+
+    monkeypatch.setattr(
+        detect, "scan", lambda _dir: (_ for _ in ()).throw(RuntimeError("corpus gone"))
+    )
+    monkeypatch.setitem(_sys.modules, "detect_fabrications", detect)
+
+    (tmp_path / "0029-claude-opus-4-7-audit.json").write_text("{}")
+    assert build_gist.write_fabrication_scan(tmp_path, "deadbeef") == -1
+
+    scan = json.loads((tmp_path / "_fabrication_scan.json").read_text())
+    assert "corpus gone" in scan["error"]
+    assert "clean result" in scan["note"]
+    assert "findings" not in scan
+    # The cells are still listed, so a reader can see what went unchecked.
+    assert scan["cells_scanned"] == ["0029-claude-opus-4-7"]
+
+
+def test_a_clean_scan_records_the_commit_and_the_cells_it_covered(tmp_path, monkeypatch):
+    """Zero findings over zero cells is not a clean run, and must be visible as such."""
+
+    import json
+    import sys as _sys
+
+    import build_gist
+
+    monkeypatch.setattr(detect, "scan", lambda _dir: [])
+    monkeypatch.setitem(_sys.modules, "detect_fabrications", detect)
+
+    (tmp_path / "0050-gpt-5.5-audit.json").write_text("{}")
+    assert build_gist.write_fabrication_scan(tmp_path, "cafe1234") == 0
+
+    scan = json.loads((tmp_path / "_fabrication_scan.json").read_text())
+    assert scan["findings"] == []
+    assert scan["git_commit"] == "cafe1234"
+    assert scan["cells_scanned"] == ["0050-gpt-5.5"]
+    assert scan["limitation"]

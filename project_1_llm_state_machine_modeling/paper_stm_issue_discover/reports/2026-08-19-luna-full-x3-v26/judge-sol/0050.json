@@ -1,0 +1,276 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0050",
+  "ledger": [
+    {
+      "ledger_id": "EIS-0050-01",
+      "pair": "0050",
+      "D": "D1",
+      "L": "L1",
+      "summary": "NL 第 5 句的三个接管条件在 `:17` 被压成一条跨行的自由文本标签 `human steering cmd\\nor brake pressed\\nor in (auto final)`，投影为单一事件——任一单独条件都不能触发接管。",
+      "detail": "NL 第 5 句逐字为「transit to human driving mode when receive human steering cmd, brake pressed, in (auto final)」。\n\n制品在 `:17` 写 `AutonomousMode --> HumanDrivingMode : human steering cmd\\nor brake pressed\\nor in (auto final)`。这里的 `\\n` 是 PlantUML 的换行记号，只影响标签在图上怎么排版，不改变它是一整串自由文本这件事。投影之后整个标签成为单一事件名。\n\n后果有两层。其一，机器只能对这个「三合一」事件整体作出反应，无法对单独的转向指令或单独的刹车作出反应。其二，`in (auto final)` 在范畴上是状态条件而非事件，把它塞进事件名意味着：处于自动驾驶终态边界时不会自动交还控制权，仍要等那个复合事件。\n\n值得注意的是这份制品的标签里写了两个显式的 `or`——这是同一份 NL 的六份制品里唯一把析取关系写出来的。",
+      "D_basis": "判 D1，两读并立。第一种读法把三样东西读成三个各自充分的接管条件：把它们压成一个复合事件使任一单独条件都无法触发接管，缺陷成立。第二种读法紧扣标签的逐字内容：这条标签里写了两个显式的 `or`，读作「三条并列条件任一成立即触发」与标签文字最贴合——也就是说作者的意图表达是清楚的，只是 PlantUML 不会按这个意图去解析。这个读法与逐字文本相容，能削弱「作者没有表达出析取」这条推理，故判 D1。注意两种读法都不改变「投影结果是单一事件」这个结构事实，D1 说的是这条缺陷主张的具体形态（作者是否表达了三选一）存在第二种站得住的读法。",
+      "L_basis": "判 L1。陈述这条错误需要导出一个静态事实：`:17` 的跨行标签按 PlantUML 的解析规则投影之后得到的事件集合里只有一个事件名，而不是三个。这要把标签解析规则（含 `\\n` 只是排版记号这一点）应用一遍才能得出，比单纯的词项比对深一层；但只涉及静态切面，不需要执行序列，故不到 L2。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "trigger",
+        "defect_qualifier": "other",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "INS-0050-01",
+      "pair": "0050",
+      "D": "D2",
+      "L": "L0",
+      "summary": "根层唯一的初始边 `:3 [*] --> HumanDrivingMode : Power On` 带了标签，于是这台机器没有无条件的默认入口；而同文件 `:9 [*] --> SubState1` 是裸边，对照说明作者区分得开两种写法。",
+      "detail": "`:3` 是全文唯一的根层初始边，冒号后带了 `Power On`。UML 2.5.1 规定从初始伪状态出发的迁移不得带触发事件也不得带守卫。后果是这台状态机没有确定的启动状态：上电之后、`Power On` 到达之前，它不处在任何状态里。\n\n同文件对照：第 `:9` 行的 `[*] --> SubState1` 是裸的、不带任何标签，而且它没有被诊断报出（投影后它仍是一条裸初始边）。这说明诊断区分的是作者的两种写法，不是投影副作用。\n\n判定落点要按下面这个来裁，与 pair 0030 的 INS-0030-01 相同。正确的修法是把 `:3` 上那项多余的标签删掉或重构，而不是再补一条裸初始边——一个区域只能有一个默认入口。所以缺陷对象是那个多余的触发。同时，判定的落点是「已有的那条入口边带了触发」而不是「没有入口边」：后者在 UML 里是语义变异点、不能判为语言层缺陷，前者才是二值规定。\n\n`Power On` 是 NL 第 3 句「when power on, the system turn into human driving mode」点名的、由环境产生的外部刺激。NL 对上电意图的要求只能解释作者为什么这样写，不能使这条二值的语言违反合法化。\n\n同型形态在同一份 NL 下的其它制品上也出现（INS-0000-04、INS-0030-01、VU-0040-01）；pair 0020 的 `:2 [*] -> HumanDrivingMode` 是裸边、合规，构成同一条规则的正反两面。",
+      "D_basis": "判 D2。被违反的义务来自建模语言：UML 2.5.1 规定初始伪状态的出边不得带触发或守卫，这是一条二值条款。`Power On` 是 NL 点名的外部刺激，按触发读；源里没有任何 «create» 构造可支持例外读法。同文件对照定案：`:9` 的内层初始边是裸的，作者区分得开两种写法，`:3` 上的标签是刻意的。反驳不存活。",
+      "L_basis": "判 L0。陈述这条错误只需就地读 `:3` 这一行，看 `[*] -->` 后面的冒号有没有跟内容——纯词法层面的模式匹配。配套的同文件对照同样只是读另一行。不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "transition",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "language"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:initial_contract:__root__",
+          "claims": [
+            "Formal diagnostic W_INITIAL_UNCONDITIONAL_MISSING is present at exact reference llms_emp_feedback_final_0050."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0050"
+          ],
+          "obligations": [
+            "Every entered composite must provide a valid unconditional initial entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:__root__:facet:a1184dc6e6ab"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "hypothesis:dc7c63977a2d55c3",
+          "claims": [
+            "HumanDrivingMode is not realized as the required simple state structure."
+          ],
+          "locations": [
+            "NL1",
+            "PUML:L5",
+            "F7"
+          ],
+          "obligations": [
+            "Human driving mode must be represented as a simple state."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:dc7c63977a2d55c3:facet:c56f9373d315"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "hypothesis:18fdbf6d6bb2329e",
+          "claims": [
+            "HumanDrivingMode is not represented as the required simple state."
+          ],
+          "locations": [
+            "NL1",
+            "PUML:L5",
+            "F7"
+          ],
+          "obligations": [
+            "HumanDrivingMode must be a simple state."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:18fdbf6d6bb2329e:facet:c56f9373d315"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": []
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": []
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "“in (auto final)”没有被建模为自动子状态机最终状态相关的明确条件。",
+          "reason": "规范要求在“in (auto final)”时转入 HumanDrivingMode，语义上指进入自动模式的最终子状态或自动子状态机完成时触发。模型只在复合状态 AutonomousMode 外部写了一个未定义的字符串条件 `in (auto final)`，而子状态机实际的最终状态是匿名的 `[*]`，没有名为或可引用的 auto final 状态，因此该条件无法明确对应模型中的最终状态，自动完成返回人工模式的行为未被可靠表达。",
+          "where": "`AutonomousMode --> HumanDrivingMode : human steering cmd\\nor brake pressed\\nor in (auto final)`"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0050",
+    "ledger_assessments": [
+      {
+        "ledger_id": "EIS-0050-01",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该输出只讨论根层初始入口契约，不涉及 `:17` 的接管迁移标签、三个条件被投影为单一事件或 `in (auto final)` 的槽位错置。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该输出指认 HumanDrivingMode 的简单/复合状态结构，既非 `:17` 的触发标签位置，也非多个接管条件被压成单一事件的性质。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该输出指认 HumanDrivingMode 的简单状态结构，不是 `:17` 接管迁移上的触发或条件建模问题。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格没有输出 finding。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格没有输出 finding。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "输出精确指向 `AutonomousMode --> HumanDrivingMode` 的同一标签，并主张 `in (auto final)` 只是未定义的字符串、没有被建模为自动子状态机最终/完成条件，因而不能可靠触发返回人工模式；这与台账明确主张的“状态条件被塞入事件名，自动终态边界不会自动交还控制权”同处同性质。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "INS-0050-01",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出将问题主张为缺少有效的无条件初始入口；冻结台账明确规定缺陷对象是现有根层初始边 `:3` 上多余的 `Power On` 触发，并明确排除“没有入口边”这一落点。两者相关但性质和修复断言方向不同，不能命中。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出讨论 HumanDrivingMode 是否实现为简单状态，不涉及根层初始边 `:3` 上非法/多余的 `Power On` 标签。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出讨论 HumanDrivingMode 的状态结构，不涉及 `:3` 初始伪状态出边携带触发的问题。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格没有输出 finding。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格没有输出 finding。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该输出指向 `:17` 的自动模式退出条件，不涉及根层初始边 `:3` 或其 `Power On` 触发。",
+          "confidence": "high"
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:initial_contract:__root__",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它报告根层缺少无条件初始入口，但冻结台账只收录现有初始边上多余触发这一特定语言缺陷，并明确否定“没有入口边”的落点；因此不对应冻结预期集合。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:dc7c63977a2d55c3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "HumanDrivingMode 未实现为简单状态的主张与两条冻结台账均不同处或不同性质。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "hypothesis:18fdbf6d6bb2329e",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "HumanDrivingMode 的简单状态结构问题未被任何冻结台账条目主张。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0050-01"
+        ],
+        "false_positive": false,
+        "reason": "它对应 EIS-0050-01 中 `:17` 的 `in (auto final)` 被错误保留为标签字符串、未作为自动子状态机完成条件可靠建模这一同处同性质主张。",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "按“同一处且同一性质”逐项对齐。baseline_run3 对 `:17` 中 `in (auto final)` 的主张与 EIS-0050-01 的第二层核心主张一致：该状态/完成条件被放进外部迁移的自由文本标签，不能可靠表达自动子状态机完成后交还控制。它虽未展开另外两个析取条件及单一事件投影，但独立指认了冻结条目明确包含的同处同性质缺陷。method_run1 则把根层问题主张为“缺少无条件初始入口”，而冻结台账明确将缺陷落在现有初始边上的多余触发，方向与性质不同；method_run2/3 的简单状态结构主张不对应任何冻结条目。"
+  },
+  "status": "ok",
+  "attempts": 1
+}

@@ -1,0 +1,427 @@
+{
+  "instructions": [
+    "Recover obligation O from the complete NL, author PlantUML, ledger reasoning, and cited formal semantics before proposing any executable property.",
+    "Do not infer inputs from state-name similarity, old planned mappings, v60 actual outputs, reference models, or execution results.",
+    "State missing quantifier, scope, timing, domain, bound, or environment information explicitly instead of inventing it."
+  ],
+  "ledger_items": [
+    {
+      "axes": {
+        "defect_element": "transition",
+        "defect_locus": "element",
+        "defect_logic_kind": null,
+        "defect_qualifier": "incorrect",
+        "defect_reference": "requirement"
+      },
+      "d_basis": "判 D1，两读并立。第一种读法把 NL 第 6 句读作对 FinishState 入口条件的独占规定，于是把 `dist_to_exit<2` 也接到 FinishState 上构成语义合并。第二种读法注意到 NL 第 6 句用的是 triggered by 而非 only when——给出的是充分条件而非唯一条件；而且 NL 在高速侧从未为「驶离高速」命名任何目标状态（对比第 8 句为城市侧命名了 `exit_urban`），把它接到全文唯一具名的结束态上是对 NL 自身写法的忠实实现。第二种读法与结构相容，故判 D1。",
+      "d_tier": "D1",
+      "detail": "NL 第 4 句与第 5 句把 `dist_to_exit<2` 用于「驶离高速」这个局部动作；NL 第 6 句把「整个自动驾驶阶段结束」的条件规定为 `auto_finished=true`。\n\n制品把两者合并到了同一个目标上：`:13 lane_change --> FinishState : dist_to_exit<2` 与 `:15 cruise --> FinishState : dist_to_exit<2` 的目标都是 `FinishState`；而 `:16 cruise --> FinishState : auto_finished=true` 也指向同一个。\n\n按第一种读法，后果是车辆只要驶到离高速出口不足 2 公里，系统就会进入表示自动驾驶完成的状态，而 `auto_finished` 此时并不成立。\n\n对照城市侧：NL 第 8 句为同一类动作命名了 `exit_urban`，制品在 `:25 lane_change_urban --> exit_urban : dist_to_exit<0.7` 正确地建了它。也就是说作者在城市侧区分了局部退出与全局完成，高速侧没有——但那是因为 NL 在高速侧本来就没给局部退出命名目标。\n\n本条与 pair 0009 的 EIS-0009-01 同一 NL 组、同一读法、同判 D1。",
+      "l_basis": "判 L0。陈述这条错误只需比对目标词项：NL 第 4、5 句的「驶离高速」在 NL 里没有具名目标，而 `:13`/`:15` 把目标写成了 `FinishState`，与 NL 第 6 句给 `auto_finished=true` 指定的目标同名。这是一次词项层面的比对，不需要从模型结构导出新事实，也不需要执行序列。",
+      "l_tier": "L0",
+      "ledger_id": "EIS-0049-01",
+      "ledger_json_pointer": "/items/EIS-0049-01",
+      "origin_family": "expected_issue（原台账已记录）",
+      "pair_id": "0049",
+      "source_text": {
+        "l_basis_rule": "局部退出与全局完成被合并到同名 FinishState —— 目标词项对比",
+        "l_decided_by": "人工逐条",
+        "meta_review": "与 EIS-0009-01 同一 NL 组、同一读法——NL 4/5 明文给出 dist_to_exit<2 的驶离条件、NL 8 为城市侧命名 exit_urban 而高速侧留空，:13/:15 接到 FinishState 是对 NL 自身合取的忠实实现。",
+        "statement": "NL 4/5 的 dist_to_exit<2 是局部驶离高速，NL 6 明确只有 auto_finished=true 才进 FinishState。生成侧把两者合并，使距出口 2 公里即宣告自动驾驶完成，与 NL 6 冲突。",
+        "verdict_reason": null
+      },
+      "summary": "高速侧的「驶离高速」动作（`:13` 与 `:15` 的 `dist_to_exit<2`）被接到了 `FinishState` 上，而 NL 第 6 句说进入 FinishState 的条件是 `auto_finished=true`——距出口 2 公里即宣告整个自动驾驶完成。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0009/0049.md",
+        "sha256": "sha256:ddd02836665a225d27d0af629eb7ae531a29e16e933fdaa230c4083e99db80b2"
+      }
+    },
+    {
+      "axes": {
+        "defect_element": "state",
+        "defect_locus": "element",
+        "defect_logic_kind": null,
+        "defect_qualifier": "incorrect",
+        "defect_reference": "requirement"
+      },
+      "d_basis": "判 D2。被违反的义务有成文出处，即 NL 第 10 句「The system exits the UrbanMode state by transitioning to FinishState once `auto_finished=true` is satisfied」——退出 UrbanMode 之后应当到达结束态，而不是到达 HighwayMode；NL 第 11 句描述的模式切换也不包含「完成即切回高速」。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法：NL 第 6、10 句用的是同一个裸名，没有文本依据支持双 FinishState 读法；单一 FinishState 若归属 HighwayMode，路由后果就无法回避。反驳不存活。",
+      "d_tier": "D2",
+      "detail": "NL 第 6 句与第 10 句都用裸名 FinishState，没有任何限定把它们区分成两个不同状态；上游参考模型也只建了一个共享的 FinishState，位置在自动驾驶模式这一层。\n\n制品把它建进了 `HighwayMode`。PlantUML 按名字首次出现的位置确定作用域，`FinishState` 首次出现在 `:13 lane_change --> FinishState : dist_to_exit<2`，而 `:13` 在 `state HighwayMode {`（:8）与 `}`（:17）之间。\n\n后果落在城市侧的两条完成边上：`:28 straight --> FinishState : auto_finished=true` 与 `:30 intersection --> FinishState : auto_finished=true`，两条都写在 `state UrbanMode {`（:19-:31）块内，目标却是 HighwayMode 内部的一个叶态。层次状态机里进入深层子态必须先进入它的全部祖先，所以实际执行序列是：离开 UrbanMode，进入 HighwayMode，再进入 HighwayMode 内的 FinishState。用一句话说就是「城市模式完成反而使高速模式变为活跃」。`:43 AutonomousMode --> FinishState : auto_finished=true` 同理。\n\n这与 EIS-0049-01 是两条独立的缺陷：那一条说 `dist_to_exit<2` 的目标选错了，本条说 `FinishState` 本身建错了层级。即便把 `:13`/`:15` 改成通向一个局部退出态，本条仍然成立。\n\n第一版台账没有记录本条。同一份 NL 的 pair 0009（EIS-0009-03）与 pair 0029（EIS-0029-05）上有同型条目。",
+      "l_basis": "判 L2。陈述这条错误需要给出一条具体的执行路径——「处于 UrbanMode 的 straight 或 intersection，`auto_finished` 成立，于是离开 UrbanMode、进入 HighwayMode、再进入 HighwayMode 内的 FinishState」。这条路径依赖层次状态机的进入语义，是对一段带时间维行为的构造，不是在某个系统状态上读出来的静态事实。",
+      "l_tier": "L2",
+      "ledger_id": "EIS-0049-02",
+      "ledger_json_pointer": "/items/EIS-0049-02",
+      "origin_family": "expected_issue（原台账已记录）",
+      "pair_id": "0049",
+      "source_text": {
+        "l_basis_rule": "须给出经 token 21/23/29 路由回 HighwayMode 的那条路径",
+        "l_decided_by": "人工逐条",
+        "meta_review": "**判 D2**：三臂一致认定它违反了 NL 里这句「The system supports dynamic transitions between HighwayMode and UrbanMode based on the con」，且三方都尝试过推翻、都没找到站得住的第二种读法 —— 义务有成文条文可引、反驳不存活，是 `D2-lit`。",
+        "statement": "NL 6/10 用同一裸名 FinishState，参考只有一个 AutonomousMode 级共享终态。生成侧把它绑进 HighwayMode 后，FCSTM 显示 UrbanMode 的 auto_finished 经 token 21/23/29 路由到 HighwayMode 再进入 HighwayMode.FinishState——城市模式完成反而使 HighwayMode 活跃。这是独立于上一条的层次归属缺陷，台帐未记录。",
+        "verdict_reason": null
+      },
+      "summary": "`FinishState` 因为首次出现在 `:13`（`HighwayMode` 块内）而被钉成 HighwayMode 的子态，于是 `:28`/`:30` 这些城市侧的完成路径会先把系统路由回 `HighwayMode` 再进入其内部的 FinishState。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0009/0049.md",
+        "sha256": "sha256:ddd02836665a225d27d0af629eb7ae531a29e16e933fdaa230c4083e99db80b2"
+      }
+    },
+    {
+      "axes": {
+        "defect_element": null,
+        "defect_locus": "global",
+        "defect_logic_kind": "nontermination",
+        "defect_qualifier": null,
+        "defect_reference": "requirement"
+      },
+      "d_basis": "判 D1，两读并立。第一种读法：NL 第 6 句的 ends 表达了终止意图，而 `FinishState` 仍受 `:33` 成组迁移覆盖、进入后可被带回驾驶模式，该意图失效。第二种读法：NL 第 11 句「The system supports dynamic transitions between HighwayMode and UrbanMode ... facilitating seamless mode shifts during the drive」明确授权行驶中的动态模式切换，把 FinishState 读作持续运行控制器里的逻辑完成标记也说得通——那个环既是缺陷的证据，也是「作者本来就打算继续切换」的证据。两读并立，故判 D1。另需说明「模型没有根级终止汇点」那一条腿不构成义务，已从承重理由中剔除。",
+      "d_tier": "D1",
+      "detail": "先把承重的与不承重的分开。\n\n**不承重的那一半**：全文 `--> [*]` 计数为 0（`:38` 是方向相反的 `[*] -->` 初始边，不算）。这个事实成立，但「模型必须有根级终止汇点」不构成一条 NL 给出的义务。\n\n**承重的那一半**：`FinishState` 归属 `HighwayMode`（同 EIS-0049-02）。而 `:33 HighwayMode --> UrbanMode : urban_way=true` 是一条以 `HighwayMode` 为源的成组迁移，对它的全部后代生效，包括 `FinishState`。于是进入 `FinishState` 之后，只要 `urban_way=true` 成立就会被带到 `UrbanMode`；再由 `:34 UrbanMode --> HighwayMode : high_way=true` 回来，经 `:9` 的默认入口落到 `enter_hwy`、走到 `cruise`，最后由 `:15` 或 `:16` 再回到 `FinishState`——一个可以反复走的环。`:43 AutonomousMode --> FinishState : auto_finished=true` 则会让整个 `AutonomousMode` 退出并重入。\n\n所以作者用来表达终止的那个状态并不真正终止任何东西。\n\n被违反的是 NL 第 6 句「The HighwayMode ends when the system transitions to FinishState, triggered by the `auto_finished=true` condition」所表达的终止意图。",
+      "l_basis": "判 L2。陈述这条错误属于活性范畴：要说明进入 `FinishState` 之后机器仍可被带走、并且存在一条可反复往返的环，必须排除掉存在终止迹的可能，也就是对全部执行路径做穷尽考察。这是对行为集合的构造与排除。",
+      "l_tier": "L2",
+      "ledger_id": "INS-0049-03",
+      "ledger_json_pointer": "/items/INS-0049-03",
+      "origin_family": "pyfcstm inspect 诊断归一化",
+      "pair_id": "0049",
+      "source_text": {
+        "l_basis_rule": "liveness，须排除无限迹",
+        "l_decided_by": "规则档",
+        "meta_review": "两个 D2 臂的结构事实成立（全文 `--> [*]` 计数为 0；FinishState 因 :13 被限定在 HighwayMode 内，进入后仍可被 :33 带走成环），但「结束后保持结束」这条义务被 NL 的动态模式切换授权 undercut——那个环既是缺陷证据，也是「作者本就打算继续切换」的证据 ⇒ D1。",
+        "statement": "根因是模型没有根级终止汇点：全文 `--> [*]` 计数为 0（:38 是方向相反的 `[*] -->` 初始边）。NL 的终点 FinishState 又因 :13 被限定在 HighwayMode 内，进入后仍被 :33 `HighwayMode --> UrbanMode : urban_way=true` 带走（再由 :34 回来、经 enter_hwy/cruise 由 :15 回到 FinishState 成环），且 :43 使整个 AutonomousMode 退出重入。终止意图在作者源上即失效。",
+        "verdict_reason": "FinishState 嵌套在 HighwayMode 内且仍受 `:33` 群迁移覆盖，进入后可被带回 UrbanMode，确与 NL 6 的结束语义冲突；但根级不终止本身不构成义务，NL 11 的动态模式切换也支持把 FinishState 读作持续控制器中的逻辑完成标记。两种读法均可成立，判 D1。"
+      },
+      "summary": "`FinishState` 因 `:13` 被限定在 `HighwayMode` 内，进入之后仍在 `:33 HighwayMode --> UrbanMode : urban_way=true` 这条成组迁移的作用域里——「结束」之后会被带回城市模式，再经 `:34` 回来、由 `:15` 回到 FinishState，构成一个环。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0009/0049.md",
+        "sha256": "sha256:ddd02836665a225d27d0af629eb7ae531a29e16e933fdaa230c4083e99db80b2"
+      }
+    },
+    {
+      "axes": {
+        "defect_element": null,
+        "defect_locus": "global",
+        "defect_logic_kind": "unreachable",
+        "defect_qualifier": null,
+        "defect_reference": "language"
+      },
+      "d_basis": "判 D2。被违反的义务有成文出处，即 NL 第 12 句点名了 `collision_avoidance_deactive` 作为初态，它必须可达。判读中可能的反驳是把两个顶层块读作隐式并行的子机，但这要援引正交区并发语义——本研究的建模对象是 $M = (S, E, V, Tr, A)$，不含并发语义；作者源里也没有任何 `--` 分隔符去声明它。这条顺序结构事实推翻不了，反驳不存活。",
+      "d_tier": "D2",
+      "detail": "根层的初始边只有 `:2 [*] --> AutonomousMode` 一条。全文（`:1`-`:44`）没有任何以 `CollisionAvoidance` 为目标的迁移。`:37`-`:41` 这个块与 `:3`-`:35` 的 `AutonomousMode` 是两个并列的顶层状态，而在非并发的状态机里并列的顶层状态互斥，必须有边才能过去。\n\n块内的 `:38 [*] --> collision_avoidance_deactive` 是区域内初始边，只在父块已被进入之后决定内部落点，不能反向激活父块。`collision_avoidance_active` 由 `:39` 的目标隐式声明，随之一起不可达。\n\n于是 NL 第 12 句「The collision avoidance system is initially in the collision_avoidance_deactive state」与第 13 句描述的往返行为一次都不会发生。\n\n还需确认：全文没有任何 `--` 并发分隔符。\n\n本条属于第一版台账漏记、后从各实验臂未被认领的产出中提取回来的一类。同型形态在同一份 NL 的 pair 0009、0019、0029、0059 上都出现。",
+      "l_basis": "判 L2。陈述这条错误的核心是一个可达性论证：要说明从根层初始边 `:2` 出发的全部执行路径都到不了 `CollisionAvoidance`。这需要对行为集合做穷尽排除，不是在某个系统状态上读出来的静态事实。",
+      "l_tier": "L2",
+      "ledger_id": "VU-0049-01",
+      "ledger_json_pointer": "/items/VU-0049-01",
+      "origin_family": "valid_unrecorded（原台账漏记，从各臂未认领产出提取）",
+      "pair_id": "0049",
+      "source_text": {
+        "l_basis_rule": "须给出可达性论证",
+        "l_decided_by": "规则档",
+        "meta_review": "**判 D2（同族,且本条登记最干净）**：「CollisionAvoidance 永远不会被激活:顶层初始迁移只进入 AutonomousMode,该子机没有任何入边」—— ⭐ 一句话说完,无冗余、无跨侧引用。",
+        "statement": "CollisionAvoidance 永远不会被激活：顶层初始迁移只进入 AutonomousMode，该子机没有任何入边。",
+        "verdict_reason": "作者源没有并发分隔符，根区唯一初始边只进入 AutonomousMode；CollisionAvoidance 零入边，块内初始边不能反向激活父块，因此其两个内部态不可达，NL 12 点名的初始碰撞规避状态无法实现。隐式并行读法依赖 P3 界外语义，不能成为存活推翻者，判 D2-lit。"
+      },
+      "summary": "顶层块 `CollisionAvoidance`（:37-:41）没有任何入边——根层唯一的初始边 `:2` 只进入 `AutonomousMode`——因此块内两个状态都不可达，NL 第 12 句点名的碰撞规避初态永远到不了。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0009/0049.md",
+        "sha256": "sha256:ddd02836665a225d27d0af629eb7ae531a29e16e933fdaa230c4083e99db80b2"
+      }
+    }
+  ],
+  "ledger_sha256": "sha256:b5a38d3d24a51e980e5b9f5afc7c8c66aded59f3b51f16afe67e0deb592d0e36",
+  "metadata_refs": [
+    {
+      "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0049/source_meta.json",
+      "role": "SOURCE_META",
+      "selected_fields": {
+        "selected_stage": "phase_ii_semantic",
+        "source_locator": "sheet=STM Results; row=49; excel_row=51; selected_cell=AE51; selected=Result with Semantic Checking",
+        "source_pair_id": "llms_emp_feedback_final_0049",
+        "stm0_role": "author_feedback_final_plantuml"
+      },
+      "sha256": "sha256:cf2d552166bae5e1a4bd18118ddbe7c86c4c79a73883e8b1f32c99e454b3af19"
+    },
+    {
+      "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0049/fcstm_meta.json",
+      "role": "FCSTM_META",
+      "selected_fields": {
+        "academic_eligible": false,
+        "academic_ineligibility_reason": "whole_model_behavior_equivalence_and_simulation_not_claimed; use only the working-contract attribution-scoped source-static capability",
+        "artifact_role": "r4_5_attribution_scoped_discover_input",
+        "parse_status": "ok",
+        "simulation_status": "ineligible",
+        "source_static_discover_eligible": true
+      },
+      "sha256": "sha256:6dfd30bf49a1b55c74c1dd273115ac6a8e36c17e0d10ee0bf45b59ef3703e58d"
+    }
+  ],
+  "nl": {
+    "lines": [
+      {
+        "number": 1,
+        "text": "1. The system begins in the AutonomousMode state, which transitions into the InitialState substate, marking the starting point of the autonomous driving mode."
+      },
+      {
+        "number": 2,
+        "text": "2. From the InitialState, the system can transition to either HighwayMode or UrbanMode based on conditions: `high_way=true` for HighwayMode or `urban_way=true` for UrbanMode."
+      },
+      {
+        "number": 3,
+        "text": "3. In the HighwayMode state, the system begins in the enter_hwy substate, and can transition to cruise or lane_change based on the distance to the front vehicle (`dist_to_front<25`) and the availability of an extra lane (`extra_lane=true`)."
+      },
+      {
+        "number": 4,
+        "text": "4. If the system is in lane_change, it can return to cruise once the lane change is completed or exit the highway if the distance to the exit is less than 2 kilometers (`dist_to_exit<2`)."
+      },
+      {
+        "number": 5,
+        "text": "5. In the cruise substate, if the distance to the front vehicle becomes less than 25 meters (`dist_to_front<25`) and there is an extra lane available, the system transitions to lane_change. The system can also exit the highway if the distance to the exit is less than 2 kilometers (`dist_to_exit<2`)."
+      },
+      {
+        "number": 6,
+        "text": "6. The HighwayMode ends when the system transitions to FinishState, triggered by the `auto_finished=true` condition."
+      },
+      {
+        "number": 7,
+        "text": "7. In UrbanMode, the system begins in the enter_urban substate. From here, it can transition to lane_change_urban if the distance to the front vehicle is less than 15 meters (`dist_to_front<15`) and an extra lane is available, or straight if the road ahead is clear, or intersection if it detects an intersection (`intersection=true`)."
+      },
+      {
+        "number": 8,
+        "text": "8. In the lane_change_urban substate, the system transitions to straight if the lane change is complete or to exit_urban if the distance to the urban exit is less than 0.7 kilometers (`dist_to_exit<0.7`)."
+      },
+      {
+        "number": 9,
+        "text": "9. In the straight substate, if the system detects an intersection, it transitions to the intersection substate. If the distance to the front vehicle becomes less than 15 meters (`dist_to_front<15`) and an extra lane is available, it transitions to lane_change_urban."
+      },
+      {
+        "number": 10,
+        "text": "10. The system exits the UrbanMode state by transitioning to FinishState once `auto_finished=true` is satisfied."
+      },
+      {
+        "number": 11,
+        "text": "11. The system supports dynamic transitions between HighwayMode and UrbanMode based on the conditions `urban_way=true` and `high_way=true`, respectively, facilitating seamless mode shifts during the drive."
+      },
+      {
+        "number": 12,
+        "text": "12. The collision avoidance system is initially in the collision_avoidance_deactive state. It transitions to collision_avoidance_active when certain conditions are met, such as detecting pedestrians (`pedestrian_detected`), the rear distance being less than 5 meters with a velocity over 30 km/h (`dist_to_rear<5 & vel>30`), or the front distance being less than 15 meters in highway mode or 10 meters in urban mode."
+      },
+      {
+        "number": 13,
+        "text": "13. Once in the collision_avoidance_active state, the collision avoidance system returns to the collision_avoidance_deactive state when there is no active danger, as indicated by the conditions `front_inactive`, `rear_inactive`, and `pedestrian_inactive`."
+      }
+    ],
+    "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0049/nl.txt",
+    "role": "AUTHOR_NL",
+    "sha256": "sha256:b7425c44960b36c3534f118279e347786d4074191efea7bf9a7c5ba032c9e82c"
+  },
+  "packet_sha256": "sha256:cd20d79a419651214443abf3797d1d34051cccd17a15732ab8e53a8064a2b0ae",
+  "pair_id": "0049",
+  "plantuml": {
+    "lines": [
+      {
+        "number": 1,
+        "text": "@startuml"
+      },
+      {
+        "number": 2,
+        "text": "[*] --> AutonomousMode"
+      },
+      {
+        "number": 3,
+        "text": "state AutonomousMode {"
+      },
+      {
+        "number": 4,
+        "text": "[*] --> InitialState"
+      },
+      {
+        "number": 5,
+        "text": "InitialState --> HighwayMode : high_way=true"
+      },
+      {
+        "number": 6,
+        "text": "InitialState --> UrbanMode : urban_way=true"
+      },
+      {
+        "number": 7,
+        "text": ""
+      },
+      {
+        "number": 8,
+        "text": "state HighwayMode {"
+      },
+      {
+        "number": 9,
+        "text": "[*] --> enter_hwy"
+      },
+      {
+        "number": 10,
+        "text": "enter_hwy --> cruise : dist_to_front>=25"
+      },
+      {
+        "number": 11,
+        "text": "enter_hwy --> lane_change : dist_to_front<25 && extra_lane=true"
+      },
+      {
+        "number": 12,
+        "text": "lane_change --> cruise : lane_change_complete"
+      },
+      {
+        "number": 13,
+        "text": "lane_change --> FinishState : dist_to_exit<2"
+      },
+      {
+        "number": 14,
+        "text": "cruise --> lane_change : dist_to_front<25 && extra_lane=true"
+      },
+      {
+        "number": 15,
+        "text": "cruise --> FinishState : dist_to_exit<2"
+      },
+      {
+        "number": 16,
+        "text": "cruise --> FinishState : auto_finished=true"
+      },
+      {
+        "number": 17,
+        "text": "}"
+      },
+      {
+        "number": 18,
+        "text": ""
+      },
+      {
+        "number": 19,
+        "text": "state UrbanMode {"
+      },
+      {
+        "number": 20,
+        "text": "[*] --> enter_urban"
+      },
+      {
+        "number": 21,
+        "text": "enter_urban --> lane_change_urban : dist_to_front<15 && extra_lane=true"
+      },
+      {
+        "number": 22,
+        "text": "enter_urban --> straight : road_clear"
+      },
+      {
+        "number": 23,
+        "text": "enter_urban --> intersection : intersection=true"
+      },
+      {
+        "number": 24,
+        "text": "lane_change_urban --> straight : lane_change_complete"
+      },
+      {
+        "number": 25,
+        "text": "lane_change_urban --> exit_urban : dist_to_exit<0.7"
+      },
+      {
+        "number": 26,
+        "text": "straight --> intersection : intersection=true"
+      },
+      {
+        "number": 27,
+        "text": "straight --> lane_change_urban : dist_to_front<15 && extra_lane=true"
+      },
+      {
+        "number": 28,
+        "text": "straight --> FinishState : auto_finished=true"
+      },
+      {
+        "number": 29,
+        "text": "intersection --> straight : road_clear"
+      },
+      {
+        "number": 30,
+        "text": "intersection --> FinishState : auto_finished=true"
+      },
+      {
+        "number": 31,
+        "text": "}"
+      },
+      {
+        "number": 32,
+        "text": ""
+      },
+      {
+        "number": 33,
+        "text": "HighwayMode --> UrbanMode : urban_way=true"
+      },
+      {
+        "number": 34,
+        "text": "UrbanMode --> HighwayMode : high_way=true"
+      },
+      {
+        "number": 35,
+        "text": "}"
+      },
+      {
+        "number": 36,
+        "text": ""
+      },
+      {
+        "number": 37,
+        "text": "state CollisionAvoidance {"
+      },
+      {
+        "number": 38,
+        "text": "[*] --> collision_avoidance_deactive"
+      },
+      {
+        "number": 39,
+        "text": "collision_avoidance_deactive --> collision_avoidance_active : pedestrian_detected || (dist_to_rear<5 && vel>30) || (dist_to_front<15 && in(HighwayMode)) || (dist_to_front<10 && in(UrbanMode))"
+      },
+      {
+        "number": 40,
+        "text": "collision_avoidance_active --> collision_avoidance_deactive : front_inactive && rear_inactive && pedestrian_inactive"
+      },
+      {
+        "number": 41,
+        "text": "}"
+      },
+      {
+        "number": 42,
+        "text": ""
+      },
+      {
+        "number": 43,
+        "text": "AutonomousMode --> FinishState : auto_finished=true"
+      },
+      {
+        "number": 44,
+        "text": "@enduml"
+      }
+    ],
+    "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0049/stm0.puml",
+    "role": "AUTHOR_PLANTUML",
+    "sha256": "sha256:85f000271f03ab4d83260494bfe73b053111cfaf660a9f3d79c7ea912063ded6"
+  },
+  "schema_version": "paper1.predicate-gold.review-input-packet.v1",
+  "visibility": {
+    "execution_results_visible": false,
+    "other_track_conclusions_visible": false,
+    "planned_predicate_mapping_visible": false,
+    "v60_actual_predicate_visible": false
+  }
+}

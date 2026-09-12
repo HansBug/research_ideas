@@ -1,0 +1,902 @@
+--- Page 1 ---
+Computer Modeling in
+Engineering & SciencesechT Press Science
+Doi:10.32604/cmes.2025.075442
+ARTICLE
+ANovelUnifiedFrameworkforAutomatedGenerationandMultimodal
+ValidationofUMLDiagrams
+Van-Viet Nguyen1,H u u - K h a n hN g u y e n2,K i m - S o nN g u y e n1,Th iM i n h - H u eL u o n g1,D u c - Q u a n gV u1,
+Trung-NghiaPhung3andThe-VinhNguyen1,*
+1FacultyofInformationTechnology,ThaiNguyenUniversityofInformationandCommunicationTechnology,ThaiNguyen,250000,
+Viet Nam
+2DistanceLearningCenter,ThaiNguyenUniversity,ThaiNguyen,250000,VietNam
+3Faculty of Arts and Communications, Thai Nguyen University of Information and Communication Technology, Thai Nguyen,
+250000,VietNam
+*CorrespondingAuthor:The-VinhNguyen.Email:vinhnt@ictu.edu.vn
+Received:31October2025;Accepted:18December2025;Published:29January2026
+ABSTRACT: It remains difficult to automate the creation and validation of Unified Modeling Language (UML) dia-
+gramsduetounstructuredrequirements,limitedautomatedpipelines,andthelackofreliableevaluationmethods.This
+studyintroducesacohesivearchitecturethatamalgamatesrequirementdevelopment,UMLsynthesis,andmultimodal
+validation. First, LLaMA-3.2-1B-Instruct was utilized to generate user-focused requirements. Then, DeepSeek-R1-
+Distill-Qwen-32BappliesitsreasoningskillstotransformtheserequirementsintoPlantUMLcode.Usingthisdual-LLMpipeline,weconstructedasyntheticdatasetof11,997UMLdiagramsspanningsixmajordiagramfamilies.Rendering
+analysisshowedthat89.5%ofthegenerateddiagramscompilecorrectly,whileinvalidcasesweredetectedautomatically.
+Toassessquality,weemployedamultimodalscoringmethodthatcombinesQwen2.5-VL-3B,LLaMA-3.2-11B-Vision-
+Instruct and Aya-Vision-8B, with weights based on MMMU performance. A study with 94 experts revealed strong
+alignment between automatic and manual evaluations, yielding a Pearson correlation of r=0.82 and a Fleiss’ Kappa
+of 0.78. This indicates a high degree of concordance between automated metrics and human judgment. Overall, the
+results demonstrated that our scoring system is effective and that the proposed generation pipeline produces UML
+diagrams that are both syntactically correct and semantically coherent. More broadly, the system provides a scalable
+andreproduciblefoundationforfutureworkinAI-drivensoftwaremodelingandmultimodalverification.
+KEYWORDS: Automated dataset generation; vision-language models; multimodal validation; software engineering
+automation;UMLCode
+1I n t r o d u c t i o n
+SincetheemergenceoftheTransformerarchitecture[ 1],modernsoftwareengineeringhastransformed
+tremendously in terms of scale and complexity. As such, communicating efficiently among stakeholdersis becoming vital to ensuring robust programs. Traditionally, the Unified Modeling Language (UML) hasbeen widely used to fulfill this role and has been an important component of communication in software
+design[2,3].However,itspresencehasbeenlessemphasizedinthelastdecadeduetotheneedforquickand
+runnablesoftware(viathe Agileapproach,whichusedonlylightweightUMLdiagrams)[ 4,5].Asthenumber
+of deep learning models keeps growing, their ability to generate code is increasing in size and complexity.Thus,modernsoftwareismorecomplexandcostlytomaintainduetothelackoftraceability.Inthiscontext,
+Copyright©2026TheAuthors. PublishedbyTechSciencePress.
+This work is licensed under a Creative Commons Attribution 4.0 International License, which permitsunrestricteduse,distribution,andreproductioninan ymedium,providedtheoriginalworkisproperlycited.
+
+--- Page 2 ---
+2 ComputModelEngSci. 2026;146(1):33
+UML has re-emerged as a new analytical software engineering design component [ 6,7]. The core value of
+U MListha titrepresen tsbothstructuralandbeha vioralaspectsofsystems,th uspro vidingastandardview
+amongstakeholdersandguidingimplementation.However,craftingUMLdiagramsisanextremelytedioustask, requiring labor-intensive processes, domain experts, and maintaining consistency across multiplediagrams[ 8,9].Furthermore,theprevalenceofUMLdiagramsasstaticimagefilesaddstothechallenge,as
+theyarenotdirectlymachine-readable(unliketextualcode,whichcanbeparsedandanalyzedbycompilers),
+makingitdifficulttointegratethemintoautomatedtoolchains.Basedontheaforementionedpoints,modernsoftwareengineeringisinterestedinautomateddesignandmodelingtoolsthatassistengineersingenerating,interpreting,andverifyingUMLdiagramswithminimalmanualeffort.
+Recent advances in Artificial Intelligence (AI), particularly Large Language Models (LLMs), offer a
+promising avenue for automating the modeling process. However, the current approach lacks an overallpipeline that can operate independently and ensure consistency across stages. Specifically, current systemsstillrelyheavilyonmanuallywrittenrequirementsdes criptions,whichlackstandardizationandoftendonot
+accuratelyreflecttheperspectiveoftheenduserorproductowner’sperspective[ 9].Inaddition,nomethod
+effectivelyleveragesthecombinationofinstructionmodelsandreasoningLLMstotransformrequirementsdescriptions into TypeScript (such as PlantUML code) in a logical, consistent, and generalizable manner.Furthermore, unlike other domains (e.g., text, common programming languages) that have rich ground
+truth; high-quality datasets for UML diagrams are remarkably scarce [ 4]. The amount of available data is
+important for data-driven approaches, as they are essential for training AI models. To alleviate this issue,previous efforts have compiled UML diagram datasets from various sources [ 4], but these are limited in
+size and often contain duplicate or mislabeled diagrams [ 4,10]. Most available datasets focus narrowly on
+structural elements such as class diagrams, while beh avioral perspectives, including sequence diagrams,
+activity diagrams, and state machine diagrams, are either underrepresented or absent [ 10]. This imbalance
+limits the ability of AI/ML models to reason about the interplay between system structure and behavior,a capability crucial for realistic system design and ve rification. The first core research problem, therefore,
+is: How can we automatically generate a comprehensive UML dataset that captures both structural and
+behavioralaspectsinascalableandsemanticallycoherentmanner?Manualdatasetconstructionapproacheshave proven insufficient due to their time-consuming nature and susceptibility to inconsistency [ 9]. While
+semi-automated techniques have emerged, they often fail to ensure diversity and completeness across
+multiple UML diagram types [ 11]. Addressing this gap requires the design of algorithmic pipelines capable
+of producing syntactically valid and semantically consistent UML models across heterogeneous diagramcategories. A second, equally critical research problem concerns the validation of dataset correctness andutility. In contrast to natural language or image datasets, where labeling accuracy can often be validated at
+theinstancescore,UMLdatasetspresentanadditionallayerofcomplexity:correctnessdependsnotonlyon
+individualdiagramsbutalsoontherelationshipsbet weenmultiplediagramtypes(e.g.,alignmentbetween
+classandsequencediagrams).Currentvalidationmethodsarelimitedtoeithersyntacticchecksormanualexpertreview,bothofwhichareinsufficienttoensurelarge-scaleconsistency[ 4].Thus,thesecondresearch
+problemcanbestatedas:Howcanwesystematicallyvalid atethecorrectness,consistency,andusefulnessof
+automaticallygeneratedUMLdatasets,particularlywhenintegratingstructuralandbehavioralmodelswithcross-diagramrelationships?Addressingthischallengecallsfornovelframeworksthatcombinemultimodalreasoning, visual-semantic validation, and automated integrity checking, ensuring that generated datasets
+are not only syntactically valid but also semantically robust and practically useful for downstream AI
+applications.However, the literature underscores the need for further advances in creatingcomprehensive,high-qualityUMLdatasets[ 11,12].
+
+--- Page 3 ---
+ComputModelEngSci. 2026;146(1):33 3
+In addition to data collection, researchers are also interested in automating the generation of UML
+diagrams and other modeling artifacts. One significant challenge is to translate unstructured information
+into formal UML models. Natural language processing (NLP) techniques have been used to derive UMLclass diagrams directly from requirements specifications [ 13]. However, these NLP-based methods face
+difficulties in accurately interpreting language nuances. Studies have found that existing approaches often
+produce incomplete or incorrect UML diagrams from complex requirement texts [ 13]. Recently, Jahan
+etal.[14]experimentedwithagenerativelargelanguagemodel(ChatGPT)toautomaticallygenerateUML
+sequence diagrams from user stories. They found that ChatGPT sometimes generated overly complexsequence diagrams (out of scope from user stories). This implies that controlling the semantic consistency
+and relevance of auto-generated diagrams remains an open problem even though recent AI can generate
+UML content. Thus, it is not just the ability to generate UML diagrams but to validate them. Previously,the evaluation of generated UML diagrams was still primarily based on manual inspection and qualitativecriteria, leading to inaccuracies, limited scalability, and difficulty in reproducibility in research. Although
+Vision-Language Models have proven effective in many multimodal tasks, they have not been exploited
+for image-level UML diagram quality assessment– an increasingly important need for software design
+automation systems. Therefore, the question is: How can we build a complete, automated pipeline thatcombinesarequirements-generationmodel,areasoningmodel,andamultimodalevaluationmodeltocreate
+and evaluate UML diagrams in a unified, reliable, and scalable way? Automated validation encompasses
+consistency checking (ensuring no internal contradictions within or between diagrams) and conformancechecking (ensuring the model meets specific requirements or design rules). Conventional approaches forthistaskuseddescriptionlogicandontology-basedtechniquestoformalizeUMLsemantics[ 15].However,
+these early intuitions required heavy setup (transla ting models to logical form) and were computationally
+intensive. One promising direction is the use of multimodal AI to evaluate UML diagrams [ 8,16]. This
+suggeststhatfutureAIcouldmonitorandevaluatedesignmodelsforerrorsordeviations.
+The aforementioned analysis demonstrated that early prototypes for generating UML diagrams from
+text and images had been made, initial datasets to train models were crafted, and emerging AI techniques
+for validating diagrams were proposed. However, significant gaps remain in the state of the art, includinghigh-quality UML datasets [ 4] for training AI models, automated generation of diverse UML diagrams,
+multimodal reasoning, and validation of UML models. As noted by Conrardy & Cabot [ 11], current AI
+convertersstilldependonahuman-in-the-loopforverification.Thus,thereisaclearneedforanintegrated
+approachthatcanrefineandensurethequalityofthemodels.
+To address this gap, this paper introduces a novel framework for automated UML dataset generation
+and multimodal validation. Our contributions are threefold: (1) an algorithmic pipeline for automatically
+generating both structural and behavioral UML models, (2) a conversion method that transforms these
+models into comprehensive datasets, and (3) a multimodal visual validation framework that leveragesAI-drivenreasoningtoensureaccuracyandconsistencyacrossrepresentations.
+This study makes several significant contributions to advancing automated UML dataset generation
+and validation. First, it presents an end-to-end framework that can automatically generate several types
+of UML diagrams, including class, object, component, use case, sequence, and state diagrams, whilemaintaining semantic integrity and inter-model consistency. Second, it presents a structured methodologyfor transforming the generated UML models into machine-readable, well-organized datasets that support
+downstream AI and machine learning applications, effectively connecting software modeling with data-
+centric learning. Third, the paper presents an innovative multimodal vision validation framework thatintegratesstructuralandbehavioralevaluationsusin g quantitative metrics and expert-informed qualitative
+assessment,ensuringreliableandscalablemodelvalidation.Finally,itreleasesalarge-scalesyntheticUML
+
+--- Page 4 ---
+4 ComputModelEngSci. 2026;146(1):33
+dataset encompassing a wide range of system scenarios, providing a valuable open benchmark for future
+researchinautomatedmodeling,AI-drivensoftwareengineering,andmultimodalreasoning.
+2R e l a t e dW o r k
+Research on UML datasets remains relatively limited compared to other domains such as natural
+language processing or computer vision. A few notable efforts have attempted to compile UML diagram
+repositories,buttheseareoftennarrowinscope,smallinscale,orlackinginbehavioralcoverage.ModelSetprovides a labeled collection of software models for ML applications. However, it is primarily restrictedto structural diagrams and does not fully capture relationships across multiple UML types, generating
+U M Lf o rc l a s sd i a g r a m so n l y[ 17]. Using natural language models to extract class, use case, and activity
+diagrams has been explored in both semi-automatic approaches [ 18–20] and systematic reviews of NLP in
+requirements engineering [ 21]. However, some techniques require aspect orientation [ 22]. Similarly, while
+curated collections of UML diagram images [ 23] with careful annotation and duplication control exist,
+these resources are often image-based rather than model-based, which limits their direct usability for AI
+training[ 4]. Overall, current UML datasets lack the scale, diversity, and multimodal representation needed
+to support advanced AI/ML research. While recent exploratory studies have demonstrated the potential ofDeepLearning[ 24]andLargeLanguageModels(LLMs)[ 25,26]inaidingnoviceanalystsandmodelingclass
+diagrams,theytypicallylackaunifiedframeworkforlarge-scalegeneration.
+Incontrast,otherfieldshaveseenrapidprogressthroughtheconstructionoflarge-scale,automatically
+generated datasets. In computer vision, resources like ImageNet enabled significant advances by providingdeeplearningmodelswithmillionsoflabeledexamples,sufficientinvarietytolearnfrom[ 27].Similarly,in
+naturallanguageprocessing,benchmarkdatasetssuchasGLUEandSuperGLUEhaveprovidedstructured
+corpora for systematic evaluation of model performance [ 28].Thesesuccesseshighlightthetransformative
+role of dataset availability, and they suggest that analogous approaches leveraging algorithmic generationpipelinesandVision-LanguageModels(VLMs)couldbeappliedtoUMLmodeling,asseeninrecentsurveys
+andengineeringapplications[ 29,30].Althoughemergingtechniqueshaveattemptedtogeneratecodefrom
+diagram images [ 31] or to automate assessment using LLMs [ 16], UML poses unique challenges due to the
+need to capture cross-diagram consistency (coherence between class and sequence diagrams), making thedirectadaptationofexistingdataset-generationtechniquesnon-trivial.
+Parallel to dataset construction, a body of work has explored automatic or semi-automatic tools for
+generating models. Techniques such as natural language-to-UML transformation [ 19], NLP to automati-
+cally extract object-oriented elements from textual specifications [ 32], or image-to-UML conversion [ 11]
+demonstrate the feasibility of automating parts of the modeling process. However, these methods are
+often task-specific and limited in generalizability, f ocusing either on structural modeling or on diagram
+recognition rather than on holistic dataset generation. Moreover, while model-driven engineering toolsprovide semi-automated support for generating UML diagrams from specifications, they typically requiresignificanthumaninterventionandlackscalabilitywhenappliedtodatasetscoresynthesis.
+Taken together, prior research underscores two critical gaps: (1) the absence of comprehensive, large-
+scaleUMLdatasetsthatencompassbothstructuralandbehavioraldiagrams,and(2)theneedforautomatedframeworksthatnotonlygeneratediverseUMLartifactsbutalsovalidatetheircorrectnessandconsistency.Addressingthesegapsformsthefoundationofourwork.
+TheintegrationofAIandmachinelearning(ML)intosoftwareengineeringhasacceleratedsignificantly
+in recent years, enabling automation across a broad range of tasks. One central area of application isautomatic code generation, where large language models (LLMs) such as Codex and Code LLaMA havedemonstrated strong capabilities for transforming natural-language requirements into executable source
+
+--- Page 5 ---
+ComputModelEngSci. 2026;146(1):33 5
+code [33–36]. Similarly, AI-driven tools have advanced bug detection and program repair, leveraging deep
+learning to identify anomalous code patterns and suggest fixes [ 37]. Another promising direction is model
+transformation,wheremachinelearningmethodsareusedtoconverthigh-scoresystemspecificationsintoformal models such as UML, or to migrate existing models into different representations [ 11]. Collectively,
+theseapplicationshighlightthetransformativepotentialofAI/MLtoreducemanualeffortandimprovethe
+reliabilityofsoftwareengineeringprocesses.
+Ac r i t i c a le n a b l e ro ft h e s ea d v a n c e si st h ea v a i l a b i l i t yo fh i g h - q u a l i t yd a t a s e t s .F o re x a m p l e ,c o d e -
+generation models are usually trained on billions of lines of source code from platforms like GitHub. Thisgivesthemodels thevarietytheyneedtowork acrosslanguagesandfields [ 38]. Bug detection frameworks
+similarlyrelyoncuratedcorporaofbuggyandfixedcodesnippetstotrainsupervisedmodels[ 37].Innatural
+language processing, benchmark datasets like GLUE and SuperGLUE have served as standard evaluationplatforms,catalyzingrapidinnovationbyprovidingstructured,diverse,andchallengingexamples[ 28].
+TranslatingtheselessonstoUMLandmodel-drivenengineeringhighlightsapressingchallenge:unlike
+source code or text, UML datasets remain scarce, fragmented, and limited in scope [ 37], UML code
+generationfromdiagramimages[ 31].ThecomplexityofUMLarisesnotonlyfromindividualdiagramsbut
+alsofromthesemanticdependenciesacrossdiagramtypes,whichimposeadditionalrequirementsondatasetdesign. Thus, for AI/ML methods to effectively support UML generation, validation, and transformation,t h e r ei sac l e a rn e e df o rc o m p r e h e n s i v e ,l a r g e - s c a l e ,a n dm u l t i m o d a l l yv a l i d a t e dd a t a s e t st h a tp a r a l l e l
+ImageNet[ 39]invisionorCodeSearchNetinprogrammingtasks.
+Insummary,twosignificantresearchgapspersistinthecurrentliterature.First,thereisanotablelack
+ofacomprehensiveUMLdatasetthatsimultaneouslyincorporatesbothstructuralandbehavioraldiagramswhileexplicitlypreservingtheirrelationships.Second,existingstudieslackanintegratedvalidationframe-
+workthatsystematicallyensuresthecorrectness,coherence,andconsistencyofgeneratedUMLdatasets.This
+paperaddressesthesechallengesbyintroducingaunifiedframeworkforautomatedUMLdatasetgenerationand multimodal validation, establishing a robust foundation for scalable AI and ML-driven advancementsinsoftwaremodelingandanalysis.
+3M e t h o d
+3.1 PipelineOverview
+Theproposedframeworkimplementsaunifiedandfullyautomatedpipelineforgeneratingandvalidat-
+ingUMLdiagramsfromnatural-languagedescriptions.Thepipelineconsistsofthreesequentialmodules:(i)
+featuredescriptionsynthesisfromanend-userperspective,(ii)reasoning-augmentedPlantUMLgeneration,and (iii) multimodal diagram validation using an ensemble of Vision–Language Models (VLMs). Fig.1
+illustratesthecompleteworkflow.
+3.2 Module1:FeatureDescriptionGeneration
+The first module aims to produce diverse and coherent feature descriptions that reflect realistic end-
+userneeds.Weemploy LLaMA3.21B-Instruct[ 40],alightweightinstruction-tunedsmalllanguagemodel
+designed for high-quality natural-language generation. With a size of only about 1 billion parameters, the
+modelachieveshighperformanceontextgeneration,questionanswering,andlightlogicalreasoningtasks,while remaining resource-efficient enough for edge applications or compute-constrained environments.The “Instruct” version of LLaMA 3.2 1B is fine-tuned on a high-quality instruction dataset, allowing it
+to accurately follow input requests and generate consistent, concise responses. With its balance between
+efficiency and performance, LLaMA 3.2 1B-Instruct is a potential choice for research on small language
+
+--- Page 6 ---
+6 ComputModelEngSci. 2026;146(1):33
+models (SLMs) applications in specialized tasks such as code generation, natural language processing, and
+intelligent education. To ensure naturalistic phrasing, the model is explicitly instructed to “act as an end-
+user” and provide domain-relevant requirements without relying on any predefined templates (promptstructure in Table A1andFig.A1,Appendix A ) .Th ea l g o r i t h m ’ sc o r ef u n c t i o ni st op r o m p tt h em o d e lf o r
+a feature description and then refine the raw output by removing artifacts (such as the initial prompt text
+andextraneouswhitespace).Theoutcomeisaclean,domain-relevantfeaturedescriptionthatservesasthe
+standardizedinputforthenextstage.ThecompleteprocedureisillustratedinAlgorithm1.
+State 1: Technical
+Specification Generation
+Start with  Llama 3.2  1B to Generate a
+Description
+State 2:  UML PlantUML
+Code Generation
+Description is passed to Deepseek 32B  to
+generate UML Code
+PlantUML/Python  library attempts to
+generate an image
+State 3: Diagram Rendering and Multimodal Validation
+3 Vision Language Model ( Qwen2.5-VL-3B-
+Instruct, LLaMA-3.2-11B-Vision-Instruct,Aya-
+Vision-8B ) for Scoring and Calculate
+weighted average
+Diagrams imaged
+generated
+Figure1: UnifiedpipelineforUMLdiagramgenerationandmultimodalscoring
+Algorithm1: Generatefeaturedescription
+Input:model1;tokenizer 1
+Output:description
+1begin2prompt←"Act as an end-user ... Feature description:" ;
+3pipe←text_generation_pipeline (model1,tokenizer 1,max_new_tokens );
+4response←pipe(prompt);
+5description←remove_prompt_text (response,prompt);
+6description←strip_leading_newline (description);
+7r e t u r n trim(description);
+8end
+3.3 Module2:Reasoning-AugmentedPlantUMLSynthesis
+ThismoduletranslateseachfeaturedescriptionintoaUMLdiagramrepresentedinPlantUMLformat,
+whilesimultaneouslygeneratinganexplicitreasoningtrace.WeadoptDeepSeek-R1-Distill-Qwen-32B[ 41],
+which has been optimized for structured reasoning and code generation through large-scale distillationfrom Qwen-72B. DeepSeek-R1-Distill-Qwen-32B is a distilled version of the powerful Qwen-72B model,
+specifically optimized by the DeepSeek team to enhance reasoning and code generation capabilities while
+significantly reducing inference costs. By leveraging a lar ge-scale distillation process from Qwen’s original
+base, the model retains high-quality language understanding and generation abilities with only 32 billion
+
+--- Page 7 ---
+ComputModelEngSci. 2026;146(1):33 7
+parameters,makingitsuitableforcomplextaskssuchasmulti-hopreasoning,codesynthesis,andtechnical
+questionanswering.DeepSeek-R1-Distill-Qwen-32Bistrainedonacuratedmixtureofnaturallanguageand
+programmingdatasets,incorporatingbothopen-sourcecodeandinstruction-followingcorpora.Accordingto DeepSeek’s open model release [ 41], this distilled model shows comparable performance tolarger LLMs
+while being more efficient for deployment in practical environments. Its strong reasoning capacity and
+compatibilitywithmultimodalpromptingmakeitapromisingfoundationforresearchinAIcodegeneration
+andautomatedsoftwaremodeling.Givenadescription,themodelreceivesastructuredpromptandproducesadualoutputconsistingof:
+•e x e c u t a b l e P l a n t U M L c o d e , a n d ;
+• a structured chain-of-thought explaining the mapping between textual requirements and UML con-
+structs.
+Regular-expression parsing is used to extract valid U ML blocks (‘@startuml... @enduml’) and isolate
+thereasoningtraceenclosedin <think>tags.Ifnovaliddiagramisdetected,anerrorflagisreturned.The
+completeworkflowisshowninAlgorithm2anddetailedin Fig.A2.
+Algorithm2: Generatereasoningandplantumlcode
+Input:description :Textualdescriptionofthesystemorrequirement
+Input:model2:Pre-loadedlanguagemodelforUMLgeneration
+Input:tokenizer 2:Tokenizerassociatedwith model2
+Output:uml_code:GeneratedPlantUMLcode
+Output:reasoning :Reasoningtextextractedfrommodeloutput
+Output:error:Errorcode(0ifsuccess,-1ifUMLnotfound)
+1b e g i n
+2prompt←format_prompt_with_description (description);
+3pipe←text_generation_pipeline (model2,tokenizer 2,max_new_tokens );
+4response←pipe(prompt);
+5text_after_think←extract_after(response,"<think>”);
+6uml_code←regex_search( "@startuml(.*)@enduml” ,text_after_think);
+7i fuml_code=NULLthen
+8r e t u r n{uml_code:"No valid PlantUML code found.” ,reasoning: "”,error:−1};
+9e n d
+10reasoning _text←regex_search( "<think>(.*?)<think>”,response);
+11 return{uml_code:uml_code,reasoning: reasoning _text,error:0};
+12end
+3.4 Module3:Large-ScaleDatasetConstruction
+The third module operationalizes Modules 1 and 2 into a scalable data-generation engine. In each
+iteration, it calls Algorithm 1 to generate a user query, which is then passed to Algorithm 2 to retrieve the
+PlantUML code and corresponding inference traces. The resulting triple (query, inference, code) is then
+stored. To ensure completeness and reliability, the algorithm includes robust exception handling, allowingthe process to continue uninterrupted even if only one error occurs. This systematic approach transformstheprocessofgeneratingasingleinstanceintoascalab lefactoryforgeneratingacomprehensivebenchmark
+dataset.Thegraphswillthenbeimagedandthreevisio n-languagemodelswillbeusedtoevaluatethemodel
+quality.Algorithm3summarizesthisprocess.
+
+--- Page 8 ---
+8 ComputModelEngSci. 2026;146(1):33
+Algorithm3: Generatedataset
+Input:None(usesinternalfunctionstogeneratequeriesandUMLoutputs)
+Output:inputs[]:Listofuserqueries
+Output:reasonings []:Listofreasoningtexts
+Output:uml_outputs[]:ListofPlantUMLcodes
+1b e g i n2inputs←[];
+3reasonings←[];
+4uml_outputs←[];
+5f o r i←0to11997do
+6t r y
+7 input_query←generate_user_query();
+8 output←generate_uml_output (input_query);
+9 appendinput_querytoinputs;
+10 appendoutput[
+‵‵reasoning′′]toreasonings ;
+11 appendoutput[‵‵uml_code′′]touml_outputs;
+12 Print[‵‵current_time]Generated (i+1)/11997” ;
+13 end14 catch
+15 Exception e
+16 end17 continue ;
+18 end
+19end
+3.5 AutomatedMultimodalValidationFramework
+Toautomatequalityassessment,weemploythreeopensourceVision-LanguageModels(VLMs),each
+withdifferent architecturesandtrainingphilosophies, toprovide amulti-perspective evaluation. Qwen2.5-
+VL-3B-Instruct developed by Alibaba’s Qwen team, is a lightweight multimodal model based on Qwen2.5
+architecture with only 3 billion parameters, yet it supports high-resolution image understanding and
+instruction-following tasks efficiently. It integrates a vision encoder and a pre-trained language decoderwith cross-modal attention for flexible reasoning and fast inference [ 42].LLaMA-3.2-11B-Vision-Instruct
+an extended variant of Meta’s LLaMA 3 series, incorporates a 11B-parameter text model with vision
+capabilitiesviaalearnedprojectionlayer.Themodelis fine-tunedusingvision-textinstructiondatasetsand
+demonstratescompetitiveperformanceincomplexvisualreasoningtaskswhilemaintaininghighlanguagefluency [40].Aya-Vision-8B introduced by the Cohere for AI initiative under the Aya project, is a globally
+inclusive multilingual vision-language model. With 8 billion parameters, Aya-Vision-8B is optimized not
+onlyformultilingualvisualunderstandingbutalsoforalignmentwithopeninstructiondatasets[ 43].
+The selection of these models allows us to leverage diverse “opinions” to mitigate the bias of any
+single model. Their reasoning capabilities are benchmarked using MMMU [ 44] to inform our weighted
+scoringmechanism.
+Inthisstep,theframeworkintegratestheoutputsofthreeVision-LanguageModels(VLMs)Qwen2.5-
+VL-3B-Instruct, LLaMA-3.2-11B-Vision-Instruct, and Aya-Vision-8B by computing a weighted ensemble
+scoreforeachpredictionposition.Asthealgorithmiteratesoverthetripletsofmodeloutputs,itfirstcheckswhether all three models produce a value of zero; in such cases, a final score of zero is assigned, indicating
+
+--- Page 9 ---
+ComputModelEngSci. 2026;146(1):33 9
+the absence of meaningful signals. Otherwise, only models generating valid (non-zero) outputs contribute
+to the final score. Each contributing output is weighted by a model-specific reliability coefficient: 53.1 for
+Qwen2.5-VL-3B, 50.7 for LLaMA-3.2-VL-11B, and 39.9 for Aya-Vision-8B. The weighted contributions areaccumulatedandnormalizedbythesumofactiveweightstoproduceastableaggregatedscore.Thisstrategyensuresthatmorereliablemodelsexertgreaterinfluencewhilestillleveragingcomplementaryinformation
+fromtheentiremodelensemble.
+Rendering: The generated PlantUML code is passed to the PlantUML library. If rendering fails due to
+syntaxerrors,thesampleisauto maticallyassignedascoreof0.
+Validation: Successfully rendered diagrams are paired with their original technical descriptions. This
+(image,text)pairisevaluatedbyeachofthethreeVLMs(Qwen2.5-VL-3B,LLaMA-3.2-11B-Vision-Instruct,
+Aya-Vision-8B). Each VLM is prompted to assess the diagram’s fidelity on a 6-point scale, evaluating the
+correctnessofentities,relationships,andoverallstructureagainstthetext.
+Scoring: The individual scores from the VLMs are aggregated into a final composite score using a
+conditionalweightedaverage.Specifically,theweightdistributionissetas53.1forQwen2.5-VL-3B-Instruct,
+50.7 for LLaMA-3.2-11B-Vision-Instruct and 39.9 for Aya-Vision-8B, reflecting their relative reliability and
+prior performance in evaluation tasks. These weights are taken directly from the models’ scores on theMMMUbenchmark[ 44],astandardbenchmarkforassessingmultimodalinferenceperformance.
+4 ResultsandDiscussion
+Thissectionpresentsacomprehensiveevaluationofourproposedframework’sperformanceingener-
+atingandvalidatingthreedistincttypesofUMLdiagrams:UseCase,Class,andSequence.Theexperiments
+wereconductedonalarge-scale,syntheticdatasetofapproximately12,000samples,witheachdiagramtype
+representing a different score of structural and semantic complexity. Our analysis focuses on two primaryaspects: (1) the efficacy of the dual-LLM generation pipeline and (2) the comparative performance of themultimodalvalidationsystemacrossthesevariedtasks.
+4.1 Results
+Behavioral UML Diagrams Fig.2presents the distribution of model predictions across fidelity scores
+for behavioral UML diagrams (Use Case, Sequence, and State). The results reveal substantial variability
+among models. For Use Case diagrams, LLaMA-3.2-11B-Vision-Instruct demonstrates the highest con-
+centration at Scores 5, reflecting strong syntactic fidelity but limited diversity across correctness Scores.Qwen2.5-VL-3B produces a more balanced distribution, with a significant proportion at Scores 3–4 anda moderate peak at Score 5, suggesting more generalized behavioral reasoning. Aya-Vision-8B, however,
+showsdispersedoutputswithhighercountsatlowerscores(0–3),indicatingdifficultyincapturingcoherent
+actor–systemrelationships.
+ForSequencediagrams,Qwen2.5-VL-3Bachievesaspreadacrossscores4–6,highlightingitsrobustness
+in modeling dynamic interaction flows. LLaMA-3.2-11B-Vision-Instruct concentrates predictions at scores
+4 and 5 but fails to produce outputs at the highest scores (6), suggesting partial correctness with a ceiling
+effect.Aya-Vision-8Bunderperforms,withmostpredictionsclusteringatscores0–3,reflectingdifficultyinreasoningabouttemporalorderingandmessagedependencies.
+RegardingStatediagrams,Qwen2.5-VL-3Bagainsho wsthestrongestperformance,withahighnumber
+of predictions at scores 5 and 6, demonstrating capability in reasoning about system transitions. LLaMA-
+3.2-11B-Vision-Instruct produces a spread between lower (scores 1) and mid-range (scores 3–5), suggesting
+
+--- Page 10 ---
+10 ComputModelEngSci. 2026;146(1):33
+inconsistent performance. Aya-Vision-8B remains skewed toward scores 0–2, confirming its struggles with
+behavioralabstraction.
+Figure 2: Distribution of model predictions across fidelity scores for behavioral UML diagrams (Use Case, Sequence
+andState)
+StructuralUMLDiagrams Fig.3illustratestheresultsforstructuralUMLdiagrams(Class,Component,
+and Object). The findings show a clearer hierarchy of performance across models. For Class diagrams,Qwen2.5-VL-3B significantly outperforms others with the majority of predictions concentrated at score6, indicating high-fidelity capture of class relationships and attributes. LLaMA-3.2-11B-Vision-Instruct, in
+contrast,distributespredictionsbetweenscores4and5butproducesnoneatscore6,pointingtoconsistent
+partialcorrectness.Aya-Vision-8Bperformsweakeroverall,withpredictionsspreadacrosslowerscoreandonlylimitedaccuracyatscore5.
+Component diagrams, Qwen2.5-VL-3B again demonstrates balanced performance with strong results
+at scores 4 and 5. LLaMA-3.2-11B-Vision-Instruct achieves its highest concentration at score 5, confirming
+its syntactic precision but lack of full structural fidelity. Aya-Vision-8B continues to struggle, with outputsskewedtowardscores0–3.
+For Object diagrams, Qwen2.5-VL-3B yields consisten t mid-to-high-score predictions, particularly at
+scores 4 and 5, capturing instance-score relationships with reasonable accuracy. LLaMA-3.2-11B-Vision-
+Instructfocusesoverwhelminglyatscore5,reflectingreliablebutincompletemappings.Aya-Vision-8Bonce
+againclustersatlowerscores,showingweakalignmentwithobjectsemantics.
+
+--- Page 11 ---
+ComputModelEngSci. 2026;146(1):33 11
+Figure3: DistributionofmodelpredictionsacrossfidelityscoresforstructureUMLdiagrams(Class,Componentand
+Object)
+The comparative evaluation underscores a structural–behavioral asymmetry in UML modeling
+inTable 1. Structural diagrams, particularly class diagr ams, are more tractable for current AI/ML models,
+with Qwen2.5-VL-3B achieving near-complete fidelity. Behavioral diagrams, however, remain a significant
+challenge, where models either plateau at partial correctness (LLaMA-3.2-11B-Vision-Instruct) or struggle
+with abstraction (Aya-Vision-8B). These findings validate the need for richer datasets and multimodalvalidation frameworks to bridge the gap between structural and behavioral reasoning in automatedUMLsynthesis.
+Table 1:Distribution score for three vision-language models on UML Diagram (UML Diagrams: Class, Object,
+Component,UseCase,Sequence,State)
+Diagram Model 0 1 2 3 4 5 6
+Classdiagramqwen25vl3b 209 2 1 31 494 807 3456
+llama32vl11b 209 770 0 118 2303 1600 0
+aya_vision_8b 549 893 2 1530 577 1437 12
+qwen25vl3b 68 1 2 27 354 546 2
+Objectdiagram llama32vl11b 68 3 0 0 39 890 0
+(Continued)
+
+--- Page 12 ---
+12 ComputModelEngSci. 2026;146(1):33
+Table 1 (continued)
+Diagram Model 0 1 2 3 4 5 6
+aya_vision_8b 301 106 1 248 39 300 5
+Component qwen25vl3b 81 0 2 22 372 520 3
+diagram llama32vl11b 81 3 0 0 29 886 1
+aya_vision_8b 403 75 1 123 44 436 8
+U secasediagramqwen25vl3b 157 11 169 621 1926 108 6
+llama32vl11b 157 8 0 1 173 2659 0
+aya_vision_8b 1370 236 1 677 95 609 0
+Sequencediagramqwen25vl3b 275 7 0 41 237 115 325
+llama32vl11b 275 13 0 21 347 344 0
+aya_vision_8b 344 148 0 151 81 271 5
+Statediagramqwen25vl3b 479 1 0 20 44 313 142
+llama32vl11b 479 218 0 89 53 160 0
+aya_vision_8b 509 251 3 93 4 134 5
+4.2 QuantitativeCodeGenerationAnalysis
+A subset of 60 samples was selected from the dataset for Human Expert Validation. In this process,
+experts carefully revised the PlantUML code to ensure correctness and consistency according to their
+professionaljudgment.Toquantitativelyevaluatethegenerateddiagramsagainsttheexpert-refinedversions,weemployedtheBLEUmetric,whichmeasuresthesimilaritybetweenthemodel-generatedoutputandtheexpert-adjusted reference. This approach allows us to assess the alignment of automated generation with
+domain-specificexpertknowledge.
+To complement the multimodal visual validation, we conducted a text-based quantitative analysis
+using the BLEU (Bilingual Evaluation Understudy) metric to measure the syntactic similarity between thePlantUMLcodegeneratedbyDeepSeek-R1-Distill-Qwen-32Bandthegroundtruthreferences(Detailsabout
+BLEUatAppendix B ).ThedistributionofBLEUscoresacrossthesixdiagramfamiliesisillustratedin Fig.4.
+Theanalysisrevealsdistinctperformancecharacteristicsacrossdiagramtypes:High stability in structural and interaction models: Class Diagrams and Sequence Diagrams demon-
+strate the most consistent performance, with average BLEU scores typically ranging from 0.60 to 0.80.Notably,SequenceDiagrams(Sequencediagram,scores >0.80)demonstratethemodel’sabilitytoaccurately
+capture message order and interaction syntax, reinforcing the high visual fidelity scores observed in the
+abovesection.
+Variance in Object and State Diagrams: Object Diagrams and State Diagrams displayed significant
+variance.Whileperfectmatcheswererecorded(Objectdiagram),therewereinstancesofnotablylowscores
+(<0.1). This discrepancy suggests that for diagrams requiring specific instance naming or complex state
+transitions, the model may generate valid structures with divergent variable identifiers compared to thereference,heavilypenalizingtheBLEUscor edespitepotentialsemanticcorrectness.
+
+--- Page 13 ---
+ComputModelEngSci. 2026;146(1):33 13
+Figure4: BleuscoredistributionbyUMLdiagramtype
+Use Case Efficacy: Use Case Diagrams achieved exceptional scores in several instances (Use case
+and Sequence diagrams), indicating strong alignment in translating actor-action requirements into code.
+However, the presence of outliers highlights the sensitivity of n-gram-based metrics to the ordering of
+declarationsinPlantUML.
+TheintegrationofBLEUmetricsaddressesthelimitationofrelyingsolelyonvisualscoring.Itconfirms
+thattheproposed pipelinenotonlygeneratesvisuall y coherent diagrams but also maintains high syntactic
+fidelity in the underlying source code, ensuring the practical utility of the generated artifacts for software
+engineeringtasks.
+Fig.5presents the average BLEU scores across the evaluated UML diagram types, revealing a distinct
+hierarchy in generation fidelity. Class Diagrams significantly outperform other categories with the highestaverage score of 0.7029, suggesting that the model is particularly effective at synthesizing static structural
+definitions. A consistent performance tier is observed among Sequence (0.6341), Object (0.6137), and
+Use Case (0.6022) diagrams, indicati ng balanced capabilities in modeling interactions and requirements.
+However,ComponentDiagramsexhibitanotabledropinperformance,achievingthelowestscoreof0.4483,
+whichhighlightspotentialchallengesingeneratingthespecificcomponent-interfacedependenciesrequired
+forthisformat.
+
+--- Page 14 ---
+14 ComputModelEngSci. 2026;146(1):33
+Figure5: Averagebleuscorebydiagramtype
+4.3 Discussion
+4.3.1InterpretationoftheResults
+DiscussiononBehavioralDiagramEvaluation:
+U seCaseDiagrams Theevaluationofusecasediagramshighlightssubstantialdifferencesinbehavioral
+reasoning across the three models. Qwen2.5-VL-3B dem onstrates a relatively balanced distribution, with
+a strong concentration at scores 4 and 3 (1926 and 621 instances, respectively), suggesting moderate-to-
+highsemanticalignmentinactor–usecaseinteractions.Incontrast,LLaMA-3.2-11B-Vision-Instructshowsasharpskewtowardscore5(2659instances),indicatingitsstrengthincapturingactor–systemrelationshipsatnear-correctscoresbutwithreduceddiversityacrossintermediatescores.Aya-Vision-8B,however,displays
+amore disperseddistributionwithsignificantcountsatscores 0,1,and3(1370,236,and677,respectively).
+This pattern suggests sensitivity to low-score structural recognition while struggling with higher-orderbehavioral coherence. Overall, the results underscore that while larger models like LLaMA achieve highsyntacticfidelity[ 45],mid-scalemodels(Qwen2.5)appeartogeneralizebehavioralstructuresmoreevenly,
+andvision-centricmodels(Aya)facedifficultyinabstractingactor–systemdynamics.
+SequenceDiagrams Behavioralreasoningforsequencediagramsshowsadifferenttrend.Qwen2.5-VL-
+3B produces a relatively even distribution across scores 4, 5, and 6 (237, 115, and 325 instances), reflectingan ability to model interaction flows with incremental behavioral depth. LLaMA-3.2-11B-Vision-Instruct
+performs similarly, with 347 and 344 instances at scores 4 and 5, but lacks higher-score (6) predictions,
+revealingaceilingeffectincapturingcompleteinteractio nfidelity.Aya-Vision-8B,bycontrast,allocatesmore
+predictionsatlowerscores(344at0and148at1)andfeweratthehigherspectrum,suggestingdifficultyinmapping sequential dependencies when reasoning from v isual features. Collectively, these findings reveal
+
+--- Page 15 ---
+ComputModelEngSci. 2026;146(1):33 15
+that sequence modeling is more demanding in terms of behavioral reasoning, with only Qwen2.5 showing
+robustness across all scores, whereas LLaMA converges to partial correctness and Aya underperforms in
+interactiondepth.
+State Diagrams For state diagrams, which require capturing system dynamics over transitions, all
+models show varying scores of behavioral understanding. Qwen2.5-VL-3B demonstrates a strong mid-to-high distribution, with 313 instances at score 5 and 142 at score 6, reflecting its ability to reason about state
+transitions with relatively high accuracy. LLaMA-3.2-11B-Vision-Instruct, however, distributes predictions
+moreatlowerandmidscores(218atscore1,89atscore3,and160atscore5),suggestingthatwhileitcapturesbasictransitionstructures,itstrugglestosustainbehavioraldepthacrossfullstateflows.Aya-Vision-8B,once
+again, shows a tendency toward lower scores (509 at 0 and 251 at 1), indicating a reliance on surface-score
+recognitionwithlimitedbehavioralabstraction.Importantly,theconcentrationofQwen2.5athigherscoressuggeststhatsmallermodels,whenwell-tuned,mayoutp erformlargerorvision-centriccounterpartsintasks
+demanding explicit behavioral reasoning. Recent work has started to explore direct code generation from
+UMLdiagramimagesusinglargemultimodalmodels[ 31],suggestingthatourevaluationpipeline couldbe
+integratedintoend-to-endmodelingworkflows.
+Taken together, the comparative analysis demonstrates that behavioral modeling presents a distinct
+challenge across UML diagram types. Use case diagrams favor larger models that capture actor–systemmappings, sequence diagrams highlight the robustnes s of mid-scale models in capturing dynamic interac-
+tions,andstatediagramsemphasizetheimportanceoffine-grainedtransitionreasoning,wheresmalleryet
+well-aligned models outperform. These results suggest that future datasets and pipelines should emphasizebehavioralannotationgranularityandmultimodalreasoning[ 46],astheseremainthebottlenecksinauto-
+matedUMLsynthesis.OurfindingscomplementemergingworkevaluatingVLMsonUMLdiagrams[ 47],
+butextenditbyintroducingadualtext–visualvalidationpipelinewithfine-grainedscoring.
+DiscussiononStructuralDiagramEvaluation:The evaluation of class diagrams shows a clear divergence in structural reasoning across the three
+models. This aligns with recent deep learning approac hes that successfully extract class diagrams from
+softwareartifacts[ 24],reinforcingtherelativetractabilityofstructuralUMLtasks.Qwen2.5-VL-3Byieldsa
+strongconcentrationatthehighestfidelityscores(3456instancesatscores6),indicatingitseffectivenessincapturingstructuralrelationshipssuchasinheritance, associations,andclassattributeswithhighprecision.
+LLaMA-3.2-11B-Vision-Instruct, on the other hand, produces a bimodal distribution: 2303 predictions at
+score 4 and 1600 at score 5, but no predictions at score 6. This pattern suggests that while the model can
+capture partial or near-correct structures, it struggles to achieve fully accurate class specifications. Aya-
+Vision-8Bdisplaysthewidestspread,withconsiderablecountsatlowscores(549atscore0and893atscore
+1) and moderate presence at higher scores (1437 at score 5). This indicates that vision-centric reasoning is
+sensitive to surface-score features but lacks robustness in abstracting complete structural correctness. Our
+findings are complementary to prior work on automatic class-diagram generation from text [ 13], which
+primarilyfocusesonstructuralcorrectnes sratherthanmultimodalvisualevaluation.
+For component diagrams, Qwen2.5-VL-3B again s hows balanced performance with strong results
+at scores 4 and 5 (372 and 520 instances), suggesting proficiency in modeling dependencies and mod-
+ular boundaries. LLaMA-3.2-11B-Vision-Instruct demonstrates a pronounced skew toward score 5 (886instances), confirming high syntactic accuracy but limited diversity across correctness scores, with veryfew reaching complete fidelity (only 1 at score 6). Aya-Vision-8B continues to exhibit high counts at lower
+scores(403atscore0and75atscore1),suggestingdifficultyinidentifyingarchitecturalpartitions,thoughit
+achievesmoderatealignmentatscore5(346instances).Thisreinforcestheviewthatmultimodalalignmentischallengingwhenhigher-orderabstractionofthesoftwarearchitectureisrequired.
+
+--- Page 16 ---
+16 ComputModelEngSci. 2026;146(1):33
+ForObjectdiagrams,whichdemandcapturinginstancesandtheirconcreterelationships,showpatterns
+similar to component diagrams. Qwen2.5-VL-3B produce s consistent results with a balanced distribution,
+particularly at scores 4 and 5 (354 and 546 instances), indicating reasonable accuracy in mapping objectsto their class definitions. LLaMA-3.2-11B-Vision-Instruct, however, concentrates heavily at score 5 (890instances) with negligible predictions at higher scores, reflecting its reliance on partial correctness rather
+than complete alignment. Aya-Vision-8B again clusters at the lower scores (301 at 0, 106 at 1), with limited
+high-fidelity predictions (only 5 at score 6). This sugg ests that while vision-based reasoning can identify
+objectinstances,itoftenmisalignsthemwiththestructuralsemanticsofthesystemmodel.
+Interestingly, we observed a divergence between BLEU scores and VLM visual scores in Object
+Diagrams.WhileBLEUscorespenalizeddeviationsinvariablenamingconventions(resultinginlowertext
+metrics),theVLMevaluationoftenratedthesediagramshighly(Score5-6)becausethevisualtopologyandrelationshipsremainedcorrect.Thisreinforcesthenecessityofourdual-validationapproach:BLEUensuressyntacticadherencetospecifications,whileV LMsassesssemanticandvisualcorrectness.
+Overall,theevaluationofstructuraldiagramsdemonstratesthatQwen2.5-VL-3Bconsistentlyachieves
+the best balance between accuracy and distribution, excelling particularly in class diagram fidelity. Graph-
+based approaches such as UML common graph provide fine-grained topological similarity for multiplediagramtypes[ 48],whichcomplementsourcurrentscore-basedevaluation.LLaMA-3.2-11B-Vision-Instruct
+shows strong partial correctness but rarely achieves fu ll structural accuracy, highlighting a ceiling effect
+similartoitsperformanceonbehavioraldiagrams.Aya-V ision-8B,whilecapableofidentifyingbasicentities,
+struggles to generalize abstract structural rules, re inforcing the necessity of multimodal fine-tuning. These
+findings emphasize that structural UML tasks benefit most from models optimized for symbolic andrelational reasoning, whereas vision-centric approac hes require additional alignment strategies to capture
+softwaredesignabstractions.
+ComparativeAnalysis:StructuralandBehavioralDiagrams:Whencomparingstructuralandbehavioralmodeling tasks,adistinctdivergenceinmodelperformance
+emerges in Table 2. For structural diagrams (class, component, and object), Qwen2.5-VL-3B consistently
+demonstrates superior fidelity, with strong accuracy at higher scores most notably in class diagrams where
+it achieves a majority of predictions at score 6. This indicates that smaller, well-tuned models are highlyeffective at capturing static system elements such as classes, components, and object instances. LLaMA-3.2-11B-Vision-Instruct,whileperformingreliablyatmid-to-highscores(4–5),rarelyreachesfullstructural
+correctness,suggestingaplateauinitsabstractioncapa bility.Aya-Vision-8B,incontrast,tendstomisallocate
+predictionstowardlowerscores,reflectingchallengesinabstractingsymbolicrelationshipsfromvisualinput.
+Table 2:DistributionoffinalweightedcompositescoresforUMLdiagram(UMLdiagrams:Class,Object,Component,
+Use Case, Sequence, State)
+Diagram,Scores 0 [1,2) [2,3) [3,4) [4,5)score
+≥5
+Classdiagram 209 1 242 1122 2211 1215
+Objectdiagram 68 0 4 130 795 3
+Componentdiagram 81 0 3 90 821 5
+Use case diagram 157 12 49 816 1969 6
+Sequencediagram 275 2 16 184 325 198
+Statediagram 479 1 127 225 147 20
+
+--- Page 17 ---
+ComputModelEngSci. 2026;146(1):33 17
+In contrast, behavioral diagrams (use case, sequence, and state) present a greater challenge across all
+models[49].WhileLLaMA-3.2-11B-Vision-Instructexcelsinsyntacticfidelityforusecasediagrams(skewing
+towardscore5),itstrugglestosustainbehavioralreasoninginsequenceandstatediagrams,failingtoproducehigher-score predictions. Qwen2.5-VL-3B offers a more balanced distribution, particularly in sequenceand state diagrams, indicating robustness in capturing dynamic interactions and system transitions. Aya-
+Vision-8Bunderperformsacrossbehavioraltasks,oftenc lusteringatlowerscores,suggestingthatbehavioral
+abstractionrequiresreasoningcapabilitiesbeyondsurface-scorerecognition.
+Takentogether,theseresultshighlightacriticalasymmetryinUMLmodelingtasks:structuralreasoning
+appears more tractable for AI/ML models, especially smaller transformer-based architectures, whereas
+behavioralreasoningremainsanopenchallengerequiringmorenuanceddatasets,multimodalintegration,
+andreasoning-orientedtrainingobjectives.Thisdemonstratesthevalueoftheproposedpipelineinbridgingthestructural–behavioralgapbyenablingcomprehensivedatasetgenerationandmultimodalvalidation.
+ErrorAnalysisforZero-ScoreCases.
+During the rendering phase, approximately 10.5%of the generated PlantUML codes failed to com-
+pile successfully, resulting in a score of 0. These failures were primarily due to syntactic or structural
+inconsistenciesintheautomaticallygeneratedcode,asshownin Fig.6.
+Figure6: Exampleofarenderingfailureresultinginazeroscore.ThePlantUMLparserreportsasyntaxerror
+The “Syntax Error?” message is a consequence of providing a syntactically incomplete definition for
+an inferred diagram type. While the individual statements (actor, object) were correct, their combination
+without a corresponding message flow failed to constitute a valid sequence diagram according to thePlantUMLgrammar.
+This case highlights a key design aspect of domain-specific languages (DSLs) like PlantUML: the
+trade-off between flexibility (implicit typing) and strictness. While type inference enhances usability for
+simple cases, it can lead to seemingly cryptic errors when the script provides insufficient context for acompletestructuraldefinition.Fordevelopersandtechnicalwriters,thekeytakeawayisthatwhendefininginteraction-baseddiagrams,itisimperativetoincludeatleastoneinteractiontoensuresyntacticvalidity.
+The parser successfully processes actor User and object Application as valid participant definitions.
+However, upon reaching the end of the script (or @enduml), it has not encountered any message-passingstatements(e.g.,User- >Application).Thislackofinteractionconstitutesaviolationoftheexpectedstructure
+for a sequence diagram, leading the parser to report a syntax error at the last successfully parsed, yet
+ultimatelyinsufficient,line.
+An illustrative error message is presented in Fig.6,w h e r et h eP l a n t U M Lc o m p i l e rr e t u r n sa“ Syntax
+Error? (Assumed diagram type: sequence) ” message. This indicates that the model failed to follow the
+correctsequence-diagramgrammar,producinganinvalidactionlabelormissingtransition.Suchcaseswere
+automaticallyassignedazeroscoreandlateranalyzedtorefinepromptconstraintsandpost-processingfilters
+infutureiterations.
+
+--- Page 18 ---
+18 ComputModelEngSci. 2026;146(1):33
+4.3.2Limitations
+Despitethepromisingresults,severallimitationsmustbeacknowledged.First,theevaluationrelieson
+a finite set of UML diagram types (class, component, object, use case, sequence and state), leaving otherimportant diagram families such as activity, deplo yment, or communication diagrams unexplored. This
+partialcoveragemayconstrainthegeneralizabilityofthefindingstothefullUMLspecification.Second,the
+dataset,whilediverse,remainslimitedinsizeandannotationdepthcomparedtoestablishedbenchmarksincomputervisionornaturallanguageprocessing.Asacon sequence,behavioralreasoningtasks,particularly
+insequenceandstatediagrams,stillexposeweaknessesacrossalltestedmodels.Third,modelevaluationis
+restricted to three representative architectures (Qwen2.5-VL-3B, LLaMA-3.2-11B-Vision-Instruct and Aya-
+Vision-8B),whichmaynotfullycapturethebroaderlandscapeofvision–languageandcode-orientedmodels.
+Priorstudiesonmultimodalpromptingshowthatevaluationperformancecanbehighlysensitivetopromptdesign [50] ;as y s t e m a t i cs t u d yo fp r o m p t i n gs t r a t e g i e sf o rU M Ld i a g r a m si sl e fta sf u t u r ew o r k .F o u r t h ,
+whilethisstudyincorporatesBLEUscorestoassesssyntacticfidelity,othercomplementarystructuralmetrics
+such as graph edit distance or execution-based validation were not fully explored. Prior work has shownthat graph edit distance is effective for matching and comparing UML class models [ 51], but we leave its
+integration into our evaluation pipeline as future work. The absence of these measures may restrict the
+abilitytocapturefine-grainedtopologicaldiscrepanciesthatsyntacticmetricsmightmiss.Alimitationisthat
+our study prioritizes the framework’s accuracy and reliability over a formal evaluation of its computationalperformance.Specifically,therelianceonmultiplelargemodels(LLMsandVLMs)introducesconsiderablecomputationaloverhead.Futureworkshouldaddressadetailedanalysisofmetricssuchasinferencetimeper
+stage,overallthroughput,andresourceutilizationtoprovideaclearerpictureofthefeasibilityofintegrating
+this framework into real-time modeling tools. Finally, the scoring framework emphasizes syntactic andstructural fidelity but provides only partial insight into semantic correctness, which is critical for ensuringexecutableandfunctionallyvalidUMLrepresentations.
+4.3.3FutureResearch
+Building upon these limitations, several avenues for future research emerge. Expanding the dataset to
+cover the complete spectrum of UML diagram types and increasing annotation granularity for behavioral
+semanticswillbecrucialtoadvancingautomatedUMLsynthesis.Incorporatingexecution-basedevaluation
+metricsandformalverificationmechanismscanenhanc etheassessmentofsemanticvalidity,complement-
+ingthecurrentfocusonstructuralfidelity.Furthermore,extendingthebenchmarktoincludeawiderrangeoffoundationmodelssuchasreasoning-optimizedLLMs,multimodaltransformers,anddomainspecificcodemodels will provide a more comprehensive comparison across architectures. Another promising direction
+is the integration of hybrid multimodal reasoning pipelines, where symbolic, textual, and visual features
+are jointly optimized to reduce the structural behavioral gap. Finally, expanding the dataset to includeadditionalUMLdiagramtypesparticularlyActivity,DeploymentandPackagediagramswouldhelpcapturea fuller spectrum of software design semantics and longitudinal studies on real-world industrial datasets
+andcollaborativevalidationwithsoftwareengineerscanstrengthenthepracticalrelevanceandadoptionof
+automatedUMLgenerationframeworks.
+4.4 HumanExpertValidationandCorrelationAnalysis
+To validate the reliability of our automated multi-VLM evaluation framework, we conducted a human
+evaluationstudy.Theprimarygoalwastomeasurethecorrelationbetweenthecompositescoresgeneratedby our VLM ensemble and the quality ratings provided by human experts in Fig.7.As u b s e to f6 0U M L
+diagramswasrandomlysampledfromthedatasetwegenerated,ensuringbalancedrepresentationacrossall
+
+--- Page 19 ---
+ComputModelEngSci. 2026;146(1):33 19
+ninediagramtypes.Thesediagrams,alongwiththeircorrespondingtextualspecifications,werepresentedto
+apaneloffoursubjectsforevaluation.Thepanelconsistedof:LecturerinInformationTechnology;Expert,
+EnterpriseinInformationTechnology;PhDstudentinInformationTechnologyorrelatedfield;StudentinInformationTechnologyorrelatedfield.
+Figure7: Distributionofparticipantsbysurveyrole
+Participants:Werecruited94participantsfromfourdistinctgroupsbasedontheirexpertiseinsoftware
+engineeringandUMLmodeling.Thegroupcomprised14universitiesLecturerinInformationTechnology;12 experts, Enterprise in Information Technology; 7 PhD students in Information Technology; 61 studentsin Information Technology. All participants confirmed proficiency across both structural and behavioral
+UMLdiagrams.
+A stratified random sample of 60 diagrams was selected from our generated dataset of nearly 12,000.
+Thesamplewasbalancedtoinclude10diagramsfromeachofthesixtypes(Class,Object,Component,UseCase,Sequence,State)toensurerepresentativecoverage.
+EvaluationProtocolandCriteria
+The experts were asked to rate the quality of each UML diagram on the same 1-to-5 Likert scale
+used by the VLMs, where 1 represents “very poor alignment” and 5 represents “Very Good Alignment”with the textual specification. To ensure consistency, a detailed evaluation rubric was provided. The keycriteriaincluded:
+1.SemanticCorrectness:Doesthediagramaccuratelyrepresenttheentities,relationships,andprocesses
+describedinthetext?
+2.StructuralCompleteness:Areallmajorcomponents(classes,actors,states,etc.)fromthespecification
+presentinthediagram?
+
+--- Page 20 ---
+20 ComputModelEngSci. 2026;146(1):33
+3.SyntacticAccuracy:Doesthediagramadheretothestandardconventionsandsyntaxofthespecific
+UMLtype(e.g.,correctuseofarrowsforinheritancevs.association)?
+4.OverallCoherence:Isthediagramlogicallyorganized,clear,andeasytounderstand?The final expert score for each diagram was calculated as the average of the “Overall Fidelity” scores
+fromthe94experts.
+Toensuretheconsistencyandobjectivityoftheexpertjudgments,wecalculatedFleiss’Kappa,arobust
+statisticalmeasureforassessingthereliabilityofagreementbetweenmultipleraters.Therawscoresfromthe
+94expertsacrossthe60sampleddiagramswereaggregatedtodeterminethelevelofconsensus.TheresultingKappa value was K =0.78. According to the widely accepted interpretation scale by Landis and Koch,
+this value falls into the “Substantial Agreement” range (0.61–0.80). This high level of inter-rater reliability
+confirms that our human-generated ground truth is consistent and provides a solid baseline for validating
+theperformanceoftheVLM-basedevaluationframework.
+(a) Semantic Correctness (b) Structural Completeness
+(c) S yntactic Accurac y (d) Overall Coherence
+Figure8: HumanexpertevaluationscoresforUMLdiagramsacrossfourqualitycriteria
+To quantitatively validate the reliability of our VLM-based evaluation framework, we performed a
+correlationanalysiscomparingtheVLM-generatedcompositescoresagainstthemeanoverallfidelityratingsp r o v i d e db yt h e9 4h u m a ne x p e r t sf o rt h e6 0 - d i a g r a ms u b s e t .Th ea n a l y s i sy i e l d e das t r o n g ,s t a t i s t i c a l l y
+
+--- Page 21 ---
+ComputModelEngSci. 2026;146(1):33 21
+significant positive correlation, with a Pearson correlation coefficient (r) of 0.82 ( p<0.001). This high
+degree of correlation demonstrates a substantial alignment between our automated assessment and human
+expert judgment. Consequently, these findings provide robust empirical evidence that the proposed multi-
+VLM scoring mechanism serves as a valid and reliable proxy for human evaluation, enabling scalable and
+consistentqualityassessmentofgeneratedUMLdiagrams.
+5 ConclusionandFutureWork
+Inthispaper,weproposeaunifiedandscalableframeworkforautomaticallygenerating,validating,and
+evaluating UML diagrams using large language mode ls (LLMs). The approach integrates a dual modeling
+process for requirements understanding and UML code generation, coupled with a multi-modal scoring
+mechanism that leverages vision-language models to as sess both structural accuracy and semantic fidelity.
+TheframeworkhasbeenappliedtoadiversesetofUMLdiagrams,coveringstructuraldiagrams:Class(5000samples), Object (1000 samples) and Component (1000 samples). Behavioral Diagrams: Use Case (2998),
+Sequence (1000), and State (999) resulting in six large-scale annotated datasets aligned with 12,000 natural
+language specifications. Our findings show that while LLMs are capable of producing plausible and oftenstructurallycorrectUMLdiagrams,challengesremaininmodelingcomplexinterrelationshipsandnuancedsemantics across diagram types. To mitigate this, we introduce a feedback loop mechanism that iteratively
+refines low quality outputs based on evaluation scores, alongside a multi perspective validation system
+employingvision-languagemodels(LLaMA3.2-Vision,Qwen2.5-VL,Aya-Vision)withaweightedaggrega-tionschemeforreliableandreproducibleassessmentacrossUMLtasks.Overall,theproposedframeworknot
+onlyaddressesthescarcityofcomprehensiveUMLdatasetsbutalsoestablishesareusablepipelineforfuture
+researchinautomatedsystemmodeling,LLMbenchmarking,andreasoning-awarediagramgeneration,withpotential extensions to additional diagram families ( Activity, Deployment diagrams...) and integration ofRetrieval-AugmentedGeneration(RAG)modulesforimprovedcontextualgroundingduringsynthesis.
+ThisresearchestablishesarobustfoundationforautomatedUMLdatasetconstructionandmultimodal
+verification; however, several avenues remain open for further exploration. Future work will extend the
+frameworktoencompassadditionalUMLdiagramtypesbeyondthecurrentscope,includingbothstructuraldiagrams (Class, Component, Object) and behavioral diagrams (Use Case, Sequence, State), as well asPackage and Deployment diagrams, thereby broadening its applicability across different stages of software
+modeling. A key challenge lies in enhancing temporal reasoning capabilities, particularly for Sequence
+Diagram synthesis where correct ordering of interactions and lifeline consistency are critical, which mayrequire the integration of temporal constraint solvers or hybrid neuro-symbolic reasoning approaches.
+In addition, fine-tuning and domain adaptation of both generation and evaluation models using large
+scale, domain-specific corpora will be explored to improve structural fidelity and semantic precision, withretrieval-augmentedgeneration(RAG)servingasapromisingstrategytoinjectcontextualknowledgeduringsynthesis.Theautomatedevaluationpipelinecanalsobeenrichedwithmultimodalmetricssuchasgraph-
+structuralsimilarityandontology-basedalignmenttocomplementthevision-languagescoringsystemand
+provide deeper diagnostic insights. Finally, incorpo rating human-in-the-loop feedback mechanisms could
+enable iterative refinement of both diagram generation and scoring, fostering adaptive, self-improvingAI-assisted modeling tools that enhance the accuracy , robustness, and industrial adoption of AI-driven
+designautomation.
+Acknowledgement: None.
+
+--- Page 22 ---
+22 ComputModelEngSci. 2026;146(1):33
+Funding Statement: This research was supported by the ÐH2025-TN07-07 project conducted at the Thai Nguyen
+UniversityofInformationandCommunicationTechnology,ThaiNguyen,Vietnam,withadditionalsupportfromthe
+AIinSoftwareEngineeringLab.
+Author Contributions: Study conceptualization: Van-Viet Nguyen, Huu-Khanh Nguyen,The-Vinh Nguyen, Duc-
+Quang Vu, Kim-Son Nguyen, Thi Minh-Hue Luong; data collection and experiment: Van-Viet Nguyen, Huu-Khanh
+Nguyen, The-Vinh Nguyen; analysis and interpretation of results: Van-Viet Nguyen, The-Vinh Nguyen, Duc-Quang
+Vu, Trung-Nghia Phung; draft manuscript preparation: Vinh Nguyen, Duc-Quang Vu,Trung-Nghia Phung; Van-Viet
+NguyenandThe-VinhNguyenservedasthecorrespondingauthorsforthismanuscript.Allauthorsreviewedtheresults
+andapprovedthefinalversionofthemanuscript.
+Availability of Data and Materials: The datasets analyzed during the current study are available in the repository:
+https://huggingface.co/nguyenvanviet/datasets (accessedon17December2025).
+EthicsApproval: Not applicable.
+ConflictsofInterest: Theauthorsdeclarenoconflictsofinteresttoreportregardingthepresentstudy.
+Abbreviations
+Thefollowingabbreviationsareusedinthismanuscript
+UML UnifiedModelingLanguage
+LLM LargeLanguageModel
+VLM Vision-LanguageModels
+BPMN BusinessProcessModelandNotation
+AI ArtificialIntelligence
+ML MachineLearning
+SysML SystemsModelingLanguageNLP NaturalLanguageProcessing
+LLaMA LargeLanguageModelMetaAI
+MMMU MassiveMulti-disciplineMultimodalUnderstanding
+RAG Retrieval-AugmentedGeneration
+PhD DoctorofPhilosophy
+BLEU BilingualEvaluationUnderstudy
+AppendixA
+Table A1illustrates the structured prompt templates designed for the two main stages of the proposed
+training process. The first format prompt, “Create software feature descriptions from a user perspective,”
+guidesthemodeltosimulatethebehaviorofanend-userorproductowner.Thegoalistogeneratecoherent
+and human-like descriptions of hypothetical software features. These descriptions serve as high-qualitytextual inputs that reflect real-world software requirement expressions. The prompt explicitly instructs themodelto(1)inventaplausiblesoftwarefeature,(2)describeitsfunctionalityfromauser’spointofviewand
+(3)avoidanydiscussionofimplementationdetailssuchasasClass,Usecasediagramsandmore.
+TableA1: Generateauserqueryforthedataset
+FormatPrompt:Createsoftwarefeaturedescriptionsfromauserperspective
+“Generate a user query for the dataset.”
+prompt=“Act as an end-user or product owner who has conceived a
+software feature.
+(Continued)
+
+--- Page 23 ---
+ComputModelEngSci. 2026;146(1):33 23
+TableA1(continued)
+FormatPrompt:Createsoftwarefeaturedescriptionsfromauserperspective
+You are now explaining this feature requirement to a software
+developer.The developer needs this information to draft flowcharts and class
+diagram.
+Your task is to:
+1. Invent a plausible and interesting new software feature.
+2. Describe this feature from a user’s perspective, focusing on what
+it does.Output should be easy to understand.
+Answer only about the description of the feature, not about the
+flowchart or use case diagram..
+Feature description:”
+Table A2
+Table A2: Input-description
+LLaMAgeneratesuserrequirements
+As a user, I want to be able to easily find and view all my notes in
+a single, organized list. I want to be able to view all my notes,including any attachments or comments, in a single list, so I caneasily review them at a glance. I want to be able to search for
+specific notes or keywords in the list, so I can quickly find what
+I’m looking for.I also want to be able to sort the list by different criteria, suchas date, author, or priority, so I can easily organize my notes.
+I want to be able to add new notes or attachments to the list, so I
+can keep track of all my notes in one place.And, I want to be able to delete notes or attachments from the list,so I can keep my notes organized and up-to-date.
+Overall, I want to be able to easily access and manage my notes in a
+single, organized list, so I can quickly find what I need when Ineed it.
+Fig.A1showsaboutLlama3.21Btogenerateadescription.
+Fig.A2showshowDeepSeek-R1-Distill-Qwen-32BtogenerateaPlantUMLCode.
+Fig.A3isDiagramRenderingandMultimodalValidation.
+
+--- Page 24 ---
+24 ComputModelEngSci. 2026;146(1):33
+FigureA1: Llama3.21Btogenerateadescription
+DeepSeek-R1-Distill-Qwen-32B to generate a
+PlantUML Code
+Step 1:
+DescriptionStep 2:
+DeepSeek-R1-Distill-Qwen-32B ReasoningStep 3:
+PlantUML Code
+FigureA2: DeepSeek-R1-distill-qwen-32BtogenerateaplantUMLcode
+
+--- Page 25 ---
+ComputModelEngSci. 2026;146(1):33 25
+3 Vision Language Model ( Qwen2.5-VL-3B-
+Instruct, LLaMA-3.2-11B-Vision-Instruct,A ya-
+Vision-8B ) for Scoring and Calculate
+weighted averageDiagrams imaged
+generatedState 3: Diagram Rendering and Multimodal Validation
+FigureA3: Diagramrenderingandmultimodalvalidation
+ExperimentEnvironment: Table A3forHardwareand Table A4 forSoftware-Training.
+AppendixB
+BLEUscores were computed using the sentence-level BLEU implementation from the NLTK library.
+By default, BLEU-4 was employed with uniform weights over 1- to 4-grams. A simple whitespace-basedtokenizationwasapplied,andsmoothingmethod1proposedbyChenandCherry(2014)wasusedtomitigate
+zeroscoresforshortsequences.Eachgenerateddiagramwasevaluatedagainstasinglereference.
+Table A3: Hardware
+Hardware
+1.4×NVIDIARTXA5000(24GBVRAM):High-performance
+GPUfordeeplearning.2.2×ThreadripperPRO5965WX(48cores):Multi-coreCPU
+forparallelprocessing3.256GBRAM:Largememoryforhandlingbigdatasets
+Table A4: Software&training
+Software&training
+1. Libraries & Frameworks: Unsloth
+2025.6.2: Fast Mllama patching.
+Transformers: 4.51.3. vLLM: 0.9.1.Platform: Linux. Torch: 2.7.0 +cu126. CUDA:
+8.6. CUDA2.TrainingDuration:500h.
+
+--- Page 26 ---
+26 ComputModelEngSci. 2026;146(1):33
+References
+1. VaswaniA,ShazeerN,ParmarN,UszkoreitJ,JonesL,GomezAN,etal.Attentionisallyouneed.In:Proceedings
+of the 31st International Conference on Neural Information Processing System; 2017 Dec 4–9; Long Beach, CA,
+USA.p.6000–10.
+2. BoochG,RumbaughJ,JacobsonI.Theunifiedmodelinglanguageuserguide.2nded.Boston,MA,USA:Addison-
+Wesley; 2005.
+3. HoltJ,PerryS.SysMLforsystemsengineering.Vol.7.InstitutionofEngineeringandTechnology;2008.
+4. Torcal J, Moreno V, Llorens J, Granados A. Creating and validating a ground truth dataset of unified modeling
+languagediagramsusingdeeplearningtechniques.ApplSci.2024;14(23):10873.doi:10.3390/app142310873.
+5. Whittle J, Hutchinson J, Rouncefield M. The state of practice in model-driven engineering. IEEE Softw.
+2013;31(3):79–85.doi:10.1109/MS.2013.65.
+6. Alenezi M, Akour M. Ai-driven innovations in software engineering: a review of current practices and future
+directions.ApplSci.2025;15(3):1344.doi:10.3390/app15031344.
+7. NguyenVV,NguyenHK,NguyenKS,LuongThiMinhH,NguyenTV,VuDQ.AnovelpipelineforautomaticUML
+sequence diagram synthesis and multimodal scoring. In: Thai-Nghe N, Do TN, Benferhat S, editors. Intelligent
+systems and data science. Singapore: Springer Nature Singapore; 2026. p. 473–85. doi:10.1007/978-981-95-335
+5-8_34.
+8. Shehzadi N, Ferzund J, Fatima R, Riaz A. Automatic complexity analysis of UML class diagrams using visual
+questionanswering(VQA)techniques.Software.2025;4(4):22.doi:10.3390/software4040022.
+9. Ahmed S, Ahmed A, Eisty NU. Automatic transformation of natural to unified modeling language: a systematic
+review. In: 2022 IEEE/ACIS 20thInternationalConferenceon SoftwareEngineeringResearch, Management and
+Applications(SERA);2022May25–27;LasVegas,NV,USA.p.112–9.doi:10.1109/SERA54885.2022.9806783.
+10. López JAH, Cánovas Izquierdo JL, Cuadrado JS. ModelSet: a dataset for machine learning in model-driven
+engineering.SoftwareSystModel.2022;21(3):967–86.doi:10.1007/s10270-021-00929-3.
+11. Conrardy A, Cabot J. From image to UML: first results of image-based UML diagram generation using LLMs.
+arXiv:2404.11376.2024.
+12. Rouabhia D, Hadjadj I. Behavioral augmentation of UML class diagrams: an empirical study of large language
+modelsformethodgeneration.arXiv:2506.00788.2025.
+13. MengY,BanA.AutomatedUMLclassdiagramgenerationfromtextualrequirementsusingNLPtechniques.JOIV:
+IntJInfVis.2024;8(3–2):1905–15.doi:10.62527/joiv.8.3-2.3482.
+14. JahanM,HassanMM,GolpayeganiR,RanjbaranG,RoyC,RoyB,etal.AutomatedderivationofUMLsequence
+diagrams from user stories: unleashing the power of generative AI vs. a rule-based approach. In: Proceedings of
+the ACM/IEEE 27th International Conference on Model Driven Engineering Languages and Systems. MODELS
+’24;2024Sep22–27;Linz,Austria.NewYork,NY,USA:AssociationforComputingMachinery;2024.p.138–48.
+doi:10.1145/3640310.3674081.
+15. SimmondsJ,BastarricaMC.AtoolforautomaticUMLmodelconsistencychecking.In:Proceedingsofthe20th
+IEEE/ACMInternationalConferenceonAutomatedSoftwareEngineering.ASE’05;2005Nov7–11;LongBeach,
+CA,USA.NewYork,NY,USA:AssociationforComputingMachinery;2005.p.431–2.doi:10.1145/1101908.1101989.
+16. Bouali N, Gerhold M, Rehman TU, Ahmed F. Toward automated UML diagram assessment: comparing LLM-
+generated scores with teaching assistants. In: Proceedings of the 17th International Conference on Computer
+SupportedEducation(CSEDU–Volume1;2025Apr1–3;Porto,Portugal.p.158–69.doi:10.5220/0013481900003932.
+1 7 . B a b a a l l aZ ,J a k i m iA ,O u a l l aM .L L M - d r i v e nM D Ap i p e l i n ef o rg e n e r a t i n gU M Lc l a s sd i a g r a m sa n dc o d e .I E E E
+Access.2025;13:171266–86.doi:10.1109/ACCESS.2025.3615828.
+18. Deeptimahanti DK, Kumar D, Babar MA. Semi-automatic generation of UML models from natural language
+requirements.ACMSIGSOFTSoftwareEngNotes.2011;36(4):1–8.doi:10.1145/1953355.1953378.
+19. AbdelnabiEA,MaatukAM,AbdelazizTM,ElakeiliS.GeneratingUMLclassdiagramusingNLPtechniquesand
+heuristic rules. In: Proceedings of the 20th International Conference on Sciences and Techniques of Automatic
+ControlandComputerEngineering(STA);2020Dec20–22;Monastir,Tunisia.p.277–82.doi:10.1109/STA50679.
+2020.9329301.
+
+--- Page 27 ---
+ComputModelEngSci. 2026;146(1):33 27
+20. MaatukAM,AbdelnabiEA.GeneratingUMLusecaseandactivitydiagramsusingNLPtechniquesandheuristics
+rules.In:ProceedingsoftheInternationalConferenceonDataScience,E-learningandInformationSystems2021;
+2 0 2 1A p r5 – 7 ;M a ’ a n ,J o r d a n .N ewY o r k ,N Y ,U S A :A s soc i a t i o nf o rCo m p u t i n gM a c h i n e ry;2 0 2 1 .p .2 71 – 7 .d o i : 1 0 .
+1145/3460620.3460768.
+21. NeculaSC,DumitriuF,Greavu-¸ SerbanV.Asystematicliteraturereviewonusingnaturallanguageprocessingin
+softwarerequirementsengineering.Electronics.2024;13(11):2055.doi:10.3390/electronics13112055.
+22. AlshareefS,MaatukAM,AbdelazizT.Aspect-orientedrequirementsengineering:approachesandtechniques.In:
+ProceedingsoftheFirstInternationalConferenceonDataScience,E-learningandInformationSystems;2018Oct
+1 –2;Madrid,Spain.p .1–7.doi:10.1145/3279996.3280009.
+23. Metzner A. Systematic teaching of UML and behavioral diagrams. In: 2024 36th International Conference on
+SoftwareEngineeringEduca tionandT raining(CSEE&T);20 24J ul29–A ug1;W ürzburg,German y .p .1–5.doi:10.
+1109/CSEET62301.2024.10663036.
+24. Babaalla Z. Extraction of UML class diagrams using deep learning: comparative study and critical analysis.
+ProcediaComputSci.2024;232(1):110–9.doi:10.1016/j.procs.2024.05.053.
+25. DeBariD,GaraccioneG,CoppolaR,T orchianoM,ArditoL.EvaluatinglargelanguagemodelsinexercisesofUML
+classdiagrammodeling.In:Proceedingsofthe18thACM/IEEEInternationalSymposiumonEmpiricalSoftware
+EngineeringandMeasurement.ESEM’24;2024Oct24–25;Barcelona,Spain.NewYork,NY,USA:Associationfor
+ComputingMachinery;2024.p.393–9.doi:10.1145/3674805.3690741.
+26. Wang B, Wang C, Liang P, Li B, Zeng C. How LLMs Aid in UML modeling: an exploratory study with novice
+analysts.In:2024IEEEInternationalConferenceonSoftwareServicesEngineering(SSE);2024Jul7–13;Shenzhen,
+China.p.249–57.doi:10.1109/SSE62657.2024.00046.
+27 . DengJ,DongW ,SocherR,LiLJ,LiK,Fei-FeiL.ImageNet:alarge-scalehierarchicalimagedatabase.In:2009IEEE
+Conference on Computer Vision and Pattern Recognition; 2009 Jun 20–25; Miami, FL, USA. p. 248–55. doi:10.
+1109/CVPR.2009.5206848.
+28. Wang A, Singh A, Michael J, Hill F, Levy O, Bowman SR. GLUE: a multi-task benchmark and analysis platform
+fornaturallanguageunderstanding.In:Proceedingsofthe2018EMNLPWorkshopBlackboxNLP:Analyzingand
+InterpretingNeuralNetworksforNLP;2018Nov1;Brussels,Belgium.p.353–5.
+29. Danish S, Ali M, Khan T. A comprehensive survey of Vision-Language Models: pretrained models, fine-tuning,
+prompt engineering, adapters, and benchmark datasets. Inf Fusion. 2025;108(9):102300. doi:10.1016/j.inffus.2025.
+103623.
+30. PicardC,ThomasE,ZhaoL.Fromconcepttomanufacturing:evaluatingvision-languagemodelsforengineering
+design.ArtifiIntellRev.2025;58(6):2451–76.doi:10.1007/s10462-025-11290-y.
+31. Bates A, Singh R, Shah A. Unified modeling language code generation from diagram images using multimodal
+largelanguagemodels.SoftwareX.2025;23(1):101580.doi:10.1016/j.mlwa.2025.100660.
+32. ShindeSK,BhojaneV,MahajanP.NLPbasedobjectorientedanalysisanddesignfromrequirementspecification.
+IntJComputAppl.2012;47(21):30–4.
+33. Xu FF, Alon U, Neubig G, Hellendoorn VJ. A systematic evaluation of large language models of code. In:
+Proceedings of the 6th ACM SIGPLAN International Symposium on Machine Programming. MAPS 2022; 2022
+J u n1 3 ;S a nD i e g o ,C A ,U S A .N e wY o r k ,N Y ,U S A :A s s o c i a t i o nf o rC o m p u t i n gM a c h i n e r y ;2 0 2 2 .p .1 – 1 0 .d o i : 1 0 .
+1145/3520312.3534862.
+34. W angY ,LeH,GotmareA,BuiN,LiJ ,H oiS.Codet5 +:opencodelargelanguagemodelsforcodeunderstanding
+and generation. In: Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing;
+2023Dec6–10;Singapore.Stroudsburg,PA,USA:ACL;2023.p.1069–88.doi:10.18653/v1/2023.emnlp-main.68.
+35. Viet NV, Vinh NT. Large language models in software engineering A systematic review and
+vision.2024;2(2):146–56.doi:10.56916/jesi.v2i2.968.
+36. DehaerneE,DeyB,HalderS,DeGendtS,MeertW.Codegenerationusingmachinelearning:asystematicreview.
+IEEEAccess.2022;10:82434–55.doi:10.1109/ACCESS.2022.3196347.
+
+--- Page 28 ---
+28 ComputModelEngSci. 2026;146(1):33
+37. Padhye R, Lemieux C, Sen K. JQF: coverage-guided property-based testing in Java. In: Proceedings of the 28th
+ACMSIGSOFTInternationalSymposiumonSoftwareTestingandAnalysis(ISSTA2019);2019Jul15–19;Beijing
+China.p.398–401.doi:10.1145/3293882.3339002.
+3 8 . C h e nM ,T w o r e kJ ,J u nH ,Y u a nQ ,P o n d éH ,K a p l a nJ ,e ta l .E v a l u a t i n gl a r g el a n g u a g em o d e l st r a i n e do nc o d e .
+arXiv:2107.03374.2021.
+39. RechtB,RoelofsR,SchmidtL,ShankarV.Doimagenetclassifiersgeneralizetoimagenet?In:Proceedingsofthe
+36thInternationalConferenceonMachineLearning;2019Jun9–15;LongBeach,CA,USA.p.398–401.
+40. T ouvronH,LavrilT ,IzacardG,MartinetX,LachauxMA,LacroixT,etal.LLaMA:openandefficientfoundation
+languagemodels.arXiv:2302.13971.2023.
+41. DeepSeek-AI. DeepSeek-R1: incentivizing reasoning capability in LLMs via reinforcement learning.
+arXiv:2501.12948.2025.
+42. W angP ,BaiS,T anS,W angS,FanZ,BaiJ,etal.Qwen2- VL:enhancingvision-languagemodel’ sperceptionofthe
+worldatanyresolution.arXiv:2409.12191.2024.
+43. Üstün A, Aryabumi V, Yong Z, Ko WY, D’souza D, Onilude G, et al. Aya model: an instruction finetuned
+open-access multilingual language model. In: Proceedings of the 62nd Annual Meeting of the Association for
+ComputationalLinguistics;2024Aug11–16;Bangkok,Thailand.p.15894–939.
+44. Yue X, Ni Y, Zhang K, Zheng T, Liu R, Zhang G, et al. MMMU: a massive multi-discipline multimodal
+understanding and reasoning benchmark for expert AGI. In: Proceedings of the 2024 IEEE/CVF Conference on
+ComputerVisionandPatternRecognition;2024Jun16–22;Seattle,W A,USA.p.9556–67.doi:10.1109/CVPR52733.
+2024.00913.
+45. King’ori AW, Muketha GM, Ndia JG. A framework for analyzing UML behavioral metrics based on complexity
+perspectives.IntJSoftwareEng(IJSE).2024;11(1):1–12.
+46. SinghD,SidhuH.Optimizingthesoftwaremetricsforumlstructuralandbehavioraldiagramsusingmetricstool.
+AsianJComputSciTechnol.2018;7(2):11–7.doi:10.51983/ajcst-2018.7.2.1877.
+47. Munde AR. Evaluation of vision language model on UML diagrams; 2025 [cited 2025 Dec 17]. Available
+from:https://www.researchgate.net/publication/388499054_Evaluation_of_Vision_Language_Model_on_UML_
+Diagrams/citations .
+48. Fauzan R, Siahaan D, Rochimah S, Triandini E. Structural similarity assessment for multiple UML diagrams
+measurementwithUMLcommongraph.AIPConfProc.2024;2927:060001.doi:10.1063/5.0192102.
+49. Arifin MN, Siahaan D. Structural and semantic similarity measurement of UML use case diagram. Lontar
+Komputer:JurnalIlmiahTeknologiInformasi.2020;11(2):88.doi:10.24843/LKJITI.2020.v11.i02.p03.
+50. Keskar A, Perisetla S, Greer R. Evaluating multimodal vision-language model prompting strategies for visual
+question answering in road scene understanding. In: Proceedings of the Winter Conference on Applications of
+ComputerVision;2025Feb28–Mar4;Tucson,AZ,USA.p.1027–36.
+51.ˇCechP.MatchingUMLclassmodelsusinggrapheditdistance.ExpertSysteAppl.2019;130:206–24.doi:10.1016/j.
+eswa.2019.04.008.

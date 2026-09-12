@@ -1,0 +1,77 @@
+
+```json
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B17",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "claude-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "caveat_t05",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "not_better",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "NL describes a discrete 'Timer Expired' event/cue for cooking timeout, already modeled as an event label in canonical STM_0. Candidate introduces a discrete int counter `timer_ticks` as a guard, which is a periodic/timer cue expressed as a discrete counter abstraction, so this routes to caveat_t05 rather than a T1 continuous-time stress case or plain T0 identity case.",
+      "evidence_references": ["NL item 8", "raw STM_0", "candidate STM_k def int timer_ticks"]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "Both canonical and candidate files are present and candidate parses successfully per mechanical_checks (parse_ok). Candidate is auditable (states, events, transitions, and new guard/variable are legible).",
+      "evidence_references": ["candidate STM_k", "mechanical_checks.candidate_parse_status"]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "provenance_checks show change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true, and candidate_same_as_canonical_stm0=false, so the delta (added `def int timer_ticks = 0;` and one new guarded transition `ReadytoCook -> DoorShutWithItem : if [timer_ticks >= 1];`) is attributable to canonical->candidate change, not a conversion/normalization artifact.",
+      "evidence_references": ["provenance_checks", "canonical STM_0", "candidate STM_k"]
+    },
+    "G3": {
+      "status": "pass",
+      "reason": "All states, hierarchy, pseudo states, events, and existing transitions from canonical STM_0 are preserved verbatim in candidate STM_k. Nothing is deleted or restructured; the only change is an addition.",
+      "evidence_references": ["canonical STM_0", "candidate STM_k"]
+    },
+    "G4": {
+      "status": "fail",
+      "reason": "No NL-supported target is visibly improved. The new guarded transition `ReadytoCook -> DoorShutWithItem : if [timer_ticks >= 1]` is redundant with the pre-existing `ReadytoCook -> DoorShutWithItem : Timer_Expired` transition covering the same NL requirement (item 8: 'if the timer expires, the system moves to DoorShutWithItem'). The declared `timer_ticks` variable is never incremented or reset anywhere in the model, so there is no counter lifecycle; the guard is effectively dead/unreachable or purely duplicative, providing no discernible semantic gain over the existing event-labeled transition.",
+      "evidence_references": ["NL item 8", "canonical STM_0 ReadytoCook->DoorShutWithItem:Timer_Expired", "candidate STM_k added transition and def int timer_ticks"]
+    },
+    "G5": {
+      "status": "fail",
+      "reason": "Comparing NL, raw STM_0, canonical STM_0 and candidate STM_k: the addition does not correspond to any distinct NL-specified behavior beyond what 'Timer Expired' already captures, and lacks increment/reset lifecycle evidence required for a meaningful discrete-counter abstraction of a timer. This is a cosmetic/redundant addition rather than a semantic improvement, and per fail-closed rule 5, a counter guard that is redundant/non-advancing and coexists with the original event label without visible benefit should be judged not_better.",
+      "evidence_references": ["NL item 8", "canonical STM_0", "candidate STM_k"]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "headline_eligible and repair_effectiveness_eligible are fixed false per protocol; real_repair_run_id is null. No leakage detected in the provided packet fields beyond permitted mechanical/provenance facts.",
+      "evidence_references": ["this JSON output"]
+    }
+  },
+  "evidence_references": [
+    "NL item 8",
+    "raw STM_0",
+    "canonical STM_0",
+    "candidate STM_k",
+    "provenance_checks",
+    "mechanical_checks"
+  ],
+  "rationale": "Candidate STM_k preserves the full state/transition/hierarchy structure of canonical STM_0 with no deletions or regressions (G3 pass), and the change is attributable to the canonical->candidate delta with clean provenance (G1/G2 pass). However, the sole addition — a `timer_ticks` int variable and a guarded transition `ReadytoCook -> DoorShutWithItem : if [timer_ticks >= 1]` — duplicates the pre-existing `Timer_Expired`-triggered transition to the same target state, and `timer_ticks` is never incremented or reset anywhere in the model, so there is no verifiable counter lifecycle representing the NL's 'timer expires' cue. This is a discrete-counter abstraction of a periodic/timer cue (routing to caveat_t05 per convention), but it does not constitute a strict or partial improvement: it adds redundant, effectively unreachable/duplicative logic without closing any NL-supported gap and without providing new guard/action semantics beyond what canonical already expresses via the Timer_Expired event label. Per fail-closed rule 5, a redundant, non-advancing counter guard coexisting with the original event label without visible semantic benefit should be judged not_better rather than partial or better.",
+  "observed_anti_gaming_risk_flags": [
+    "redundant_duplicate_transition_no_semantic_gain",
+    "counter_variable_declared_but_never_incremented_or_reset_no_lifecycle_evidence",
+    "t05_counter_abstraction_without_clear_benefit"
+  ],
+  "forbidden_claims": [
+    "This blind dry-run is not repair effectiveness evidence.",
+    "This output must not be used as headline Better STM success evidence.",
+    "Parse success alone does not establish semantic improvement."
+  ],
+  "confidence": "medium",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "The packet contains only NL, raw STM_0, canonical STM_0, candidate STM_k, and permitted mechanical/provenance facts (parse status, hash/ledger booleans, byte-identity flag). No answer key, expected verdict, source case id/slug, target closure summary, or construction-intent label was present."
+  }
+}
+```

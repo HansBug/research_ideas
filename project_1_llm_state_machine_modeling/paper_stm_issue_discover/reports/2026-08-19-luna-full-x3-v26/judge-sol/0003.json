@@ -1,0 +1,195 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0003",
+  "ledger": [],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:initial_target:None:Operate",
+          "claims": [
+            "Source composite 'llms_emp_feedback_final_0003' has no initial transition to required child 'Operate'."
+          ],
+          "locations": [
+            "NL1"
+          ],
+          "obligations": [
+            "llms_emp_feedback_final_0003 must initially enter Operate."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_target:None:Operate:facet:2f98ef35be1e"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:stable_termination:PoweredOff",
+          "claims": [
+            "Required termination target 'PoweredOff' admits a source-level nonterminating continuation."
+          ],
+          "locations": [
+            "PoweredOff"
+          ],
+          "obligations": [
+            "The NL-designated termination state 'off' must be a stable ending target for its declared behavior."
+          ],
+          "basis": [
+            "unattributed"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:stable_termination:PoweredOff:facet:6c6a59bc29aa"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "ok",
+      "findings": []
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型将规格中的“Accelerating or Cruising”合并命名为单一状态“AcceleratingOrCruising”，未明确区分加速与巡航两个状态或行为。",
+          "reason": "规格第1条明确列出 `Idle`、`Accelerating or Cruising` 和 `Braking` 三类状态；若“Accelerating or Cruising”表示两个可区分的状态/模式，则模型没有分别建模加速与巡航。仅在规格把该短语明确视为一个联合状态名称时，此项才不构成问题。",
+          "where": "Operate 内的状态声明 `AcceleratingOrCruising` 及其相关转移。"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "模型把 `Stop Signal` 仅建模为从 `Braking` 到 `Idle` 的转移，未覆盖在 Operate 内由停止动作从其他相关状态进入 Idle 的可能性。",
+          "reason": "规格第3条要求根据加速、制动或停止等动作在 Operate 子状态间转换，但没有限定停止只能发生在 Braking 状态。当前模型只有 Braking 状态能响应停止信号，因此若系统处于 AcceleratingOrCruising（或其他允许停止的运行状态）收到停止动作，模型没有对应转移。",
+          "where": "`Braking --> Idle : Stop Signal`。"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "未建模从 AcceleratingOrCruising 直接因停止动作返回 Idle 的转换。",
+          "reason": "规格第3条将“停止”列为触发 Operate 内部子状态转换的动作；模型只定义了 Braking → Idle : Stop Signal，没有定义 AcceleratingOrCruising 在停止动作下的处理。若停止动作不要求先经过 Braking，该状态转换就缺失。",
+          "where": "Operate 内部的 AcceleratingOrCruising 状态及其出边"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "开机进入 Operate 后未明确保证系统进入 Idle",
+          "reason": "规格明确指出设备 powered on 后系统进入 Operate 状态；在 Operate 内根据用户动作在 Idle、Accelerating or Cruising、Braking 间转换。模型虽然声明了 Operate 的初始子状态为 Idle，但外部 start 转移只标注到复合状态 Operate，未明确该次启动是否触发 Operate 的内部初始转移。在严格状态机语义下，这一行为可能被理解为仅进入复合状态而未定义启动后的具体子状态。",
+          "where": "state Operate 内的初始转移：[*] --> Idle；以及 PoweredOff --> Operate : start"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "状态名称未按规格准确表达“Accelerating or Cruising”",
+          "reason": "规格将该状态定义为“Accelerating or Cruising”，模型使用无空格的 AcceleratingOrCruising 作为标识符。若名称需要与规格中的状态精确对应，模型没有显式区分或保留该规范名称；这属于表示层面的不一致，但不改变其大致状态语义。",
+          "where": "复合状态 Operate 内的状态 AcceleratingOrCruising"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "缺少由停止动作导致的通用停止/回到怠速行为覆盖",
+          "reason": "规格说系统根据加速、制动或停止等动作在 Operate 的不同子状态之间转换，但模型只定义 Braking 接收 Stop Signal 后回到 Idle。没有定义从 Idle 或 AcceleratingOrCruising 收到停止信号时的行为；若“stopping”是适用于系统当前运行状态的动作，模型覆盖不完整。",
+          "where": "Braking --> Idle : Stop Signal"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0003",
+    "ledger_assessments": [],
+    "emission_assessments": [
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:initial_target:None:Operate",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有任何条目可与该“缺少初始进入 Operate 的迁移”主张在同一位置、同一性质上对齐。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:stable_termination:PoweredOff",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有任何条目可与该“PoweredOff 存在非终止延续、终止目标不稳定”的主张对齐。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空。该输出讨论 Operate 内 AcceleratingOrCruising 的状态拆分或合并，不能对应任何冻结条目。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空。该输出讨论 Stop Signal 从其他运行子状态进入 Idle 的迁移缺失，不能对应任何冻结条目。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空。该输出主张 AcceleratingOrCruising 在停止动作下缺少到 Idle 的迁移，不能对应任何冻结条目。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空。该输出主张开机进入 Operate 后未明确保证进入 Idle，不能对应任何冻结条目。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空。该输出主张状态名称/表示与规格不一致，不能对应任何冻结条目。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空。该输出主张停止动作导致回到 Idle 的通用行为覆盖不足，不能对应任何冻结条目。",
+        "confidence": null
+      }
+    ],
+    "pair_reason": "冻结台账条目集合为空，因此不存在可被六个输出格命中的预期缺陷。所有提供的输出 issue 均标记为 false positive；没有零命中台账条目需要展开。"
+  },
+  "status": "ok",
+  "attempts": 3
+}

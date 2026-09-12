@@ -1,0 +1,356 @@
+{
+  "instructions": [
+    "Recover obligation O from the complete NL, author PlantUML, ledger reasoning, and cited formal semantics before proposing any executable property.",
+    "Do not infer inputs from state-name similarity, old planned mappings, v60 actual outputs, reference models, or execution results.",
+    "State missing quantifier, scope, timing, domain, bound, or environment information explicitly instead of inventing it."
+  ],
+  "ledger_items": [
+    {
+      "axes": {
+        "defect_element": "transition",
+        "defect_locus": "element",
+        "defect_logic_kind": null,
+        "defect_qualifier": "missing",
+        "defect_reference": "requirement"
+      },
+      "d_basis": "判 D2。被违反的义务有成文出处，即 NL 第 1 句「the system can either remain in DoorShut if a Cancel action is performed」。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法——`:4` 用的是状态描述语法而不是迁移语法，这一点在同一文件内有直接对照（`:5` 用的是 `-->`），无法解释成「作者用另一种方式表达了同一条自环」。反驳不存活。",
+      "d_tier": "D2",
+      "detail": "NL 第 1 句逐字为「The microwave starts in the DoorShut state. From this state, the system can either remain in DoorShut if a Cancel action is performed or transition to the DoorOpen state when the door is opened.」。其中「remain in DoorShut if a Cancel action is performed」是一条显式的自环义务：在 DoorShut 收到 Cancel 时，机器应当有一次迁移，且这次迁移的目标仍是 DoorShut。\n\n制品在 `:4` 写的是 `DoorShut : Cancel`。这是 PlantUML 的状态描述语法（`状态名 : 文本`），它只往状态的显示框里加一行说明文字，不产生任何迁移。同一份文件里真正的迁移写法出现在紧接着的 `:5 DoorShut --> DoorOpen : Door Opened`——有 `-->`。\n\n把这份制品投影成形式化状态机可以确认后果：`DoorShut` 这个状态的名字变成了 `DoorShut\\n[PlantUML body] Cancel`，即那行文字被并进了状态名，而它的出边只有通往 DoorOpen 的一条，没有任何自环。也就是说，在 DoorShut 收到 Cancel 时机器什么都不会做，甚至不会消费这个事件。\n\n根因是把两种语法搞混了：`状态名 : 文本` 与 `源 --> 目标 : 标签` 在 PlantUML 里长得很像，但前者是注释、后者是迁移。NL 那句话把两件事写在同一句里（一个留在原地、一个转出去），生成侧对第二件用了迁移语法、对第一件用了描述语法。\n\n本条的修法是补一条 `DoorShut --> DoorShut : Cancel`，并把 `:4` 那行去掉或保留为纯注释。",
+      "l_basis": "判 L0。陈述这条错误只需把 NL 第 1 句点名的那条自环（DoorShut 上的 Cancel）拿去模型里找，发现以 DoorShut 为源的迁移只有 `:5` 一条且目标是 DoorOpen。这是一次词项层面的存在性比对，不需要从模型结构导出新事实，也不需要执行序列。",
+      "l_tier": "L0",
+      "ledger_id": "EIS-0005-01",
+      "ledger_json_pointer": "/items/EIS-0005-01",
+      "origin_family": "expected_issue（原台账已记录）",
+      "pair_id": "0005",
+      "source_text": {
+        "l_basis_rule": "NL 点名的元素模型没有／模型多出 NL 未点名的元素 —— 词项对比即可陈述",
+        "l_decided_by": "规则档",
+        "meta_review": "**判 D2**：三臂一致认定它违反了 NL 里这句「From this state, the system can either remain in DoorShut if a Cancel action is performed 」，且三方都尝试过推翻、都没找到站得住的第二种读法 —— 义务有成文条文可引、反驳不存活，是 `D2-lit`。",
+        "statement": "NL 第 1 句明写『can either remain in DoorShut if a Cancel action is performed』，是显式自环义务。生成侧把它写成状态体一行说明文字，模型中不存在该迁移（R4.5 投影里 DoorShut 被命名为 'DoorShut\\n[PlantUML body] Cancel'，无自环）。",
+        "verdict_reason": null
+      },
+      "summary": "NL 第 1 句要求在 `DoorShut` 执行 Cancel 时停留原地（自环），而制品把它写成了 `:4 DoorShut : Cancel` 这一行状态说明文字，模型里根本不存在这条迁移。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0005/0005.md",
+        "sha256": "sha256:0004c4813daec71d7fee89e0e30e53f8f4d67b3acc2fad5c8f2541a0fa972cd4"
+      }
+    },
+    {
+      "axes": {
+        "defect_element": "state",
+        "defect_locus": "element",
+        "defect_logic_kind": null,
+        "defect_qualifier": "incorrect",
+        "defect_reference": "requirement"
+      },
+      "d_basis": "判 D1，两读并立。第一种读法按状态名的字面物理含义来读：DoorShutWithItem 成为 DoorOpenWithItem 的后代会导致门开与门关同时活动，构成矛盾，缺陷成立。第二种读法把 DoorOpenWithItem 重新理解为一个命名不佳的生命周期壳，含义是「物品已放入炉内」这一整个阶段，其内部再分门开、门关、待烹、烹饪等子阶段；这样 `:21 ItemInside --> DoorOpenWithItem : Open Door` 就读作「从门关子阶段退出、重新进入这个壳、并经 `:11` 的默认入口落到真正的门开子阶段 DoorIdleWithItem」，与重入结构和 Open Door 触发都相容。判读中对第二种读法提出过一条反驳：用 Open Door 作触发去进入一个据称与门物理开合无关的壳态，自相矛盾。这条反驳有力但没有把第二种读法排除干净——壳态的默认入口恰好是门开子阶段，用开门事件进入它并不必然矛盾。故两读并立，判 D1。",
+      "d_tier": "D1",
+      "detail": "PlantUML 在解析时，一个状态名首次出现的位置决定它归属于哪个作用域。`DoorShutWithItem` 首次出现在 `:14`（`DoorIdleWithItem --> DoorShutWithItem : Close Door with Zero Time`），`ReadytoCook` 首次出现在 `:15`——两者都在 `state DoorOpenWithItem {`（:10）与 `}`（:16）之间。同理 `Cooking` 首次出现在 `:30`，而 `:30` 位于 `state ReadytoCook {`（:25）块内。\n\n于是后面 `:18 state DoorShutWithItem {`、`:25 state ReadytoCook {`、`:33 state Cooking {` 这些块并不是在根层新建状态，而是在给已经归属于内层作用域的那些状态补内容。投影出来的层次是：DoorOpenWithItem 里面套着 DoorShutWithItem 和 ReadytoCook，ReadytoCook 里面又套着 Cooking，再加上 DoorIdleWithItem 和 WaitingToStart。\n\n后果有两个。其一，层次状态机里子态活动蕴含祖先活动，所以「处于 DoorShutWithItem」自动蕴含「处于 DoorOpenWithItem」——按状态名的字面含义就是门关着有物品与门开着有物品同时成立。NL 第 4、5、6、8 句把这两种配置当作互斥的替代项处理，彼此由方向相反的开门 / 关门事件到达（第 5 句「In the DoorShutWithItem state, opening the door transitions the system back to DoorOpenWithItem」）。其二，`:8 DoorOpen --> DoorOpenWithItem : Place Item Inside` 这条边现在会经过 `:11` 的默认入口落到 `DoorIdleWithItem`——一个 NL 里没有的自造状态。\n\n根因是 PlantUML 的前向引用规则与作者的书写顺序相互作用：作者按 NL 的叙述顺序先写了从 DoorOpenWithItem 出发的三条边，无意中就把这些目标状态钉进了它的作用域。这类错误在源文本上完全看不出层次意图，只有投影之后才显形。",
+      "l_basis": "判 L1。陈述这条错误的核心是一个不变式：在任何一个系统状态里，`active(DoorShutWithItem)` 都蕴含 `active(DoorOpenWithItem)`。这是从模型的层次结构导出的静态事实，只涉及单个系统状态的合法性判断（对应 Hilken 等所说的 Structural Verification Task「a single system state」），不需要构造任何执行序列或做可达性论证，故不到 L2；但它要先把 PlantUML 的前向引用规则应用一遍才能得出层次关系，比纯词项比对深一层，故不是 L0。",
+      "l_tier": "L1",
+      "ledger_id": "EIS-0005-02",
+      "ledger_json_pointer": "/items/EIS-0005-02",
+      "origin_family": "expected_issue（原台账已记录）",
+      "pair_id": "0005",
+      "source_text": {
+        "l_basis_rule": "active(DoorShutWithItem) 蕴含 active(DoorOpenWithItem) 是单个系统状态上的不变式（Hilken 的 Structural Verification Task）",
+        "l_decided_by": "人工逐条",
+        "meta_review": "codex提出'DoorOpenWithItem是命名不佳的物品已放入生命周期壳'这一读法,被claude用L21`ItemInside --> DoorOpenWithItem : Open Door`这条结构事实直接反驳——用'Open Door'触发进入一个假设与门物理开合无关的壳态,自相矛盾。",
+        "statement": "这三个 ID 首次出现在外层 state 块体内，PlantUML 前向引用规则把它们钉成子态（R4.5 投影确认：DoorOpenWithItem { DoorShutWithItem {...} ReadytoCook { Cooking {...} WaitingToStart } DoorIdleWithItem }）。后果是 active(DoorShutWithItem) 蕴含 active(DoorOpenWithItem)——门开有物与门关有物同时成立，直接违反 NL 第 4/5/6/8 句把二者当互斥替代配置（由相反的开/关门事件到达）的处理；且 DoorOpen --Place Item--> DoorOpenWithItem 现在总落在自造的 DoorIdleWithItem 上。",
+        "verdict_reason": "前向引用确使 DoorShutWithItem 成为 DoorOpenWithItem 的后代，按状态名的字面物理含义会形成门开与门关同时活动的矛盾；但 :21 也可读成从“物品仍在、门关闭”的子阶段退出，重新进入命名不佳的“物品在炉内”生命周期壳，并经 :11 默认入口落到实际门开阶段 DoorIdleWithItem。该读法与重入结构及 Open Door 触发相容，尚未被排除，故两读并立判 D1。"
+      },
+      "summary": "`DoorShutWithItem`、`ReadytoCook`、`Cooking` 三个名字首次出现在 `DoorOpenWithItem` 的块体内（`:14`、`:15` 等），PlantUML 的前向引用规则把它们钉成了 DoorOpenWithItem 的子态，于是「门开有物」与「门关有物」会同时活动。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0005/0005.md",
+        "sha256": "sha256:0004c4813daec71d7fee89e0e30e53f8f4d67b3acc2fad5c8f2541a0fa972cd4"
+      }
+    },
+    {
+      "axes": {
+        "defect_element": "effect",
+        "defect_locus": "element",
+        "defect_logic_kind": null,
+        "defect_qualifier": "missing",
+        "defect_reference": "requirement"
+      },
+      "d_basis": "判 D1，两读并立。第一种读法：NL 第 5、6 句点名的 cooking-time 显示与更新属界内的变量与动作，制品零变量零 effect，义务落空，缺陷成立。第二种读法：全文一致地只画控制态与触发事件，并通过 `:37` 的 `Timer Expired` 把计时部件作为环境事件接进来——这可以称职地读成「这是一份纯控制骨架，设备动作由状态驻留和外部部件承载」。这种读法与全文的一致风格相容，能削弱但不能否掉界内那部分的缺失（显示与更新仍然没有载体），故判 D1 而非 D0。需要如实记下一处分歧：本条的自动 meta review 建议判 D2，理由是「40 行、零个 `/`、零 entry/exit、零变量声明」；人工终裁改判 D1，理由是上面那条纯控制骨架读法尚未被排除。同时纠正了一处：把 timer 启停算作缺失是把动作误当时钟，那部分在建模边界之外，不计入本条。",
+      "d_tier": "D1",
+      "detail": "NL 里有四处提到计时与烹饪时间：第 5 句「entering cooking time takes the system to ReadytoCook, where the cooking time is displayed and updated」、第 6 句「the system returns to DoorShutWithItem, canceling or updating the cooking time」、第 7 句「the system transitions to the Cooking state, where the timer starts」、第 8 句「opening the door stops the timer」。\n\n需要先按本研究的建模对象边界把它们分开。建模对象是 $M = (S, E, V, Tr, A)$，不含时钟变量与不变式，所以第 7、8 句的 timer 启停属于时间语义，在界外，不计入本条。第 5、6 句要求的是「显示并更新 cooking time」与「取消或更新 cooking time」——那是一个普通变量上的读写，落在 $V$ 与 $A$ 里，属界内。\n\n制品对界内的这部分零表达。全文 `:1`-`:40` 里没有任何变量声明；没有任何 `/` 符号，也就是没有任何迁移 effect；没有任何 `entry/` 或 `exit/` 动作（对比同批的 pair 0004，那份制品在 `:14` 与 `:33` 写了 `entry/`，说明这个记法在本语料里是被使用的）。所有 `状态名 : 文本` 形式的行在本文件里一处都没有承载动作语义。\n\n所以这不是「用另一种方式表达了」，而是这条语义在模型里没有任何载体：无论怎么求值，都问不出 cooking time 现在是多少、被谁改过。\n\n根因是制品只画了控制骨架——状态与触发事件——而把所有的数据侧语义留给了外部。`:37 ActiveCooking --> DoorShutWithItem : Timer Expired` 就是这种处理的典型：计时部件被当成产生事件的外部环境接入，模型自己不持有任何量。",
+      "l_basis": "判 L0。陈述这条错误只需把 NL 第 5、6 句点名的那样东西（cooking time 这个量及其显示 / 更新动作）拿去模型里找，发现全文没有变量声明、没有 effect、没有 entry/exit。这是一次词项层面的存在性比对，不需要从模型结构导出新事实，也不需要执行序列。",
+      "l_tier": "L0",
+      "ledger_id": "EIS-0005-03",
+      "ledger_json_pointer": "/items/EIS-0005-03",
+      "origin_family": "expected_issue（原台账已记录）",
+      "pair_id": "0005",
+      "source_text": {
+        "l_basis_rule": "NL 点名的元素模型没有／模型多出 NL 未点名的元素 —— 词项对比即可陈述",
+        "l_decided_by": "规则档",
+        "meta_review": "**判 D2**：源里 40 行、零个 `/`、零 entry/exit、零变量声明 —— NL 第 5/7/8 句逐字要求的 timer 启停与 cooking time 显示更新在模型里连载体都没有。⛔ dsh 判「越界」是把动作误当时钟。",
+        "statement": "NL 第 5/6/7/8 句显式要求 timer 启停与 cooking time 的显示/更新（『where the timer starts』『stops the timer』『the cooking time is displayed and updated』『canceling or updating the cooking time』），参考模型全部以迁移 effect 承载，生成侧完全没有表达。这是 NL 显式义务的丢失，不是参考独有细化。",
+        "verdict_reason": "NL-L005/L006 点名的 cooking-time 显示、取消与更新属于界内的 V+A，而作者源零变量、零 effect，故 grounding 成立；NL-L007/L008 的 timer 启停则按现有边界不计分。另一方面，全源一致只画控制态与触发，并以 :37 Timer Expired 将计时部件作为环境事件接入，可称职地读成纯控制骨架、由状态驻留和外部部件承载设备动作；该读法只能削弱而不能否掉界内缺失，故判 D1。"
+      },
+      "summary": "NL 第 5、6 句显式要求显示与更新 cooking time，而制品全篇 40 行里没有任何变量声明、没有任何迁移 effect（一个 `/` 都没有）、也没有 entry/exit 动作，这条数据侧语义连载体都不存在。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0005/0005.md",
+        "sha256": "sha256:0004c4813daec71d7fee89e0e30e53f8f4d67b3acc2fad5c8f2541a0fa972cd4"
+      }
+    }
+  ],
+  "ledger_sha256": "sha256:b5a38d3d24a51e980e5b9f5afc7c8c66aded59f3b51f16afe67e0deb592d0e36",
+  "metadata_refs": [
+    {
+      "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0005/source_meta.json",
+      "role": "SOURCE_META",
+      "selected_fields": {
+        "selected_stage": "phase_ii_semantic",
+        "source_locator": "sheet=STM Results; row=5; excel_row=7; selected_cell=AE7; selected=Result with Semantic Checking",
+        "source_pair_id": "llms_emp_feedback_final_0005",
+        "stm0_role": "author_feedback_final_plantuml"
+      },
+      "sha256": "sha256:a0f44a681804a6489d62d7933879aca6eba0870ea29f41037052531c60f7b8da"
+    },
+    {
+      "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0005/fcstm_meta.json",
+      "role": "FCSTM_META",
+      "selected_fields": {
+        "academic_eligible": false,
+        "academic_ineligibility_reason": "whole_model_behavior_equivalence_and_simulation_not_claimed; use only the working-contract attribution-scoped source-static capability",
+        "artifact_role": "r4_5_attribution_scoped_discover_input",
+        "parse_status": "ok",
+        "simulation_status": "ineligible",
+        "source_static_discover_eligible": true
+      },
+      "sha256": "sha256:50aa4451c99343dbb3238ec85fa404c9d25daad2a8beb78916cd0b10071576e8"
+    }
+  ],
+  "nl": {
+    "lines": [
+      {
+        "number": 1,
+        "text": "1. The microwave starts in the DoorShut state. From this state, the system can either remain in DoorShut if a Cancel action is performed or transition to the DoorOpen state when the door is opened."
+      },
+      {
+        "number": 2,
+        "text": "2. When the Door Opened action occurs in the DoorShut state, the system transitions to the DoorOpen state. The door can be closed to return to the DoorShut state."
+      },
+      {
+        "number": 3,
+        "text": "3. In the DoorOpen state, placing an item inside the microwave transitions the system to DoorOpenWithItem. If the item is removed, the system returns to DoorOpen."
+      },
+      {
+        "number": 4,
+        "text": "4. From DoorOpenWithItem, the system can transition to DoorShutWithItem if the door is closed with zero time set or to ReadytoCook if cooking time is entered."
+      },
+      {
+        "number": 5,
+        "text": "5. In the DoorShutWithItem state, opening the door transitions the system back to DoorOpenWithItem, while entering cooking time takes the system to ReadytoCook, where the cooking time is displayed and updated."
+      },
+      {
+        "number": 6,
+        "text": "6. In the ReadytoCook state, if the Cancel action is performed, the system returns to DoorShutWithItem, canceling or updating the cooking time. If the door is opened, the system transitions to DoorOpenWithItem."
+      },
+      {
+        "number": 7,
+        "text": "7. When the Start action is performed in ReadytoCook, the system transitions to the Cooking state, where the timer starts."
+      },
+      {
+        "number": 8,
+        "text": "8. In the Cooking state, opening the door stops the timer and the system transitions to DoorOpenWithItem, while if the timer expires, the system moves to DoorShutWithItem. A Cancel action transitions the system back to ReadytoCook."
+      }
+    ],
+    "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0005/nl.txt",
+    "role": "AUTHOR_NL",
+    "sha256": "sha256:934e19bd4ae2a793c334fdcf486092d3aa20858f09ae892753ef87698feb061f"
+  },
+  "packet_sha256": "sha256:fa56476b267f1eefccd4480443d83488864d63ad30b54314dcb30f0bf2c824eb",
+  "pair_id": "0005",
+  "plantuml": {
+    "lines": [
+      {
+        "number": 1,
+        "text": "@startuml"
+      },
+      {
+        "number": 2,
+        "text": "[*] --> DoorShut"
+      },
+      {
+        "number": 3,
+        "text": ""
+      },
+      {
+        "number": 4,
+        "text": "DoorShut : Cancel"
+      },
+      {
+        "number": 5,
+        "text": "DoorShut --> DoorOpen : Door Opened"
+      },
+      {
+        "number": 6,
+        "text": ""
+      },
+      {
+        "number": 7,
+        "text": "DoorOpen --> DoorShut : Close Door"
+      },
+      {
+        "number": 8,
+        "text": "DoorOpen --> DoorOpenWithItem : Place Item Inside"
+      },
+      {
+        "number": 9,
+        "text": ""
+      },
+      {
+        "number": 10,
+        "text": "state DoorOpenWithItem {"
+      },
+      {
+        "number": 11,
+        "text": "[*] --> DoorIdleWithItem"
+      },
+      {
+        "number": 12,
+        "text": ""
+      },
+      {
+        "number": 13,
+        "text": "DoorIdleWithItem --> DoorOpen : Remove Item"
+      },
+      {
+        "number": 14,
+        "text": "DoorIdleWithItem --> DoorShutWithItem : Close Door with Zero Time"
+      },
+      {
+        "number": 15,
+        "text": "DoorIdleWithItem --> ReadytoCook : Enter Cooking Time"
+      },
+      {
+        "number": 16,
+        "text": "}"
+      },
+      {
+        "number": 17,
+        "text": ""
+      },
+      {
+        "number": 18,
+        "text": "state DoorShutWithItem {"
+      },
+      {
+        "number": 19,
+        "text": "[*] --> ItemInside"
+      },
+      {
+        "number": 20,
+        "text": ""
+      },
+      {
+        "number": 21,
+        "text": "ItemInside --> DoorOpenWithItem : Open Door"
+      },
+      {
+        "number": 22,
+        "text": "ItemInside --> ReadytoCook : Enter Cooking Time"
+      },
+      {
+        "number": 23,
+        "text": "}"
+      },
+      {
+        "number": 24,
+        "text": ""
+      },
+      {
+        "number": 25,
+        "text": "state ReadytoCook {"
+      },
+      {
+        "number": 26,
+        "text": "[*] --> WaitingToStart"
+      },
+      {
+        "number": 27,
+        "text": ""
+      },
+      {
+        "number": 28,
+        "text": "WaitingToStart --> DoorShutWithItem : Cancel"
+      },
+      {
+        "number": 29,
+        "text": "WaitingToStart --> DoorOpenWithItem : Open Door"
+      },
+      {
+        "number": 30,
+        "text": "WaitingToStart --> Cooking : Start"
+      },
+      {
+        "number": 31,
+        "text": "}"
+      },
+      {
+        "number": 32,
+        "text": ""
+      },
+      {
+        "number": 33,
+        "text": "state Cooking {"
+      },
+      {
+        "number": 34,
+        "text": "[*] --> ActiveCooking"
+      },
+      {
+        "number": 35,
+        "text": ""
+      },
+      {
+        "number": 36,
+        "text": "ActiveCooking --> DoorOpenWithItem : Open Door"
+      },
+      {
+        "number": 37,
+        "text": "ActiveCooking --> DoorShutWithItem : Timer Expired"
+      },
+      {
+        "number": 38,
+        "text": "ActiveCooking --> ReadytoCook : Cancel"
+      },
+      {
+        "number": 39,
+        "text": "}"
+      },
+      {
+        "number": 40,
+        "text": "@enduml"
+      }
+    ],
+    "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0005/stm0.puml",
+    "role": "AUTHOR_PLANTUML",
+    "sha256": "sha256:6dfdab20dd467253efdd23ee3b8973eaeb9296ef2502fd01d3287f84e10a2511"
+  },
+  "schema_version": "paper1.predicate-gold.review-input-packet.v1",
+  "visibility": {
+    "execution_results_visible": false,
+    "other_track_conclusions_visible": false,
+    "planned_predicate_mapping_visible": false,
+    "v60_actual_predicate_visible": false
+  }
+}

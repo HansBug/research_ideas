@@ -1,0 +1,70 @@
+# 实施与收敛计划
+
+> **历史记录（pre-P1，2026-09-05 归档口径）。** 下文保留 `four-family-19-core.v1` 时期的计划、验收清单、运行编号和统计，均按当时版本解释，不是当前执行指令。当前 12 条方法以 [method/README.md](../../method/README.md) 和 [METHOD_PRINCIPLES.md](./METHOD_PRINCIPLES.md) 为准；旧 replay 按[原 commit](../../related_work/provenance/archive/pre_p1_20260905/README.md)复现。v61 保持冻结。
+
+## 固定协议
+
+实现维持 `four-family-19-core.v1`、冻结 Judge 与独立 evaluation。19/19 谓词 backend 必须真实可调用、可终止并返回 `true` 或 `false`；某次 pair 无法闭合输入只能形成 W1/W0 execution audit，不能改变谓词资格或缩小 planned 分母。`utils.agent`、`utils.llm`、既有 LangGraph、缓存和成本基础设施继续作为唯一调用路径。当前真实运行 profile 为 `gpt-5.6-luna`。
+
+## Provider-Free Probe Replay
+
+`execution_probe_replay` 是 route/frontier/selected-structural 之外的第四个 deterministic cohort。它从保存 extraction/grounding 重建当前 production chain，执行新物化的 domain-invariant 与 transition-group probe，并分别保存 source candidate ID、current typed input、native receipt 与 W2 audit bundle。它只验证新确定性链路，不重写历史 candidate、不调用 provider/Judge、不进入 publication/hit/precision，也不得与其他 replay 的 W/receipt 混算；新的 15x1 才验证完整 method 效果。
+
+## 阶段 A：确定性协议与 conformance
+
+1. 使用三档 W 状态机和正交 execution audit；bibliography 不进入任何运行时分支。
+2. 为 19 个谓词维护 positive、negative、invalid-input、out-of-fragment、timeout/error fixture，并验证 backend dispatch。
+3. S1--S6 使用 FCSTM model class；G 类使用 native topology/FBMCQ；R 类使用 `SimulationRuntime`；V 类使用 `.fbmcq` compile/solve/witness/replay。FBMCQ 的 native load、prepare、core build、property compile、solve、decode 和 replay 均在可终止 worker 内运行；父进程执行 wall-clock/RSS 边界并生成 terminal failure receipt。V5 仅能以 replayed lower-bound counterexample 提前返回，不得把 lower-bound pass 当成目标 horizon satisfaction。
+4. 每次 W2 写入 typed input、编译后的 assertion/formal program、code/hash、真实 result、backend version、artifact attribution、reason、basis 与 receipt hash 到 `audit_bundle`。
+5. provider error 原调用重试且不计费；schema、解析、业务和其他 retry 均计费并修复根因。禁止 Python `inspect`。
+6. FCSTM 只允许 `pyfcstm` 原生 parser/AST/StateMachine 作为语义源。`parse_fcstm`/`ModelIR` 必须是 native compatibility projection，保留 canonical path、pseudo-state、owner、lifecycle action、forced/combo provenance、span 与唯一 legacy-ref mapping；禁止恢复或扩展 FCSTM regex/line parser。`native_projection_audit` 必须达到 60/60 source load、54/54 frozen input closure、零 parity difference、零未批准文本处理后才解释 replay 数据。
+7. D adjudication 使用 receipt-only raw payload 边界：完整 FBMCQ/SMT 公式留在 execution/audit artifact，D semantic dossier 只携带 hash、size、typed plan、verdict、telemetry 与 witness/replay。dossier 按 obligation ID 和序列化预算稳定分批，不截断单条义务；超预算/失败批次仅退 `D_UNRESOLVED`，其他批次保持。targeted correction 的 `repair_ids` 是 missing、duplicate 与 invalid decision ID 的并集，必须对其中每个 ID 恰好补一条，不能以“missing”缩窄或覆盖该集合。不得削弱 `utils.agent` compact fail-closed，也不得用增加 context/retry 掩盖 prompt 投影 bug。
+8. 冻结的 `DomainInvariantContract` 只从预先审查的领域规则和 authority 派生，不能由 native inventory 临时发明。native facts 只负责 exact carrier binding；例如 initial pseudostate outgoing transition 的 frozen unconditional invariant 使用 S3 `triggers=[]` 或 S5 `guard=""` 比较。S2 endpoint pass 不得抑制同 carrier 的 trigger/guard candidate，S5 的 `guard=null` 仍是 input incomplete。transition-group 的 S3 projection 按唯一 `(native transition carrier, required trigger set)` 独立执行；前一 alternative 的 pass 只生成其自身 satisfaction receipt，不能遮蔽后续 alternative 的 false receipt 或原始 exact claim。
+9. 每个 successful live primary contract extraction 都只执行一次 `contract_completion` property-coverage pass。它按当前 pair 的 numbered NL、context 与 primary typed plan 审计同段内尚未表示的独立义务；atomic contract 数不再是 coverage gate，因为一个段可以同时有 member-set、owner/local entry、endpoint、event/guard/effect、lifecycle、coverage、transition-group、progress 或 termination 等属性。pass 只追加 typed-new `NLContract`/完整 `NLTransitionGroup`，以 canonical semantic key 去重，不覆盖 primary response；正常 admitted/duplicate 仅进入 merge audit，未知 segment 或 canonical-ID collision 才成为 diagnostics；失败保留 primary response 并写 receipt。cardinality/member-set 必须由正常 typed extraction/completion 明确建立；runner 不得通过自然语言表面正则，从数字、标点或成员枚举补造领域合同。该过程不读取 pair ID、台账、答案或 Judge。
+10. 任何 `undercutting/rebutting + survives` D decision 都必须引用当前 dossier 的 `defeater_evidence_refs` catalog。catalog 仅由该 candidate/binding 的 exact native/source refs 构成；空、重复或 catalog 外引用进入 targeted correction，持续失败退 `D_UNRESOLVED`。抽象隐藏机制、未绑定 external implementation 或自由文本不能作为 D defeater。
+
+## 阶段 B：provider-free replay
+
+对保存的 method artifact 重算 plan readiness、execution audit、W、D、publication、audit bundle 与 summary，不调用 provider、不修改 report semantic identity。回放必须证明：完成的 true/false 未降级、非法 typed input 无 W2、timeout/error 不是假 violation、每个 W2/退化记录归因闭合。已闭合 Judge relation 仅在 report identity 未变时复用。
+
+## 阶段 C：route A/B 与 15-pair
+
+route 使用 `typed contract -> compatible predicate set -> exact input binder`，只读取当前 pair 的方法输入。先在保存 extraction/grounding 输入上做 provider-free A/B，再以新 commit 和 immutable run identity 运行一次 15x1。固定 12 谓词分母为 S1、S2、S3、S4、S5、S6、G1、G4、R1、R4、V1、V4；R1/R4/V1 必须有 method-owned scenario/trace/domain 闭包，不能以 pass probe 代替 finding。
+
+grounding transport 使用 cell-local `NL-CONTRACT-REF-### -> canonical contract_id` 闭合 alias 表，专门避免长 canonical hash 的无语义复制失败。alias 只允许出现在 response-side supplied-contract reference；dynamic Pydantic model 在 nested validation 前做 exact table replacement，并把变换写入 `basis`，raw action 不改写。任何不在表中的值继续 schema fail；禁止 fuzzy repair、跨 cell 映射、将 alias 用于 branch-local `additional_contracts`，或据此修改 typed obligation/W/D/publication。
+
+S4/S6 的 LLM 预选标签必须经过同一 binder 复核，不能绕过输入闭包：S4 的 phase 只允许 `entry/do/exit`；S6 的 effect 必须是 pyfcstm native operation grammar 可解析的单一操作并绑定到 exact carrier。S5/V1 也必须先区分 native Event selector 与 guard AST：可解析为 Event 的 requirement value 只能是 `event`/`trigger`，不能借 guard 字段进入错误谓词。失败时只退化执行计划和 W，不改 contract/candidate 语义，不产生 false、W2 或 publication。
+
+候选的精确义务、owner、source/target、event/guard/effect/action role 与 repair delta 必须在 route、D 和 publication 全程保留。邻近或粗粒度谓词的 `true` receipt 只说明其自身命题成立，不能删除另一条精确 candidate；S2 只能决定 owner-local initial-entry endpoint，因而带 `event`、`trigger` 或 `guard` role 的 `initial_entry` 必须保持 predicate-null，不能由 S2 pass 抑制，W1/W0 继续由既有 binding/evidence 规则决定。没有可绑定且与当前 closed facts 兼容的具体替代实现时，不得以抽象“可能存在隐藏机制”作为 D defeater。
+
+15-pair 的 predicate usage 达到 12/15 后视为稳定合格，13/15 是加分但不是阻塞项；禁止为了增加低频 predicate 出场而堆 pass probe、放宽 binding 或扩大不可靠 route。下一轮优先通过完整 typed contract、grounding 与 publication claim 恢复 exact FULL hit。每份 report 必须明确 obligation、root locus/carrier、expected/actual carrier 或 member set、owner/source/target path、event/guard/effect/output/completion distinction、minimal repair delta、reason 与 basis；同址邻近后果不能冒充根因 FULL。
+
+R4 的 method-owned runtime closure 固定为受限 native cold-entry fragment：只有精确 retained state 的唯一最短 event prefix 加一轮 zero-event macrostep 才可执行；任何路径歧义、runtime failure 或 fragment 越界均退化 W1。不得从 source trace、台账或人工答案构造 schedule。
+
+R1 的 cold-start execution 必须由 exact event/carrier、唯一 native cold entry 和唯一 direct unguarded carrier 闭合；R4 的显式 typed control 仅接受 requirement 明示的 `scenario=cold` 与 `window=cold_macrosteps=N`（`N <= 32`），但 generic prose window 只能保留语义限定，不能阻断独立的唯一 native cold-entry closure；V1 必须具有完整 native same-choice guarded group、exact carrier 集与 requirement 独立提供的有限 JSON `domain`。不满足时记录 `input_contract_missing`/`out_of_fragment` 并保留 W1，禁止从 prose、guard、fixture 或答案补造输入。
+
+保存数据的 deterministic A/B 不是一次完整 method run。predicate-null route、frontier 和已选择 structural candidate 分别使用 `route_replay`、`frontier_replay`、`structural_rebind_replay`；三种 artifact 的 W/receipt 只能说明各自固定 cohort 在当前实现下的合法性，禁止混算为 hit、precision、execution coverage 或新 finding。`route_replay` 与 selected S2--S6 replay 均必须在 route 前合并 immutable `execute_batch.frontier_batch` 内的 typed obligation contract，保持与 production runner 一致，不能把保存的 frontier 契约误判为缺失。已选择 S2--S6 的 replay 必须强制 current exact native rebind；历史 `state:<name>:line:<N>`、carrier ref 或 legacy `expected_guard` 不能跳过 typed binder。未保存原 contract 的 selected probe 还必须由 `source_refs` 与 `contract_id` 唯一闭合一个真实 `NL...` segment，才可重建 replay-only contract；不唯一时记录 `unavailable`，不猜测段落或 direction。保存 frontier 里已被 soundness audit 删除的 `wrong_scope_route` 只能在 replay 读取时显式排除并计数，不能放宽当前 schema 或重启该规则。当前 `c9b461924c636ae6a92809b117934be9` 是该 structural 安全门的已闭合制品，随后仍须以一次新的 15x1 才能验证完整 native context/frontier/routing 链。
+
+selection preflight 的 15x12 表只保存固定 12 谓词的通用 capability/schema、当前输入 hash 与 semantic-shape set cover，不读取或存储 ledger、expected issue、Judge、答案、D/L 或评测结果。run manifest 只保存经校验的 preflight hash/reference；method worker 不消费 preflight 内容。未计划使用不等于学术或 backend 边界，19 个冻结谓词仍全部保留 native backend 和 conformance coverage。
+
+阶段 C 使用按 cohort 分离的 A/B。保存 candidate route cohort 只能取最终 `predicate_id=null` W1 evidence；当前 route artifact `479bb22f064ec72327b422b57cfbd0cb` 含 51 条、0 provider/Judge 调用，先合并保存 typed frontier contracts 后当前 3 条 W2（S2=2、R4=1）与 48 条 W1。保存 extraction/grounding 的 frontier artifact `0f9d383071b29a11eb0474d655553706` 必须复用 runner prefrontier deterministic chain，当前 15/15 frontier 成功、旧 error 1->0、added=40、removed=0、新增 W2/W1=13/27。predicate-null route 不重生成 frontier，frontier replay 不重建完整 runner，selected structural rebind 也单独解释；三者均不能取代新 15x1 的独立 method/Judge 验收。
+
+15-pair 的检查包括 15/15 terminal、无 diagnostics、FULL expected 的 max-W2、W2/全部 expected、overall/L2 hit、precision/FP、12 分母 execution、W2 audit closure 和成本。Judge 在 method 完成后独立补齐，不能改 Judge 语义迁就 method。Judge 完成后必须在 evaluation artifact 写入 `expected_issue_witness_audit.json` 和 `evaluation_summary.json`：前者逐 expected 保留 `FULL/PARTIAL/NONE`、匹配 report 的 predicate/W/D、typed/backend/receipt 链、`max_W` 与 stage-loss，后者分别汇总每 pair hit/max-W/D/precision/INVALID/route-stage loss、19 谓词 feasibility、W2 closure 和成本；两者只读不可变 method/Judge artifact，绝不反向进入 method。
+
+## 阶段 D：54x3
+
+新的 15-pair 协议稳定后冻结 current，启动一次并发 54 pair x3。新的 live method/Judge run 默认目标为 `--workers 16`；run manifest 必须固定实际 worker 数、provider 限流与重试策略。provider error 只原地重试受影响调用/cell，修复后只重跑失败 cell，禁止为了局部失败串行化、重启或覆盖其他已闭合 artifact。每个 cell 保存 source commit、prompt/schema/registry/input hash、成本与 terminal receipt。报告 overall/L2 `hit@1`、`hit@3`、`hit@all`、precision、FP、FULL expected max-W2、W2/435、15 个 planned predicate execution 与 cost，并与冻结 baseline 和冻结全量参考结果公平对照。
+
+全量 planned 分母固定为 S1、S2、S3、S4、S5、S6、G1、G2、G3、G4、R1、R2、R4、V1、V4，共 15 个；目标至少 13/15 有真实 terminal receipt。reporting 自动将完整 54-pair universe 解析为 `full-scale-15`，其他代表子集必须显式指定该 scope。不得把 15-pair 的 `diagnostic-12`、候选中出现的 ID、preflight row 或实际执行集合代替全量分母；G2/G3/R2 的零执行必须进入 stage-loss 和输入闭包结论。
+
+full-scale stage-loss 必须区分实现可用性与实例闭包：`backend_missing` 只在 frozen predicate 没有 dispatch/backend 时成立，当前 19/19 实现下应为 0；`invalid_input` 进入 `input_contract_missing`，backend 已实现但 soundness fragment 不满足进入 `out_of_fragment`，并另外保留原始 `failure_kinds`。禁止再用 `backend=none` 这个未执行展示值推断 V1/S6 或其他谓词没有 backend。
+
+G2/G3/R2 的局部 route 修复不改谓词定义和 Judge。G2 只路由 exact source/target；source 已是 leaf 时直接使用，composite 仅在每层恰有一条 native initial transition 并最终唯一下降到 leaf 时执行，绝不任取 leaf。G3 要求 exact leaf source/target/forbidden。R2 要求 typed alternative、唯一 canonical source carrier、exact native event/target，并由 `SimulationRuntime` 在不读取 target truth 的前提下搜索唯一最短、最多 3 个事件的 stimulus-consuming cold prefix，追加一个空 observation step后交给 backend 判断 target。保存输出先做两类分离的 provider-free A/B；未形成这些闭包时继续 W1，不能制造 scenario 或缩小分母。
+
+method terminal schema 与冻结 Judge adapter 的状态词表不一致时，不修改任一原制品。pair-local method 恢复先经 `reporting.method_composite` 建立单一 evaluator root：只替换同 pair/round 且 input hash 相等的完整新 cell。若完整 recovery sample 带有其他 round，必须显式列出 replacement-key，未选 recovery cell 不进入 selected result 但保留在 total-incurred cost；其他选中 method/W2 audit 及按 source-run 分区的 pair status 均保持硬链接字节身份，manifest 记录每个 pair 各 round 的来源，禁止合成跨 source status。source commit、selected/superseded/total-incurred cost、provider retry 与 schema repair 分开闭合；不得把完整重跑描述成原 cell 的 stage-only 重算。之后 evaluation 才建立独立 Pydantic Judge compatibility projection：eligible diagnostic cell 只规范化 adapter status 且 report payload 逐值不变；ineligible failed cell 只提供空发布面，保留固定 expected 分母并产生 `NONE`。Judge 恢复结果另用 Judge composite 对全部 result/source hash、失败、retry 和成本闭合。
+
+若 54 pair 未达 soft gate，先完成 `contract extraction -> identity binding -> predicate route -> typed inputs -> backend -> W -> D -> publication -> Judge relation` stage-loss，选择 12--15 个代表 pair 做一次局部修复；同一版本不得重复抽样刷结果。
+
+## Soundness/S2 boundary closure
+
+后续实现将 19 个 predicate 的 academic qualification、machine soundness 与 backend truth 分开：bibliography 不作 W2 gate；每个 W2 必须有逐谓词 fragment assessment、合法 typed inputs、native artifact attribution 与 terminal Boolean receipt。失败不引入 UNKNOWN，也不改变 candidate、D 或 publication 原则。S2 `closed_fcstm` 固定为完整 native carrier inventory，owner-local scope 固定为 exact canonical owner。实施顺序固定为 immutable baseline -> provider-free shadow -> narrow implementation/tests -> new immutable method/Judge -> paired comparison；不得借此改 discovery prompt、谓词、Judge 或 NL surface heuristic。

@@ -1,0 +1,139 @@
+{
+ "case": "0034",
+ "group": "NL01",
+ "llm": "Kimi",
+ "diffs": [
+  {
+   "verdict": "problem",
+   "ref": "state InMotion{ ... }（Accelerating / Cruising / Approaching 为 InMotion 的子状态）",
+   "gen": "state InMotion（叶子）+ 顶层平铺的 Accelerating / Cruising / Approaching",
+   "reason": "NL 第 4 句明确 'Within the InMotion state, the system operates in three substates: Accelerating, Cruising, and Approaching'。作者从未打开 InMotion 复合状态，三个运动阶段被声明为顶层兄弟状态，用无事件边 InMotion --> Accelerating/Cruising/Approaching 连接。层次归属信息完全丢失，InMotion 的组退出语义（Arrived、Obstacle Detected 从任意子状态离开）也随之失效。这是丢失 NL 明确要求的结构。",
+   "assertable": "containment(parent='llms_emp_feedback_final_0034.InMotion', child='llms_emp_feedback_final_0034.InMotion.Accelerating')  # 当前 False（Cruising / Approaching 同）；台帐用 all(bool(states(path=..., exact=True)) ...) 表达同一命题",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "state InMotion{ [*]-->Accelerating }",
+   "gen": "InMotion --> Accelerating / InMotion --> Cruising / InMotion --> Approaching（三条无触发边）",
+   "reason": "NL 第 5 句 'The system begins in the Accelerating substate' 要求进入运动后唯一初始化到 Accelerating。作者用三条无事件完成迁移取代嵌套初始边，导致进入 InMotion 后可以不确定地落到三个阶段中任意一个。更严重的是 InMotion --> Cruising 与 InMotion --> Approaching 让 Cruising / Approaching 可以绕过 NL 第 5、6、7 句要求的 'Reached Cruising/Cruise' 与 'Approached/Decelerate' 触发直接进入。",
+   "assertable": "initial_target(composite='llms_emp_feedback_final_0034.InMotion', child='llms_emp_feedback_final_0034.InMotion.Accelerating')  # 当前 False（InMotion 在 0034 里根本不是复合状态）",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "（参考模型中 DoorsClosing 无任何动作）",
+   "gen": "DoorsClosing : entry/Accelerate",
+   "reason": "NL 第 8 句把 'Entry/Accelerate' 明确归属给 Accelerating。作者除了在 Accelerating 上正确写了一份，还在 DoorsClosing 上多挂了一份同名 entry 动作（FCSTM 确认 DoorsClosing { enter abstract Accelerate; }）。让关门阶段执行加速动作与 NL 语义矛盾，属动作错置而非命名差异。",
+   "assertable": "not action_declared(state='llms_emp_feedback_final_0034.DoorsClosing', phase='entry')  # 当前该 entry 动作存在，故断言 False",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "Approaching: Entry/Send",
+   "gen": "Approaching : entry/Decelerate",
+   "reason": "NL 第 9 句要求 Approaching 发送 'Send' 信号；NL 第 6、7 句里 Decelerate 是 'Approached/Decelerate' 迁移的效果，不是 Approaching 的状态局部动作。作者把迁移效果搬成状态 entry 动作，同时 Send 动作在全模型不存在（FCSTM 中 Approaching 只有 enter abstract Decelerate）。既丢失 NL 要求的输出动作，又把迁移效果错置为状态动作。",
+   "assertable": "action_declared(state='llms_emp_feedback_final_0034.Approaching', phase='during')  # 当前 False；entry 相位声明的是 Decelerate 而非 Send，需配合 not action_declared 表达错置",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "EmergencyStoping:... Send Obstacle Detected",
+   "gen": "EmergencyStopping : entry/Emergency Stop（无任何发送 Obstacle Detected 的动作）",
+   "reason": "NL 第 3 句要求 EmergencyStopping 既执行 'Emergency Stop' 又发送 'Obstacle Detected' 信号。作者只保留了前者，后者在全模型任何相位、任何迁移上都不存在（FCSTM 中 EmergencyStopping 只有 enter abstract EmergencyStop）。这是 NL 明确要求的输出动作彻底缺失。",
+   "assertable": "action_declared(state='llms_emp_feedback_final_0034.EmergencyStopping', phase='during')  # 当前 False，且 entry 相位只声明了 EmergencyStop 一个动作",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "（参考模型中 Approaching 无任何出边，也无终态）",
+   "gen": "Approaching --> [*] : Destination Missed",
+   "reason": "NL 第 10 句明确 'The system remains in the Approaching substate while nearing the destination, until it is ready to stop or decelerate'。'Destination Missed' 既不是 ready to stop 也不是 decelerate，这条边让系统在义务未解除时离开 Approaching 并直接完成，违反该 remain-until 义务，属真实问题而非单纯过度指定。",
+   "assertable": "not transition_exists(source='llms_emp_feedback_final_0034.Approaching', event='llms_emp_feedback_final_0034.Destination_Missed')  # 台帐已实测 false/contradicts",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "extra",
+   "ref": "（参考模型中 EmergencyStopping 无出边，全模型无终态）",
+   "gen": "EmergencyStopping --> [*] : Obstacle Cleared",
+   "reason": "NL 全文没有 obstacle 清除事件，也没有 EmergencyStopping 之后如何收尾的描述；参考模型同样没有终态。这是无 NL 依据的新增事件与新增完成路径。与 Approaching --> [*] 不同，NL 对 EmergencyStopping 没有显式 remain/until 义务，因此只记 extra 而非 problem。",
+   "assertable": "not transition_exists(source='llms_emp_feedback_final_0034.EmergencyStopping', event='llms_emp_feedback_final_0034.Obstacle_Cleared')  # 写得出，但缺 NL 显式禁止依据",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "（参考未建模 NL 第 10 句的 ready-to-stop 出口）",
+   "gen": "Approaching --> Stopping : Ready to Stop",
+   "reason": "NL 第 10 句把 'ready to stop' 列为解除 Approaching 义务的合法条件之一，因此这条边有 NL 依据。参考靠 InMotion 的组退出边间接覆盖；作者因为丢了复合结构，只能在顶层显式补一条。判 similar：写法不同但不违反 NL。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "（参考模型中 Cruising 无动作，Cruise 只作为迁移效果出现在 'Reached Cruising/Cruise' 里）",
+   "gen": "Cruising : entry/Cruise",
+   "reason": "作者已经正确保留了 Accelerating --> Cruising : Reached Cruising/Cruise，又额外把 Cruise 复制成 Cruising 的 entry 动作。属冗余而非矛盾（进入 Cruising 时执行 Cruise 与 NL 第 5 句不冲突），判 similar 并记录该冗余。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "[*]-->DoorsClosing / DoorsClosing --> InMotion: Closed/SendDeparted / InMotion --> Stopping / InMotion --> EmergencyStopping / Accelerating --> Cruising / Accelerating --> Approaching / Cruising --> Approaching",
+   "gen": "同 source-trigger-target（只是三个运动阶段在顶层）",
+   "reason": "顶层初始边、DoorsClosing 出边、两条 InMotion 出边以及三条阶段间迁移的触发器与目标都与参考一致，NL 第 1、2、5、6、7 句的迁移关系本身没有丢失，丢的是层次归属与初始化（已在前两条记录）。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 6,
+ "extra_count": 1,
+ "vs_paper": "论文记 format 栏 '1. syntax error: stm TrainStateMachine {'（已 resolved）与 semantic 栏 '1. missing composite state'（semantic_resolved = 0.0，即论文自认未修好），f1 从 0.7368 微降到 0.7317。论文只记录了我的第 1 个 problem（复合状态缺失）。我另外判出的 5 个 problem（初始化不唯一且可绕过触发、DoorsClosing 错挂 entry/Accelerate、Approaching 缺 Send 且错置 Decelerate、EmergencyStopping 缺 Send Obstacle Detected、Destination Missed 违反第 10 句）与 1 个 extra（Obstacle Cleared 终态）论文均未记录。0034 是本组唯一被论文承认存在未修复语义幻觉的 case，也是本组 F1 最低的 case，方向上与我的判断一致。",
+ "vs_ledger": "台帐 0034 状态 mixed，3 条 E1：EXP-0034-SH-001（inmotion_substates_declared_top_level）对应我的第 1 个 problem；EXP-0034-IT-001（inmotion_initial_not_unique_accelerating）对应第 2 个；EXP-0034-UA-001（approaching_destination_missed_exit）对应第 6 个。三条 eval_assert 均实测 false/contradicts。我的第 3、4、5 个 problem 全是动作类，台帐仅以 E2c/state_action_adapter_missing 观察记录，未成 E1——原因是 FCSTM 的 compiler:lifecycle_action:* 节点在 attribution_exclusions 中，action_declared 谓词存在但无可归因门面。第 7 条 extra 台帐未记，理由与 0024 的 EmergencyStopping 出边相同（缺 NL 显式禁止依据）。三方对照下 0034 是本组唯一被三份记录都识别为有问题的 case。",
+ "notes": "0034 是本组最差模型，也是唯一同时被论文、台帐和本次人工审阅共同确认有真实缺陷的 case。它的动作保留情况反而不差：FCSTM 里 DoorsClosing / Accelerating / Cruising / Approaching / EmergencyStopping 都有 enter abstract，说明作者用了带相位前缀的正确写法；问题在于挂错了状态（DoorsClosing 得到 Accelerate、Approaching 得到 Decelerate）并漏了两个 Send。这类 '动作在但挂错对象' 的错误恰好是元素级 F1 最难惩罚的。",
+ "_source_file": "NL01-NL02.json",
+ "cross_reference": {
+  "case": "0034",
+  "group": "NL01",
+  "llm": "Kimi",
+  "counts": {
+   "correct": 1,
+   "similar": 2,
+   "problem": 6,
+   "extra": 1,
+   "uncertain": 0
+  },
+  "out_of_scope": {},
+  "problems_in_scope": 7,
+  "paper": {
+   "format": "1. syntax error: stm TrainStateMachine {",
+   "grammar": null,
+   "semantic": "1. missing composite state",
+   "semantic_resolved": 0.0,
+   "f1_phase1": 0.7368421053,
+   "f1_phase2": 0.7317073171
+  },
+  "ledger": {
+   "status": "mixed",
+   "e1_ids": [
+    "EXP-0034-IT-001",
+    "EXP-0034-SH-001",
+    "EXP-0034-UA-001"
+   ],
+   "e1_categories": [
+    "IT",
+    "SH",
+    "UA"
+   ]
+  },
+  "assertable_problems": 6
+ }
+}

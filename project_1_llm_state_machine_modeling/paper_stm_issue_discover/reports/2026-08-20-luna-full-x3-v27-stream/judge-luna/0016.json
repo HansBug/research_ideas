@@ -1,0 +1,701 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0016",
+  "ledger": [
+    {
+      "ledger_id": "DIFF-0016-05",
+      "pair": "0016",
+      "D": "D2",
+      "L": "L0",
+      "summary": "顶层初始迁移 `:2 [*] --> SearchMission : Start Mission` 带了触发事件，而 UML 规定初始伪状态的出边不得带触发；NL 里也没有任何启动事件。",
+      "detail": "`:2` 是全文唯一的根层初始边，冒号后带了标签 `Start Mission`。\n\nUML 2.5.1 规定从初始伪状态出发的迁移不得带触发事件也不得带守卫条件。后果是这台机器没有确定的启动状态：在 `Start Mission` 到达之前它不处在任何状态里。\n\nNL 那边也没有依据。NL 只有四句，第 1 句说这是描述无人机蜂群状态迁移的模型，第 2 句说任务完成前蜂群持续执行目标搜索、期间在三个不同状态区域内运作，第 3、4 句说被拦截与收到任务分配时各自转到哪。全文没有任何一句提到「任务启动」这个事件。\n\n同文件内部提供了对照：`:5`、`:8`、`:13`、`:18`、`:26`、`:33` 六处内层默认入口边全部是裸写的、不带任何标签。作者显然知道无标签的写法，`:2` 上的标签是刻意放的。\n\n根因是把「任务开始」这个语义当成了一个需要显式建模的事件。在状态机里，机器开始运行本身就是启动，对应的是无标签的默认入口边。",
+      "D_basis": "判 D2。被违反的义务来自建模语言：UML 2.5.1 规定初始伪状态的出边不得带触发或守卫。判读中出现过一种反驳：主张顶层初始边可以按对象创建（«create»）来读，那样标签就不算触发。这条反驳不存活——源文本里没有任何支持这种读法的构造（既没有 «create» 标注，也没有对象创建语境）；而 `Start Mission` 是一个名词性的事件名，与本语料里 `Power On`、`begin` 这一类同型，按触发读的证据强；加之同文件六处内层初始边全部裸写，对照说明 `:2` 的标签是刻意的。",
+      "L_basis": "判 L0。陈述这条错误只需就地读 `:2` 这一行，看 `[*] -->` 后面的冒号有没有跟内容——纯词法层面的模式匹配，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "trigger",
+        "defect_qualifier": "extraneous",
+        "defect_logic_kind": null,
+        "defect_reference": "language"
+      }
+    },
+    {
+      "ledger_id": "EIS-0016-01",
+      "pair": "0016",
+      "D": "D1",
+      "L": "L1",
+      "summary": "`:9 Search --> Region2` 写在 `state Region1 { }` 块内，PlantUML 按名字首次出现的作用域把 `Region2` 建成了 `Region1` 的子状态、`Region3` 又建成 `Region2` 的子状态——NL 第 2 句说的「三个不同状态区域」变成了三层包含关系。",
+      "detail": "NL 第 2 句逐字为「Before the mission is completed, the UAV swarm continuously performs target search tasks, during which it operates within three different state areas.」。\n\n制品的书写顺序造成了嵌套。`Region2` 这个名字首次出现在 `:9 Search --> Region2 : Finished Region1 Search`，而 `:9` 位于 `state Region1 {`（:7）与 `}`（:10）之间，所以 `Region2` 在 `Region1` 的作用域内被创建。同理 `Region3` 首次出现在 `:14`，位于 `state Region2 {`（:12）与 `}`（:15）之间，所以它在 `Region2` 内被创建。后面 `:12 state Region2 {` 与 `:17 state Region3 {` 只是给已经存在的状态追加内容，不会改变它们的父。投影结果确认了三层嵌套。\n\n这是源级的解析结果，不是投影引入的：换任何遵循 PlantUML 作用域规则的解析器结果都一样。\n\n后果是区域归属语义与 NL 的描述不一致：三个搜索区域按 NL 读起来是并列的三个阶段，制品里成了层层包含——处于 Region3 同时也处于 Region2 和 Region1。",
+      "D_basis": "判 D1，两读并立。第一种读法：NL 第 2 句说的是三个并列的状态区域，而制品做成了三层嵌套，归属错误；`:9`/`:14` 上的标签 `Finished Region1 Search`、`Finished Region2 Search` 也支持「三个依次完成的并列阶段」这一意图，使缺陷读法有真实依据。第二种读法：NL 第 2 句只说了 three different state areas，并没有规定三者必须同级、互斥或并列——「层层深入三个搜索区域」也是一种 different state areas，与三层嵌套的结构相容。两种读法都站得住，故判 D1。需要单独说明一处曾有争议的事实：判读臂之间对「三层嵌套是源级事实还是投影产物」各执一词，回源可裁——`:9` 确实在 `Region1` 块内，PlantUML 在名字首次出现处创建实体，所以嵌套是解析的必然结果。这一点不影响 D 档（两种读法都建立在同一个结构事实上），但必须记准。",
+      "L_basis": "判 L1。陈述这条错误需要导出一个静态结构事实：按 PlantUML 的作用域规则解析之后，`Region2` 的父是 `Region1`、`Region3` 的父是 `Region2`。这要把解析规则应用一遍才能得出，比查某个名字在不在深一层；但它只涉及单个静态切面上的包含关系，不需要执行序列，故不到 L2。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "state",
+        "defect_qualifier": "incorrect",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0016-02",
+      "pair": "0016",
+      "D": "D2",
+      "L": "L1",
+      "summary": "三个区域内部的状态都命名为 `Search`（`:8`、`:13`、`:18`），而 PlantUML 的状态名是全局标识符——于是只存在一个 `Search`（创建于 `:8`、属 `Region1`），`:13` 与 `:18` 的默认入口目标都落到了自己区域之外。",
+      "detail": "PlantUML 里状态名是全局唯一标识符，不按块作用域分开。`Search` 这个名字首次出现在 `:8 [*] --> Search`，位于 `state Region1 {`（:7）与 `}`（:10）之间，所以那个状态属于 `Region1`。\n\n`:13 [*] --> Search` 写在 `state Region2 {` 块内，`:18 [*] --> Search` 写在 `state Region3 {` 块内，但它们引用的是同一个已经存在的 `Region1.Search`，而不是各自区域里的新状态。\n\n后果是 `Region2` 与 `Region3` 的默认入口目标越出了自己的区域。UML 要求区域的默认入口边其目标必须落在该区域内，这一点被违反，两个区域无法建立合法的默认配置——进入之后处在哪个子状态没有定义。投影时这两处被显式记录为初始迁移无效的诊断。需要说明这些诊断只是源级错误的见证，不是缺陷的来源：缺陷在作者写下三个同名状态的那一刻就已经成立。\n\n根因是把「每个区域里都有一个搜索活动」直接写成了「每个区域里都放一个叫 Search 的状态」，没有意识到 PlantUML 的名字是全局的。正确写法是给三个状态取不同的标识符（例如 `Search1`/`Search2`/`Search3`，需要相同显示名时可以用 `state \"Search\" as Search1` 这种别名语法）。\n\n本条与 EIS-0016-01 是两处不同的缺陷：那一条说三个区域被嵌套成三层，本条说三个区域内部的状态发生了名字碰撞。修法也不同——把 `state Region2 {`、`state Region3 {` 提到 `Region1` 之外能解决前者，但三个 `Search` 仍然是同一个，后者还在。",
+      "D_basis": "判 D2。被违反的义务来自建模语言：区域的默认入口迁移其目标必须属于该区域，这是一条二值的良构约束。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法——PlantUML 的名字全局唯一是确定的解析规则，不存在「其实各区域各有一个 Search」的解释余地。反驳不存活。",
+      "L_basis": "判 L1。陈述这条错误需要导出一个静态解析事实：按 PlantUML 的全局标识符规则，`:8`/`:13`/`:18` 三处的 `Search` 是同一个实体，且它属于 `Region1`，因此后两条初始边的目标越出了所在区域。这要把解析规则与作用域归属一起推一遍才能得出，比查名字在不在深一层；但只涉及静态切面，不需要执行序列，故不到 L2。",
+      "axes": {
+        "defect_locus": "pair",
+        "defect_element": null,
+        "defect_qualifier": null,
+        "defect_logic_kind": "other",
+        "defect_reference": "language"
+      }
+    },
+    {
+      "ledger_id": "EIS-0016-03",
+      "pair": "0016",
+      "D": "D1",
+      "L": "L1",
+      "summary": "制品把「第三区域搜索完成」（`:19 Search --> [*] : Finished Region3 Search`）当作整个任务的结束条件，而 NL 第 2 句要求搜索持续到任务完成——模型里既没有 mission-complete 事件，也没有顶层终态。",
+      "detail": "NL 第 2 句逐字为「Before the mission is completed, the UAV swarm continuously performs target search tasks, during which it operates within three different state areas.」。这句话把「任务完成」设为搜索行为的终止边界，而把「在三个区域内运作」描述成这期间的过程。\n\n制品的结束条件是另一回事。全文唯一的终止边是 `:19 Search --> [*] : Finished Region3 Search`，写在 `state Region3 {` 块内，触发是「第三区域搜索完成」。全文没有任何名为 mission complete 一类的事件，也没有顶层的终态。\n\n于是模型表达的是「搜完第三个区域就结束」，而 NL 表达的是「任务完成才结束」。两者并不等同——把三个区域都搜一遍未必意味着任务完成，NL 第 2 句用的是 continuously performs（持续执行）。\n\n此外 `:19` 那条边通向的 `[*]` 位于 `Region3` 块内，是 Region3 这个区域的终态而不是顶层终态；由于 EIS-0016-01 记录的三层嵌套，它实际是嵌在最内层的。",
+      "D_basis": "判 D1，两读并立。第一种读法：NL 第 2 句把任务完成设为终止边界，而模型用「搜完第三区域」当结束条件，属于提前完成加完成条件错置。第二种读法：NL 第 2 句从未独立定义过任务完成的条件，把「搜完第三个区域」直接读作任务完成本身（而不是提前结束）也说得通——这与结构事实完全相容：`:19` 是全源唯一的终止边、全文也没有任何独立的 mission-complete 事件，即作者就是用它来表达任务完成的。两种读法都站得住，故判 D1。",
+      "L_basis": "判 L1。陈述这条错误需要导出一个静态结构事实：模型实际的结束条件是什么（检索全部终止边，得到只有 `:19` 一条，触发是 `Finished Region3 Search`），以及有没有顶层终态（没有）。这要对模型的迁移集合做一次归纳整理，比查某个名字在不在深一层；但它只涉及静态切面，不需要构造执行序列，故不到 L2。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "transition",
+        "defect_qualifier": "other",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:initial_contract:__root__",
+          "claims": [
+            "Initial pseudostate scope '__root__' has 1 outgoing edge(s) carrying a trigger or guard (llms_emp_feedback_final_0016.puml:line:2); the declared UML initial-transition profile forbids a trigger and guard on an initial pseudostate outgoing edge."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0016"
+          ],
+          "obligations": [
+            "An initial pseudostate outgoing transition must not carry a trigger or guard."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:__root__:facet:eb2ae377d7d7"
+          ]
+        },
+        {
+          "finding_id": "source:initial_target:SearchMission.Region1:SearchMission.Region1.Search",
+          "claims": [
+            "Source composite 'SearchMission.Region1.Region2' has no initial transition to required child 'SearchMission.Region1.Search'.",
+            "Source composite 'SearchMission.Region1.Region2.Region3' has no initial transition to required child 'SearchMission.Region1.Search'."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0016.puml:line:13",
+            "SearchMission.Region1.Region2",
+            "SearchMission.Region1.Search",
+            "llms_emp_feedback_final_0016.puml:line:18",
+            "SearchMission.Region1.Region2.Region3"
+          ],
+          "obligations": [
+            "An initial pseudostate transition must target a vertex in the same composite region."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:initial_target:SearchMission.Region1:SearchMission.Region1.Search:facet:0601432c10ad",
+            "source:initial_target:SearchMission.Region1:SearchMission.Region1.Search:facet:a8d568f3297d"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:80a3daab29c2e6ff",
+          "claims": [
+            "The authored hierarchy may incorrectly nest Region2 inside Region1."
+          ],
+          "locations": [
+            "NL2",
+            "PUML:L7",
+            "PUML:L12",
+            "SearchMission.Region1",
+            "SearchMission.Region1.Region2"
+          ],
+          "obligations": [
+            "The three different state areas used for target search should be separate operating areas rather than one area containing another."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L1",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:80a3daab29c2e6ff:facet:218125faae61"
+          ]
+        },
+        {
+          "finding_id": "source:containment:SearchMission.Region1.Region2",
+          "claims": [
+            "Source child 'SearchMission.Region1.Region2.Region3' has the forbidden direct parent 'SearchMission.Region1.Region2'; the negative containment obligation is violated."
+          ],
+          "locations": [
+            "NL2",
+            "PUML:L12",
+            "PUML:L17",
+            "SearchMission.Region1.Region2",
+            "SearchMission.Region1.Region2.Region3"
+          ],
+          "obligations": [
+            "The three different state areas used for target search should be separate operating areas rather than one area containing another."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:containment:SearchMission.Region1.Region2:facet:7eaee4501564"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:initial_contract:__root__",
+          "claims": [
+            "Initial pseudostate scope '__root__' has 1 outgoing edge(s) carrying a trigger or guard (llms_emp_feedback_final_0016.puml:line:2); the declared UML initial-transition profile forbids a trigger and guard on an initial pseudostate outgoing edge."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0016"
+          ],
+          "obligations": [
+            "An initial pseudostate outgoing transition must not carry a trigger or guard."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:__root__:facet:eb2ae377d7d7"
+          ]
+        },
+        {
+          "finding_id": "source:initial_target:SearchMission.Region1:SearchMission.Region1.Search",
+          "claims": [
+            "Source composite 'SearchMission.Region1.Region2' has no initial transition to required child 'SearchMission.Region1.Search'.",
+            "Source composite 'SearchMission.Region1.Region2.Region3' has no initial transition to required child 'SearchMission.Region1.Search'."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0016.puml:line:13",
+            "SearchMission.Region1.Region2",
+            "SearchMission.Region1.Search",
+            "llms_emp_feedback_final_0016.puml:line:18",
+            "SearchMission.Region1.Region2.Region3"
+          ],
+          "obligations": [
+            "An initial pseudostate transition must target a vertex in the same composite region."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:initial_target:SearchMission.Region1:SearchMission.Region1.Search:facet:0601432c10ad",
+            "source:initial_target:SearchMission.Region1:SearchMission.Region1.Search:facet:a8d568f3297d"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:AttackState:exit:Decrease UAV swarm count",
+          "claims": [
+            "State 'AttackState' lacks required state_action 'Decrease UAV swarm count' in the exit phase."
+          ],
+          "locations": [
+            "AttackState"
+          ],
+          "obligations": [
+            "State 'AttackState' must own required state_action 'Decrease UAV swarm count' in the exit phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:AttackState:exit:Decrease UAV swarm count:facet:386fd6eacddb"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:f4a337a23e745f38",
+          "claims": [
+            "The root mission-entry transition may carry an event trigger even though it leaves the root initial pseudostate."
+          ],
+          "locations": [
+            "tr_0001",
+            "PUML:L2",
+            "F61"
+          ],
+          "obligations": [
+            "An initial pseudostate outgoing transition must be unconditional and unguarded."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:f4a337a23e745f38:facet:5a3e4d13d72f"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:initial_contract:__root__",
+          "claims": [
+            "Initial pseudostate scope '__root__' has 1 outgoing edge(s) carrying a trigger or guard (llms_emp_feedback_final_0016.puml:line:2); the declared UML initial-transition profile forbids a trigger and guard on an initial pseudostate outgoing edge."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0016"
+          ],
+          "obligations": [
+            "An initial pseudostate outgoing transition must not carry a trigger or guard."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:__root__:facet:eb2ae377d7d7"
+          ]
+        },
+        {
+          "finding_id": "source:initial_target:SearchMission.Region1:SearchMission.Region1.Search",
+          "claims": [
+            "Source composite 'SearchMission.Region1.Region2' has no initial transition to required child 'SearchMission.Region1.Search'.",
+            "Source composite 'SearchMission.Region1.Region2.Region3' has no initial transition to required child 'SearchMission.Region1.Search'."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0016.puml:line:13",
+            "SearchMission.Region1.Region2",
+            "SearchMission.Region1.Search",
+            "llms_emp_feedback_final_0016.puml:line:18",
+            "SearchMission.Region1.Region2.Region3"
+          ],
+          "obligations": [
+            "An initial pseudostate transition must target a vertex in the same composite region."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:initial_target:SearchMission.Region1:SearchMission.Region1.Search:facet:0601432c10ad",
+            "source:initial_target:SearchMission.Region1:SearchMission.Region1.Search:facet:a8d568f3297d"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:f9f8d5fa56515ad4",
+          "claims": [
+            "The root initial transition may violate the unconditional-initial-entry requirement because the authored transition is triggered by Start Mission."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0016",
+            "tr_0001",
+            "PUML:L2",
+            "F61"
+          ],
+          "obligations": [
+            "An initial pseudostate outgoing transition must not carry a trigger or guard."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:f9f8d5fa56515ad4:facet:9001f6986f41"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "搜索任务在完成 Region3 后没有循环回到搜索流程，可能直接结束 SearchMission。",
+          "reason": "规格明确要求在任务完成前持续执行目标搜索。Region3 到 SearchMission 的终态表示复合状态结束，随后顶层没有从 SearchMission 回到自身或其他搜索区域的转移，因此完成三段区域后搜索流程终止，无法保证持续搜索。",
+          "where": "SearchMission 内部的 Region3：`Search --> [*] : Finished Region3 Search`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "攻击或编队调整结束后返回 SearchMission，但未定义从复合状态入口重新进入哪个搜索区域/搜索阶段。",
+          "reason": "SearchMission 的初始伪状态只在进入该复合状态时选择 Region1；从内部状态直接转到已激活的 SearchMission 复合状态时，模型没有明确恢复到搜索流程的有效子状态。若按状态机复合状态语义，重新进入 SearchMission 通常会经初始伪状态进入 Region1，但该恢复行为未被显式表达，且会丢失中断前搜索进度；规格只要求回到持续搜索，模型对此缺乏明确、无歧义的状态转移。",
+          "where": "`AdjustingFormation --> SearchMission : Finish Adjusting` 与 `Attacking --> SearchMission : Attack Finished / Decrease UAV swarm count`"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": []
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": []
+    }
+  ],
+  "judgement": {
+    "pair": "0016",
+    "ledger_assessments": [
+      {
+        "ledger_id": "DIFF-0016-05",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:__root__"
+          ],
+          "reason": "source:initial_contract:__root__ 直接主张根层初始伪状态出边携带触发或守卫并违反相同 UML 约束。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:__root__",
+            "hypothesis:f4a337a23e745f38"
+          ],
+          "reason": "source:initial_contract:__root__ 直接覆盖根层初始边的多余触发；hypothesis:f4a337a23e745f38 也独立主张该根初始边带事件并违反无条件入口要求。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:__root__",
+            "hypothesis:f9f8d5fa56515ad4"
+          ],
+          "reason": "source:initial_contract:__root__ 与 hypothesis:f9f8d5fa56515ad4 均直接指认根初始迁移带触发并违反不得带触发的约束。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "baseline_issue_1 指向 Region3 的 Search --> [*] 终止边，并主张完成 Region3 后搜索流程终止，语义覆盖任务搜索被错误提前结束的台账性质。",
+          "confidence": "medium"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该输出格没有 finding，未覆盖根初始边的触发问题。",
+          "confidence": null
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该输出格没有 finding，未覆盖根初始边的触发问题。",
+          "confidence": null
+        }
+      },
+      {
+        "ledger_id": "EIS-0016-01",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "method_run1 分别报告 Region2 可能嵌入 Region1 和 Region3 直接属于 Region2；每条都只覆盖三层嵌套主张的一部分，合并它们才完整，但规则不允许拼接多条输出命中。",
+          "confidence": "medium"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "method_run2 没有关于 Region1、Region2、Region3 层次归属的 finding。",
+          "confidence": "low"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "method_run3 没有关于三个区域层次归属的 finding。",
+          "confidence": "low"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_run1 没有输出根层初始迁移携带触发或守卫的主张；其两个 finding 讨论终止和返回入口。",
+          "confidence": "low"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该输出格没有 finding，未覆盖三个区域的层次归属问题。",
+          "confidence": null
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该输出格没有 finding，未覆盖三个区域的层次归属问题。",
+          "confidence": null
+        }
+      },
+      {
+        "ledger_id": "EIS-0016-02",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_target:SearchMission.Region1:SearchMission.Region1.Search"
+          ],
+          "reason": "source:initial_target:SearchMission.Region1:SearchMission.Region1.Search 明确指认 Region2、Region3 的初始迁移没有指向所在区域内的 Search，正是同名全局实体造成的越界。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_target:SearchMission.Region1:SearchMission.Region1.Search"
+          ],
+          "reason": "source:initial_target:SearchMission.Region1:SearchMission.Region1.Search 明确指认两个嵌套复合区域的初始目标越出同一区域，覆盖台账主张。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_target:SearchMission.Region1:SearchMission.Region1.Search"
+          ],
+          "reason": "source:initial_target:SearchMission.Region1:SearchMission.Region1.Search 明确指认 Region2、Region3 的默认入口目标不在各自复合区域内，位置和性质一致。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_run1 的 finding 讨论 Region3 终止和返回 SearchMission 的入口恢复，没有主张 Search 同名冲突或 Region2、Region3 初始目标越界。",
+          "confidence": "low"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该输出格没有 finding，未覆盖同名 Search 导致的初始目标越界。",
+          "confidence": null
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该输出格没有 finding，未覆盖同名 Search 导致的初始目标越界。",
+          "confidence": null
+        }
+      },
+      {
+        "ledger_id": "EIS-0016-03",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "method_run1 未指认 Region3 的终止边、任务完成条件或缺少 mission-complete 事件/顶层终态。",
+          "confidence": "low"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "method_run2 未指认 Region3 终止边或任务结束条件错置。",
+          "confidence": "low"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "method_run3 未指认 Region3 终止边或任务完成边界问题。",
+          "confidence": "low"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "baseline_issue_1 指向同一条 Region3 的 Search --> [*] 边，但其主张是终止/持续搜索问题，而不是 Search 名称全局碰撞及默认入口目标越界。",
+          "confidence": "medium"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该输出格没有 finding，未覆盖同名 Search 的区域入口越界。",
+          "confidence": null
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该输出格没有 finding，未覆盖同名 Search 的区域入口越界。",
+          "confidence": null
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:initial_contract:__root__",
+        "matched_ledger_ids": [
+          "DIFF-0016-05"
+        ],
+        "false_positive": false,
+        "reason": "直接指认根层初始伪状态出边携带触发或守卫，并主张该性质违反初始迁移约束，与台账 :2 的多余触发完全对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:initial_target:SearchMission.Region1:SearchMission.Region1.Search",
+        "matched_ledger_ids": [
+          "EIS-0016-02"
+        ],
+        "false_positive": false,
+        "reason": "直接指认 Region2 与 Region3 的初始迁移目标越出所在复合区域，性质是默认入口目标不在同一区域，与同名 Search 导致的两处越界对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "hypothesis:80a3daab29c2e6ff",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它只提出 Region2 可能嵌套于 Region1，未独立完整主张台账所述 Region1、Region2、Region3 的三层归属错误；需与另一条输出拼接才可凑齐台账主张。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:containment:SearchMission.Region1.Region2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它只主张 Region3 的直接父级是 Region2，未独立覆盖台账同时要求的 Region2 属于 Region1 的完整三层嵌套主张；不能与其他输出拼接命中。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:initial_contract:__root__",
+        "matched_ledger_ids": [
+          "DIFF-0016-05"
+        ],
+        "false_positive": false,
+        "reason": "直接指认根层初始伪状态出边携带触发或守卫，并主张该性质违反初始迁移约束，与台账 :2 的多余触发完全对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:initial_target:SearchMission.Region1:SearchMission.Region1.Search",
+        "matched_ledger_ids": [
+          "EIS-0016-02"
+        ],
+        "false_positive": false,
+        "reason": "直接指认 Region2 与 Region3 的初始迁移目标越出所在复合区域，性质是默认入口目标不在同一区域，与同名 Search 导致的两处越界对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:lifecycle_action:AttackState:exit:Decrease UAV swarm count",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它指向 AttackState 退出动作缺失，台账四项均不涉及 AttackState 的生命周期动作。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:f4a337a23e745f38",
+        "matched_ledger_ids": [
+          "DIFF-0016-05"
+        ],
+        "false_positive": false,
+        "reason": "虽为假设性措辞，仍直接主张根初始迁移带有事件触发且违反无条件入口要求，位置和性质均与台账 :2 一致。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:initial_contract:__root__",
+        "matched_ledger_ids": [
+          "DIFF-0016-05"
+        ],
+        "false_positive": false,
+        "reason": "直接指认根层初始伪状态出边携带触发或守卫，并主张该性质违反初始迁移约束，与台账 :2 的多余触发完全对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:initial_target:SearchMission.Region1:SearchMission.Region1.Search",
+        "matched_ledger_ids": [
+          "EIS-0016-02"
+        ],
+        "false_positive": false,
+        "reason": "直接指认 Region2 与 Region3 的初始迁移目标越出所在复合区域，性质是默认入口目标不在同一区域，与同名 Search 导致的两处越界对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "hypothesis:f9f8d5fa56515ad4",
+        "matched_ledger_ids": [
+          "DIFF-0016-05"
+        ],
+        "false_positive": false,
+        "reason": "直接主张根初始迁移因 Start Mission 触发而违反初始出边不得带触发的约束，与台账 :2 的多余触发一致。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0016-03"
+        ],
+        "false_positive": false,
+        "reason": "明确指向 Region3 的唯一终止边，并主张搜完 Region3 后搜索流程终止，覆盖台账关于把第三区域完成错误作为任务结束条件、导致搜索提前结束的性质。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它讨论从攻击或编队调整返回 SearchMission 后的入口恢复和进度丢失，台账没有该位置或该性质的缺陷主张。",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "语义对齐结果：根层初始边带触发在三轮方法输出中均被覆盖；同名 Search 导致 Region2、Region3 初始目标越界也在三轮方法输出中均被覆盖。三个区域的三层嵌套台账条目未被单条输出完整覆盖，method_run1 的两条层次相关输出不能拼接计入。baseline_run1 的终止 finding 覆盖搜索被错误终止的 EIS-0016-03，但其余 baseline 格及无关方法 finding 不对应冻结台账。"
+  },
+  "status": "ok",
+  "attempts": 1
+}

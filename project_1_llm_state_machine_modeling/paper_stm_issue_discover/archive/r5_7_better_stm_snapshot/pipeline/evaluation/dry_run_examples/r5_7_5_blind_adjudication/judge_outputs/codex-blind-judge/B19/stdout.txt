@@ -1,0 +1,59 @@
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B19",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "codex-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "not_better",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "The NL and STM describe discrete braking-device states and event-triggered transitions, with no real-time duration, timed automata, or continuous-time semantics. This is an in-scope T0 protocol case.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "The candidate file is present and mechanical checks report candidate_parse_status=parse_ok, so it is minimally auditable. Parse success alone is not treated as semantic evidence.",
+      "evidence_references": ["candidate STM_k", "mechanical_checks"]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "Provenance checks are complete: change ledger, target instance ledger, and hash chain are available, and the candidate is not byte-identical to canonical STM_0. The semantic effect of the change must still be judged from the STM contents.",
+      "evidence_references": ["canonical STM_0", "candidate STM_k", "provenance_checks"]
+    },
+    "G3": {
+      "status": "fail",
+      "reason": "The candidate deletes the NL-supported InitialState -> OperationalState transition for Signal Transmission Fails and removes the Signal_Transmission_Fails event declaration. This breaks a required failure path: 'If the signal transmission fails, it proceeds to the operational state.'",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G4": {
+      "status": "fail",
+      "reason": "No requirement-relevant target is visibly improved. The only substantive change is removal of the signal-transmission-failure transition and event, which is a regression rather than an improvement.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G5": {
+      "status": "fail",
+      "reason": "Semantically, canonical STM_0 preserves all NL-described paths, including brake signal received, signal transmission fails, clamping after braking, and signal feedback return. Candidate STM_k preserves most paths but loses the failure-to-operational behavior, so it is not a faithful improvement.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "This output reports a blind dry-run verdict only, keeps headline and repair-effectiveness eligibility false, cites only provided evidence, and does not rely on hidden answer keys or external context.",
+      "evidence_references": ["this JSON output"]
+    }
+  },
+  "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k", "mechanical_checks", "provenance_checks"],
+  "rationale": "Candidate STM_k is not better than canonical STM_0 because it removes a required NL-supported transition: when signal transmission fails, the system should proceed from InitialState to OperationalState. Canonical STM_0 includes this event and transition; candidate STM_k deletes both while providing no compensating semantic improvement.",
+  "observed_anti_gaming_risk_flags": ["semantic_deletion_of_required_failure_path", "trace_loss_for_Signal_Transmission_Fails", "no_visible_repair_gain"],
+  "forbidden_claims": ["This blind dry-run is not repair effectiveness evidence.", "This result must not be used as headline Better STM evidence.", "The candidate must not be claimed as a successful real repair run."],
+  "confidence": "high",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "No hidden answer key, expected verdict, source case slug, oracle mapping, target closure summary, or case-specific verdict cue is present in the blind input."
+  }
+}

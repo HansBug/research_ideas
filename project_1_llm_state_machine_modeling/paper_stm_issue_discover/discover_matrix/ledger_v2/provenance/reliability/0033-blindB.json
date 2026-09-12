@@ -1,0 +1,51 @@
+{
+  "case": "0033",
+  "nl_group": "NL06",
+  "diffs": [
+    {
+      "verdict": "problem",
+      "ref": "[*]-->PumpControl（无触发）",
+      "gen": "[*] -down-> PumpControl : begin",
+      "reason": "良构性问题：初始迁移带触发事件 `begin`（fcstm: `[*] -> PumpControl : /begin`）。NL 第1句 \"The system begins in the PumpControl state\" 描述的是默认入口，没有点名任何事件；初始伪状态出边不得带触发，否则事件到达前机器无合法初始配置。属口径 3 明列的\"带触发的初始边\"。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "state PumpControl{ [*] --> PumpState -- [*] --> WaterState -- [*] --> MethaneState }（三个状态都在 PumpControl 内部）",
+      "gen": "PumpControl -down-> PumpState : Activate Pump\nPumpControl -down-> WaterState : Monitor Water Flow\nPumpControl -down-> MethaneState : Monitor Methane Flow\n（这三行出现在 `state PumpControl { ... }` 之前，PumpState/WaterState/MethaneState 因此被绑定在顶层）",
+      "reason": "NL 第2句明确写 \"Within the PumpControl state, there are three main substates: PumpState, WaterState, and MethaneState\"，点名了三个子状态及其隶属关系。生成方先在顶层用 `PumpControl -down-> PumpState` 等引用了这三个名字，PlantUML 因此把它们创建为 PumpControl 的**兄弟**状态而非子状态（fcstm 中 PumpState/WaterState/MethaneState 与 PumpControl 同级，并给出 \"PlantUML initial target outside child scope: PumpState\" 等诊断）。NL 点名的层次隶属关系未实现，且 `PumpControl -down-> PumpState` 实际语义是\"离开泵控制状态\"，与 NL 第2句的\"within\"矛盾。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "PumpControl 的每个区域各有一条 `[*] -->` 指向本区域内的子状态",
+      "gen": "state PumpControl { [*] --> PumpState ... }\nstate PumpControl { [*] --> WaterState ... }\nstate PumpControl { [*] --> MethaneState ... }（同名复合态被声明三次）",
+      "reason": "良构性问题：三个同名 `state PumpControl` 块被合并为同一个复合态，其中三条 `[*] -->` 落在**同一个区域**（无 `--` 分隔），且三个目标 PumpState/WaterState/MethaneState 都在 PumpControl 作用域之外，因此 PumpControl 没有任何合法的默认子态（fcstm 注入 InvalidInitialtr_0005/0007/0009 三个占位并标注 \"initial target outside child scope\"）。同一区域出现三个初始伪状态本身也是默认入口不唯一。此外 `PumpState --> [*]` 等三条边的 `[*]` 指向 PumpControl 的 final，而源状态在 PumpControl 之外，构成越界 final 边（fcstm: \"PlantUML final boundary outside source ancestry\"）。命中口径 3 的\"复合态无默认子态\"。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "state PumpControl{ [*] --> PumpState -- [*] --> WaterState -- [*] --> MethaneState }（三个正交区域，三子态并发）",
+      "gen": "（无 `--` 分隔符；三个子状态在 NL/参考的并发关系被写成顺序结构，PumpControl 与三状态之间是普通触发迁移）",
+      "reason": "NL 第2句只说\"三个主要子状态\"，第3、4、5句用 \"first transitions to\"、\"can also transition to\"、\"can transition to\" 描述，字面上更像可选的顺序迁移而非并发区域；参考选择用三个正交区域实现属更具体的建模决定。按口径 4，本差异属\"区域的并发语义\"，标 out_of_scope: concurrency，且生成方读法说得通，判 similar。",
+      "out_of_scope": "concurrency"
+    },
+    {
+      "verdict": "extra",
+      "ref": "（参考中 PumpState/WaterState/MethaneState 均无出边）",
+      "gen": "PumpState --> [*] : Pump Deactivated\nWaterState --> [*] : Water Flow Stabilized\nMethaneState --> [*] : Methane Flow Stabilized",
+      "reason": "NL 五句都没有描述任何\"去激活/流量稳定后退出\"的行为，参考也没有对应边，属生成方新增语义。（这三条边同时越界指向 PumpControl 的 final，该良构性后果已在上一条 problem 中计入，此处只记新增语义本身。）",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "（参考的三条初始边无标签）",
+      "gen": "Activate Pump / Monitor Water Flow / Monitor Methane Flow 三个触发",
+      "reason": "NL 第1句 \"from which it can transition to different substates based on specific conditions\" 授权在这些迁移上给出条件；NL 第3句 \"where the pump is activated or controlled\"、第4句 \"controlling or monitoring the water flow\"、第5句 \"monitoring the methane flow\" 正好对应这三个触发名。命名与承载方式差异按口径 1 判 correct。",
+      "out_of_scope": null
+    }
+  ],
+  "problem_count": 3,
+  "extra_count": 1,
+  "notes": "拆分粒度原则：一条 diff = 一个可独立修复的现象。本 case 三个 problem 虽然互相牵连，但对应三种不同修复动作：(a) 去掉初始边触发；(b) 把三个状态挪进 PumpControl 内（消掉顶层绑定边）；(c) 合并重复的 PumpControl 声明并让默认子态落在作用域内。因此不合并为一条。越界 final 边作为 (c) 的同源症状写在 (c) 的理由中，不单开条目。\n\nNL 逐句核对：\n1 \"The system begins in the PumpControl state, from which it can transition to different substates based on specific conditions\"：部分满足——确实以 PumpControl 起始，但初始边被加了 `begin` 触发（良构问题）；\"different substates\" 的隶属关系未实现。\n2 \"Within the PumpControl state, there are three main substates: PumpState, WaterState, and MethaneState\"：不满足——三个状态是 PumpControl 的兄弟而非子状态，PumpControl 内部只剩三个越界的初始伪状态。\n3 \"The system first transitions to the PumpState substate, where the pump is activated or controlled\"：迁移与触发（Activate Pump）存在，但目标不是子状态。\n4 \"The system can also transition to the WaterState substate...\"：同上（Monitor Water Flow）。\n5 \"Similarly, the system can transition to the MethaneState substate...\"：同上（Monitor Methane Flow）。\n\n参考侧存疑位置：参考中 PumpState/WaterState/MethaneState 三个状态均无任何出边（各自区域内的吸收态），且整个模型没有任何离开 PumpControl 的路径；这属参考自身良构瑕疵，但与 NL 不冲突（NL 也未描述退出行为），故未据此判生成方问题。"
+}

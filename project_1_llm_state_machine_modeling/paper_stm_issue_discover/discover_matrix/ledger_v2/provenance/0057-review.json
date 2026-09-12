@@ -1,0 +1,88 @@
+{
+ "case": "0057",
+ "group": "NL07",
+ "llm": "Claude",
+ "diffs": [
+  {
+   "verdict": "correct",
+   "ref": "三个区分别对应 front / rear / pedestrian，各有 inactive 与 avoid 状态、且避撞后回到 inactive",
+   "gen": "Frontend { FCIdle <-> FCActive } / RearEnd { RCIdle <-> RCActive } / Pedestrian { PCIdle <-> PCActive }",
+   "reason": "三路控制按 NL 第2句的三种碰撞类型划分、命名互不冲突、每路都有常备态与避撞后复位边，是 NL07 六个 pair 中与参考内部逻辑最接近的一个。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "(参考没有任何激活边)",
+   "gen": "[*] --> CA : Possible collision detected",
+   "reason": "NL 第2句的激活条件被显式建模，优于参考模型。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "参考每个区都有自己的 [*] --> X_inactive 默认入口",
+   "gen": "state CA { state Frontend {...} state RearEnd {...} state Pedestrian {...} }（CA 自身没有 [*] 默认子状态）",
+   "reason": "CA 有三个子状态却无初始子状态，`Possible collision detected` 把系统送进 CA 后落到合成的 UnspecifiedInitial（FCSTM 确认 `state UnspecifiedInitial` + `[*] -> UnspecifiedInitial`），FCIdle / RCIdle / PCIdle 三路控制全部不可达——即\"子机被激活但没有任何避撞控制被激活\"，与 NL 第2、3句冲突。这是顺序化改写留下的结构缺陷，与并发本身可分开判定。",
+   "assertable": "initial_target(composite=\"llms_emp_feedback_final_0057.CA\", child=\"llms_emp_feedback_final_0057.CA.Frontend\") → 期望 True 实得 False；补充 reaches(source=\"[*]\", target=\"llms_emp_feedback_final_0057.CA.Frontend.FCIdle\", within_cycles=5) → False",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "state Collision_Avoidance { ... -- ... -- ... }（三个正交区并发）",
+   "gen": "三路控制写成 CA 内的顺序嵌套复合状态，无 `--`",
+   "reason": "丢失 NL 第1、3句的正交并发语义，三路控制无法并发激活（正交并发类；论文语义栏亦记 \"missing region\" 且 resolved=0.0）。",
+   "assertable": "无：19 谓词无 region / concurrency 谓词，FCSTM 无法表示正交区；台帐以 E2c observation 排除。",
+   "predicate_exists": false,
+   "out_of_scope": "concurrency"
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "参考带入 dist_to_front / dist_to_rear / vel / urban / highway 等 NL 未提及的量化守卫",
+   "gen": "(不可能生成)",
+   "reason": "参考含输入外信息，F1 ground truth 不可达；0057 两阶段 F1 均为 0.8679（全组最高），但这一高分靠的是结构形状相似，而它的三路控制在投影里其实一个都进不去。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 2,
+ "extra_count": 0,
+ "vs_paper": "论文：format/grammar 栏 None（plantuml 25/25、grammar 23/23）；semantic 栏记 \"1. missing region\"，semantic_resolved=0.0；F1 0.8679 → 0.8679。核对 workbook 列 I 与列 AE：语义阶段只把 FC/RC/PC 改名为 Frontend/RearEnd/Pedestrian，没有任何语义改动——论文如实记了 resolved=0.0。论文对应我的第 2 个 problem；我的第 1 个 problem（CA 无默认入口、三路控制不可达）论文没记。",
+ "vs_ledger": "台帐 0 条 E1（status candidate_only），仅 1 条 E2c observation 对应并发问题。我的第 1 个 problem（CA 缺默认入口导致三路控制全部不可达）台帐漏记——这是台帐在 NL07 上的第二处实质漏记（另一处是 0027）。",
+ "notes": "复核台帐不对称性的结论：0017 的 0 条是真干净、可独立确认；0057 的 0 条不成立（缺默认入口是可用 initial_target / reaches 正面断言的结构缺陷，且直接妨碍 NL 第2、3句成立），0027 的 0 条也不成立。因此该不对称主要由台帐\"仅收 NL 明确语句冲突\"的 E1 纳入口径造成，而非六个制品的真实质量差异。",
+ "_source_file": "NL07-b.json",
+ "cross_reference": {
+  "case": "0057",
+  "group": "NL07",
+  "llm": "Claude",
+  "counts": {
+   "correct": 2,
+   "similar": 0,
+   "problem": 2,
+   "extra": 0,
+   "uncertain": 1
+  },
+  "out_of_scope": {
+   "concurrency": 1
+  },
+  "problems_in_scope": 1,
+  "paper": {
+   "format": null,
+   "grammar": null,
+   "semantic": "1. missing region",
+   "semantic_resolved": 0.0,
+   "f1_phase1": 0.8679245283,
+   "f1_phase2": 0.8679245283
+  },
+  "ledger": {
+   "status": "candidate_only",
+   "e1_ids": [],
+   "e1_categories": []
+  },
+  "assertable_problems": 1
+ }
+}

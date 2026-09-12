@@ -1,0 +1,1946 @@
+--- Page 1 ---
+Modeling andVerification of NaturalLanguage
+Requirements basedon Statesand Modes
+YINLING LIU ,CRAN,CNRS,Universitéde Lorraine,Nancy, France
+JEAN-MICHEL BRUEL ,IRIT,CNRS,UniversitédeToulouse, Toulouse,France
+The relationship between states (status of a system) and modes (capabilities of a system) used to describe
+system requirements is often poorly defined. The unclear relationship could make systems of interest out of
+control because of the out of boundaries of the systems caused by the newly added modes. Formally mod-
+eling and verifying requirements can clarify the relationship, making the system safer. To this end, an inno-
+vative approach to analyzing requirements is proposed. The MoStlanguage (a Domain Specific Language
+implemented on the Xtext framework) is firstly designed for requirements modeling and a model validator
+isrealizedtocheckrequirementsstatically.Acodegeneratoristhenprovidedtorealizetheautomaticmodel
+transformation from the MoStmodel to a NuSMV model, laying the foundation for the dynamic checks of
+requirements through symbolic model checking. Next, a NuSMV runner is designed to connect the NuSMV
+with the validator to automate the whole dynamic checks. The grammar, the model validator, the code gen-
+erator, and the NuSMV runner are finally integrated into a publicly available Eclipse-based tool. Two case
+studies have been employed to illustrate the feasibility of our approach. For each case study, we injected 14
+errors.The resultsshowthat the staticanddynamic checks can successfullydetect allthe errors.
+CCSConcepts:• Softwareanditsengineering →Requirementsanalysis ;Domainspecificlanguages ;
+•Theoryofcomputation →Verification by model checking;
+Additional Key Words and Phrases: States and modes, requirements modeling and verification, domain spe-
+cific language, model checking
+ACM Reference Format:
+YinlingLiuandJean-MichelBruel.2024.ModelingandVerificationofNaturalLanguageRequirementsbased
+onStatesandModes. Form.Asp.Comput. 36,2,Article9(June2024),47pages. https://doi.org/10.1145/3640822
+1 INTRODUCTION
+The ambiguity between states and modes threatens the safety of complex systems. If there is a
+problemduringthedevelopmentofthesystem,theEngineeringmindsetwouldpossiblybetoadd
+one capability to prevent another capability or a scenario from occurring [ 39]. These capabilities
+have their limitations and could cause a system to fail because the values of variables exceed the
+This work was supported by the Excellence Laboratory “International Centre for Mathematics and Computer Science in
+Toulouse” (CIMI Labex).
+Authors’addresses:Y.Liu,CRAN,CNRS,UniversitédeLorraine,CampusSciencesBP70239,Vandoeuvre-lès-Nancy,Nancy,
+54506, France; e-mail: yinling.liu@univ-lorraine.fr; J.-M. Bruel, IRIT, CNRS, Université de Toulouse, Cr Rose Dieng- Q3
+Kuntz, Toulouse, 31400,France; e-mail:jean-michel.bruel@irit.fr.
+Permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee
+provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and
+the full citation on the first page. Copyrights for components of this work owned by others than the author(s) must be
+honored.Abstractingwithcreditispermitted.Tocopyotherwise,orrepublish,topostonserversortoredistributetolists,
+requires prior specific permission and/or a fee.Request permissions from permissions@acm.org .
+© 2024Copyrightheld bytheowner/author(s). Publicationrights licensed toACM.
+ACM 1433-299X/2024/06-ART9
+https://doi.org/10.1145/3640822
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June 2024.
+
+--- Page 2 ---
+9:2 Y. LiuandJ.-M.Bruel
+thresholdsofthesystemboundary.Thus,weneedtoknowclearlythecapabilitiesandthebound-
+aries of the system. People tend to describe capabilities by using modes and states. For example,
+they could say that the aircraft is either in mode taxior in state taxi. Here we argue modesand
+statesrepresent the capabilities and the boundaries of the system, respectively. Indeed, it works
+wellmostofthetime.However,ifthesystemisbecomingmoreandmorecomplex,thedescribed
+capabilitiesandboundariesshouldbemoreprecise.Theambiguitybetweencapabilitiesandbound-
+arieshasanegativeimpactoncommanding,controlling,andmonitoringthesystem,whichfinally
+may lead tocatastrophein reality.
+For instance, the recent Boeing 737 MAX crashes caused many deaths. The summary report
+from the U.S. Federal Aviation Administration shows that one of the problems was that the con-
+trolsystemreadthewrong angleofattack (AOA,whichreferstotheanglebetweentheaircraft
+forward direction and the wing chord).1The plane was supposed to ascend while, in fact, it was
+descending.Thepilotcouldnottakebackthecontroloftheplane,whichfinallygaverisetothese
+catastrophes.Tosolvetheproblem,Boeingchangedflightcontrollawstoincludealimitfor MCAS
+(ManeuveringCharacteristicsAugmentationSystem) commandssothattheMCASwillstop
+commanding stabilizer movement at a point that preserves enough elevator movement for suffi-
+cient pilot control of aircraft pitch attitude for current operation conditions. Boeing also added
+thesecondAOAsensortobecapableofalertingpilotsthatthereisaproblemforAOAsensors.If
+weanalyzethisexamplefromtheviewpointofstatesandmodes,theproblemcouldbethatwhen
+the plane is in mode automated and state descending , and we change the mode into manual,t h e
+plane cannot leave descending state toascending state. If the states and modes of the plane were
+sufficiently addressed, the impact of modes on system behaviors would have been investigated.
+These catastrophes may have been avoided. This example illustrates that the boundaries, capabil-
+ities, and their relationships should be as precise as possible to keep the system safe. Therefore,
+the distinction of modes and states clarifies the capabilities and boundaries of the system, which
+helpsimprove thesafetyof complexsystems.
+The terms statesandmodesare widely used in expressing systems requirements [ 15–17,34].
+However,littleguidancehasbeenproposedtodistinguishstatesandmodes.AsWassonsaid,“Sys-
+tem modes and states are perhaps one of the most controversial topics in Engineering and SE.
+Every industry, profession, Enterprise, and Engineer has their own view as to what a mode and
+a state are.” [ 39]. That is the reason why we are so motivated to model and verify the natural
+requirementsbasedonstatesand modes.
+Various aspects have been emphasized to analyze requirements, including context [ 1,2], the
+failures and successes of other requirements [ 37], and requirements evolution [ 40]. However, to
+the best of our knowledge, no one performs the modeling and verification of requirements based
+on states and modes. The requirement analysis benefits a lot from the proper usage of states and
+modes. They enable us to describe requirements that exist outside the normal operating environ-
+ment[34].Theyalsoaidintranslatingtheuser’sversionintothephysicalrealizationofthesystem
+[38]. They can be used as a medium to reduce misunderstandings between stakeholders such as
+users,acquirers,and developersaswell[ 18].
+Domain Specific Languages (DSLs) are programming languages or specification languages
+thattargetaspecificproblemdomain[ 6].Whenthedomainofaproblemiscoveredbyaparticular
+DSL,wewillsolvethatprobleminaneasierandfasterwayviausingthatDSLratherthanageneral-
+purpose language like Java or C, among others. In our case, we aim to create a new DSL to assist
+users to write requirements in a controlled natural language. In this way, requirements can be
+1https://www.faa.gov/foia/electronic_reading_room/boeing_reading_room/media/737_RTS_Summary.pdf (accessed in
+July2022).
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June2024.
+
+--- Page 3 ---
+Modeling andVerification of Natural Language Requirements based onStates and Modes 9:3
+better organized, expressed, and understood. On the other hand, writing requirements in natural
+languages is easierand more acceptablefor stakeholders.
+Proper DSLs are helpful in writing “correct” requirements. They are just the requirements that
+satisfysyntacticandvalidatorrules.Validatorrulesareuser-defined.Forexample,namingrulesof
+theelementsinrequirementscanbedefinedinthevalidatorthentherequirementscanbechecked
+by the defined naming rules. However, several problems remain unsolved. For instance, how to
+check the internal logic between requirements? How to verify the satisfiability of property speci-
+ficationsregardingsystems?Tosolvetheseproblems,thesymbolicmodelcheckingtechniquecan
+furtherimprovethequalityofthewrittenrequirements.Thistechniqueiscapableofdemonstrat-
+ingthecorrectnessofsystembehaviors.Theproblemofmodelcheckingisformallyexpressedby
+M|=φ,w h e r eMrepresents the system model, φis a property, and |=is the satisfiability symbol
+to check whether the model Msatisfies the property φ. If the property is not satisfied by the sys-
+tem, a counterexample is produced. NuSVM2is a symbolic model checker designed to allow for
+the description of Finite State Machine (FSM) , which ranges from completely synchronous to
+completely asynchronous, and from the detailed to the abstract on [ 11]. The primary purpose of
+theNuSMVinputlanguageistodescribethetransitionrelationoftheFSM,whichisquitesuitable
+for describing the state information in requirements. Therefore, in this paper, we choose NuSMV
+as themodelchecker.
+Thisworkisbasedonourpreviouswork[ 30].Ourpreviousworkmainlyfocusesonthedesign
+ofMoStmodeling language and static checks of MoStmodels. The present work significantly
+extends ourpreviousworkby:
+—Proposing an innovative framework fully supporting the modeling and verification of re-
+quirementsbasedon statesand modes;
+—Accomplishing algorithms to automatically perform the model transformation from MoSt
+models to NuSVMmodels;
+—Developing a NuSMV runner to realize a seamless connection between the NuSMV model
+checker and validator, automating the dynamic checks including the traceability, reachabil-
+ity,and validation analysis;
+—Developinganothercasestudytoillustratethefeasibilityofourapproach;
+—Implementing an Eclipse-based tool to enable us to write the MoStmodel, generate the
+NuSMVmodel, andconductthestaticanddynamic requirementanalyses.
+Based on the tool, requirements engineers can use MoStmodeling language to formalize re-
+quirements,soastobetterorganize,accuratelyexpress,andeffectivelymanagerequirements.The
+extractedinformationonstatesandmodescanserveas“standard”termswhenteammemberscom-
+municate with each other. Note that we suppose states and modes have already been underlined
+in requirements documents. So, conflicts on the system description can be reduced. In addition,
+clientscanbeencouragedtoexpectthemostsuitableperformanceofthefuturesystemssincethe
+MoStlanguagesupportsthedescriptionofthepropertyspecificationsinCTLandLTLlogics,and
+thesespecificationscanbeautomatically verified.
+The remainder of this paper is structured as follows. Section 2reviews the main related work.
+Section3introducestheframeworkforrequirementsanalysisandpresentsalltheelementsabout
+h o wt od e s i g nt h e MoStmodeling language. Section 4realizes the algorithms to perform the
+modeltransformationfromthe MoStmodeltotheNuSMVmodel.Section 5providesanapproach
+toverifyingrequirements.Section 6givesasystematicevaluationofourapproachtoillustrateits
+feasibility.Section 7concludesthepaperwithfutureperspectives.
+2https://nusmv.fbk.eu/ (accessed in April2023).
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June 2024.
+
+--- Page 4 ---
+9:4 Y. LiuandJ.-M.Bruel
+2 LITERATURE REVIEW
+In this section, we will first review the existing definitions of states and modes. Then, we will
+provideimportantinsightsintotheworkon requirementsmodeling andverification.
+2.1 States and Modes
+This section provides a literature review on the definition of states and modes. As one of our
+purposes is to differentiate states and modes, we exclude the references [ 13,16–18]w h i c ha r e
+self-inconsistent in terms of the description of states and modes. For example, DI-IPSC-81431A
+[16] offers the following guidance: The distinction between states and modes is arbitrary. A system
+maybedescribedintermsofstatesonly,modesonly,stateswithinmodes,modeswithinstates,orany
+otherschemethatisuseful .Edwards[ 18]sharessimilarideasabouttherelationshipbetweenstates
+andmodes.Obviously,thisguidancecreatesmoreconflictsindifferentiatingstatesandmodes.On
+the other hand, DMO [ 17] provides an example of a state transition diagram that does not depict
+any states at all. The synthesis analysis of the reviewed references is concluded in Table 1.As e t
+of aspects have been proposed to analyze the definitions of states and modes, including state ( in-
+formation, abstraction level, conditions, capabilities, dynamics, constraints ) and mode ( abstract con-
+cept,abstractionlevel,conditions,capabilities,dynamics,objectives ).Itshouldbenotedthat abstract
+conceptandabstraction level are different. The former implies denoting an idea of a thing rather
+than a concrete object; the latter implies the different levels in analyzing the system of interest,
+for example, system/subsystem/component. The aspect capabilities means a set of functions the
+system can perform. The aspect conditions addresses the conditions that have an impact on sys-
+tem behaviors, for example, physical/environmental conditions. Furthermore, “involved” means
+thetermhasbeenjustmentionedwithoutany otherdetails.
+Accordingtothistable,theconceptsofstatesandmodeshadbeenwidelyusedfrom2000to2010.
+However,itseemsthatresearchersdidn’tpayenoughattentiontothedifferencebetweenthem.For
+example, Andrey [ 3] and Feiler et al. [ 20] have simply emphasized states and modes, respectively.
+Since 2010, the issue of the difference between states and modes has been gradually addressed,
+but opinions on states and modes still vary from person to person. In terms of states, researchers
+principally concentrate on the aspects of conditions, dynamics andconstraints . They focus less on
+information andabstractionlevel .Theaspectof capabilities isseldomaddressed.Whencomparing
+states with modes, capabilities , on the contrary, is the most important aspect in defining modes.
+Researchersarealsoconcernedwith abstractionlevel,conditions,dynamics andobjectives formodes.
+Itseemsthattheydonotcarewhether“mode”isanabstractconceptornot.Thisanalysisaidsus
+ingainingimportantinsightsintothemeaningofstatesandmodes,whichlaysthefoundationfor
+designinga DSLcontainingthesetwo concepts.
+2.2 Requirements Modelingand Verification
+The requirements analysis has been recognized as the first phase of the system development pro-
+cess[36].Thelatererrorsintherequirementsarediscovered,thehigherthesystemdevelopment
+costs. Hence, the importance of requirements modeling and verification has been well addressed
+insystemsandsoftwareengineering.Aconsiderableamountofworkonhowtomodelandverify
+requirementshasbeenperformed.Numerousapproacheshavebeenproposedtoimprovethequal-
+ityofrequirements,includingdesigninganewlanguage,usingagoal-basedmodel,manipulating
+andimplementingtools,andsoon.Inthefollowing,wereportonacomprehensiveanalysisofthe
+literaturein a chronologicalway.
+Leveson et al. [ 29]d e v e l o pa Requirements State Machine Language (RSML) to describe
+requirements of real-time process control systems via a combination of graphical and tabular
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June2024.
+
+--- Page 5 ---
+Modeling andVerification of Natural Language Requirements based onStates and Modes 9:5
+Table 1. An Overview of theDefinitions of States and Modes where “-”and “NM”Means
+“Not Included” and“Not Mentioned”,Respectively
+[3][14][ 20][ 15]. [ 26][ 38][ 27][ 8][ 7][ 5]
+Stateinformation an ob-
+jectNM – NM variables,
+systemsystem NM involved NM typeof
+information
+abstraction
+levelNM system,
+subsys-
+tem– system,
+subsys-
+tem.NM element,
+subsystem,
+systemNM NM NM relatesto
+information
+conditions NM system
+condi-
+tions– system
+condi-
+tionsacondition
+to a
+behaviorperformance,
+physicaloperating a setof
+metricsoperating,
+physicalinvolved
+capabilities NM involved – NM. multiple
+functionsinvolved NM involved NM NM
+dynamics NM NM – involved NM involved state
+transitionstate
+transitionstate
+transitioninvolved
+constraints time,
+spaceNM – time NM involved NM time environment time
+Modeabstract
+concept– NM detailed involved NM abstract
+labelNM NM NM abstract
+abstraction
+level– NM system,
+subsystemsub-mode NM system, prod-
+uct,servicetop,lower NM NM link to capa-
+bilities
+conditions – system
+condi-
+tionsspecific
+condi-
+tionsNM NM triggering
+eventsa condition
+of asystemNM specific con-
+ditionsinvariant
+conditions
+capabilities – multiple
+capabili-
+tiesNM operations multiple
+capabili-
+tiesusecase multiple
+capabilitiesoperations specific func-
+tioningmultiple
+capabilities
+dynamics – NM mode
+transitionmode
+transitionNM mode transi-
+tionNM NM mode
+transitionmode
+transition
+objectives – function NM NM NM mission NM function expected be-
+haviorexpected be-
+havior
+notations. The graphical notation of RSML is principally derived from Statecharts [ 23]. A num-
+ber of definitions have been mentioned in RSML, including Interface, Input, Output, Transition,
+MacroandFunction. The tables in RSML describe the conditions under which the corresponding
+state transitions can happen. Indeed, they analyze requirements from the viewpoint of states but
+their way of expressing requirements complicates requirements analysis. Specifications in RSML
+include graphical, symbolic, tabular, and textual notations. Even though more aspects of the sys-
+temscanbeaddressedviaitsnotations,itseemsthatitisimpossibletoverifyrequirements(static
+and dynamic verification)inan automaticway.
+Heitmeyer et al. [ 24] demonstrate the feasibility of formal methods for requirements modeling
+andanalysisviathreecasestudies.Theychoosedifferentformalmethodsfortherequirementsof
+different case studies. They have successfully detected errors in requirements, thanks to require-
+ments modeling, testing,verification,and initial human reading. Even though a number of errors
+have been identified, this work is done by experts in formal methods. Their approach requires a
+lotofknowledgeinformalmethods,whichlimitsitsuse.Inaddition,theysuggest“A systemstate
+isafunctionthatmapseachentityname rinRFtoavalue ”and“ RFisasetofentitynames. RFis
+partitionedintofoursubsets: MR,thesetofmodeclassnames; IR,thesetofinputvariablenames;
+GR, the set of term names; and OR, the set of output variable names”. It seems that system states
+include modes. The relationship between states and modes is not mentioned. The principles of
+SCR and our DSL are different. We think modes in [ 24] are just one aspect statically describing
+system states. While modes in our paper actively influence system states by changing values of
+attributes.
+Goldsby et al. [ 22] analyze requirements from the viewpoint of four types of developers: the
+systemdeveloper,theadaptationscenariodeveloper,theadaptationinfrastructuredeveloper,and
+the dynamically adaptive system. They use i∗goal models [ 41] to describe the requirements of
+differenttypesofdevelopers.Theydetailtheviewpointofthedeveloperforrequirementsanalysis,
+but the graphic representation of requirements is not easy to be formally verified. The graphic
+representationofrequirementsisinformal.Transforminginformalmodelsintoformalonesusually
+necessitatesalot of efforttoensurethatthecoreinformation iscapturedin theformalmodels.
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June 2024.
+
+--- Page 6 ---
+9:6 Y. LiuandJ.-M.Bruel
+Mavinetal.[ 31]focusontheproblemofhowtodesignastructurednaturallanguagetoimprove
+the quality of requirements written by stakeholders. For this purpose, they develop five specific
+EasyApproachRequirementsSyntax(EARS) templatestofacilitaterequirementsexpression.
+The results of their case study show qualitative and quantitative improvements compared with
+a conventional textual requirements specification. However, they only focus on how to express
+requirementsinabetterway.Therequirementsanalysisconcerningconflictingrequirementsand
+traceabilitylinks,and thelike,ismissing.
+Silva Souza et al. [ 37] present a new type of requirements called AW (Awareness Require-
+ments).Therequirementsareassociatedwithotherrequirementsandtheirsuccess/failures,con-
+stituting requirements for such feedback loops. They formalize AW by a variant of OCL (Object
+Constraint Language) called OCL TMand validate them using a monitoring framework. Since
+themodelingprocesswithOCL TMisnotatrivialtask,theyprovideAWpatternsandgraphicrep-
+resentation to facilitate the elicitation and analysis of AW. However, in our case, we consider the
+facilityof elicitingrequirementsby creatingourown modeling language directly.
+Requirements uncertainty has been studied in certain works. Some focus on uncertainty, as-
+suming all the uncertain conditions are unknown and enumerated at design time [ 22,28]. Some
+address that some uncertain conditions are still unanticipated [ 40] .W h i t t l ee ta l .[ 40]d e s i g na
+new requirements specification language called RELAX to explicitly emphasize uncertainty with-
+outknowingalltheuncertainconditions.RELAXisbasedon FBTL(FuzzyBranchingTemporal
+Logic), which can describe a branching temporal model with uncertain temporal and logical in-
+formation. So, its expressive power on uncertainty is stronger than in some other languages. The
+ideaofdesigningaDSLtowritecertainrequirementsissimilartoours,butwearenotspecifically
+concentratedonrequirementsuncertainty.
+B a d g e re ta l .[ 4] argue that a simple way to improve the quality of requirements written at
+variouslevelsbydifferentgroupsofpeoplewouldbetostandardizethedesignprocessusingaset
+of tools and widely accepted requirements design constraints. They make full use of appropriate
+tools to realize the automatic requirements elicitation, formalization, analysis, and verification.
+However, they do provide us with a concrete case study. The limits of used tools have not been
+discussed.
+Ahmad et al. [ 1] propose a model-based requirement modeling and verification process for ad-
+dressing uncertainty in the requirements of self-adaptive systems. They combine the proposed
+languageRELAXwiththeconceptsofGoal-orientedRequirementsEngineeringforrequirements
+eliciting and modeling. Since various tools have been used like RELAX editor, SysML/KAOS, and
+OMEGA2,requirementstraceabilityis notsufficientlyemphasized.
+Carvalho et al. [ 9] investigate how to generate SCR specifications from controlled natural lan-
+guagerequirements.Wewouldarguethattheconcept“mode”isdifferentfromours.Itseemsthat
+they just mix the concepts of “state” and “mode”. For example, the vending machine example in
+their paper says “After a coin is inserted, the system switches from idletochoicestates.”. This
+change is represented by changing the value of the signal mode from 1 to 0. It seems that 0 and
+1 modes are the aliases for idle and choice states. However, in our paper, the modes show the
+capabilitiesofthesysteminsteadof representingthestatesof thesystem.
+Moitra et al. [ 32] implement a tool ASSERTTMto perform requirements modeling and verifica-
+tion.Therequirementsarecapturedbyastructurednaturallanguageandformalanalysisisbased
+on an automated theorem prover. They conduct a set of formal requirements analyses, including
+completeness analysis. The completeness analysis of ASSERTTMis simply involved with values
+of monitored variables and all pairs of values for controlled variables. They do not consider the
+reachabilityofallstatesofasystem.Ontheotherhand,theirviewpointofanalyzingrequirements
+isdependenton data insteadofstatesand modes.
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June2024.
+
+--- Page 7 ---
+Modeling andVerification of Natural Language Requirements based onStates and Modes 9:7
+Recently,Nalchigaretal.[ 33]areinterestedinmachinelearningrequirements(theprocessesfor
+requirementselicitation,design,and development involve machine learning).They analyze these
+requirementsfromtheviewpointofbusinesspeople,datascientists,anddataengineers.Theyuse
+the case study method to perform requirements modeling. This method consists of providing an
+overview of the framework, constructing and revising business, analytic design and data prepa-
+ration view models, and post-modeling interviews and interpretation. Their approach is suitable
+fortestingtheoriesandartifactsincomplexsettings,however,itisprincipallyamanualapproach,
+whichisdifficultto besufficientlyvalidated.
+Giannakopoulou et al. [ 21] present a compositional approach to generating and verifying the
+formalizationofstructurednaturallanguage.Theydevelopa FormalRequirementsElicitation
+Tool (FRET) to write, understand, formalize and analyze requirements. They also develop an
+automated verification framework for the fmLTL (future-time LTL) andpmLTL (past-time
+LTL)formulas.Theirworkseemstobeveryclosetoourwork.Webothusethecontrollednatural
+language to describe requirements. We both use NuSMV to verify requirements. However, our
+work is quite different from their work. First, they do not focus on modes and states. They are
+particularly interested in defining the temporal logic of requirements. Secondly, the purpose of
+using NuSMV for them is to check the satisfiability of a single requirement against the temporal
+properties. They also use EQUIVALENCE_CHECKER to check the consistency between different
+formalizationsofthesametemplatekey.Theybasicallycheckthetruthofeverysinglerequirement.
+In our case, we check the satisfiability of every single requirement by static checking. We check
+notonlytheformatsofrequirementsbutthecontextofrequirements(staticrelationshipbetween
+requirements,forexample,whenavariableofarequirementhasnotbeendefined,thesuggestion
+of defining this variable-related requirement will be proposed.); Thirdly, their verification does
+not involve dynamic checking. We check the internal logic between requirements by the NuSMV
+simulation.
+Clearly,amajorityofworkfocusesonhowtodesignanewlanguagetofacilitaterequirements
+analysis. The new languages proposed include RSML, EARS, OCL TM,R E L A X ,a n dF R E T ,a m o n g
+others. Most of the languages are dedicated to better requirements eliciting and verification. Dif-
+ferentviewpointsofanalyzingrequirementshavebeenconsidered,includingdevelopers[ 22],un-
+certainty [ 1,40], awareness requirements [ 37], machine learning requirements [ 33], and the like.
+Some other researchers are also concentrating on data warehouse requirements [ 19,42]. To the
+best of our knowledge, none of the work analyzes requirements from both users and developers.
+Inotherwords,theviewpointofstatesandmodeshasnotbeensufficientlyaddressedinanalyzing
+requirements.Thismayleadtomisunderstandingsbetweenusersanddevelopers,whichcancause
+conflicts in systems validation. Inconsistency could happen in development teams as well, which
+gives rise to conflicts in system design. As a result, we are so motivated to conduct requirements
+analysis fromtheviewpointof statesandmodes.
+3 THE MOSTMODELINGLANGUAGE
+In this section, we will first present the framework for modeling and verifying natural language
+requirementsbasedonstatesandmodes.Then,wewilldiscussourproperdefinitionsofstatesand
+modes and their relationship in detail. Next, the meta-model of MoStwill be provided to explain
+thekey conceptsin thelanguage. Finally,the MoStgrammar will begiven.
+3.1 Our AnalysisFramework
+This framework (Figure 1) aims to explain our approach to modeling and verifying requirements.
+Threestepsareinvolved,includingrequirementsformalization,modeltransformation,andmodel
+verification. In the first step, we will design a DSL called MoStto formalize requirements from
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June 2024.
+
+--- Page 8 ---
+9:8 Y. LiuandJ.-M.Bruel
+Fig.1. Framework formodeling andverifying naturallanguage requirementsbasedon statesandmodes.
+requirements documents. Meanwhile, a code validator is implemented to impose static rules on
+thislanguagesothatrequirementscanbestaticallycheckedinthe MoSteditor.Inthesecondstep,
+acodegeneratorwillbeaccomplishedtoautomaticallyrealizethemodeltransformationfromthe
+MoStmodelintotheNuSMVmodel.Thisstepprovidesthefoundationfordynamicallychecking
+requirements. The last step is to conduct model verification. The errors or counter-examples pro-
+posed by the model checker will be traced back to the MoStmodel. Thus, we can improve the
+qualityof requirementswiththeinformation proposedby themodelchecker.
+Our framework for requirements modeling and verification clarifies the value of our work.
+Firstly, it offers a general approach to integrating states and modes into requirement modeling
+and verification in the early phase of system design. System designers who are accustomed to
+using terms like states and modes will benefit from this work because the relationship between
+statesandmodeswillbepreciselyexplained.Secondly,systemdesignerswhowanttogetasense
+of what the future system will look like will profit from this work because it enables the inves-
+tigation of how modes will influence the system behaviors. Finally, it allows system designers to
+better communicate with clients since “mode” is a common term that is easier to be accepted by
+clientswhendiscussingspecificneeds.
+AsmentionedinSection 1,therequirementsofdesigningacarareanalyzedasacasestudy.They
+areinspiredfrom DusanRodina .3Sincefewengineersanalyzerequirementsfromourperspective,
+it is not easy to find the existing requirements without reformulating them. We think this will
+not hinder the applicability of the proposed strategy for requirements verification. The proposed
+3https://www.softwareideas.net/a/1539/Car-States--UML-State-Machine-Diagram- (accessed inApril 2023).
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June2024.
+
+--- Page 9 ---
+Modeling andVerification of Natural Language Requirements based onStates and Modes 9:9
+strategy can be used to describe requirements as generally as possible.It requires that users need
+to pay attention to the concepts of states and modes. Indeed, it will constrain a little the way we
+express requirements, but it gains more clarity and reduces ambiguity. Additionally, states and
+modes are sometimes intertwined in requirements, which makes it difficult to use the existing
+requirements. Thus, we finally choose to design our proper requirements that are based on the
+correct logic. These requirements will be considered in the following requirements modeling and
+verificationactivities.
+3.2 Relationshipbetween States and Modes
+The relationship between states and modes has been discussed in the literature. For example, the
+explanationofEdwards[ 18]maybeconfusing,buttheexampleontherelationshipbetweenstates
+and modes implies modes control states. In other words, modes can actively influence system
+states. Modes show capabilities. While states are changed when conditions are satisfied. It seems
+that Wasson [ 39] shares the same idea. He argues states are observable and measurable physical
+attributesofasystemorentity.Itmeansstatesrepresenttheattributesofasystemorentity.And
+he suggests modes enable us to accomplish objectives that produce results you can observe and
+measure.Theactivenessofmodesisagainrecognized.Thecharacteristicsofmodesandstatesare
+thebasisfor ustoproposetherelationshipbetweenthem.
+In this paper, we propose our proper definitions of modes and states. We argue modes are the
+abstraction of use cases as mentioned by [ 39]. Modes transitions happen when the correspond-
+ing signals from the system are received. Modes own capabilities to change the values of certain
+attributes. The values of these attributes are ones of conditions inside states. States hold certain
+conditions. States transitions happen when the corresponding conditions are satisfied. Figure 2
+illustratestherelationshipbetweenstatesandmodes.
+3.3 MoStMeta-model
+TheMoStmeta-model highlights the properties of the MoStModeling Language. As shown in
+Figure3,MoStis capable of describing NLRs and formal requirements. Even though formal re-
+quirements are also modelled by the natural language, this natural language should conform to
+certainrules.TheNLRsenableustocapturetheimportantinformationfromtherequirementdoc-
+uments as much as possible, in order to serve traceability in case of troubleshooting. Note that
+extractingimportantinformationfromfree naturallanguages isoutof ourscope.
+MoStfocusesondescribingfunctionalrequirementsnon-functionalrequirements. MoSt-based
+formalrequirementsconsistofconcepts Mode,State,Constraint andEnvironmentRequirement .The
+reasonwhyweneedtointroducethelasttwoconceptsisthatthe MoStmodelissupposedtosup-
+port formal verification. This idea demands that the MoStmodel must be self-contained to make
+itverifiable.Theconceptsof ModeandStatedescribefunctionalrequirements.The Constraint con-
+cept describes functional and non-functional requirements. More specifically, the concept Proper-
+tyConstraint depictsfunctionalandnon-functionalrequirementstobechecked.Ontheotherhand,
+EnvironmentRequirement conceptinitializesvalues andranges ofsystemattributes.
+ConceptConstraint aims at constraining attributes mentioned in requirements and providing
+propertyspecificationsto becheckedinformal analysis.
+ConceptCondition is one of the most important concepts in this meta-model, which includes
+conditions ModeCondition ,StateCondition ,AttributeCondition ,SignalCondition ,ArithmeticCondi-
+tion,a n dRelation. Concept Relationis used to enrich the expressive power of MoSt, which en-
+ables guards to be any combination of conjunctions, disjunctions, and conjunctions and disjunc-
+tionsofspecificconditions.However,conceptsof ModeTransition andEnvironmentRequirement are
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June 2024.
+
+--- Page 10 ---
+9:10 Y. LiuandJ.-M.Bruel
+Fig.2. Therelationshipbetween statesandmodes.
+Fig. 3. The MoStmeta-model.
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June2024.
+
+--- Page 11 ---
+Modeling andVerification of Natural Language Requirements based onStates and Modes 9:11
+exceptional, which are directly associated with specific conditions. The reasons have been men-
+tionedin Section 3.2.
+ConceptLogicOperator describes two temporal logics: the logics CTLLogic (Computational
+Tree Logic) andLTLLogic (Linear Temporal Logic) . The introduction of the concept LogicOp-
+eratorlaysthefoundationfor formally verifyingrequirementsbasedon statesand modes.
+Additionally, environment requirements include only post-conditionsbecausethey are used to
+statetheinitialstatusesof variableswherepreconditionsarenot needed.
+3.4 MoStGrammar
+A grammar is a set of rules that describe the form of the elements that are valid according to
+the language syntax [ 6]. TheMoStgrammar defines the rules describing how to write different
+types of requirements. The complete grammar is shown in the annex (Figures 23–27). Every rule
+containsaname,acolon,asyntacticform,andasemicolon.Thefirstruleofthegrammardefines
+wheretheparserstartsandthetypeoftherootelementofthe MoStmodelisMoSt.Theshapeof
+MoStelementsis expressedin itsown rule:
+MoSt:models+=(Requirement |NLRequirement)*;
+A collection of Requirement orNLRequirement elements are stored in feature modelsof aMoSt
+object.Formalrequirementsarestoredin Requirement objects.NLRsarestoredin NLRequirement
+objects. Note that +=and*operators mean it is a collection and the number of elements is arbi-
+traryrespectively.Here,thecollectionisimplementedasalist.Thestaroperator*meansthatthe
+number of the elements can be any number >=0. The grammar of MoSt is not presented using
+the classical BNF (or EBNF) notation but using the syntax of Xtext since it is more understand-
+ableifinterestedreaderswouldliketoreproducethiswork.Interestedreaderscanalsogetdetails
+from [6].
+3.4.1 Natural Language Requirements. The natural language requirement rule is illustrated as
+follows:
+NLRequirement:nlReqID=ReqID ID(ID)* ’.’;
+ReqID:’[’reqID+=INT (’.’reqID+=INT)* ’]’;
+It implies that NLRs begin with the ReqID(the identity of requirements) like “[1.2.3...N]”. So this
+namingruleof ReqIDsignifiesthereisnolimittothenumberofNLRs.Thisruleappliestoallthe
+other requirements as well. As for ID, there is no rule defining it because that is one of the rules
+from the Terminals (mentioned in Xtext). It allows us to write any words as we want. As a result,
+therule ofNLRs isjustto writenaturallanguage sentenceswithidentifiers.
+3.4.2 Formal Requirements. Formal requirements include ENVIRONMENT ,MODE,STATE,AT-
+TRIBUTECONSTRAINT ,a n dPROPERTYCONSTRAINT . The rule of formal requirements is repre-
+sentedasfollows:
+Requirement: ENVIRONMENT |MODE|STATE|ATTRIBUTECONSTRAINT |PROPERTYCON-
+STRAINT ;.
+Two generic templates are used including “when ..., then ...” and “... should be ...”. The first tem-
+plateappliestomode,state,attributeconstraint,andpropertyconstraintrequirements.Thesecond
+template applies to environment requirements. The first one implies when pre-conditions of the
+systems are satisfied, then the system can get the post-conditions satisfied. The idea is basically
+from Hoare Triple logic [ 25]. That is why we would like to use different kinds of specific con-
+ditions to define pre-conditions, post-conditions. Our template is similar to one of the EARS tem-
+plates“WHEN <optionalpreconditions ><trigger>the<systemname >shall<systemresponse >”
+[31]. We argue “when ..., then ...” can express all the templates mentioned in their work in an ab-
+stract way because we think pre-conditions can express the characteristics of all their templates
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June 2024.
+
+--- Page 12 ---
+9:12 Y. LiuandJ.-M.Bruel
+Table 2. Instancesof Two Environment Requirements
+Req1envirReqID= ”2.2.1” envirVariable=“accSpeed”
+envirUnit= “m/s2” envirAttributeValue= “0”
+Req2envirReqID= “2.2.2” envirVariable=“accSpeed”
+compOperator1=“greateror equalto” bound1= “0”
+compOperator2=“lessor equalto” bound2= “10”
+envirUnit= “m/s2”
+includingubiquitousness,events,unwantedbehaviors,states,andoptionalfeatures.Aubiquitous
+requirement in EARS template has no precondition or trigger. Property constraint requirements
+can describe ubiquitousness. For example, the CTL formula “AG ! engineSpeed > x” represents
+that the control system shall prevent engine overspeed. Optional features can be simply recog-
+nized as conditions. The other characteristics are naturally supported by the first template. The
+secondtemplatedeclaresconstraintsforvariables,whicharesuitablefordescribingenvironment
+requirements.Besides,thismappingillustratestheexpressivepowerof MoSt.
+(1)EnvironmentRequirements
+Environmentrequirementsarededicatedtodescribinginitialstatusesofvariables,includingthe
+initializedvaluesandtherangesofvariables.Thatiswhytherulesoftheserequirementsinvolve
+ATTRIBUTEVALUE,UNIT andRANGE.Theruleofenvironmentrequirementsisshownasfollows:
+ENVIRONMENT:
+envirReqID=ReqID ID envirVariable=ID (ID)* ((’initialised’ ’to’ envirAttributeValue=
+ATTRIBUTEVALUE envirUnit=UNIT |range=RANGE)) (ID)* ’.’ ;
+Intermsof ATTRIBUTEVALUE ,threecommondatatypesareemployed,including INT,String and
+Boolean.AsforUNIT,theunitsofweight,time,speed,andacceleratespeedareapplied.Theruleof
+RANGEindicatesthelowerandupperboundsforthevariables.Thisruleconcernsthecomparison
+operators,whichlimittheboundsandinclude GREATER,GREATEREQUAL,LESS ,andLESSEQUAL
+rules. The details of the rules ATTRIBUTEVALUE ,UNIT,RANGE,a n dCOMPARISONOPERATOR
+are shown in Figures 25and27.N o t et h a t IDis predefined in Xtext framework as terminal ID:
+‘∧’?(‘a’..‘z’|‘A’..‘Z’|‘_’) (‘a’..‘z’|‘A’..‘Z’|‘_’|‘0’..‘9’)*;. IDand(ID)*allow to write only one word and any
+numberof words,respectively.
+Table2lists the values of the attributes for two environment requirements (Reqs 1 and 2). Req
+1 initializes variable “accSpeed”. Req 2 provides the scope for this variable. Note that variables
+mustbenamedascompoundnouns(like“accSpeed”insteadof“acceleratespeed”)iftheyinvolve
+severalnouns.Thisrulewillapplyto otherattributesofthe MoStgrammar.
+Thecorresponding MoStcodecanbe writtenasfollows:
+Req1: [2.2.1]TheaccSpeedshouldbeinitialisedto0 m/s2.
+Req2: [2.2.2]TheaccSpeedshouldbegreateror equalto0 andless orequalto10 m/s2.
+(2)ModeRequirements
+Mode requirements explain mode transitions that are associated with mode and signal condi-
+tions. Mode conditions indicate which mode the system is in. Signals are the core conditions for
+triggeringmode transitions.Theruleof mode requirementsislistedas follows:
+MODE:
+modeReqID=ReqID ’when’ preModeCondition = MODECONDITION (relations+=RELATION guards
++= SIGNALCONDITION)* ’,’ ’then’postModeCondition= MODECONDITION’.’ ;
+The details of the syntax are shown in the annex. Table 3lists the values of the attributes for
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June2024.
+
+--- Page 13 ---
+Modeling andVerification of Natural Language Requirements based onStates and Modes 9:13
+Table 3. Instance of ModeRequirement Req3
+Req3modeReqID= ”6.2” preModeCondition= “mode =economic”
+relation= “and” guards [1]= “signal = Ac”
+postModeCondition=“mode = sportive”
+Table 4. Instanceof StateRequirement Req 4
+Req4stateReqID= ”1.4” preStateCondition= “state=accelerate”
+relations[1]=“and” guards[1] = “signal =Auto”
+relations[2]=“and” guards[2] = “accSpeed= 10m/s2”
+postStateCondition=“state= autonomy”
+moderequirementReq3.ThisrequirementdescribesthetransitionbetweenmodesEconomicand
+Sportive.
+Thecorresponding MoStcodecanbewrittenas follows:
+Req3: [6.2] when the car is in mode economic and it receives Ac signal, then it is in mode
+sportive.
+(3)StateRequirements
+State requirements describe system functional requirements via state transitions. Three condi-
+tionsareabletotriggerstatetransitions,includingattribute,mode,andsignalconditions.Therule
+of staterequirementsis illustratedas follows:
+STATE:
+stateReqID=ReqID’when’preStateCondition+=STATECONDITION(relations+=RELATIONguards+=
+( ATTRIBUTECONDITION |MODECONDITION |SIGNALCONDITION))* ’,’ ’then’ postStateCondi-
+tion = STATECONDITION ’.’;
+Table4givestheattributevaluesofthestaterequirementReq4.Itdepictsthetransitionbetween
+statesAccelerateand Autonomy.
+Thecorresponding MoStcodecanbewrittenas follows:
+Req4: [1.4] when the car is in state accelerate and it receives Auto signal and its accSpeed is
+equalto10 m/s2,thenitwill bein stateautonomy.
+(4)AttributeConstraintRequirements
+Attribute constraint requirements aim at determining the values of attributes under different
+conditions.Theconditionscanbeanycombinationofstate,mode,signal,andattributeconditions.
+The value can be an arithmetic equation as well. The rule of attribute constraint requirements is
+depictedasfollows:
+ATTRIBUTECONSTRAINT :
+attributeReqID=ReqID ’when’ preAttributeCondition += (STATECONDITION |ATTRIBUTECONDI-
+TION|SIGNALCONDITION)(relations+=RELATIONguards+=(STATECONDITION |ATTRIBUTE-
+CONDITION |SIGNALCONDITION))*’,’’then’postAttributeCondition=(ATTRIBUTECONDITION |
+ARITHMETICCONDITION) ’.’;
+Table5shows the values of attributes for attribute constraint requirement Req 5. This require-
+mentexplainshowtheaccelerationspeedandthespeedofacarinfluencethefunctionofdisplay-
+ingspeed.
+Thecorresponding MoStcodecanbewrittenas follows:
+Req5: [5.2] when the car accSpeed is equal to 5 m/s2 and its speed is greater than 80 km/h,
+thenitsdisplaySpeedis equaltoTRUE.
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June 2024.
+
+--- Page 14 ---
+9:14 Y. LiuandJ.-M.Bruel
+Table 5. Instance of AttributeConstraintRequirement Req5
+Req5attributeReqID=”5.2” preAttributeCondition=“accSpeed=5 m/s2”
+relations[1]= “and” guards[1] =“speed >80km/h”
+postAttributeCondition= “displaySpeed= TRUE”
+Table 6. Instanceof PropertyConstraint Requirement Req6
+Req6propertyReqID=“7.1” preOperator= “allglobally”
+prePropertyCondition= “state=autonomy” preRelations[1]= “and”
+guards [1]= “mode = economic” postOperator=“all next”
+postPropertyConditions[1]= “state!=accelerate”
+(5)PropertyConstraintRequirements
+Propertyconstraintrequirementsaidindescribingfunctionalandnon-functionalrequirements.
+Theywillbeusedaspropertiesthatneedtobechecked.Theyareofteninvolvedwithtemporalis-
+sues.Classictemporallogicsareconsideredinourlanguage.Theexpressivepowerofthelanguage
+issignificantlyincreasedbyintroducing CTL(ComputationalTemporalLogic) andLTL(Lin-
+ear TemporalLogic) .Therulesof propertyconstraintrequirementsareexpressedasfollows:
+PROPERTYCONSTRAINT:
+propertyReqID=ReqID ’when’ preOperator= (CTLOperator |LTLOperator) prePropertyCon-
+dition= (STATECONDITION |ATTRIBUTECONDITION |MODECONDITION) (preRela-
+tions+=RELATION guards += (STATECONDITION |ATTRIBUTECONDITION |MODECONDI-
+TION))*’,’’then’postOperator=(CTLOperator |LTLOperator)postPropertyConditions=(STATE-
+CONDITION |ATTRIBUTECONDITION |MODECONDITION) (postRelations+=RELATION
+postPropertyConditions += (STATECONDITION |ATTRIBUTECONDITION |MODECONDI-
+TION))*’.’;
+Table6lists all the values of the property constraint requirement attributes. This requirement
+provides a CTL specification to check the function of the car. Note that post-property conditions
+canbeanarraybecausemultiplepost-propertyconditionscanbeimposedbypropertyconstraint
+requirements.
+Thecorresponding MoStcodecanbe writtenasfollows:
+Req6: [7.1] when all globally the car is in state autonomy and it is in mode economic, then
+allnext it isnotin stateaccelerate.
+Sinceweplantotransforma MoStmodelintothecorrespondingNuSMVmodel,thesemantics
+of theMoStmodel will be the semantics of its underlying NuSMV model. NuSMV is the first
+model checker based on BDDs (Binary Decision Diagrams) , which is a reimplementation and
+extensionofSMV[ 12].NuSMVhasbeendesignedtobeanopenarchitectureformodelchecking,
+whichcanbereliablyusedfortheverificationofindustrialdesigns,asacoreforcustomverification
+tools,asatestbedforformalverificationtechniques,andappliedtootherresearchareas.Wechoose
+nottointroducethesemanticstoavoidrepetition.ThedetailsofNuSMVsemanticscanbeseenin
+NuSMV2.6UserManual.4
+4 MODELTRANSFORMATION
+The NuSMV model checker enables us to write the NuSMV code in different ways. It is essen-
+tial to identify one of the most appropriate forms of NuSMV models, which corresponds to the
+MoStmodel.Therefore,themappingbetweenmodulesofthe MoStmodelandtheNuSMVmodel
+is provided, as shown in Figure 4. The implementation of the process for the automatic model
+4https://nusmv.fbk.eu/NuSMV/userman/v26/nusmv.pdf (accessed inApril 2023).
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June2024.
+
+--- Page 15 ---
+Modeling andVerification of Natural Language Requirements based onStates and Modes 9:15
+Fig. 4. Mappingbetween modules of theMoStmodel and theNuSMVmodel.
+transformationisbasedonthismapping.TheprocessisrealizedinAlgorithms 1–5,whichwillbe
+discussedinthefollowing.Thepresentedalgorithmsdonotcoveralldetailsbutfocusonthemain
+aspects of the mapping process. Note that Figure 4may give the wrong impression that the con-
+ceptofmodesexistsalreadyinNuSMV.Infact,wedefinemodesasvariablesinNuSMV.Modules
+(NuSMVprograms)havebeendesigned toimplement thefunctionsofmodes we defined.
+As mentioned in Section 3,t h eMoStmodeling language consists of mode, state, environment,
+property,andattributemodules.Modemodulesareabletoactivelyandpassivelyinterveneinthe
+behaviorsofthesystem.Theactiveinterventionimpliesmodescanchangethevaluesofvariables
+thatinfluencethestatetransitions.Thepassiveinterventionmeansthemodeitselfcanberegarded
+as the trigger. At the same time, the mode owns its mode transitions impacted by signals. There-
+fore, the type of the mode variable can be defined as enumeration . The main mode requirement
+transformationis implementedin Algorithm 1.
+The NuSMV model naturally approves state modules. The input language of NuSMV supports
+the description of Finite State Machines (FSMs) which range from completely synchronous to
+completely asynchronous, and from the detailed to the abstract [ 10]. Thus, state modules can be
+transformed into the corresponding NuSMV code. The state requirement transformation is per-
+formed in Algorithm 2.
+In terms of other elements of the MoStmodel, Environment and attribute modules are associ-
+atedwiththevariablestatementandthevariableconstraint.So,theycanalsobetransformedinto
+theNuSMVmodel.SinceCTLandLTLspecificationscanbecheckedintheNuSMVmodelchecker,
+the transformation of the property module is feasible as well. The processes for the model trans-
+formation for environment, and attribute modules are achieved in Algorithms 3-5, respectively.
+Technically speaking, implementing the model transformation depends on the MoStgrammar
+andthestructureoftheNuSMVcode.Thegrammarhelpsidentifydifferentkindsofrequirements
+andextractthecorrespondingconditioninformation.Wethenneedtoreorganizethisinformation
+to make it suitable for the NuSMV parser. The time complexities of Algorithms 1-5 are all O(n2)
+exceptfor Algorithm 3whichisO(n).
+Inordertomaketheprocessclearer,thecarrequirementshavebeenformalizedinFigure 5.Five
+kinds of requirements have been elicited to illustrate the transformation process. Note that the
+completeNuSMVcodeisshowninAnnex B.Requirement[8.1]isanaturallanguagerequirement
+explained inSection 3.4.1,whichwillnot betranslated.
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June 2024.
+
+--- Page 16 ---
+9:16 Y. LiuandJ.-M.Bruel
+ALGORITHM1: Mode Requirement Transformation
+input :root
+output:modeTransitions, modes
+// The variable root represents the root of the MoStmodel.
+1ArrayList <String >modeTransitions = newArrayList <String >();
+2HashMap <String, String >modes = newHashMap <String, String >;
+3String temp=“”;
+4int indexMode=0;
+5formodeReq :root.model.filter(MODE) do
+6indexMode =0;
+7temp=“”;
+8forpreModeCondition:modeReq.preModeConditions do
+9 temp+=preModeCondition.condition;
+10 ifindexMode <=modeReq.relation.size -1 then
+11 temp+=modeReq.relation.get(indexMode++).relation;
+12 end
+13end
+// Post-mode conditions look like ‘‘mode = A’’, the value of the mode is just required,
+conforming to NuSMV code rules.
+14temp+=postModeCondition.condition.split(“=”).get(1);
+15modeTransitions.add(temp);
+16end
+// Extract modes from mode transitions
+17formodeTransition :modeTransitions.entrySet do
+18ifmodeTransition !=null then
+19 modes.put(modeTransition.keysplit(“&”).get(0).split(“=”).get(1)),“mode”);
+20end
+21end
+ALGORITHM2: State Requirement Transformation
+input :root
+output:stateTransitions
+1ArrayList <String >stateTransitions =new ArrayList <String >();
+2String temp=“”;
+3int indexState= 0;
+4forstateReq :root.model.filter(STATE) do
+5indexState=0;
+6temp=“”;
+7forpreStateCondition:stateReq.preStateConditions do
+8 temp+= preStateCondition.condition;
+9 ifindexState <=stateReq.relation.size - 1 then
+10 temp+=stateReq.relation.get(indexState++).relation;
+11 end
+12end
+// Post-state conditions look like ‘‘state = A’’, the value of the state is just required,
+conforming to NuSMV code rules.
+13temp+ =postStateCondition.condition.split(“=”).get(1);
+14stateTransitions.add(temp);
+15end
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June2024.
+
+--- Page 17 ---
+Modeling andVerification of Natural Language Requirements based onStates and Modes 9:17
+ALGORITHM 3: Environment Requirement Transformation
+input :root
+output:variableConstraints,variables
+1HashMap <String,String >variableConstraints= newHashMap <String,String >();
+2HashMap <String,String >variables=new HashMap <String,String >();
+3String key=“”;
+4String pre=“”;
+5doublemax,min;
+6max=min=0;
+7forenvironmentReq :root.model.filter(ENVIRONMENT) do
+8key= environmentReq.envirVariable;
+// initializing variables
+9ifenvironmentReq.range ==null then
+10 pre =variableConstraints.get(key);
+11 ifpre==null then
+12 pre=“”;
+13 end
+// The initial value of variables is stored in the left part of @ofpre.
+14 pre =environmentReq.envirAttributeValue.attributeValue+“@”+ pre;
+15 variableConstraints.put(key,pre);
+16end
+// setting the scope for variables
+17else
+18 ifenvironmentReq.range.bound1.attributeValue <=environmentReq.range.bound2.attributeValue then
+19 min= environmentReq.range.bound1.attributeValue;
+20 max=environmentReq.range.bound2.attributeValue;
+21 end
+22 else
+23 min= environmentReq.range.bound2.attributeValue;
+24 max=environmentReq.range.bound1.attributeValue;
+25 end
+26 variables.put(key,min+“..”+max);
+27end
+28end
+5 REQUIREMENTS VERIFICATION
+In this section, we first introduce the architecture of the MoStmodeling tool. Based on this tool,
+we discusshow werealize requirementsstaticand dynamic checks.
+5.1 MoStModeling Tool
+TheMoStmodeling tool is implemented by the Xtext framework in Eclipse. Figure 6shows the
+architecture of the MoStmodeling tool. This tool consists of four components: Editor, Validator,
+Generator,andModelchecker.EditorincludesaUIand MoStlanguage.UIisanEclipseUIwhich
+aidsinwritingthe MoStmodel.MoStiscreatedbasedontheEclipseModelingFrameworkandthe
+core of Eclipse. Validator is a static checker written by Xtend language, which checks the MoSt
+model against the static rules. Generator is a MoSt-To-NuSMV transformer written by Xtend,
+which allows us to automatically transform MoStmodels into NuSMV models. Finally, a NuSMV
+runner is a dynamic checker written as a Java class, linking the NuSMV model checker with this
+tool,in orderto automatedynamic checks.
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June 2024.
+
+--- Page 18 ---
+9:18 Y. LiuandJ.-M.Bruel
+ALGORITHM4: AttributeRequirement Transformation
+input :root
+output:variableConstraints
+1HashMap <String,String >variableConstraints= newHashMap <String,String >();
+2String temp=“”;
+3String pre,key;
+4int indexAttribute=0;
+5forattributeReq : root.model.filter(ATTRIBUTE) do
+6indexAttribute= 0;
+7temp=“”;
+8forpreAttributeCondition:attributeReq.preAttributeConditions do
+9 temp+= preAttributeCondition.condition;
+10 ifindexAttribute <=modeReq.relation.size -1 then
+11 temp+=attributeReq.relation.get(indexAttribute++).relation;
+12 end
+13end
+14key =attributeReq.postAttributeCondition.condition.split(“=”).get(0);
+15temp+= “:”+attributeReq.postAttributeCondition.condition.split(“=”).get(1)+“;”;
+16pre= attributeConstraints.get(key);
+17ifpre !=null then
+18 temp+= pre;
+19end
+20ifpre != temp then
+21 attributeConstraints.put(key,temp);
+22end
+23end
+ALGORITHM5: PropertyRequirement Transformation
+input :root
+output:propertySpecifications
+1ArraryList <String >propertySpecifications = newArraryList <String >();
+2String temp=“”;
+3int indexPreProperty,indexPostProperty;
+4forpropertyReq :root.model.filter(PROPERTY) do
+5indexPreProperty = 0;
+6indexPostProperty = 0;
+7temp= propertyReq.preOperator.logicOperator;
+8forprePropertyCondition:propertyReq.prePropertyConditions do
+9 temp+= prePropertyCondition.condition;
+10 ifindexPreProperty <=propertyReq.preRelation.size - 1 then
+11 temp+=propertyReq.preRelations.get(indexPreProperty++).relation;
+12 end
+13end
+14temp+= propertyReq.postOperator.logicOperator;
+15forpostPropertyCondition: propertyReq.postPropertyConditions do
+16 temp+= postPropertyCondition.condition;
+17 ifindexPostProperty <=propertyReq.postRelation.size -1 then
+18 temp +=propertyReq.postRelations.get(indexPostProperty++).relation;
+19 end
+20end
+21propertySpecifications.add(temp);
+22end
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June2024.
+
+--- Page 19 ---
+Modeling andVerification of Natural Language Requirements based onStates and Modes 9:19
+Fig.5. Anexample of themodeltransformation.
+The implementation of the NuSMV runner is based on the method “java.lang.ProcessBuilder.
+ProcessBuilder(List <String>command)”. This process builder helps us call the NuSMV model
+checker with the argument “List <String>command”. The argument comprises two constant
+strings in sequence: “NUSMV_EXECUTE_PATH” and “GENERATED_SMV_FILE _PATH”. The
+method “processBuilder.start()” starts the call of the checker, which produces results included in
+“p.getInputStream()”and“p.getErrorStream()”.Inputstreamsstoretheoutputofthecheckerexcept
+for theerrorinformationwhichisstoredin errorstreams.
+ItshouldbenotedthattheinformationoferrorsimpliestheNuSMVmodelisnotcorrectrather
+thantheautomaticallygeneratedspecificationsoruser-definedspecificationsarefalse.Theincor-
+rectness of the NuSMV model means this model hides run-time errors. The automatically gen-
+erated specifications signify the specifications must need to be satisfied. The user-defined spec-
+ifications signify the expectations of the users which are not necessarily realistic. The NuSMV
+runnerfunctionswiththevalidatorviafilessuchas“*.smv”and“*.txt”.Theexecutingsequenceis
+illustratedasfollows:
+—Userswriterequirementsintheeditor;thevalidatordynamicallyexecutesstaticcheckswith
+staticrules;
+—Oncethe MoStmodel is ready in the editor and saved, the code generator will be executed
+to transformthe MoStmodel intotheNuSMVmodel;
+—TheNuSMVrunneriscalledtosimulatetheNuSMVmodelbypressingthespacekeyinany
+emptyplaceoftheeditor;therunnerthenanalyzestheresultstomakethemunderstandable
+to theValidator;
+—Finally, the Validator checks the MoStmodel by the analyzed results to put them to the
+relevant requirements.
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June 2024.
+
+--- Page 20 ---
+9:20 Y. LiuandJ.-M.Bruel
+Fig.6. Architectureof theMoStmodeling tool.
+Fig. 7. Screenshot of theMoStmodelingtool.
+AscreenshotofthetoolisshowninFigure 7.ThisprojectispubliclyavailableonGitHub.5The
+detailsof therequirementcheckingwillbediscussedinthenext sections.
+5.2 Requirements StaticChecking
+Requirements static checking aims at verifying the names of the MoStmodel elements and en-
+suringtherequirementconsistencyfromthestaticrules.Requirementsstaticchecksaretriggered
+while writing the MoStcode. If the static rules are violated, errors will pop up in the MoStmod-
+elingeditor.
+Requirements static checks include naming checks and consistency checks. Naming checks in
+theMoStmodelconcerningstates,modes,andsignalsare:thenamesofstatesandmodesshould
+start with a lower case; the name of signals should begin with an upper case. Listing 1shows
+the implementation of mode name checks. In the Xtext framework, rules are implemented in
+the validation package. Each rule starts with @Check. Since class MoStMLValidator (where we
+5https://github.com/liuyinling/MoSt-Modeling-Tool.git
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June2024.
+
+--- Page 21 ---
+Modeling andVerification of Natural Language Requirements based onStates and Modes 9:21
+implement rules) extends class AbstractMoStMLValidator , we can directly access model objects
+suchasMODECONDITION .
+1@Check
+2def void checkModeName(MODECONDITION modeCondition){
+3 if(modeCondition.getModeName ().charAt(0)<='Z '&&modeCondition.getModeName()
+4 .charAt(0)>='A'){
+5 error("Mode name should start with a lower case"+": error
+6 '"+modeCondition. getModeName(). charAt(0)+"'",
+7 MoStMLPackage.Literals. MODECONDITION__MODE_NAME,INVALID_ReqID);
+8}
+9}
+Listing1. TheImplementation of ModeName Checks.
+Consistencychecksanalyzethelegalityofrequirements,regardingstaticrules.Forexample,one
+ofourrulesis“Variablesshouldonlybeinitializedonce”.Iftworequirementsarewrittenas“[1.1]
+The doorIsOpen should be initialized to FALSE.” and “[1.2] The doorIsOpen should be initialized
+to TRUE.”, then error “Variables should only be initialized once! ’doorIsOpen”’ will be shown on
+these two requirements. CC3 intends to define the value ranges for variables. CC6 is a syntactic
+check for state requirements. The requirements consistency checks (CC) include, but are not
+limited to:
+CC1: Variablesshouldonly beinitialized once;
+CC2: Thevariablesmentionedin attributerequirementsshouldbeinitialized;
+CC3: Thevariableof Integershouldbe given thescope;
+CC4: TherepetitionofrequirementIDsis notallowed;
+CC5: Therepetitionofrequirementsisnot allowed;
+CC6: Different post-conditions of state requirements cannot have the same preconditions
+andguards.
+CC7: Thevariableof attributeconditionsmustbe definedbeforeusingit.
+Obviously, this list may be not exhaustive. However, adding new rules is possible. The Xtext
+frameworkallowsustouseValidatortoachievetheserules.Sincetheimplementationofthenam-
+ing and consistency rules is provided in the tool, it illustrates the way how we extract data from
+the model. Adding new rules simply involves the manipulation of extracted data. Indeed, they
+are helpful in writing a proper MoStmodel. However, they cannot guarantee that the generated
+NuSMV model is correctly executable. In other words, we are not sure that the internal logic of
+the systemis correct. For example, if “division by zero” exists, static checkscannot find this error.
+Therefore,requirementsdynamic checkswillbe discussedin thefollowing.
+5.3 Requirements Dynamic Checking
+Requirements dynamic checks rely on the model checker NuSMV. Requirements dynamic check-
+ing includes the analysis of the generated NuSMV model, the user-defined specifications,and the
+automatically generatedspecifications.
+5.3.1 Traceability Analysis. Traceability analysis offers a general approach about how to use
+the results of model checking to improve the quality of the requirements model. This analysis in-
+volves three types of errors: program errors, user-defined specification errors, and automatically
+generated specification errors. Program errors mean the NuSMV model has run-time errors be-
+cause of bugs such as type errors, division by zero, and so on. User-defined specification errors
+denote property requirements that are false. The last errors indicate the automatically generated
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June 2024.
+
+--- Page 22 ---
+9:22 Y. LiuandJ.-M.Bruel
+Fig. 8. Traceability analysis for programerrors.
+properties which are false. Three types of errors require three specific analysis methods, respec-
+tively.Themethodforthefirsttypeneedstoextractinformationfromsimulationresults,including
+IDsornamesofvariables.Ifthelinenumberdoesnotrelatetothecodecommentedbytherequire-
+mentID,weshouldextractthenamesoftherelevantvariables.Thewayofextractingthenamesof
+variables depends on the contents of the errors identified by NuSMV. If errors explicitly indicate
+the names of variables, we extract the names directly. If not, we should infer the relevant vari-
+ablesfromthesimulationresults.Theinferencecomesfromthemanualanalysisoftheoutputsof
+NuSMVagainsttheerrorsofthesametype.Currently,wefoundthelines“linenumber-1”always
+showvariablenames.Therelevant constraintrequirementscan bematchedvia variablenames.
+Figure8showsanexampleofthetraceabilityanalysisforprogramerrors.Thetraceabilityanal-
+ysis involves three files: “Car_result.txt”, “Car.smv”, and “Car.mostml”. The indexes indicate the
+sequenceofanalysis.Inthisexample,wefirstfoundthekeyword“variable”existed(step1).Then,
+wefoundthelinenumberwas88(step2-1).Atthesametime,theerrorinformation“cannotassign
+value 105 to variable speed” was stored (step 2-2). Next, we searched line 88 in the file “Car.smv”
+(step3)andextractedrequirementID [2.1.6](step4).WiththeID,wefinallyattachedtheerrorin-
+formationtothecorrespondingrequirementinthefile“Car.mostml”(step5).Howtoattacherrors
+to the requirements can be seen in Listing 1. It should be noted that the list of errors of different
+outputforms may not be exhaustive,which means if theNuSMVoutputsanothernew typeof er-
+ror,ourtoolwillnotimmediatelybeabletodealwithit.However,weprovideaninterfaceprinting
+“this tool is not able to handle this error - XXX, please report it to the developers” when a new
+typeoferrorsappears.
+The second method finds IDs by comparing property specifications. They are specifications
+of user-defined and re-assembled. We should re-assemble properties because the presentation of
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June2024.
+
+--- Page 23 ---
+Modeling andVerification of Natural Language Requirements based onStates and Modes 9:23
+Fig. 9. Traceability analysis for user-definedspecification errors.
+specifications is a little bit different from that of the NuSMV model. The extracted IDs serve as
+one of the links to ensure traceability between requirements and the NuSMV code since the code
+commented by requirements IDs corresponds to requirements. Figure 9gives an example of the
+traceabilityanalysisforuser-definedspecificationerrors.Thisanalysisalsonecessitatesthethree
+files mentioned above. In this example, we first found the keyword “false” (step 1). Then we ex-
+tracted the property specification formula (step 2-1) and the counter-example (step 2-2). Based
+on the formula, we found the same formula in the file “Car.smv” (step 3) and extracted the corre-
+sponding requirement ID [7.2](step 4). With the ID, we finally attached the counter-example to
+thecorrespondingrequirementin thefile“Car.mostml” (step5).
+The last method is simply to extract state conditions from the specifications because they are
+automatically generated. The third kind of errors is only concerned with state requirements. The
+reason can be seen in Section 5.3.2. We can also use state conditions to locate requirements with
+errorsbecausetheyareusedtomatchstaterequirementswiththesamepost-condition.Figure 10
+presents an example of the traceability analysis for automatically generated specification errors.
+This analysis is only related to two files: “Car_result.txt” and “Car.mostml”. In this example, we
+first identified the keyword “false” (step 1). We then noticed the keyword “EF” existed as well
+(step2).Next,weextracted“state=autonomy”andthecounter-example.Inthefollowing,weonly
+identifiedrequirement[1.5]wherereachingstate autonomy wasoneoftheconditions(step4).So,
+wefinallyattachedthecounter-exampletothecorrespondingrequirementinthefile“Car.mostml”
+(step5).
+Figure11shows the diagram for processing simulation results regarding different types of er-
+rors. The three analysis methods are implemented in the NuSMV runner. It should be noted that
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June 2024.
+
+--- Page 24 ---
+9:24 Y. LiuandJ.-M.Bruel
+Fig.10. Traceability analysis for automatically generatedspecification errors.
+the NuSMV model checker produces program errors one by one and generates all the results of
+specifications checks at one time. If there is more than one program error, we should correct one,
+savethemodel, andpressthespacekey,iterativelyuntiltheyareallsolved.
+Sincewehavebuiltthelinksbetweensimulationresultsandrequirements,wewillcontinueto
+takeadvantageofmodelcheckingtohelpusverifythecorrectnessoftherequirementsmodel.As
+the successfully compiled NuSMV code does not necessarily mean the states in the requirements
+areallreachable,therefore,wewould like tocheckthereachabilityoftherequirements.
+5.3.2 Reachability Analysis. Reachability analysis concerns the checking of the automatically
+generatedpropertyspecifications,whichprovidesthepossibilitytocheckthereachabilityofstates.
+This analysis is performed by proposing additional CTL specifications. The specification is con-
+formedtotheform ϕ=EF(state=X)tocheckthereachabilityofeachstate.So,thereachability
+analysis only relates to the state requirements. To facilitate the analysis process, additional prop-
+ertyspecificationsforthereachabilityofeachstatearegeneratedautomaticallyfromtheprevious
+model transformation.
+5.3.3 Validation Analysis. Validationanalysischecksthesatisfiabilityofpropertyrequirements.
+Property requirements are transformed into the CLT/LTL specifications in the NuSMV model.
+Thus, validation analysis checks the satisfiability of CTL/LTL specifications regarding the gen-
+eratedNuSMVmodel.Thisanalysisenablescustomerstogainaglobalunderstandingofhowthe
+system will work. Requirements engineers should conduct validation analysis from the require-
+ments level. Because the requirements that will never be satisfied should be modified or deleted
+as early as possible. This can avoid conflicts between developers and customers when the system
+isdelivered.
+Most importantly, as mentioned at the beginning of Section 1, when the system of interest is
+becomingmoreandmorecomplexandintelligent,weneedtocheckwhethertheconflictsbetween
+modes and states exist. In other words, the newly added capabilities to make the system more
+intelligentmaycausethesystemoutofboundary.Thisout-of-boundarymayleadtocatastrophes
+in safety-critical areas. To check whether the system has conflicts, we propose to use property
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June2024.
+
+--- Page 25 ---
+Modeling andVerification of Natural Language Requirements based onStates and Modes 9:25
+Fig.11. Thediagramfor processingsimulationresults.
+specificationsconformingto SPECAG((state=X&mode=M) −>AFstate=Y .Thespecificationsof
+thisformimplywhenthesystemisinstate Xandwechangethemodeto M,whichstatethesystem
+will eventually be in. If we do want to change its state with the activation of mode M, the future
+state should change. So, the specification should be true in this case. If the property specification
+turnsouttobefalse,requirementsdesignersshouldeithermakeittrueviatheanalysisofcounter-
+examples or ensurethatthissituationis allowed in thesystem.
+6 EVALUATION
+Inordertoillustratethefeasibilityofourapproach,wegavesystematicevaluationsofacarexam-
+ple and a washing machine example. We discussed the first case study (the car example) in detail.
+In thesecondcase,only necessaryexplanationswere providedto preventredundancy.
+6.1 ACar Example
+6.1.1 System Description. This example is based on a UML state machine diagram for a car.6
+The car has five states including Parking, Ignition, Start, Accelerate, andAutonomy . We assume
+that this car has the function of autonomous driving. The details of the car’s state transitions are
+s h o w ni nF i g u r e 12. Signals and attributes constitute the conditions for state transitions. Modes
+6https://www.softwareideas.net/a/1539/Car-States--UML-State-Machine-Diagram- (accessed inApril 2023).
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June 2024.
+
+--- Page 26 ---
+9:26 Y. LiuandJ.-M.Bruel
+Fig.12. Thestatemachine diagram of acar.
+influence the system behaviour via changing the value of attributes. Here, we provide this car
+with two modes economic andsportive. They are related to variables accSpeed anddisplaySpeed .
+For example, if the car is in mode economic and mode sportive, it changes the acceleration speed
+to 5 m/s2 and 10 m/s2, respectively. Note that we avoid discussing all the details of the system.
+Interestedreaderscan seethedetailsof theimpactof modeson variablesinAnnex A.
+6.1.2 Requirements Formalization & Static Checking. Formalizingrequirementsusing MoStcan
+start with either requirements documents or the state machine diagram of the system. Since our
+case comes from a diagram, we will formalize the requirements of the car, based on Figure 12.
+If we start with requirements documents, we will also need to extract the information on state
+transitions.
+Theproceduresfor requirementsformalization consistof:
+State transition writingallthestatetransitionsfromrequirements;normally,theeditorwill
+showerrorswhereattributesarenot defined;
+Attribute declaration definingallthemissingattributes(thisstepwilltriggerthevalidator
+to pop up error messages explaining the missing parts such as no initialization, no scope,
+etc.); the information about the impacts of other conditions on attributes must be captured
+from requirements (if the information on modes and attributes is missing, errors will be
+displayedaswell);
+Modetransition theinformationaboutmodetransitionsmustbeobtainedfromtherequire-
+ments (if the information on attributes is missing, errors will be displayed); defining mode
+transitions;
+Propertydeclaration the information about the property must be obtained as well (if the
+information on states, modes, and attributes is missing, errors will be displayed); defining
+properties.
+According to the above-mentioned proceduresas well as the MoStgrammar and static checks,
+weprovide examples foreachpart,whichareillustratedasfollows:
+State transition:
+[1.1] when the car is in state parking and it receives PowerUp signal, then it will be in
+stateignition.
+Attribute declaration:
+[2.1.1]Thespeedshouldbeinitialisedto0 km/h.
+[2.1.2]Thespeedshouldbegreateror equalto0 lessorequalto 100km/h.
+[2.1.3]whenthecarisinstateaccelerateanditsaccSpeedisequalto5m/s2,thenitsspeed
+isequaltospeedaddedbyaccSpeed.
+Mode transition:
+[6.1]whenthecarisinmodesportiveanditreceivesDeACsignalanditsspeedisgreater
+than40km/h,thenit isin mode economic.
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June2024.
+
+--- Page 27 ---
+Modeling andVerification of Natural Language Requirements based onStates and Modes 9:27
+Table 7. TheDetails of Four Trace Links for theCar Example
+No. Error Information Correction
+1 scopeof variable“speed” variable:speed add rangeconstraintsfor eachbranch
+2 division byzero ID:[2.1.3] ’0’ −>’x’ (x! =0)
+3 illegal typesof “case” list elements:booleanand integer variable:doorIsOpen ’1’ −>’TRUE’
+4 illegal operandtypesof “+”:integerand boolean variable:displaySpeed ’displaySpeed’ −>v
+Propertydeclaration:
+[7.1]whenallgloballythecarisstateautonomyanditisinmodeeconomic,thenallnext
+it isnot instateaccelerate.
+Inthisexample,“AC”and‘DeAC‘implythecaracceleratesordecelerates.Thedetailsofthe MoSt
+m odelar esho wninAnne x A.
+Itshouldbenotedthatalltheerrormessagespoppingupcomefromrequirementsstaticchecks.
+Ithelpsuswritestaticallycorrect MoStmodels.Figure 13showsthepotentialerrorsrequirements
+staticchecksmayfind.Thesestaticchecksensurethewell-formednessofthesystemrequirements,
+whichisvery usefulwhenthereare anumber of requirementsthatarefrequentlyevolving.
+6.1.3 Requirements Dynamic Checking.
+Traceability analysis. To better demonstrate the feasibility of the traceability analysis, we man-
+uallyinjectthreeerrors(Errors2-4,showninFigure 14)intheMoStmodel,includingdivisionby
+zero,illegaltypeof“case”listelement,andillegaloperandtype.Theeditorpopsupanunexpected
+error concerning the scope of the variable of “speed” (Error 1). Figure 14shows the errors appear
+intheeditors.ThefourtracelinksareexplainedinTable 7.Errors1,3,and4aretracedbyvariable
+names whichare foundvia line numbers.Error2 istraceddirectlyby therequirementID.
+AsforError1,webasicallydeclare“speed”asavariableofrange[0,100].The MoStandNuSMV
+codeconcerningvariable“speed”areshownas follows:
+MoSt code:
+[2.1.1] The speed should be initialised to 0 km/h.
+[2.1.2] The speed should be greater or equal to 0 less or equal to 100 km/h.
+[2.1.3] when the car is in state accelerate and accSpeed is equal to 5 m/s2,
+then its speed is equal to speed added by accSpeed.
+[2.1.4] when the car is in state accelerate and accSpeed is equal to 10 m/s2,
+then its speed is equal to speed added by accSpeed.
+[2.1.5] when the car receives Stop signal , then its speed is equal to 0 km/h.
+[2.1.6] when the speed is greater than 100 km/h, then its speed is equal to
+100 km/h.
+NuSMV code :
+VAR speed: 0..100;
+ASSIGN
+init(speed):= 0; −−[2, 1, 1]
+next(speed):=
+case
+speed>100:100; −−[ 2 ,1 ,6 ]
+action = Stop:0; −−[2, 1, 5]
+state = accelerate & accSpeed = 10:speed+accSpeed; −−[2, 1, 4]
+state = accelerate & accSpeed = 5:speed+accSpeed; −−[2, 1, 3]
+TRUE: speed;
+esac;
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June 2024.
+
+--- Page 28 ---
+9:28 Y. LiuandJ.-M.Bruel
+Fig. 13. Resultsof car requirementsstaticchecks.
+Error 1 explicitly says “cannot assign value 105 to variable speed”. However, we do impose
+a range constraint “speed >100:100;” on this variable. We were confused about this error at the
+beginning.Afternumerousattempts,werealizedthatwecouldchooseasuitablerangeconstraint
+so that every branch of variable “speed” (every case of the variable in the ASSIGN module) is
+allowedtopassandthefinalvalueofeachpassmustbewithinbounds.Forexample,wecoulduse
+a range constraint “speed >90:100;”. This way of giving the range constraint complicates a lot the
+MoStmodeling.Wethenfoundanotherwaytodealwiththeissue,thatis,wehavetoaddarange
+constraintateachbranchofthisvariablesothateachbranchisallowedtobepassedandthefinal
+value willbewithinbounds.Thefinalcodecan belike this:
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June2024.
+
+--- Page 29 ---
+Modeling andVerification of Natural Language Requirements based onStates and Modes 9:29
+Fig. 14. Thescreenshotsof errorsdetected bytraceability analysis forthecar example.
+NuSMV code :
+VAR speed: 0..100;
+ASSIGN
+init(speed):= 0; −−[2, 1, 1]
+next(speed):=
+case
+speed <= 100 & action = Stop:0; −−[2, 1, 5]
+speed <= 90 & state = accelerate & accSpeed = 10:
+speed+accSpeed; −−[2, 1, 4]
+speed <= 95 & state = accelerate & accSpeed = 5:
+speed+accSpeed; −−[2, 1, 3]
+TRUE: speed;
+esac;
+This way is much easier and more acceptable because it is not difficult to provide a constraint
+allowing one single branch safely to obtain its maximum value. On the other hand, NuSMV does
+make our requirements safer. In fact, “VAR speed: 0..100;” works like an invariant. This invariant
+enforces us to provide a range constraint to make each branch safe. Thus, providing range con-
+straintsforbranchesofvariablesshouldbeoneoftherulesofwritingthe MoStmodel.Notethat
+thiskind ofvariable scopeerrorsisjustinvolved withvariableswitharithmeticoperations.
+As a result, we find all the injected errors and one unexpected error and successfully correct
+them.Thisstepchecksfurtherthecorrectnessofthe MoStmodel.
+Completenessanalysis. Asforcompletenessanalysis,additionalspecificationsforthereachabil-
+ity of each state are generated automatically from the model transformation, which are shown in
+Listing2.
+SPEC EF state=parking
+SPEC EF state=autonomy
+SPEC EF state=start
+SPEC EF state=accelerate
+SPEC EF state=ignition
+Listing2. TheAutomaticallyGenerated PropertySpecifications fortheCar Example
+Todemonstratethefeasibilityofthecompletenessanalysis,wevoluntarilydeletedrequirement
+[1.4] (“[1.4] when the car is in state accelerate and it receives Auto signal and its accSpeed is equal
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June 2024.
+
+--- Page 30 ---
+9:30 Y. LiuandJ.-M.Bruel
+Fig. 15. Verification resultfor Requirement [1.5].
+Fig. 16. Verification resultfor Requirement [7.2].
+to 10 m/s2, then it will be in state autonomy. ”). This requirement describes the state transition be-
+tweenstates accelerate andautonomy .Theerrorandthecounter-exampleareshowninFigure 15
+regardingtheCTLspecification SPEC EF state =autonomy .ThisCTLspecificationcannotpass,
+whichmeansthecarcanneverreachstate autonomy .Theresultofthecompletenessresultimplies
+thetransitionsrelatedtostate autonomy shouldbechecked.Therefore,thecompletenessanalysis
+cancheckthecompletenessofthestatetransitions.
+Validation analysis. Validation analysis verifies the satisfiability of property requirements. The
+experimentshowspropertyrequirements[7.1]and[7.2]areviolated.Letustakerequirement[7.2]
+as an example. This requirement says, “ when all globally the car is in state autonomy and it is in
+modeeconomic,thenallfutureitisnotinstateautonomy. ”.Thisrequirementfocusesontherelation-
+ship between autonomy state and economic mode. The code generator will translate this require-
+ment into a CTL specification SPEC AG ((state =autonomy &mode =economic)−>AF(state!=
+autonomy )). The verification result of this property specification is false, shown in Figure 16.T o
+make it more clear and understandable, Table 8showing the state transitions is provided. Note
+that ‘/’ means the content is empty; ‘-’ denotes the content does change regarding that of the lat-
+estpreviousstep;the“step”inItalicimpliesthestepswillbeexecutedsequentiallyanditeratively.
+So, when the system is in state 2.10, the preconditions are satisfied - the car is in autonomy state
+anditsmodeis economic,thesystemwillalwaysstayin autonomy state.Itisbecausethemodeof
+thesystemwillbechangedineachstepoftheloop.Thecounter-exampleimplieswhenthecaris
+inautonomy state and we change the working mode of the car into economic, it is possible that it
+will alwaysstayin autonomy state.
+Requirement [7.2] is designed to investigate the reaction of the system when it is in autonomy
+state and somehow switches to economic mode. Figure 12indicates that the car has to switch to
+sportivemode to reach autonomy state. So, this requirement checks whether the car can return
+toaccelerate state when it is in autonomy state and drivers switch the mode to economic.T h i s
+experiment shows that requirement [7.2] may not be satisfied when the car is delivered. Based
+on this analysis result, the car requirements engineers must put forward solutions to sort it out.
+However,itisalsopossiblethatsometimesthe“facts”showninthecounter-exampleofFigure 16
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June2024.
+
+--- Page 31 ---
+Modeling andVerification of Natural Language Requirements based onStates and Modes 9:31
+Table 8. TheStates TransitionsShownin theCounter-example
+Step Input State mode accSpeed
+state2.1 / parking sportive 0
+state2.2 PowerUp ignition – 10
+state2.3 Start start – –
+state2.4 Acc accelerate – –
+state2.5 DeAC – – –
+state2.6 – – – –
+state2.7 – – – –
+state2.8 – – – –
+state2.9 Auto autonomy – –
+state2.10 DeAC – economic –
+state2.11 Ac – sportive 5
+state2.12 DeAc – economic 10
+Table 9. TheRelationshipbetween Modes andAttributes
+mode preWash spinningSpeed (r/m) temperature (◦C)
+BébéCotton TRUE 1400 95
+Sport TRUE 800 40
+Express FALSE 800 –
+Jeans FALSE 800 40
+Wool FALSE 800 40
+do not correspond to reality but it is what the customers want to have. In this case, requirements
+engineerscannegotiatewithcustomerstoeithermodifytherequirementsordeleteit.Eventhough
+thecustomersdonotnecessarilyunderstandthecounterexampleinthisfigure,theydounderstand
+thispropertyspecificationcannotpassinthesimulation,tosomeextent.Thiscanserveasstrong
+evidence whyrequirementsengineersaskthemtoat leastmodify it.
+6.2 AWashingMachine Example
+6.2.1 System Description. In this case study, we take a SAMSUNG washing machine as an ex-
+ample, since washing machines naturally have modes such as BébéCotton . Figure17provides a
+state machine of the washing machine of model WW70J3483KW/EF.7All the states, the modes,
+andthetransitionsareinspiredbythemanualofthewashingmachine.Thissystemhas15states
+including Idle, Weighting, Locking, Filling Water, Heating Water, HT Pre-washing, MT-Pre-washing,
+HT Washing, MT Washing, NT Washing, Draining, Spinning, HS Spinning, MS Spinning, Unlocking .
+This system has five modes including BébéCotton, Sport, Express, Jeans, Wool . The modes involve
+three attributes: preWash, spinningSpeed, temperature . According to the manual of this machine,
+theimpactsofmodesonthevaluesofattributionsareshowninTable 9.Notethat HT ,MT ,NT ,HS,
+MSmean High Temperature, Medium Temperature, Normal Temperature, High Speed, Medium
+Speed,respectively.
+6.2.2 Requirements Formalization & Static Checking. Inthissection,wejustillustrateafewex-
+amplesofstatetransitions,attributedeclarations,modetransitions,andpropertydeclarations.We
+7https://downloadcenter.samsung.com/content/UM/202008/20200813102835309/WW70J3467KW_DC68-03589F-07_EF.
+pdf(accessed in April2023).
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June 2024.
+
+--- Page 32 ---
+9:32 Y. LiuandJ.-M.Bruel
+Fig.17. The statemachine diagramof a washingmachine.
+also show the results of static checks of the washing machine requirements. The general proce-
+duresforrequirementformalization canbe seeninSection 6.1.2.
+Theexample of the MoStspecificationislistedas follows:
+State transition:
+1.1 when the machine is in state idle and it receives Put signal, then it will be in state
+weighting.
+Attribute declaration:
+2.1.1 Thetemperatureshould beinitialisedto0◦C.
+2.1.2 Thetemperatureshouldbegreateror equalto0andlessor equalto100◦C.
+2.1.3 when the machine is in mode bebeCotton and its temperature is less or equal to 94◦C,
+thenits temperatureisequalto temperatureadded by 1.
+Mode transition:
+5.1 when the machine is in mode express and it receives ActJeans signal, then it is in mode
+jeans.
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June2024.
+
+--- Page 33 ---
+Modeling andVerification of Natural Language Requirements based onStates and Modes 9:33
+Fig. 18. Resultsof washingmachine requirementsstaticchecks.
+Property declaration:
+6.1 when all globally the machine is state hTPrewashing and it is in mode bebeCotton, then
+allnext it isnot instatehTPrewashing.
+Nineerrors(twonamingcheckandsevenconsistencycheckerrors)wereinjectedintotherequire-
+ments for static checks. All the errors have been identified by the validator. The results for static
+checksare showninFigure 18.
+6.2.3 Requirements Dynamic Checking.
+Traceability analysis. As discussed in Section 6.1.3, we still manually injected three kinds of
+errors (Errors 2-4, shown in Figure 19) in the model to illustrate the feasibility of the traceability
+analysis. Similar results appeared in the editor. We finally corrected all the errors and the details
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June 2024.
+
+--- Page 34 ---
+9:34 Y. LiuandJ.-M.Bruel
+Fig.19. Thescreenshots of errorsdetectedby thetraceabilityanalysis for thewashingmachine.
+Table 10. The Details of Four Trace Links fortheWashing MachineExample
+No. Error Information Correction
+1 scopeof variable“temperature” variable:temperature addrange constraintsfor eachbranch
+2 divisionby zero ID:[4.3] ’0’ −>’x’ (x ! =0)
+3 illegaltypesof “case” listelements:booleanandinteger variable:preWash ’5’ −>’TRUE’or ’FALSE’
+4 illegaloperandtypesof “+”:integerand boolean variable:temperature ’preWash’ −>i (variableof integer)
+areshowninTable 10.IntermsofError1,thedetailsofthecorrectionareshowninrequirements
+[2.1.41]–[2.1.43]in Annex C.
+Reachability analysis. The specifications for the reachability of the system states are automati-
+cally generated by the model transformation, which are listed in Listing 3. Here, we deliberately
+deletedrequirement[1.17](“ [1.17]whenthemachineisinstatedraininganditreceivesSpinsignal,
+thenitwillbeinstatespinning. ”).Thisrequirementtellsthestatetransitionbetween drainingand
+spinning. The error and the counter-example are shown in Figure 20regarding the CTL specifi-
+cationSPEC EF state=hSSpinning . This property specification is false, which means the washing
+machine can never reach state hSSpinning (high-speed spinning). The missing of the state transi-
+tion from states Draining toSpinning has been successfully detected. Therefore, the reachability
+ofstatescanbe ensuredby theautomaticreachabilityanalysis.
+SPEC EF state=mSSpinning SPEC EF state=idle
+SPEC EF state=mTPrewashing SPEC EF state=hTPrewashing
+SPEC EF state=unlocking SPEC EF state=locking
+SPEC EF state=nTWashing SPEC EF state=weighting
+SPEC EF state=hTWashing SPEC EF state=hSSpinning
+SPEC EF state=filling SPEC EF state=mTWashing
+SPEC EF state=draining SPEC EF state=sp inning
+SPEC EF state=heating
+Listing3. TheAutomaticallyGenerated PropertySpecifications fortheWashing Machine Example
+Validationanalysis. Validationanalysisaimstoconfirmwhetherthepropertyrequirementsare
+achievableornot.Theverificationresultsshowrequirements[6.1]and[6.5]areviolated,asshown
+in Figures 21and22. Requirements [6.1] and [6.5] are: “ [6.1] when all globally the machine is in
+state hTPrewashing and it is in mode bebeCotton, then all next it is not in state hTPrewashing. ”a n d
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June2024.
+
+--- Page 35 ---
+Modeling andVerification of Natural Language Requirements based onStates and Modes 9:35
+Fig. 20. Verification resultfor Requirement [1.19].
+Fig. 21. Verification resultfor Requirement [6.1].
+Fig. 22. Verification resultfor Requirement [6.5].
+“[6.5] when all globally the machine is in state mSSpinning and it is in mode jeans, then all next
+it is not in state mSSpinning. ”, respectively. These two requirements utilize Reductio ad absurdum
+to prove that the washing machine can reach states hTPrewashing andmSSpinning , respectively.
+They are automatically translated into the CTL specifications AG ((state = hTPrewashing & mode
+= bebeCotton) -> AX state != hTPrewashing) andAG ((state = mSSpinning & mode = jeans) -> AX
+state != mSSpinning) , respectively. Since the two requirements are similar, we just analyze the
+counter-example of requirement [6.1] as an example. Table 11shows the details of the counter-
+example. It implies the model takes 101 steps to reach state hTPrewashing from state idleunder
+modebebeCotton .Notethatsteps1.4–1.97arededicatedtoheatingwater.So,wecanconcludethat
+whenthewashingmachineisinthe“High-TemperaturePrewashing”stateandweresetitsmode
+tobebeCotton ,itwillstay inthatstate.
+6.3 Discussion
+Inthispaper,a“new”and“old”viewpoint,statesandmodes,hasbeenintroducedtorequirements
+modeling and verification. The viewpoint is new because no one really conducts requirements
+analysis from this viewpoint. Since the terms of states and modes have been used in the industry,
+this point of view is also old. To make our approach clear, we propose an innovative approach to
+expressstatesandmodes in requirements.Thisapproachisdividedinto threesteps.
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June 2024.
+
+--- Page 36 ---
+9:36 Y. LiuandJ.-M.Bruel
+Table 11. The StatesTransitionsShown in theCounter-example for Requirement [6.1]
+Step Input State mode temperature preWash spinningSpeed
+state1.1 / idle express 0 FALSE 0
+state1.2 Put weighting – – – –
+state1.3 ActBebeCotton – bebeCotton – – 0
+state1.4 Heat – – 1 TRUE 0
+... – – – ... – –
+state1.97 – – – 94 – –
+state1.98 Start locking – – – –
+state1.99 Fill filling – – – –
+state1.100 Heat heating – 95 – –
+state1.101 Prewash hTPrewashing – – – –
+state1.102 Start – – – FALSE –
+ThefirststepistodesignaDSL.OurDSLisacontrollednaturallanguagewithitspropergram-
+mar,whichnotonlyfacilitatesrequirementsexpressingforbothusersanddevelopersbutenables
+us to capture the information of states and modes. In this paper, we suppose the requirements
+described by our DSL should be as precise as possible. In other words, the information of states
+and modes is supposed to be recognized in advance. This hypothesis is reasonable because they
+indeedexist.Therequirementsmentionedinmanypapers[ 1,21,29,32]provideaccurateinforma-
+tion of the systems. For example, the range limits of every variable are clearly given. In addition,
+our DSL seems to be too restrictive because only two templates are supported. In fact, the two
+templatesaregeneral.TheycanexpressthecharacteristicsofalltheEARStemplates.Theprecise
+definitions of rules provide precise signification of MoStsentences. Two case studies have been
+usedtoillustratethefeasibilityofourDSL.Forrelaxingthegrammarof MoSt,othergrammatical
+frameworks could be helpful. One of the most cited frameworks is Grammatical Framework
+(GF)[35]. It is a special-purpose functional programming language for developing grammars. Its
+ResourceGrammarLibrary(RGL) considersmorphologicalandsyntacticaspectsofmorethan
+30 natural languages. It naturally supports the complexities found in different natural languages,
+such as word inflection and word agreement. Using this framework, one can develop a special-
+purpose controlled natural language with a higher degree of flexibility. However, we would not
+choose GF. The reasons why we chose Xtext framework are: (1), GF is focused on multilingual
+grammar development and language translation, which is not our major concern; (2), GF gener-
+ates abstract syntax trees from grammars and can be used for both parsing and generation of
+sentences in natural language; while Xtext framework covers all aspects of a complete language
+infrastructure, starting from the parser, code generator, up to a complete Eclipse IDE integration.
+Itonlyneedsagrammarspecification.Xtextcomeswithbetterandsmartdefaultimplementations
+fordevelopinga DSL.
+Secondly, algorithms have been designed to realize the automatic model transformation. We
+choose to use the NuSMV model checker to conduct model checking. In order to connect states
+and modes, they are both defined as variables. Thus, in the NuSMV model, mode transitions will
+causethevalueofthecorrespondingvariablestochange.Thischangecanprovokestatetransitions.
+The relationship between states and modes is strictly derived from that mentioned in Section 3.2.
+In addition, since the NuSMV model is not a hybrid automaton, our approach does not support
+continuousvariables.
+The last step of our approach is involved with requirements verification. We implemented a
+validator to statically check requirements. This validator is a user-defined static verification tool,
+whichhelpsnot only checkingthe namingrules for variablesbutalso checkingtheirconsistency.
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June2024.
+
+--- Page 37 ---
+Modeling andVerification of Natural Language Requirements based onStates and Modes 9:37
+Table 12. Scalability Analysison the TwoCases Regarding Number of
+Requirements (NR),Number of States (NS),Number of Modes(NM),Lines of
+Code onDerived NuSMV Models(LOC), Average Timefor ModelTransformation
+(ATMT),Average Timefor StaticVerification inSeconds (ATSV),andAverage
+Timefor Dynamic VerificationinSeconds (ATDV)
+NR NS NM LOC ATMT ATSV ATDV
+Car 37 5 2 88 0,003 0.042 0,032
+Washingmachine 64 15 5 213 0,005 13,371 13,467
+This tool can be highly effective in detecting errors in requirements specifications. For example,
+it is capable of checkingwhetherthe same variable is initialized severaltimes. Sometimes, it may
+help requirements engineers understand requirements better. Let us take consistency check CC6
+in Figure 13as an example, this tool can detect errors when requirements [1.1] and [1.1.1] with
+differentpost-conditionsownthesamepreconditions.Thiserrorshowsnon-determinisminstate
+transitions.Differentsolutionscanberaisedtosolvethisissue.Forexample,statesaremistakenly
+written. Or, some underlying information between state transitions is ignored. These ideas can
+liberatepeoplefromthetediousand error-pronetaskof checkingspecificationsfor consistency.
+Thedynamicchecksareequallyinteresting.ThankstotheNuSMVrunner,weareabletocheck
+thecorrectnessoftherequirementsandthesatisfiabilityoftheuser-definedandautomaticallygen-
+eratedrequirements.Theproblemsorcounter-examplesonrequirementswillpopupimmediately,
+whichgreatlyimprovestheefficiencyofrequirementsverification.Notethatthecounter-examples
+concerningpropertyspecificationsarenotnecessarilyeasilyunderstandableforuserswithoutfor-
+mal verificationexperiencesbutatleastthey willknowthesespecificationsarenotensured.
+Our approach facilitates the validation process. The validation analysis mentioned in
+Section5.3.3improves the safety of the system. It is very helpful in analyzing the impacts of
+the newly added modes on the boundaries of the system, especially when the system is of great
+complexity and intelligence. Certainly, sometimes the counter-examples are unrealistic because
+the NuSMV model checker tries all the possible runs of the model. The analysis of the counter-
+examplesispossiblylimitedtoexpertsinformalverification.Wehopeourworkisabletoprovide
+new ideasto designerswhoreally workin thesafety-criticaldomains.
+ScalabilityconcernsneedtobeaddressedaswellsinceweusedmodelcheckingandXtextframe-
+work.Table 12showstheresultsonscalability.Accordingtothistable,ifwedoubleNR,LOCand
+ATMT will be approximately doubled. ATSV and ATDV are all significantly influenced by the in-
+creased number of requirements. For ATSV, it is because the MoStvalidator always provokes all
+the checks when the code is saved. So, the Xtext framework we used should be optimized to pro-
+voke only the relevant checks. For ATDV, it is because the exploration state space is dramatically
+increased. So, the model checker we used should be also improved to optimize the exploration
+trace.
+Finally,carefulreadersmaynoticethatthegeneratedNuSMVissimilartothe MoStmodeland
+thenaskwhy notwe directlyuseNuSMV.Hereareour answers:
+(1) TheMoStmodel is a controlled natural language for modeling the requirements based on
+states and modes, which is easy to read and write; While the NuSMV does not include the
+notion of modes, it does not provide a mechanism to build the relationship between modes
+and states;itdoesnot supportthemodeling incontrolled naturallanguages;
+(2) TheMoStmodeling tool automatically supports static and dynamic checks, which assists
+userstowritecorrectrequirements;
+(3)MoSteases the burden of requirements modeling and management because of reasons 2
+and 3;
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June 2024.
+
+--- Page 38 ---
+9:38 Y. LiuandJ.-M.Bruel
+(4)MoSteasestheworkofvalidation,tosomeextent,sincethediscussionofrequirementsand
+the product can remain at the level of natural language models; it ensures the safety of the
+requirementsfromthestates-and-modespointof view;
+(5) TheMoStplatformprovides a solutionfor userswho are notexpertsin formalverification
+tomodeling requirementsbasedonstatesand modes.
+This could be a quickly feasible solution for experts in formal verification as well. Because even
+though an expert in formal verification wants to use NuSMV to construct MoSt-like models, it
+could take time. The idea of designing models using NuSMV could be different. For example, we
+definemodeasanarray VARmode:{economic,sportive} .Thenweuse mode=economic torepresent
+the system of interest stays in economic mode. Others could define modes as Var economicMode,
+sportiveMode:boolean .Thentheycoulduse economicMode=true tosaythesystemofintereststays
+ineconomic mode. The representations of the model will be changed as well. To some extent, we
+providea “standard”way tomodelstates-and-modesrequirementsusingNuSMV.
+7 CONCLUSIONAND FUTURE WORK
+NLRsmodelingandverificationareneveraneasything.Inthispaper,wediscussedhowtomodel
+and verify NLRs from the viewpoint of states and modes. The clear relationship between states
+and modes implies that the impacts of the activation of one mode on system behaviors can be
+investigated. So, we will be still capable of controlling system behaviors when additional modes
+areadded.
+Forthispurpose,aninnovativeapproachwasproposedtoconductrequirementsmodelingand
+verification from the viewpoint of states and modes. The relationship between states and modes
+wasfirstproposedtolaythefoundationforourrequirementsanalysisstrategy.ADSLcalled MoSt
+wasdesignedforrequirementsmodelingandimplementedbytheXtextframework.Weprovided
+this DSL with the meta-model and the grammar. A model validator was then implemented to
+statically check the requirements against the static rules. Afterwards, a mapping of components
+betweenthe MoStmodelandNuSMVmodelwasproposed.Thealgorithmsforrealizingthemap-
+pingweredesignedandimplementedinacodegenerator.Sincethen,wewerecapableofautomat-
+icallyobtainingaNuSMVmodelfromthe MoStmodelingtool.Tomakeanautomaticprocessfor
+running the NuSMV model checker and analyzing the simulation results, a NuSMV runner was
+implementedtoachieveaseamlessconnectionbetweenNuSMVandourtool.Theresultsanalyzed
+were sent to the validator to make them visible in the editor. Finally, a powerful and easy-to-use
+Eclipse-basedtoolwas developedtoperformrequirementsmodelingand verification.
+Ourrequirementsdocumentsaresupposedtohavealltheinformationofstatesandmodeshigh-
+lighted. However, this is not always the case. Therefore, our future work will focus on extracting
+the information of states and modes from requirements documents in an automatic way. This
+work necessitates the techniques of text processing and artificial intelligence. We are going to
+spendmucheffortonthisaspect.Anotherperspectiveistointegratetheidentification,modeling,
+and verification processes into a unified process so that we will be able to provide a solution for
+analyzingrequirementsfromtheviewpointof statesandmodes.
+APPENDICES
+A THEMOSTMODEL FOR THECAREXAMPLE
+[1.1] when the car is in state parking and it receives PowerUp signal , then it will be
+in state ignition.
+[1.2] when the car is in state ignition and it receives Start signal , then it will be
+in state start .
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June2024.
+
+--- Page 39 ---
+Modeling andVerification of Natural Language Requirements based onStates and Modes 9:39
+[1.3] when the car is in state start and it receives Acc signal and its accSpeed is
+equal to 10 m/s2 , then it will be in state accelerate .
+[1.4] when the car is in state accelerate and it receives Auto signal and its accSpeed is
+equal to 10 m/s2 , then it will be in state autonomy.
+[1.5] when the car is in state autonomy and it receives Manual signal and its accSpeed is
+equal to 10 m/s2 , then it will be in state accelerate .
+[1.6] when the car is in state start and it receives Acc signal and its accSpeed
+is equal to 5 m/s2, then it will be in state accelerate.
+[1.7] when the car is in state accelerate and it receives Stop signal and its accSpeed
+is equal to 10 m/s2, then it will be in state start.
+[1.8] when the car is in state accelerate and it receives Stop signal and its accSpeed
+is equal to 5 m/s2, then it will be in state parking.
+[1.9] when the car is in state start and it receives Stop signal and its accSpeed is
+equal to 10 m/s2 , then it will be in state ignition .
+[ 1 . 1 0 ] w h e nt h ec a ri si ns t a t es t a r ta n di tr e c e i v e sS t o ps i g n a la n di t sa c c S p e e d
+is equal to 5 m/s2, then it will be in state parking.
+[1.11] when the car is in state ignition and it receives PowerOff signal ,
+then it will be in state parking.
+[2.1.1] The speed should be initialised to 0 km/h.
+[2.1.2] The speed should be greater or equal to 0 less or equal to 100 km/h.
+[2.1.3] when the car is in state accelerate and accSpeed is equal to 5 m/s2, then its speed is
+equal to speed added by accSpeed.
+[2.1.4] when the car is in state accelerate and accSpeed is equal to 10 m/s2, then its speed
+is equal to speed added by accSpeed.
+[2.1.5] when the car receives Stop signal , then its speed is equal to 0 km/h.
+[2.1.6] when the speed is greater than 90 km/h, then its speed is equal to 100 km/h.
+[2.2.1] The accSpeed should be initialised to 0 m/s2.
+[2.2.2] The accSpeed should be greater or equal to 0 less or equal to 10 m/s2.
+[2.2.3] when the car is mode economic, then its accSpeed is equal to 5 m/s2.
+[2.2.4] when the car is mode sportive , then its accSpeed is equal to 10 m/s2.
+[3.1] The doorIsOpen should be initialised to FALSE.
+[3.2] when the car is not in state parking , then its doorIsOpen is equal to FALSE.
+[3.3] when the car is in state parking, then its doorIsOpen is equal to TRUE.
+[4.1] The stop should be initialised to FALSE.
+[4.2] when the car receives Stop signal and it is in state accelerate ,
+then its stop is equal to TRUE.
+[4.3] when the car is in state ignition or it is in state start ,
+then its stop is equal to FALSE.
+[5.1] The displaySpeed should be initialised to FALSE.
+[5.2] when accSpeed is equal to 5 m/s2 and its speed is greater than 80 km/h,
+then its displaySpeed is equal to TRUE.
+[5.3] when accSpeed is equal to 5 m/s2 and its speed is less than 80 km/h,
+then its displaySpeed is equal to FALSE.
+[5.4] when its accSpeed is equal to 10 m/s2,
+then its displaySpeed is equal to TRUE.
+[6.1] when the car is in mode sportive and it receives DeAC signal , then it is in mode
+economic.
+[ 6 . 2 ] w h e nt h ec a ri si nm o d ee c o n o m i ca n di tr e c e i v e sA cs i g n a l ,t h e ni ti si nm o d e
+sportive.
+[7.1] when all globally the car is state autonomy and it is in mode economic ,
+then all future it is not in state accelerate .
+[7.2] when all globally the car is state autonomy and it is in mode economic ,
+then all future it is not in state autonomy.
+[7.3] when all globally the car is state autonomy and it is in mode economic ,
+then all future it is in state autonomy.
+[8.1] Car should be as comfortable as possible.
+B THE GENERATEDNUSMVMODELFOR THE CARMOSTMODEL
+MODULE main
+−−−−−−−−−−−−−−−− Specification Definition −−−−−−−−−−−−−−−−−−−
+SPEC AG (( state = autonomy & mode = economic ) −>A F( s t a t e ! = a c c e l e r a t e ) ) −−[7, 1]
+SPEC AG (( state = autonomy & mode = economic ) −> AF ( state != autonomy )) −−[7, 2]
+SPEC AG (( state = autonomy & mode = economic ) −> AF ( state = autonomy )) −−[7, 3]
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June 2024.
+
+--- Page 40 ---
+9:40 Y. LiuandJ.-M.Bruel
+SPEC EF state=parking
+SPEC EF state=autonomy
+SPEC EF state=start
+SPEC EF state=accelerate
+SPEC EF state=ignition
+−−−−−−−−−−−−−−−− Specification Definition −−−−−−−−−−−−−−−−−−−
+VAR state:{parking , autonomy , start , accelerate , ignition };
+VAR mode : { economic , sportive } ;
+IVAR action :{Acc, Auto, Ac, DeAC, Stop , Start , PowerUp, Manual, PowerOff};
+VAR doorIsOpen: boolean;
+VAR stop: boolean;
+VAR accSpeed: 0..10;
+VAR displaySpeed: boolean;
+VAR speed: 0..100;
+INIT (state = parking)
+TRANS( next ( state ) =
+case
+state = parking & action = PowerUp: ignition; −−[1, 1]
+state = ignition & action = Start: start; −−[1, 2]
+state = start & action = Acc & accSpeed=10: accelerate; −−[1, 3]
+state = accelerate & action = Auto & accSpeed=10: autonomy; −−[1, 4]
+state = autonomy & action = Manual & accSpeed=10: accelerate; −−[1, 5]
+state = start & action = Acc & accSpeed=5: accelerate; −−[1, 6]
+state = accelerate & action = Stop & accSpeed=10: start; −−[1, 7]
+state = accelerate & action = Stop & accSpeed=5: parking; −−[1, 8]
+state = start & action = Stop & accSpeed=10: ignition; −−[1, 9]
+state = start & action = Stop & accSpeed=5: parking; −−[1, 10]
+state = ignition & action = PowerOff: parking; −−[1, 11]
+TRUE : state ;
+esac)
+ASSIGN
+init(doorIsOpen):= FALSE; −−[3, 1]
+next(doorIsOpen):=
+case
+state = parking:TRUE; −−[3, 3]
+state != parking:FALSE; −−[3, 2]
+TRUE: doorIsOpen;
+esac;
+ASSIGN
+init(stop):= FALSE; −−[4, 1]
+next(stop):=
+case
+state = ignition | state = start:FALSE; −−[4, 3]
+action = Stop & state = accelerate:TRUE; −−[4, 2]
+TRUE: stop ;
+esac;
+ASSIGN
+init(accSpeed):= 0; −−[2, 2, 1]
+next(accSpeed):=
+case
+mode = sportive:10; −−[2, 2, 4]
+mode = economic:5; −−[2, 2, 3]
+TRUE: accSpeed;
+esac;
+ASSIGN
+init(displaySpeed):= FALSE; −−[5, 1]
+next(displaySpeed):=
+case
+accSpeed = 10:TRUE; −−[5, 4]
+accSpeed = 5 & speed<80:FALSE; −−[5, 3]
+accSpeed= 5 & speed>80:TRUE; −−[5, 2]
+TRUE: displaySpeed;
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June2024.
+
+--- Page 41 ---
+Modeling andVerification of Natural Language Requirements based onStates and Modes 9:41
+esac;
+ASSIGN
+init(speed):= 0; −−[2, 1, 1]
+next(speed):=
+case
+speed>90:100; −−[2, 1, 6]
+action = Stop:0; −−[2, 1, 5]
+state = accelerate & accSpeed = 10:speed+accSpeed; −−[2, 1, 4]
+state = accelerate & accSpeed = 5:speed+accSpeed; −−[2, 1, 3]
+TRUE: speed;
+esac;
+ASSIGN
+init(mode):= sportive;
+next(mode):=
+case
+mode = sportive & action = DeAC: economic; −−[6, 1]
+mode = economic & action = Ac: sportive; −−[6, 2]
+TRUE:mode;
+esac;
+C THEMOSTMODEL FOR THEWASHINGMACHINEEXAMPLE
+[1.1] when the machine is in state idle and it receives Put signal , then it will be in state
+weighting.
+[1.2] when the machine is in state weighting and it receives Remove signal , then it will be
+in state weighting.
+[1.3] when the machine is in state weighting and it receives Start signal , then it will be
+in state locking.
+[1.4] when the machine is in state locking and it receives Fill signal , then it will be in
+state filling.
+[1.5] when the machine is in state filling and it receives Heat signal , then it will be in
+state heating.
+[1.6] when the machine is in state filling and it receives Wash signal , then it will be in
+state nTWashing.
+[1.7] when the machine is in state heating and it receives Heat signal , then it will be in
+state heating.
+[1.8] when the machine is in state heating and it receives Prewash signal and its temperat −
+ure is equal to 95◦C, then it will be in state hTPrewashing.
+[1.9] when the machine is in state heating and it receives Prewash signal and its temperat −
+ure is equal to 40◦C, then it will be in state mTPrewashing.
+[1.10] when the machine is in state heating and it receives Wash signal and its temperature
+is equal to 95◦C, then it will be in state hTWashing.
+[1.11] when the machine is in state heating and it receives Wash signal and its temperature
+is equal to 40◦C, then it will be in state mTWashing.
+[1.12] when the machine is in state hTPrewashing and it receives Drain signal and its preWash
+is equal to FALSE, then it will be in state draining.
+[1.13] when the machine is in state mTPrewashing and it receives Drain signal and its preWash
+is equal to FALSE, then it will be in state draining.
+[1.14] when the machine is in state hTWashing and it receives Drain signal , then it will be
+in state draining.
+[1.15] when the machine is in state mTWashing and it receives Drain signal , then it will be
+in state draining.
+[1.16] when the machine is in state nTWashing and it receives Drain signal , then it will be
+in state draining.
+[1.17] when the machine is in state draining and it receives Spin signal , then it will be in
+state spinning.
+[1.18] when the machine is in state draining and it receives Fill signal , then it will be in
+state filling.
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June 2024.
+
+--- Page 42 ---
+9:42 Y. LiuandJ.-M.Bruel
+[1.19] when the machine is in state spinning and it receives Spin signal and its sp inning−
+Speed is equal to 1400 r/m, then it will be in state hSSpinning.
+[1.21] when the machine is in state spinning and it receives Spin signal and its sp inning−
+Speed is equal to 800 r/m, then it will be in state mSSpinning.
+[1.22] when the machine is in state hSSpinning and it receives Unlock signal , then it will be
+in state unlocking.
+[1.23] when the machine is in state mSSpinning and it receives Unlock signal , then it will be
+in state unlocking.
+[1.24] when the machine is in state unlocking and it receives Free signal , then it will be in
+state idle.
+[2.1.1] The temperature should be initialised to 0◦C.
+[2.1.2] The temperature should be greater or equal to 0 and less or equal to 100◦C.
+[2.1.3] when the machine is in mode bebeCotton and its temperature is less or equal to 94◦C,
+then its temperature is equal to temperature added by 1.
+[2.1.41] when the machine is in mode jeans and its temperature is less or equal to 39◦C,
+then its temperature is equal to temperature added by 1.
+[2.1.42] when the machine is in mode wool and its temperature is less or equal to 39◦C,
+then its temperature is equal to temperature added by 1.
+[2.1.43] when the machine is in mode sport and its temperature is less or equal to 39◦C,
+then its temperature is equal to temperature added by 1.
+[3.1] The preWash should be initialised to FALSE.
+[3.2] when the machine is in mode bebeCotton or it is mode sport , then its preWash is equal
+to TRUE.
+[3.3] when the machine is in mode express or it is in mode jeans or it is in mode wool, then
+its preWash is equal to FALSE.
+[3.4] when the machine is in state hTPrewashing or it is in state mTPrewashing, then its
+preWash is equal to FALSE.
+[4.1] The spinningSpeed should be initialised to 0 r/m.
+[4.2] The spinningSpeed should be greater or equal to 0 and less or equal to 2000 r/m.
+[4.3] when the machine is in mode bebeCotton and its spinningSpeed is less or equal to
+1399 r/m,
+then its spinningSpeed is equal to spinningSpeed added by 1.
+[4.41] when the machine is in mode jeans and its spinningSpeed is less or equal to 799 r/m,
+then its spinningSpeed is equal to spinningSpeed added by 1.
+[4.42] when the machine is in mode wool and its spinningSpeed is less or equal to 799 r/m,
+then its spinningSpeed is equal to spinningSpeed added by 1.
+[4.43] when the machine is in mode sport and its spinningSpeed is less or equal to 799 r/m,
+then its spinningSpeed is equal to spinningSpeed added by 1.
+[5.1] when the machine is in mode express and it receives ActJeans signal , then it is in
+mode jeans .
+[5.2] when the machine is in mode express and it receives ActWool signal , then it is in mode
+wool.
+[5.3] when the machine is in mode express and it receives ActBebeCotton signal , then it is
+in mode bebeCotton.
+[5.4] when the machine is in mode express and it receives ActSport signal , then it is in
+mode sport.
+[5.5] when the machine is in mode jeans and it receives ActJeans signal , then it is in
+mode jeans .
+[5.6] when the machine is in mode jeans and it receives ActWool signal , then it is in mode
+wool.
+[5.7] when the machine is in mode jeans and it receives ActBebeCotton signal , then it is
+in mode bebeCotton.
+[5.8] when the machine is in mode jeans and it receives ActSport signal , then it is in mode
+sport.
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June2024.
+
+--- Page 43 ---
+Modeling andVerification of Natural Language Requirements based onStates and Modes 9:43
+[5.9] when the machine is in mode bebeCotton and it receives ActJeans signal , then it is
+in mode jeans.
+[5.10] when the machine is in mode bebeCotton and it receives ActWool signal , then it is in
+mode wool.
+[5.11] when the machine is in mode bebeCotton and it receives ActBebeCotton signal , then it
+is in mode bebeCotton.
+[5.12] when the machine is in mode bebeCotton and it receives ActSport signal , then it is in
+mode sport.
+[5.13] when the machine is in mode sport and it receives ActJeans signal , then it is in mode
+jeans.
+[5.14] when the machine is in mode sport and it receives ActWool signal , then it is in mode
+wool.
+[5.15] when the machine is in mode sport and it receives ActBebeCotton signal , then it is in
+mode bebeCotton.
+[5.16] when the machine is in mode sport and it receives ActSport signal , then it is in mode
+sport.
+[5.17] when the machine is in mode wool and it receives ActJeans signal , then it is in mode
+jeans.
+[5.18] when the machine is in mode wool and it receives ActWool signal , then it is in mode
+wool.
+[5.19] when the machine is in mode wool and it receives ActBebeCotton signal , then it is in
+mode bebeCotton.
+[5.20] when the machine is in mode wool and it receives ActSport signal , then it is in mode
+sport.
+[6.1] when all globally the machine is state hTPrewashing and it is in mode bebeCotton ,
+then all next it is not in state hTPrewashing.
+[6.2] when all globally the machine is state hTPrewashing and it is in mode express ,
+then exist future it is in state nTWashing.
+[6.3] when all globally the machine is state nTWashing and it is in mode bebeCotton,
+then exist future it is in state hTWashing.
+[6.4] when all globally the machine is state nTWashing and it is in mode bebeCotton,
+then exist future it is in state hTPrewashing.
+[6.5] when all globally the machine is state mSSpinning and it is in mode jeans ,
+then all next it is not in state mSSpinning.
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June 2024.
+
+--- Page 44 ---
+9:44 Y. LiuandJ.-M.Bruel
+D MOSTGRAMMAR
+Fig.23. The grammarof the typesof formalrequirements.
+Fig.24. Thegrammar of theconditions of formalrequirements.
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June2024.
+
+--- Page 45 ---
+Modeling andVerification of Natural Language Requirements based onStates and Modes 9:45
+Fig. 25. Thegrammar of thearithmeticandcomparison operatorsof formalrequirements.
+Fig. 26. Thegrammar of thelogic operatorsof formalrequirements.
+Fig. 27. Thegrammar of miscellaneous elements.
+ACKNOWLEDGMENTS
+TheauthorswouldalsoliketothanktheircolleagueMarcPantelandalltheteamfromSAMARES
+Engineeringforinterestingdiscussionsaboutstatesandmodes.
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June 2024.
+
+--- Page 46 ---
+9:46 Y. LiuandJ.-M.Bruel
+REFERENCES
+[1] Manzoor Ahmad, Nicolas Belloir, and Jean-Michel Bruel. 2015. Modeling and verification of functional and non-
+functionalrequirements of ambientself-adaptivesystems. Journal ofSystems and Software 107(2015),50–70.
+[2] Raian Ali, Fabiano Dalpiaz, and Paolo Giorgini. 2013. Reasoning with contextual requirements: Detecting inconsis-
+tencyandconflicts. Information andSoftware Technology 55,1(2013),35–57.
+[3] Naumenko Andrey. 2002. A Paradigm for General System Modeling and its Applications for UML and RM-ODP .P h .D .
+Dissertation.Ph. Dthesis.
+[4] Julia Badger, David Throop, and Charles Claunch. 2014. VARED: Verification and analysis of requirements and early
+designs.In 2014 IEEE22ndInternational Requirements Engineering Conference (RE’14) . IEEE, 325–326.
+[5] Ronan Baduel. 2019. An Integrated Model-based Early Validation Approach for Railway Systems . Ph.D. Dissertation.
+Toulouse 2.
+[6] Lorenzo Bettini.2016. Implementing Domain-specific Languages with Xtextand Xtend .PacktPublishing Ltd.
+[7] Stéphane Bonnet, Jean-Luc Voirin, Daniel Exertier, and Véronique Normand. 2017. Modeling system modes, states,
+configurationswithArcadiaandCapella:Methodandtoolperspectives.In INCOSEInternationalSymposium ,Vol.27.
+WileyOnlineLibrary,548–562.
+[8] Dennis M. Buede and William D. Miller. 2016. The Engineering Design of Systems: Models and Methods . John Wiley &
+Sons.
+[9] Gustavo Carvalho, Ana Cavalcanti, and Augusto Sampaio. 2016. Modelling timed reactive systems from natural-
+languagerequirements. Formal Aspects ofComputing 28(2016),725–765.
+[10] Roberto Cavada, Alessandro Cimatti, Gavin Keighren, Emanuele Olivetti, Marco Pistor, and Marco Roveri. 2019.
+NuSMV 2.5Tutorial. http://nusmv.fbk.eu/NuSMV/tutorial/v25/tutorial.pdf
+[11] Alessandro Cimatti, Edmund Clarke, Enrico Giunchiglia, Fausto Giunchiglia, Marco Pistore, Marco Roveri, Roberto
+Sebastiani,andArmandoTacchella.2002.NuSMV2:Anopensourcetoolforsymbolicmodelchecking.In International
+Conferenceon ComputerAided Verification . Springer, 359–364. http://nusmv.fbk.eu/
+[12] Alessandro Cimatti, Edmund Clarke, Enrico Giunchiglia, Fausto Giunchiglia, Marco Pistore, Marco Roveri, Roberto
+Sebastiani,andArmandoTacchella.2002.NuSMV2:Anopensourcetoolforsymbolicmodelchecking.In International
+Conferenceon ComputerAided Verification . Springer, 359–364. http://nusmv.fbk.eu/
+[13] IEEE Standards Coordinating Committee. 1990. IEEE standard glossary of software engineering terminology (IEEE
+Std610.12-1990).LosAlamitos. CA:IEEEComputer Society 169(1990).
+[14] D. Davis et al. 2005. SMC systems engineering primer & handbook. United States Air Force Space & Missile Systems
+Center(2005),13–17.
+[15] DFS. 2007. Unmanned Systems Safety Guide For DOD Acquisition. https://www.dau.edu/cop/esoh/DAU%
+20Sponsored%20\Documents/Unmanned%20Systems%20Safety%20Guide%20forDOD%20Acquisition%2027June%
+202007.pdf
+[16] DI-IPSC-81431A.2000.MIL-STD-498B(Cancelled)DataItem Description, System/Subsystem Specification.
+[17] DMO. 2011. Defence Materiel Organisation, DMH (ENG) 12-3-005 Function and Performance (FPS) Development
+Guide.
+[18] M. T. Edwards. 2003. A practical approach to state and mode definitions for the specification and design of complex
+systems. In Systems Engineering Test and Evaluation. Practical Approaches for Complex Systems Conference, Rydges
+Capital Hill,Canberra, Australia .
+[19] Omar El Beggar, Khadija Letrache, and Mohammed Ramdani. 2020. DAREF: MDA framework for modelling data
+warehouse requirements anddeducing themultidimensionalschema. Requirements Engineering (2020),1–23.
+[20] Peter H. Feiler, Bruce A. Lewis, and Steve Vestal. 2006. The SAE architecture analysis & design language (AADL) a
+standard for engineering performance critical systems. In 2006 IEEE Conference on Computer Aided Control System
+Design, 2006 IEEE International Conference on Control Applications, 2006 IEEE International Symposium on Intelligent
+Control.IEEE, 1206–1211.
+[21] DimitraGiannakopoulou,ThomasPressburger,AnastasiaMavridou,andJohannSchumann.2021.Automatedformal-
+izationof structured naturallanguagerequirements. Information andSoftware Technology (2021),106590.
+[22] HeatherJ.Goldsby,PeteSawyer,NellyBencomo,BettyH.C.Cheng,andDannyHughes.2008.Goal-basedmodeling
+of dynamically adaptive system requirements. In 15th Annual IEEE International Conference and Workshop on the
+Engineering ofComputer based Systems (ECBS’08) . IEEE, 36–45.
+[23] DavidHarel.1987.Statecharts:Avisualformalismforcomplexsystems. ScienceofComputerProgramming 8,3(1987),
+231–274.
+[24] Constance L. Heitmeyer, Ralph D. Jeffords, and Bruce G. Labaw. 1996. Automated consistency checking of require-
+mentsspecifications. ACMTransactions on Software Engineering andMethodology (TOSEM) 5,3 (1996),231–261.
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June2024.
+
+--- Page 47 ---
+Modeling andVerification of Natural Language Requirements based onStates and Modes 9:47
+[25] C.A. R.Hoare. 1971.Procedures andparameters:Anaxiomaticapproach.In Symposium on Semantics ofAlgorithmic
+Languages , Erwin Engeler (Ed.). Lecture Notes in Mathematics, Vol. 188. Springer, 102–116. https://doi.org/10.1007/
+BFb0059696
+[26] IEEE Standards Association IEEE 24765. 2010. ISO/IEC/IEEE 24765: 2010 systems and software engineering-
+Vocabulary.ISO/IEC/IEEE 24765:201025021. Instituteof Electrical and Electronics Engineers, Inc. (2010).
+[27] J. Jenney. 2011. Define Life Cycle System Modes. http://themanagersguide.blogspot.com/2011/01/6322-define-life-
+cycle-system-modes.html accessedon 25/11/2020.
+[28] EmmanuelLetierandAxelVanLamsweerde.2004.Reasoningaboutpartialgoalsatisfactionforrequirementsandde-
+signengineering.In Proceedingsofthe12thACMSIGSOFTTwelfthInternationalSymposiumonFoundationsofSoftware
+Engineering . 53–62.
+[29] NancyG.Leveson,Mats Per Erik Heimdahl,Holly Hildreth, and JonDamonReese. 1994.Requirements specification
+for process-control systems. IEEETransactions onSoftware Engineering 20,9(1994),684–707.
+[30] Yinling Liu and Jean-Michel Bruel. 2022. Modeling of natural language requirements based on states and modes. In
+2022 IEEE30th International Requirements Engineering ConferenceWorkshops(REW ’22) . IEEE, 190–194.
+[31] Alistair Mavin, Philip Wilkinson, Adrian Harwood, and Mark Novak. 2009. Easy approach to requirements syntax
+(EARS). In 2009 17th IEEEInternational Requirements Engineering Conference .IEEE, 317–322.
+[32] AbhaMoitra,KitSiu,AndrewW.Crapo,MichaelDurling,MengLi,PanagiotisManolios,MichaelMeiners,andCraig
+McMillan. 2019. Automating requirements analysis and test case generation. Requirements Engineering 24, 3 (2019),
+341–364.
+[33] SorooshNalchigar,EricYu,andKarimKeshavjee.2021.Modelingmachinelearningrequirementsfromthreeperspec-
+tives: A casereport from the healthcaredomain. Requirements Engineering (2021),1–18.
+[34] AnthonyM.OlverandMichaelJ.Ryan.2014.Onausefultaxonomyofphases,modes,andstatesinsystemsengineer-
+ing.InSystems Engineering/Test andEvaluation Conference,Adelaïde, Australia .
+[35] Aarne Ranta. 2011. Grammatical Framework: Programming with Multilingual Grammars . Vol. 173. CSLI Publications,
+Center forthe Study of LanguageandInformationStanford.
+[36] WinstonW.Royce.1987.Managingthedevelopmentoflargesoftwaresystems:Conceptsandtechniques.In Proceed-
+ings ofthe9th International ConferenceonSoftware Engineering . 328–338.
+[37] VítorE.SilvaSouza,AlexeiLapouchnian,WilliamN.Robinson,andJohnMylopoulos.2011.Awarenessrequirements
+for adaptive systems. In Proceedings of the 6th International Symposium on Software Engineering for Adaptive and
+Self-managing Systems .60–69.
+[38] Charles S. Wasson. 2010. System phases, modes, and states solutions to controversial issues. Wasson Strategics, LLC
+http://www.wassonstrategics.com (2010).
+[39] Charles S. Wasson. 2015. System Engineering Analysis, Design, and Development: Concepts, Principles, and Practices .
+John Wiley& Sons.
+[40] Jon Whittle, Pete Sawyer, Nelly Bencomo, Betty H. C. Cheng, and Jean-Michel Bruel. 2009. RELAX: Incorporating
+uncertainty into the specification of self-adaptive systems. In 2009 17th IEEE International Requirements Engineering
+Conference .IEEE, 79–88.
+[41] EricS.K.Yu.1997.Towardsmodellingandreasoningsupportforearly-phaserequirementsengineering.In Proceedings
+ofISRE’97: 3rd IEEEInternational Symposium on Requirements Engineering . IEEE, 226–235.
+[42] Leopoldo Zepeda, Elizabeth Ceceña, R. Quintero, Ramón Zatarain, Liliana Vega, Z. Mora, and Garcia Gerardo
+Clemente. 2010. A MDA tool for data warehouse. In 2010 International Conference on Computational Science and Its
+Applications .IEEE, 261–265.
+Received 13December 2021; revised 16 December 2023; accepted 12January 2024
+Form. Asp. Comput.,Vol. 36,No. 2,Article 9.Publicationdate:June 2024.

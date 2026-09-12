@@ -1,0 +1,1448 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0029",
+  "ledger": [
+    {
+      "ledger_id": "DIFF-0029-06",
+      "pair": "0029",
+      "D": "D1",
+      "L": "L0",
+      "summary": "`:40 AutonomousMode --> FinishState : auto_finished=true` 是一条 NL 没有要求的多余完成边——NL 第 6、10 句各要求一条模式级完成边（共两条，已由 `:44` 与 `:43` 承担），而 `AutonomousMode` 在本制品里是与两个模式平级的叶态。",
+      "detail": "NL 关于完成只说了两处：第 6 句「The HighwayMode ends when the system transitions to FinishState, triggered by the `auto_finished=true` condition」，第 10 句「The system exits the UrbanMode state by transitioning to FinishState once `auto_finished=true` is satisfied」。两句各要求一条边，分别以 HighwayMode 与 UrbanMode 为源。\n\n制品已经建了这两条：`:44 HighwayMode --> FinishState : auto_finished=true` 与 `:43 UrbanMode --> FinishState : auto_finished=true`。在此之外又多写了 `:40 AutonomousMode --> FinishState : auto_finished=true`。\n\n多这一条在 NL 里没有依据，而且它加剧了本 pair 的层次错乱：`AutonomousMode` 在这份制品里从未被打开成复合态（那一层记在 EIS-0029-01），它是与 `HighwayMode`、`UrbanMode`、`InitialState` 平级的叶态。所以 `:40` 不是一条模式级的成组完成边，而是一条从某个平级叶态出发的普通边。加上 `FinishState` 因为首次出现在 `:15`（`HighwayMode` 块内）而归属 HighwayMode，这条边的实际效果是把系统从 `AutonomousMode` 送进 `HighwayMode` 内部。",
+      "D_basis": "判 D1，两读并立。第一种读法：NL 只要求两条模式级完成边，第三条没有依据，属多出的元素。第二种读法：这条边可以读作「作者本来打算把 AutonomousMode 做成包住两个模式的复合态，这条就是那个复合态的组级完成边」——层次没建出来是另一条独立缺陷（EIS-0029-01）记录的事情，不该在本条重复算账；也可以读作对 NL 第 6、10 句完成语义的一次无害泛化（任何时候 `auto_finished` 成立都完成）。两种读法都不否认这条边客观存在，但对它是否构成过度规定给出不同答案，故判 D1。",
+      "L_basis": "判 L0。陈述这条错误只需把 NL 要求的完成边条数与模型里带 `auto_finished=true` 的边清单比对，发现模型多出一条 NL 未点名的。这是一次词项层面的计数与存在性比对，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "transition",
+        "defect_qualifier": "extraneous",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0029-01",
+      "pair": "0029",
+      "D": "D2",
+      "L": "L1",
+      "summary": "`AutonomousMode` 从未被打开成复合态——全文没有 `state AutonomousMode { }`——于是它是与 `InitialState`、`HighwayMode`、`UrbanMode` 平级的叶态，NL 要求的整层层次结构丢失。",
+      "detail": "NL 第 1 句逐字为「The system begins in the AutonomousMode state, which transitions into the InitialState substate, marking the starting point of the autonomous driving mode.」——substate 一词明确要求 `InitialState` 是 `AutonomousMode` 的子态。NL 第 2 句「From the InitialState, the system can transition to either HighwayMode or UrbanMode」与第 7 句把两个驾驶模式也置于这个自动驾驶模式之内。\n\n制品在 `:3 AutonomousMode: Autonomous Mode` 只给它加了一行描述文字，全文没有 `state AutonomousMode {` 这一句。相反，`:10 state HighwayMode {`、`:20 state UrbanMode {`、`:31 state CollisionAvoidance {` 三处都写了块，说明作者会用这个记法。\n\n于是 `AutonomousMode` 是根层的一个叶状态，`InitialState`（`:4` 引入）、`HighwayMode`、`UrbanMode` 都与它平级而不是它的子态。投影结果确认了这一点。\n\n后果不只是结构不好看：因为没有复合关系，`AutonomousMode` 上不存在成组迁移，`:40` 那条以它为源的完成边也就不是模式级的（那一层记在 DIFF-0029-06）；本 pair 的层次相关问题（`FinishState` 的作用域、`enter_hwy`/`enter_urban` 的默认入口）都以这个层次缺失为背景。\n\n根因是把「自动驾驶模式」当成了一个与具体驾驶模式并列的状态，而不是包住它们的那一层。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 1 句里的 substate 一词，以及第 2、7 句把两个驾驶模式置于自动驾驶模式之内的表述。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法——`:3` 用的是描述语法不建结构，同文件三处 `state X { }` 证明作者知道正确写法，投影结果也确认 `AutonomousMode` 没有任何子状态。反驳不存活。",
+      "L_basis": "判 L1。陈述这条错误需要导出一个静态结构事实：`AutonomousMode` 的子状态集合是空的，`InitialState`/`HighwayMode`/`UrbanMode` 的父都是根。这要把 PlantUML 的块结构解析一遍（`状态名 : 文本` 不建结构、`state X { }` 才建）；但它只涉及单个静态切面上的包含关系，不需要执行序列，故不到 L2。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "state",
+        "defect_qualifier": "incorrect",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0029-02",
+      "pair": "0029",
+      "D": "D1",
+      "L": "L1",
+      "summary": "`:12 enter_hwy --> cruise` 与 `:13 enter_hwy --> lane_change` 用了逐字相同的条件 `dist_to_front<25 & extra_lane=true`，两个互斥的驾驶动作之间没有任何可区分依据。",
+      "detail": "NL 第 3 句逐字为「In the HighwayMode state, the system begins in the enter_hwy substate, and can transition to cruise or lane_change based on the distance to the front vehicle (`dist_to_front<25`) and the availability of an extra lane (`extra_lane=true`).」——把两个目标写在同一个条件从句下，本身有歧义。\n\n制品的 `:12` 与 `:13` 标签逐字相同。投影之后两条边共享同一个事件、都没有守卫，构成一对不可区分的冲突目标。\n\n这里还有一层内部自挫：NL 第 5 句把 `dist_to_front<25 & extra_lane=true` 这个条件专门绑定到「进入 lane_change」（「In the cruise substate, if the distance to the front vehicle becomes less than 25 meters and there is an extra lane available, the system transitions to lane_change」），而制品在 `:14` 也照建了 `cruise --> lane_change` 这条同条件的边。于是即便 `:12` 侥幸选中了 `cruise`，同一个条件下一刻又会由 `:14` 把系统带去 `lane_change`。\n\n本条与 pair 0019 的 EIS-0019-01 完全同型、同判。同一份 NL 的 pair 0009 与 pair 0049 用互补守卫做了消歧，只有 0019 与 0029 没有。",
+      "D_basis": "判 D1，两读并立。第一种读法：两个互斥的驾驶动作共用同一选取条件，按车辆控制领域的安全要求这类选择必须有可区分依据；加上 NL 第 5 句把该条件专门绑给 lane_change、`:14` 的回边会立刻把 cruise 分支带走，构成可陈述的内部自挫。第二种读法：NL 第 3 句自己就把两个目标并置在同一条件从句下，UML 对冲突迁移有成文的非确定性消解规则，忠实保留规约里的歧义是称职的建模选择。两种读法都站得住，故判 D1，与 EIS-0019-01 同形同判。需要如实记下一处分歧：本条的自动 meta review 建议「不采纳」（理由是模型只是照搬规约歧义），人工终裁改判 D1，理由是第一种读法在内部自挫这一点上有真实依据、不能整条否掉。",
+      "L_basis": "判 L1。陈述这条错误需要导出一个静态事实：同源、同触发的两条迁移其守卫重叠（这里是逐字相同）。这要把两条边的触发与守卫取出来做比较；但它只涉及单个系统状态上的一次可发性判断，不需要构造执行序列，故不到 L2。",
+      "axes": {
+        "defect_locus": "pair",
+        "defect_element": null,
+        "defect_qualifier": null,
+        "defect_logic_kind": "nondeterminism",
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0029-03",
+      "pair": "0029",
+      "D": "D2",
+      "L": "L1",
+      "summary": "同一个条件 `dist_to_exit<2` 在两条边上被给了不同目标：`:17 lane_change --> exit_hwy`（局部退出，正确）与 `:15 cruise --> FinishState`（全局完成）——制品自身不一致。",
+      "detail": "NL 第 4 句与第 5 句对 `dist_to_exit<2` 给的是同一个语义：驶离高速。第 4 句「If the system is in lane_change, it can return to cruise once the lane change is completed or exit the highway if the distance to the exit is less than 2 kilometers」，第 5 句「The system can also exit the highway if the distance to the exit is less than 2 kilometers」——两句都说的是 exit the highway 这个局部动作，而不是整个自动驾驶完成。\n\n制品对同一个条件给了两个不同的目标。`:17 lane_change --> exit_hwy : dist_to_exit<2` 走的是一个局部退出态，这是对的；`:15 cruise --> FinishState : dist_to_exit<2` 直接进了 `FinishState`，把局部退出与 NL 第 6 句的全局完成混为一谈。\n\n最强的证据来自制品内部：既然作者在 `:17` 上知道该走 `exit_hwy`，`:15` 就不能解释成「他理解的 dist_to_exit 语义就是完成」。同一个条件在两条边上目标不同，这个不一致本身无法用任何统一的读法消解。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 5 句「The system can also exit the highway if the distance to the exit is less than 2 kilometers」——它要求的是驶离高速这个局部动作，不是整个自动驾驶完成（后者由 NL 第 6 句以 `auto_finished=true` 为条件另行规定）。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法：制品内部对同一条件给了两个不同目标，任何试图为 `:15` 辩护的读法都会与 `:17` 冲突。反驳不存活。",
+      "L_basis": "判 L1。陈述这条错误需要导出一个静态事实：把带同一条件 `dist_to_exit<2` 的两条边取出来比较它们的目标，发现不同。这是一次跨两条边的结构比对，比查某个名字在不在深一层；但它只涉及静态切面，不需要构造执行序列，故不到 L2。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "transition",
+        "defect_qualifier": "incorrect",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0029-04",
+      "pair": "0029",
+      "D": "D2",
+      "L": "L0",
+      "summary": "NL 第 3、7 句显式要求 `HighwayMode` 从 `enter_hwy` 开始、`UrbanMode` 从 `enter_urban` 开始，而制品改用「父态 → 子态加一个自造的 `enter` 事件」（`:11`、`:21`），两个复合态都没有默认入口边，进入点未定义。",
+      "detail": "NL 第 3 句逐字为「In the HighwayMode state, the system begins in the enter_hwy substate」，第 7 句「In UrbanMode, the system begins in the enter_urban substate」。两句都是显式的初态要求，对应的记法是复合态内部的默认入口边 `[*] --> enter_hwy`。\n\n制品写的是 `:11 HighwayMode --> enter_hwy : enter` 与 `:21 UrbanMode --> enter_urban : enter`。这两行都写在各自的 `state X { }` 块内，源是复合态自己、目标是它的子态，触发是一个自造的 `enter` 事件——NL 全文没有提到过这个事件。两个块内都没有任何 `[*] -->`。\n\n后果是两个复合态的默认进入点未定义：进入 `HighwayMode` 之后在 `enter` 事件到达之前不处在任何子态里。投影时这一点被显式记录——在 `HighwayMode` 与 `UrbanMode` 内各注入了一个 `UnspecifiedInitial` 占位状态。\n\n对照同文件的 `:32 [*] --> collision_avoidance_deactive`（写在 `CollisionAvoidance` 块内）：作者知道默认入口边的写法，只是在这两个复合态上没用。\n\n需要说明一处口径。第一版台账把这条排除在外，理由是「父子边可能等价实现了初始行为」。这个理由站不住：结构族的谓词在当前投影上查询 `HighwayMode` 的初始目标，返回的是 `UnspecifiedInitial` 而不是 `enter_hwy`；而同一批里 pair 0019 的同型条目（EXP-0019-IT-001）是被台账接受的，两处标准应当一致。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 3 句与第 7 句的两处 begins in 表述。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法——父子边需要一个外部事件才能发火，与默认入口边「进入即立刻执行」的语义不等价；而那个 `enter` 事件在 NL 里也没有依据。反驳不存活。",
+      "L_basis": "判 L0。陈述这条错误只需读 `state HighwayMode {` 与 `state UrbanMode {` 两个块，看块内有没有 `[*] -->`——都没有。这是纯词法层面的存在性检查，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "transition",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0029-05",
+      "pair": "0029",
+      "D": "D2",
+      "L": "L2",
+      "summary": "`FinishState` 因为首次出现在 `:15`（`HighwayMode` 块内）而被钉成 HighwayMode 的子态，于是 `:43 UrbanMode --> FinishState : auto_finished=true` 这条城市侧完成路径会先把系统路由回 `HighwayMode` 再进入其内部的 FinishState。",
+      "detail": "NL 第 6 句与第 10 句都用裸名 FinishState，没有任何限定把它们区分成两个不同的状态；上游参考模型也只建了一个共享的 FinishState，位置在自动驾驶模式这一层。\n\n制品把它建进了 `HighwayMode`。PlantUML 按名字首次出现的位置确定作用域，`FinishState` 首次出现在 `:15 cruise --> FinishState : dist_to_exit<2`，而 `:15` 在 `state HighwayMode {`（:10）与 `}`（:18）之间。`:41 FinishState: Finish State` 只是给它加描述文字，不会把它提到外层。\n\n后果落在 `:43 UrbanMode --> FinishState : auto_finished=true` 上：目标是 HighwayMode 内部的一个叶态，而层次状态机里进入深层子态必须先进入它的全部祖先。所以这条迁移的实际执行序列是：离开 UrbanMode，进入 HighwayMode，再进入 HighwayMode 内的 FinishState。用一句话说就是「城市模式完成之后，高速模式变为活跃」。同样的路由也适用于 `:40` 那条以 `AutonomousMode` 为源的边。\n\n第一版台账在本 pair 上记的 EXP-0029-IT-001 只覆盖了 `:15 cruise --> FinishState` 那条边的目标选错问题（本条另记为 EIS-0029-03），没有覆盖这个作用域后果。\n\n同一份 NL 的 pair 0009 上有同型条目（EIS-0009-03）。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 10 句「The system exits the UrbanMode state by transitioning to FinishState once `auto_finished=true` is satisfied」——退出 UrbanMode 之后应当到达结束态，而不是到达 HighwayMode。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法：NL 第 6、10 句用的是同一个裸名，没有任何文本依据支持双 FinishState 的读法；而单一 FinishState 若归属 HighwayMode，路由后果就无法回避。反驳不存活。",
+      "L_basis": "判 L2。陈述这条错误需要给出一条具体的执行路径——「处于 UrbanMode，`auto_finished` 成立，于是离开 UrbanMode、进入 HighwayMode、再进入 HighwayMode 内的 FinishState」。这条路径依赖层次状态机的进入语义（进入深层子态必先进入其祖先），是对一段带时间维行为的构造，而不是在某个系统状态上读出来的静态事实。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "state",
+        "defect_qualifier": "incorrect",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "INS-0029-01",
+      "pair": "0029",
+      "D": "D2",
+      "L": "L2",
+      "summary": "顶层块 `CollisionAvoidance`（:31）一条入边都没有——根层唯一的初始边 `:2` 只进入 `AutonomousMode`，全文也没有任何指向该块的迁移——因此块内两个状态都不可达。",
+      "detail": "根层的初始边只有 `:2 [*] --> AutonomousMode` 一条。全文（`:1`-`:45`）没有任何以 `CollisionAvoidance` 为目标的迁移。`:31`-`:35` 这个块与其它顶层元素并列，而在非并发的状态机里并列的顶层状态互斥，必须有边才能过去。\n\n块内的 `:32 [*] --> collision_avoidance_deactive` 是区域内的初始边：它只在父块已经被进入之后决定内部落在哪个子态，不能让区域自身被进入。`collision_avoidance_active` 由 `:33` 的迁移目标隐式声明，随之一起不可达。\n\n于是 NL 第 12 句「The collision avoidance system is initially in the collision_avoidance_deactive state」与第 13 句描述的往返行为一次都不会发生。\n\n还需确认文件里有没有把两个顶层块声明成并发：全文没有任何 `--` 并发分隔符。\n\n根因是把「系统里有两个并行运作的部分」直接写成了「两个并列的顶层状态」。同型形态在同一份 NL 的 pair 0009、0019、0059 上都出现（分别记为 VU-0009-01、INS-0019-01、INS-0059-01）。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 12 句点名了 `collision_avoidance_deactive` 作为初态，它必须可达。三个独立判读臂都认定成立。可能的反驳是把该块读作隐式并行的区域，但这要援引正交区并发语义——而本研究的建模对象是 $M = (S, E, V, Tr, A)$，不含并发语义；作者源里也没有任何 `--` 分隔符去声明它。这条顺序结构事实推翻不了，反驳不存活。",
+      "L_basis": "判 L2。陈述这条错误的核心是一个可达性论证：要说明从根层初始边 `:2` 出发的全部执行路径都到不了 `CollisionAvoidance`。这需要对行为集合做穷尽排除，不是在某个系统状态上读出来的静态事实。",
+      "axes": {
+        "defect_locus": "global",
+        "defect_element": null,
+        "defect_qualifier": null,
+        "defect_logic_kind": "unreachable",
+        "defect_reference": "language"
+      }
+    },
+    {
+      "ledger_id": "INS-0029-05",
+      "pair": "0029",
+      "D": "D2",
+      "L": "L2",
+      "summary": "全文没有任何 `--> [*]` 根级终止汇点；NL 指定的终点 `FinishState` 又因 `:15` 被限定在 `HighwayMode` 内部，进入后仍会被 `:44` 自重入或被 `:37 HighwayMode --> UrbanMode` 带走——作者声明的终止意图在他自己的源文本上就已失效。",
+      "detail": "三个可核的事实。其一，全文（`:1`-`:45`）`--> [*]` 出现 0 次，没有任何状态被声明为终态。其二，`FinishState` 因为首次出现在 `:15` 而归属 `HighwayMode`（同 EIS-0029-05）。其三，根层有三条以 `HighwayMode` 或 `UrbanMode` 为源的边：`:37 HighwayMode --> UrbanMode : urban_way=true`、`:38 UrbanMode --> HighwayMode : high_way=true`、`:44 HighwayMode --> FinishState : auto_finished=true`。\n\n把三者放在一起：进入 `FinishState` 之后系统仍然处于 `HighwayMode` 之内，因此 `:37` 随时可以把它带到 `UrbanMode`，`:44` 也可以让它重新进入 `HighwayMode`。作者用来表达「结束」的那个状态并不真正终止任何东西。`:40` 与 `:43` 两条完成边同样跨进 HighwayMode 内部，问题一样。\n\n还有一个更直接的陷阱环，不依赖上面任何层次分析：`:14 cruise --> lane_change : dist_to_front<25 & extra_lane=true` 与 `:16 lane_change --> cruise : lane_change_completed` 两条边即可构成一个来回，而这两条都写在源文本里，不涉及任何投影合成的状态。\n\n所以终止意图在作者源上就已经失效，不是投影引入的。\n\n被违反的是 NL 第 6 句「The HighwayMode ends when the system transitions to FinishState, triggered by the `auto_finished=true` condition」与第 10 句 exits 所表达的终止意图：作者选来承载它的那个状态在结构上并不终止任何东西。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 6 句「The HighwayMode ends when the system transitions to FinishState」中的 ends，以及第 10 句的 exits——两句都表达了终止意图，而作者自己选来承载这个意图的 `FinishState` 在结构上不终止任何东西。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法。需要与同一份 NL 的 pair 0009 那条同类记录（INS-0009-03，判 D1）区分开：那一条的证成方式转嫁到了「反应式控制器的主环必须有出口」这个本研究不默认接受的前提上，所以只能判 D1；本条不依赖那个前提——它承重的是「作者声明了终止意图、而该意图在他自己的结构上失效」，加上 `:14`/`:16` 那个不依赖任何层次分析的显式陷阱环。",
+      "L_basis": "判 L2。陈述这条错误属于活性范畴：要说明进入 `FinishState` 之后机器仍可被带走、且那些驾驶叶态构成的环没有出口，必须排除掉存在终止迹的可能，也就是对全部执行路径做穷尽考察。这是对行为集合的构造与排除，不是单个系统状态上的静态判断。",
+      "axes": {
+        "defect_locus": "global",
+        "defect_element": null,
+        "defect_qualifier": null,
+        "defect_logic_kind": "nontermination",
+        "defect_reference": "requirement"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:initial_contract:HighwayMode",
+          "claims": [
+            "Source composite 'HighwayMode' has no initial transition to required child 'HighwayMode.enter_hwy'."
+          ],
+          "locations": [
+            "NL3"
+          ],
+          "obligations": [
+            "HighwayMode must initially enter HighwayMode.enter_hwy."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:HighwayMode:facet:7cffbdc96402"
+          ]
+        },
+        {
+          "finding_id": "source:initial_contract:UrbanMode",
+          "claims": [
+            "Source composite 'UrbanMode' has no initial transition to required child 'UrbanMode.enter_urban'."
+          ],
+          "locations": [
+            "NL7"
+          ],
+          "obligations": [
+            "UrbanMode must initially enter UrbanMode.enter_urban."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:UrbanMode:facet:893c275ed863"
+          ]
+        },
+        {
+          "finding_id": "source:containment:AutonomousMode",
+          "claims": [
+            "Source child 'InitialState' has actual parent None, not required parent 'AutonomousMode'."
+          ],
+          "locations": [
+            "NL1",
+            "InitialState",
+            "AutonomousMode"
+          ],
+          "obligations": [
+            "InitialState must be directly contained in AutonomousMode.",
+            "InitialState must be contained in AutonomousMode."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:containment:AutonomousMode:facet:0183b7ef1556"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:f54667678450fcd4",
+          "claims": [
+            "At least two of the 3 conditioned branches from UrbanMode.enter_urban overlap without priority."
+          ],
+          "locations": [
+            "NL7"
+          ],
+          "obligations": [
+            "The multi-way alternatives from UrbanMode.enter_urban must have a defined selection when their conditions coincide."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L1",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:f54667678450fcd4:facet:3f30be174c3a"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:2a56a480021ea08a",
+          "claims": [
+            "At least two of the 4 conditioned branches from CollisionAvoidance.collision_avoidance_deactive overlap without priority."
+          ],
+          "locations": [
+            "NL12"
+          ],
+          "obligations": [
+            "The multi-way alternatives from CollisionAvoidance.collision_avoidance_deactive must have a defined selection when their conditions coincide."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L1",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:2a56a480021ea08a:facet:6845dcaed430"
+          ]
+        },
+        {
+          "finding_id": "source:stable_termination:HighwayMode.FinishState",
+          "claims": [
+            "Required termination target 'HighwayMode.FinishState' admits a source-level nonterminating continuation."
+          ],
+          "locations": [
+            "HighwayMode.FinishState",
+            "NL6",
+            "PUML:L44",
+            "F103"
+          ],
+          "obligations": [
+            "The NL-designated termination state 'FinishState' must be a stable ending target for its declared behavior.",
+            "Reaching the HighwayMode FinishState must terminate highway behavior."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:stable_termination:HighwayMode.FinishState:facet:2c0fe703b1c3",
+            "source:stable_termination:HighwayMode.FinishState:facet:4a0bc1d2569b"
+          ]
+        },
+        {
+          "finding_id": "source:stable_termination:UrbanMode.exit_urban",
+          "claims": [
+            "Required termination target 'UrbanMode.exit_urban' admits a source-level nonterminating continuation."
+          ],
+          "locations": [
+            "UrbanMode.exit_urban"
+          ],
+          "obligations": [
+            "The NL-designated termination state 'exit_urban' must be a stable ending target for its declared behavior."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:stable_termination:UrbanMode.exit_urban:facet:48d45a131fd5"
+          ]
+        },
+        {
+          "finding_id": "source:extraneous_transition:tr_0009",
+          "claims": [
+            "Exact source transition 'tr_0009' is present but forbidden."
+          ],
+          "locations": [
+            "tr_0009",
+            "NL5",
+            "NL6"
+          ],
+          "obligations": [
+            "Every authored transition must be semantically authorized by the NL contract that governs its source and behavior role."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:extraneous_transition:tr_0009:facet:0eaf94d7a236"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:b62414a3495bc428",
+          "claims": [
+            "The collision avoidance component is unreachable from the system root."
+          ],
+          "locations": [
+            "NL12",
+            "CollisionAvoidance",
+            "CollisionAvoidance.collision_avoidance_deactive"
+          ],
+          "obligations": [
+            "The declared collision avoidance component must be reachable from the system root."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:b62414a3495bc428:facet:8ca83b94436e"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:initial_contract:HighwayMode",
+          "claims": [
+            "Source composite 'HighwayMode' has no initial transition to required child 'HighwayMode.enter_hwy'."
+          ],
+          "locations": [
+            "NL3"
+          ],
+          "obligations": [
+            "HighwayMode must initially enter HighwayMode.enter_hwy."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:HighwayMode:facet:7cffbdc96402"
+          ]
+        },
+        {
+          "finding_id": "source:initial_contract:UrbanMode",
+          "claims": [
+            "Source composite 'UrbanMode' has no initial transition to required child 'UrbanMode.enter_urban'."
+          ],
+          "locations": [
+            "NL7"
+          ],
+          "obligations": [
+            "UrbanMode must initially enter UrbanMode.enter_urban."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:UrbanMode:facet:893c275ed863"
+          ]
+        },
+        {
+          "finding_id": "source:containment:AutonomousMode",
+          "claims": [
+            "Source child 'InitialState' has actual parent None, not required parent 'AutonomousMode'."
+          ],
+          "locations": [
+            "NL1"
+          ],
+          "obligations": [
+            "InitialState must be directly contained in AutonomousMode."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:containment:AutonomousMode:facet:0183b7ef1556"
+          ]
+        },
+        {
+          "finding_id": "source:stable_termination:HighwayMode.FinishState",
+          "claims": [
+            "Required termination target 'HighwayMode.FinishState' admits a source-level nonterminating continuation."
+          ],
+          "locations": [
+            "HighwayMode.FinishState"
+          ],
+          "obligations": [
+            "The NL-designated termination state 'FinishState' must be a stable ending target for its declared behavior."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:stable_termination:HighwayMode.FinishState:facet:e307c5604aaa"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:1b9677681017aa15",
+          "claims": [
+            "The cruise transition for `dist_to_exit<2` does not target the required HighwayExit state."
+          ],
+          "locations": [
+            "NL5",
+            "PUML:L15",
+            "tr_0009"
+          ],
+          "obligations": [
+            "A cruise exit transition triggered by `dist_to_exit<2` must target the highway-exit state."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:1b9677681017aa15:facet:bf5915f2be84"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:c924a4b22066bfcb",
+          "claims": [
+            "The CollisionAvoidance behavior is unreachable from root entry, so its required collision transitions cannot be reached by system execution."
+          ],
+          "locations": [
+            "NL12",
+            "llms_emp_feedback_final_0029.CollisionAvoidance.collision_avoidance_deactive",
+            "llms_emp_feedback_final_0029.CollisionAvoidance.collision_avoidance_active"
+          ],
+          "obligations": [
+            "The collision-avoidance component must be reachable from the system root."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:c924a4b22066bfcb:facet:8ca83b94436e"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:6ce2772e6966aec2",
+          "claims": [
+            "The HighwayMode FinishState target is not modeled as a terminating endpoint."
+          ],
+          "locations": [
+            "NL6",
+            "HighwayMode.FinishState",
+            "PUML:L44",
+            "tr_0027"
+          ],
+          "obligations": [
+            "The state designated as the HighwayMode completion target must terminate HighwayMode behavior."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:6ce2772e6966aec2:facet:465785f04ec0"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:initial_contract:HighwayMode",
+          "claims": [
+            "Source composite 'HighwayMode' has no initial transition to required child 'HighwayMode.enter_hwy'."
+          ],
+          "locations": [
+            "NL3"
+          ],
+          "obligations": [
+            "HighwayMode must initially enter HighwayMode.enter_hwy."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:HighwayMode:facet:7cffbdc96402"
+          ]
+        },
+        {
+          "finding_id": "source:initial_contract:UrbanMode",
+          "claims": [
+            "Source composite 'UrbanMode' has no initial transition to required child 'UrbanMode.enter_urban'."
+          ],
+          "locations": [
+            "NL7"
+          ],
+          "obligations": [
+            "UrbanMode must initially enter UrbanMode.enter_urban."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:UrbanMode:facet:893c275ed863"
+          ]
+        },
+        {
+          "finding_id": "source:containment:AutonomousMode",
+          "claims": [
+            "Source child 'InitialState' has actual parent None, not required parent 'AutonomousMode'."
+          ],
+          "locations": [
+            "NL1"
+          ],
+          "obligations": [
+            "InitialState must be directly contained in AutonomousMode."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:containment:AutonomousMode:facet:0183b7ef1556"
+          ]
+        },
+        {
+          "finding_id": "source:stable_termination:HighwayMode.FinishState",
+          "claims": [
+            "Required termination target 'HighwayMode.FinishState' admits a source-level nonterminating continuation."
+          ],
+          "locations": [
+            "HighwayMode.FinishState"
+          ],
+          "obligations": [
+            "The NL-designated termination state 'FinishState' must be a stable ending target for its declared behavior."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:stable_termination:HighwayMode.FinishState:facet:e307c5604aaa"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "HighwayMode 的 cruise 子状态在前车距离小于 25 且有额外车道时同时定义了两条完全相同的转移，其中一条正确指向 lane_change，另一条也指向 lane_change，未体现规范中 enter_hwy 可基于条件进入 cruise 或 lane_change 的区分。",
+          "reason": "规范第 3 条要求系统从 enter_hwy 根据条件进入 cruise 或 lane_change；模型给两条转移使用完全相同的 guard，导致无法按规范表达两种不同目的状态的判定逻辑，也使 cruise 分支不可由独立条件识别。",
+          "where": "HighwayMode 内的 `enter_hwy --> cruise`、`enter_hwy --> lane_change` 转移。"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "HighwayMode 中从 cruise 退出高速的转移错误地直接指向顶层 FinishState，而规范要求的是退出高速（exit highway），并未规定该条件直接结束整个自动驾驶流程。",
+          "reason": "规范第 5 条只说明距离出口小于 2 公里时退出 HighwayMode；第 6 条明确 HighwayMode 进入 FinishState 的触发条件是 `auto_finished=true`。因此该转移违反了出口条件与自动驾驶完成条件的语义分离。",
+          "where": "`cruise --> FinishState : dist_to_exit<2`。"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "HighwayMode 中 lane_change 在距离出口小于 2 公里时转移到 `exit_hwy`，但模型没有定义 `exit_hwy` 状态，也没有说明该状态如何离开 HighwayMode或进入后续模式。",
+          "reason": "规范第 4 条要求在该条件下退出 highway；模型的目标是未定义的孤立状态，因而既不能形成有效的状态机转移，也未明确退出 HighwayMode 的行为。",
+          "where": "`lane_change --> exit_hwy : dist_to_exit<2` 及 HighwayMode 状态块。"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "UrbanMode 中 lane_change_urban 在距离出口小于 0.7 公里时转移到 `exit_urban`，但模型没有定义 `exit_urban` 状态，也没有说明其后续行为。",
+          "reason": "规范第 8 条要求该条件触发退出 UrbanMode；未定义的目标状态无法表达有效的模式退出。",
+          "where": "`lane_change_urban --> exit_urban : dist_to_exit<0.7` 及 UrbanMode 状态块。"
+        },
+        {
+          "finding_id": "baseline_issue_5",
+          "issue": "模型缺少从 HighwayMode 和 UrbanMode 的内部行驶子状态到另一模式的动态转移，现有跨模式转移只声明在复合状态边界上。",
+          "reason": "规范第 11 条要求支持驾驶过程中的动态模式切换。若这些转移被理解为复合状态的外部转移，它们没有指定从哪个内部子状态触发，也没有定义切换后的入口子状态；模型因此不能明确表示在 cruise、lane_change、straight 等运行状态中的无缝切换。",
+          "where": "`HighwayMode --> UrbanMode : urban_way=true`、`UrbanMode --> HighwayMode : high_way=true`。"
+        },
+        {
+          "finding_id": "baseline_issue_6",
+          "issue": "CollisionAvoidance 复合状态没有连接到 AutonomousMode 或其他顶层状态，模型未表达碰撞规避系统与自动驾驶流程并行或同时生效的关系。",
+          "reason": "规范第 12、13 条要求碰撞规避系统作为系统功能初始于 deactive，并可根据危险条件激活、再在危险消失时恢复。模型虽然定义了内部转移，但 CollisionAvoidance 本身没有初始进入路径；如果按顶层状态机解释，系统永远不会进入该复合状态，相关功能不可达。",
+          "where": "整个 `state CollisionAvoidance { ... }` 状态块。"
+        },
+        {
+          "finding_id": "baseline_issue_7",
+          "issue": "collision_avoidance_active 返回 deactive 的条件被建模为三个条件同时满足（`front_inactive & rear_inactive & pedestrian_inactive`），而规范将其描述为不存在任何 active danger，并列出 front、rear、pedestrian 三类危险的 inactive 条件。",
+          "reason": "若某一类危险从未存在或已经解除，而其他危险类别没有对应的活动风险，模型的严格 AND guard 可能阻止复位；规范的核心语义是确认不存在活动危险，模型没有明确表达这种危险状态聚合语义。",
+          "where": "`collision_avoidance_active --> collision_avoidance_deactive : front_inactive & rear_inactive & pedestrian_inactive`。"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "从 enter_hwy 到 cruise 和 lane_change 使用完全相同的守卫条件 `dist_to_front<25 & extra_lane=true`。",
+          "reason": "模型没有表达在何种不同条件下应进入 cruise 或 lane_change；同一条件下产生两个无区分的非确定性选择，无法准确体现规范所说的基于前车距离和额外车道可用性的状态判定。",
+          "where": "HighwayMode 内 enter_hwy 的两条出边"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "`cruise --> FinishState : dist_to_exit<2` 将接近高速出口直接建模为完成状态。",
+          "reason": "规范要求该条件下退出高速公路，而高速模式结束并进入 FinishState 的触发条件是 `auto_finished=true`。模型因此用错误的条件和目标替代了高速退出路径。",
+          "where": "HighwayMode 内 cruise 到 FinishState 的出边"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "`exit_hwy` 仅作为目标状态出现，没有任何后续转移，也没有连接到 FinishState。",
+          "reason": "规范要求车道变更状态在 `dist_to_exit<2` 时退出高速公路；当前模型到达 exit_hwy 后成为无出口的悬空状态，未建模退出后的行为及模式结束关系。",
+          "where": "HighwayMode 内 lane_change 到 exit_hwy 的出边及 exit_hwy 状态"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "`exit_urban` 仅作为目标状态出现，没有任何后续转移，也没有连接到 FinishState。",
+          "reason": "规范要求在 `dist_to_exit<0.7` 时退出 UrbanMode；模型虽建立了到 exit_urban 的边，但没有定义该退出状态如何离开 UrbanMode或到达 FinishState，导致退出流程不完整。",
+          "where": "UrbanMode 内 lane_change_urban 到 exit_urban 的出边及 exit_urban 状态"
+        },
+        {
+          "finding_id": "baseline_issue_5",
+          "issue": "CollisionAvoidance 没有从 AutonomousMode、InitialState或其他可达状态进入；其内部初始状态 collision_avoidance_deactive 因此不会成为系统运行时的初始碰撞规避状态。",
+          "reason": "规范明确要求碰撞规避系统初始处于 collision_avoidance_deactive，并能在危险条件下激活。当前顶层初始流程只到 AutonomousMode，CollisionAvoidance 是一个孤立且不可达的复合状态，相关转移无法实际发生。",
+          "where": "CollisionAvoidance 复合状态与顶层状态结构"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "高速模式中从 cruise 遇到出口距离小于 2 公里时直接转入 FinishState",
+          "reason": "规范第5条要求此条件使系统退出高速公路；第6条明确 HighwayMode 只有在 `auto_finished=true` 时才转入 FinishState。模型把该条件错误地映射为完成状态，且未建模规范要求的 highway exit 状态/路径。",
+          "where": "HighwayMode 内部：`cruise --> FinishState : dist_to_exit<2`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "模型虽然定义了 exit_hwy，但没有说明或建模从该状态如何退出 HighwayMode",
+          "reason": "规范第4条只规定可因 `dist_to_exit<2` 退出高速公路，模型的 exit_hwy 是 HighwayMode 内部状态，但没有从 exit_hwy 到外部模式、FinishState 或其他规定目标的转移，导致退出路径不完整/不可达后续状态。",
+          "where": "HighwayMode 内部：`lane_change --> exit_hwy : dist_to_exit<2`"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "城市模式出口条件只转入内部 exit_urban，未定义其后的退出路径",
+          "reason": "规范第8条要求在该条件下转至 exit_urban，但为了实现“退出 UrbanMode”，模型应至少定义 exit_urban 的后续行为；当前 exit_urban 没有声明或任何出边，形成无后续语义的悬空状态。",
+          "where": "UrbanMode 内部：`lane_change_urban --> exit_urban : dist_to_exit<0.7`"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "模型没有按规范将 AutonomousMode 的初始进入明确建模为其 InitialState 子状态",
+          "reason": "规范第1条将 InitialState 描述为 AutonomousMode 的 substate/起始子状态。模型使用平行的顶层状态转移 `AutonomousMode --> InitialState`，而不是在 `state AutonomousMode { ... }` 中嵌套 InitialState；这改变了状态层级语义，AutonomousMode 与 InitialState 成为同级状态。",
+          "where": "`AutonomousMode --> InitialState : initial` 及顶层初始结构"
+        },
+        {
+          "finding_id": "baseline_issue_5",
+          "issue": "CollisionAvoidance 整个状态机没有从系统主状态机可达的入口或与主状态机的并行关系声明",
+          "reason": "规范第12、13条要求系统支持碰撞规避系统从 deactive 到 active 再返回 deactive。模型虽定义了内部转移，但未将 CollisionAvoidance 作为并行区域或从 AutonomousMode/其他系统状态连接；按该PlantUML结构，它是一个未被主流程进入的孤立复合状态，不能作为系统运行中的碰撞规避行为。",
+          "where": "碰撞规避状态块 `state CollisionAvoidance { ... }`"
+        },
+        {
+          "finding_id": "baseline_issue_6",
+          "issue": "恢复条件被建模为三个条件同时满足",
+          "reason": "规范列出 `front_inactive`、`rear_inactive` 和 `pedestrian_inactive` 作为无活动危险的指示条件；若这些条件分别对应前方、后方和行人危险的独立解除，则任一已激活危险解除即可退出，或者应明确按危险来源组合。模型无条件地要求三者同时为真，可能阻止在未涉及的危险信号仍为非 inactive 时恢复。该点取决于规范对三个 inactive 信号的组合语义未进一步限定。",
+          "where": "`collision_avoidance_active --> collision_avoidance_deactive : front_inactive & rear_inactive & pedestrian_inactive`"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0029",
+    "ledger_assessments": [
+      {
+        "ledger_id": "DIFF-0029-06",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "没有 finding 指认 :40 AutonomousMode→FinishState 这条额外完成边；tr_0009 指向的是 :15 的 cruise 出边。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "没有输出指认 :40 的多余完成边。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "没有输出指认 :40 的多余完成边。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "没有 issue 主张 AutonomousMode→FinishState 是 NL 未要求的第三条完成边。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "没有 issue 主张 AutonomousMode→FinishState 是多余完成边。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "没有 issue 主张 AutonomousMode→FinishState 是多余完成边。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0029-01",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:containment:AutonomousMode"
+          ],
+          "reason": "明确断言 InitialState 的实际父级为空而非 AutonomousMode，直接覆盖 AutonomousMode 未建立所需包含层次这一性质。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:containment:AutonomousMode"
+          ],
+          "reason": "明确断言 InitialState 未被 AutonomousMode 直接包含，命中该层次缺失。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:containment:AutonomousMode"
+          ],
+          "reason": "明确断言 InitialState 与 AutonomousMode 的父子归属错误，命中该层次缺失。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "没有 issue 指认 AutonomousMode 未建成复合态或 InitialState 与其同级。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "没有 issue 指认 AutonomousMode 的包含层次缺失。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_4"
+          ],
+          "reason": "明确指出 InitialState 应为 AutonomousMode 子态，但模型把两者建成顶层同级状态。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0029-02",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出的重叠分支分别位于 UrbanMode.enter_urban 和 CollisionAvoidance，不是 enter_hwy 的两条同条件出边。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "没有 finding 指认 enter_hwy→cruise 与 enter_hwy→lane_change 的同条件非确定性。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "没有 finding 指认 enter_hwy 的两条不可区分分支。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "where 与 reason 明确落在 enter_hwy→cruise 和 enter_hwy→lane_change，并主张相同 guard 使两目标无法区分；issue 首句的 cruise/两条均指 lane_change 属表述瑕疵，不改变完整定位和性质。",
+          "confidence": "medium"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "明确指出 enter_hwy 的两条不同目标出边使用完全相同条件，造成无区分的非确定性选择。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "没有 issue 指认 enter_hwy 的同条件冲突分支。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0029-03",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "tr_0009 finding 只把整条 :15 转移称为 forbidden/extraneous，没有主张其目标应由 FinishState 改为 highway-exit；性质是多余而非错误目标。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "hypothesis:1b9677681017aa15"
+          ],
+          "reason": "明确定位 :15/tr_0009，并断言 dist_to_exit<2 的 cruise 转移未指向所需 HighwayExit，正是错误目标问题。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "没有 finding 指认 :15 的 dist_to_exit<2 转移目标错误。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_2"
+          ],
+          "reason": "明确指出 cruise 在 dist_to_exit<2 时错误直达 FinishState，而规范要求局部退出高速。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_2"
+          ],
+          "reason": "明确指出 :15 把接近高速出口错误建模为完成状态，条件和目标替代了高速退出路径。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "明确指出 cruise 的 dist_to_exit<2 边错误进入 FinishState，而应走 highway exit。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0029-04",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "两个 finding 各自只覆盖 HighwayMode 或 UrbanMode 的一个默认入口缺失；冻结条目完整主张同时涉及两个复合态，不能拼接两条输出形成命中。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "两个独立 finding 分别只覆盖一个复合态，任一均不完整覆盖台账的双处缺失，且不得合并。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "两个独立 finding 分别只覆盖一个复合态，不能拼接为台账完整主张。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "没有 issue 指认 HighwayMode 与 UrbanMode 均缺少默认 [*] 入口并以自造 enter 事件替代。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "没有 issue 指认两个复合态的默认入口边缺失。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "AutonomousMode/InitialState 的层次 issue 不是 HighwayMode、UrbanMode 的默认入口槽位问题。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0029-05",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "FinishState finding 主张其可继续执行、不能稳定终止，没有主张它因作用域属于 HighwayMode 而使 UrbanMode 完成边路由回 HighwayMode。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "相关 finding 讨论 FinishState 非终止或 :15 错误目标，不是 :43 的层次路由错误。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "仅主张 HighwayMode.FinishState 非稳定终点，未主张 UrbanMode→FinishState 会进入 HighwayMode。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "没有 issue 指认 FinishState 的 HighwayMode 归属及 :43 的跨层路由后果。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "没有 issue 指认城市完成边被路由进 HighwayMode 内的 FinishState。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "没有 issue 指认 FinishState 作用域导致的城市侧错误路由。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "INS-0029-01",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "hypothesis:b62414a3495bc428"
+          ],
+          "reason": "明确断言 CollisionAvoidance 从系统根不可达，位置和不可达性质完全一致。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "hypothesis:c924a4b22066bfcb"
+          ],
+          "reason": "明确断言 CollisionAvoidance 行为从根入口不可达，导致其内部转移无法执行。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本格没有任何 CollisionAvoidance 可达性 finding。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_6"
+          ],
+          "reason": "明确指出 CollisionAvoidance 没有顶层进入路径或并行关系，按当前结构整体不可达。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_5"
+          ],
+          "reason": "明确指出 CollisionAvoidance 是无可达入口的孤立复合状态，其内部行为无法发生。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_5"
+          ],
+          "reason": "明确指出 CollisionAvoidance 无主流程入口或并行声明，整个块不可达。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "INS-0029-05",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:stable_termination:HighwayMode.FinishState"
+          ],
+          "reason": "明确主张 NL 指定的 FinishState 允许源级非终止延续，覆盖该终止意图失效的性质。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:stable_termination:HighwayMode.FinishState",
+            "hypothesis:6ce2772e6966aec2"
+          ],
+          "reason": "两条 finding 各自独立主张 HighwayMode 的 FinishState 不是稳定终止端点，均命中台账的非终止主张。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:stable_termination:HighwayMode.FinishState"
+          ],
+          "reason": "明确主张 FinishState 可继续运行而非稳定终止，命中终止意图失效。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "exit_hwy/exit_urban 无后续是局部悬空或无出路，未主张 NL 的 FinishState 不能终止全局行为。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "局部 exit 状态无后续不等同于 FinishState 可被带走或全局缺少终止汇点。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "局部退出路径不完整不等同于台账的全局非终止性质。",
+          "confidence": "high"
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:initial_contract:HighwayMode",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "只覆盖 HighwayMode 的默认入口缺失，未完整覆盖同时要求 HighwayMode 与 UrbanMode 两处的 EIS-0029-04。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:initial_contract:UrbanMode",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "只覆盖 UrbanMode 的默认入口缺失，未完整覆盖双处台账 EIS-0029-04。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:containment:AutonomousMode",
+        "matched_ledger_ids": [
+          "EIS-0029-01"
+        ],
+        "false_positive": false,
+        "reason": "同处主张 InitialState 未包含于 AutonomousMode，属于所需层次缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "hypothesis:f54667678450fcd4",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "指认 UrbanMode.enter_urban 的分支重叠，冻结台账没有该处该性质条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "hypothesis:2a56a480021ea08a",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "指认 CollisionAvoidance.deactive 的分支重叠，冻结台账没有该处非确定性条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:stable_termination:HighwayMode.FinishState",
+        "matched_ledger_ids": [
+          "INS-0029-05"
+        ],
+        "false_positive": false,
+        "reason": "主张 FinishState 允许非终止延续，命中全局终止意图失效。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:stable_termination:UrbanMode.exit_urban",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "指认 exit_urban 不是稳定终点；冻结台账没有该局部状态的非终止条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:extraneous_transition:tr_0009",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "tr_0009 是 :15 cruise→FinishState；输出称该整条边 forbidden/extraneous，而台账 EIS-0029-03 主张的是目标错误，性质不相同。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "hypothesis:b62414a3495bc428",
+        "matched_ledger_ids": [
+          "INS-0029-01"
+        ],
+        "false_positive": false,
+        "reason": "直接对应 CollisionAvoidance 从根不可达。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:initial_contract:HighwayMode",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "只覆盖双处台账 EIS-0029-04 的 HighwayMode 一半，不能与另一输出拼接。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:initial_contract:UrbanMode",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "只覆盖双处台账 EIS-0029-04 的 UrbanMode 一半，不能与另一输出拼接。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:containment:AutonomousMode",
+        "matched_ledger_ids": [
+          "EIS-0029-01"
+        ],
+        "false_positive": false,
+        "reason": "直接对应 InitialState 未归属 AutonomousMode 的层次缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:stable_termination:HighwayMode.FinishState",
+        "matched_ledger_ids": [
+          "INS-0029-05"
+        ],
+        "false_positive": false,
+        "reason": "直接主张 FinishState 存在非终止延续。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:1b9677681017aa15",
+        "matched_ledger_ids": [
+          "EIS-0029-03"
+        ],
+        "false_positive": false,
+        "reason": "定位 :15 并主张 dist_to_exit<2 的目标应为 highway exit 而非当前目标。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:c924a4b22066bfcb",
+        "matched_ledger_ids": [
+          "INS-0029-01"
+        ],
+        "false_positive": false,
+        "reason": "直接对应 CollisionAvoidance 从根不可达。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:6ce2772e6966aec2",
+        "matched_ledger_ids": [
+          "INS-0029-05"
+        ],
+        "false_positive": false,
+        "reason": "直接主张 HighwayMode FinishState 未建模为终止端点。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:initial_contract:HighwayMode",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "只覆盖 EIS-0029-04 的一个位置，未完整覆盖其双处主张。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:initial_contract:UrbanMode",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "只覆盖 EIS-0029-04 的一个位置，未完整覆盖其双处主张。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:containment:AutonomousMode",
+        "matched_ledger_ids": [
+          "EIS-0029-01"
+        ],
+        "false_positive": false,
+        "reason": "直接对应 AutonomousMode 的包含层次缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:stable_termination:HighwayMode.FinishState",
+        "matched_ledger_ids": [
+          "INS-0029-05"
+        ],
+        "false_positive": false,
+        "reason": "直接对应 FinishState 的非稳定终止问题。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0029-02"
+        ],
+        "false_positive": false,
+        "reason": "完整定位 enter_hwy 的两条出边并主张相同 guard 造成不可区分选择。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "EIS-0029-03"
+        ],
+        "false_positive": false,
+        "reason": "直接对应 :15 将局部高速退出错误指向 FinishState。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 exit_hwy 未定义或无后续；冻结台账没有该局部无出路/声明问题。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 exit_urban 未定义或无后续；冻结台账没有该局部问题。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_5",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "质疑复合态边界上的模式切换未绑定内部子态；冻结台账没有该性质条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_6",
+        "matched_ledger_ids": [
+          "INS-0029-01"
+        ],
+        "false_positive": false,
+        "reason": "直接对应 CollisionAvoidance 无入口、整体不可达。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_7",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "质疑 collision avoidance 恢复 guard 的 AND 聚合；冻结台账无此条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0029-02"
+        ],
+        "false_positive": false,
+        "reason": "直接对应 enter_hwy 两条同条件不同目标分支的非确定性。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "EIS-0029-03"
+        ],
+        "false_positive": false,
+        "reason": "直接对应 cruise 的 dist_to_exit<2 边目标错误。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 exit_hwy 无后续，是局部无出路问题，冻结台账未收录。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 exit_urban 无后续，是局部无出路问题，冻结台账未收录。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_5",
+        "matched_ledger_ids": [
+          "INS-0029-01"
+        ],
+        "false_positive": false,
+        "reason": "直接对应 CollisionAvoidance 无根入口而不可达。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0029-03"
+        ],
+        "false_positive": false,
+        "reason": "直接对应 :15 在 dist_to_exit<2 时错误进入 FinishState。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 exit_hwy 无退出后续，冻结台账没有该局部无出路条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 exit_urban 无退出后续，冻结台账没有该局部无出路条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [
+          "EIS-0029-01"
+        ],
+        "false_positive": false,
+        "reason": "明确指出 AutonomousMode 与 InitialState 被错误建成同级，缺失所需父子层次。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_5",
+        "matched_ledger_ids": [
+          "INS-0029-01"
+        ],
+        "false_positive": false,
+        "reason": "直接对应 CollisionAvoidance 无可达入口或并行关系声明。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_6",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "质疑恢复条件要求三个 inactive 同时成立；冻结台账无该 guard 组合条目。",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "按“同一处且同一性质”逐条独立对齐；不把两个分别只覆盖 HighwayMode/UrbanMode 的初始入口 finding 拼接成台账 EIS-0029-04，也不把 FinishState 的非终止主张当作其层次作用域/错误路由主张。"
+  },
+  "status": "ok",
+  "attempts": 2
+}

@@ -51,7 +51,7 @@
 - 任务入口：部分 SysML 模型 + Given-When-Then 需求文本
 - 关键处理：GWT 需求到迁移补全规则，再将规则映射到已有 SysML 状态机。
 - 最终产物：补全后的 SysML 状态机模型（SysML 状态机）
-- 使用的LLM：未使用
+- 使用的LLM：⚠️ **GPT-3.5 / ChatGPT，仅用于需求预处理**（把原始需求改写为 GWT 句式）；⛔ 补全本体是**规则式**的（EBNF + 模板引擎 + 三道确定性检查），⛔ 无学习成分
 
 ## 实验与评估
 
@@ -110,5 +110,5 @@
 - **输入**：部分 SysML 模型 + Given-When-Then 需求文本
 - **输出**：补全后的 SysML 状态机模型
 - **输出模型类型**：SysML 状态机
-- **使用的LLM**：未使用
+- **使用的LLM**：⚠️ **GPT-3.5 / ChatGPT，仅用于需求预处理**（原文 §11.1 逐字 `the rephrasing was carried out with the help of ChatGPT` · §12 `transformed using … GPT−3.5`）；⛔ 补全本体是**规则式**的，⛔ 无学习成分
 - **主要方法**：GWT 需求到迁移补全规则，再将规则映射到已有 SysML 状态机。

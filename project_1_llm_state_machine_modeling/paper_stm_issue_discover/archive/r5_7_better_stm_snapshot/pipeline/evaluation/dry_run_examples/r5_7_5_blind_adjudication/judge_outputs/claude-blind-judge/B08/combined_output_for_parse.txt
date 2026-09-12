@@ -1,0 +1,76 @@
+
+```json
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B08",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "claude-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "partial",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "NL and STM describe discrete distance/velocity/boolean threshold conditions (e.g. dist_to_front<25, extra_lane=true, auto_finished=true), no continuous time/timed-automata semantics and no periodic tick/timer cue. This is a plain T0 protocol case, not T0.5 or T1.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "mechanical_checks report candidate_parse_status=parse_ok; candidate_stmk.fcstm is structurally well-formed with matching state/event declarations and def int variable declarations. Auditable.",
+      "evidence_references": ["candidate STM_k"]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "The change is clearly attributable to canonical STM_0 -> candidate STM_k: two def int variable declarations (dist_to_front, extra_lane) are added, the event dist_to_front_25_extra_lane_true is removed, and both cruise->lane_change transitions in HighwayMode are rewritten to use explicit guard syntax if [dist_to_front < 25 && extra_lane == 1]. This is not a mere format conversion; it introduces explicit typed guard variables replacing an opaque event-label encoding.",
+      "evidence_references": ["canonical STM_0", "candidate STM_k"]
+    },
+    "G3": {
+      "status": "pass",
+      "reason": "All states, hierarchy, and transitions present in canonical STM_0 remain in candidate STM_k, including start/end pseudo-states, cruise/lane_change/enter_hwy/endHighwayMode, UrbanMode substates, collision avoidance states, and all connecting transitions. No state, transition, or hierarchy deletion. The dist_to_exit<2, lane_change_completed, and UrbanMode guard events are all unchanged.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G4": {
+      "status": "partial",
+      "reason": "NL item 3/5 explicitly states the front-distance and extra-lane condition as a compound predicate (dist_to_front<25 && extra_lane=true); canonical STM_0 folds this into an opaque event label (dist_to_front_25_extra_lane_true). Candidate converts this specific instance, in both HighwayMode cruise->lane_change transitions, into an explicit typed guard (if [dist_to_front < 25 && extra_lane == 1]), which is a legitimate local guard-extraction improvement per the local target. However, NL item 7/9 describes an identical repeated pattern in UrbanMode (dist_to_front<15 && extra_lane=true for lane_change_urban transitions), and candidate leaves that instance completely untouched as the same opaque event label (dist_to_front_15_extra_lane_true). This is the same family/pattern of guard-in-label encoding, only partially closed across the STM, producing an inconsistent abstraction (one mode has explicit numeric/typed guards, the other still an opaque named event for an equivalent semantic pattern).",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G5": {
+      "status": "partial",
+      "reason": "The HighwayMode guard extraction preserves NL-supported semantics (dist_to_front<25, extra_lane boolean encoded as extra_lane==1) faithfully, with no regression. But because the identical UrbanMode pattern is left as an unconverted event label, the STM as a whole exhibits inconsistent representation for what is the same conceptual guard-extraction target family described symmetrically in the NL (highway vs urban lane-change triggers). This partial, uneven treatment of one repeated NL pattern prevents a strict 'better' classification at the whole-STM level, though it is also not a regression.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "No hidden answer key, expected verdict, source case id, or construction-intent label observed in the packet; provenance facts (ledger available, hash chain complete, candidate differs from canonical) are used only as low-level mechanical facts, not as semantic conclusions. Eligibility flags forced to false/null per protocol dry-run requirement. Confidence is medium given consistent partial-closure evidence.",
+      "evidence_references": ["this JSON output"]
+    }
+  },
+  "evidence_references": [
+    "NL items 3 and 5 (HighwayMode dist_to_front<25 && extra_lane=true)",
+    "NL items 7 and 9 (UrbanMode dist_to_front<15 && extra_lane=true)",
+    "canonical STM_0 event dist_to_front_25_extra_lane_true and dist_to_front_15_extra_lane_true",
+    "candidate STM_k def int declarations and if [dist_to_front < 25 && extra_lane == 1] guards in HighwayMode only",
+    "mechanical_checks.candidate_parse_status=parse_ok",
+    "provenance_checks (change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true, candidate_same_as_canonical_stm0=false)"
+  ],
+  "rationale": "Candidate STM_k performs a legitimate, NL-supported local guard-extraction on the HighwayMode cruise->lane_change transitions, replacing an opaque event-label encoding of a compound distance/lane condition with an explicit typed guard (dist_to_front, extra_lane as def int variables). This change is attributable to canonical->candidate, introduces no deletion of states, transitions, or hierarchy, and improves guard explicitness for that specific NL-described condition, consistent with the 'complete local guard extraction can be better' allowance. However, the NL describes a structurally identical guard pattern for UrbanMode (dist_to_front<15 && extra_lane=true triggering lane_change_urban), and canonical STM_0 encodes it the same opaque way; candidate leaves this second instance of the same conceptual pattern completely unconverted. Because only part of the same repeated NL-described guard-extraction target family is closed, and the resulting STM has an internally inconsistent guard-representation style across otherwise parallel Highway/Urban structures, this cannot be scored as a full 'better' STM. There is no evidence of regression, semantic loss, or trace deletion, so it is not 'not_better' either; the improvement is real but incomplete/inconsistent, warranting 'partial'.",
+  "observed_anti_gaming_risk_flags": [
+    "inconsistent_partial_pattern_closure: same guard-extraction pattern applied to HighwayMode but not to the structurally parallel UrbanMode instance",
+    "no_semantic_deletion_detected",
+    "no_trace_loss_detected"
+  ],
+  "forbidden_claims": [
+    "This blind dry-run is not repair effectiveness evidence.",
+    "This is not a headline Better STM success claim."
+  ],
+  "confidence": "medium",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "No hidden answer key, expected verdict, source case slug, target closure summary, or construction-intent label was present in the input packet; only mechanical/provenance facts (parse status, hash/ledger completeness, byte-identity flag) were used."
+  }
+}
+```

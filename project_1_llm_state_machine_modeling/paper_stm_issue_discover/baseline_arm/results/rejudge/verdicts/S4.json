@@ -1,0 +1,40 @@
+{
+  "judged_by": "S4",
+  "positions": {
+    "EIS-0009-02|run2/0009-claude": {
+      "hit": true,
+      "equivalence_form": "合取项之一",
+      "carrier": "issue",
+      "argument": "台账 EIS-0009-02 的规约命题是「UrbanMode 内应声明 exit_urban」且「lane_change_urban 在 dist_to_exit<0.7 下应转入该 exit_urban（而作者源把它接到了位于 HighwayMode 的 FinishState）」的合取，锚在作者源那一条 `lane_change_urban --> FinishState : dist_to_exit<0.7`。已发布 issue [2]（ISSUE-UrbanMode-exit_urban-missing）逐字证明前一个合取项为假：「NL-L008 点名 exit_urban 为 UrbanMode 内的目标子状态，lane_change_urban 在 dist_to_exit<0.7 时应转入 exit_urban。模型下 UrbanMode 只有 enter_urban/lane_change_urban/straight/intersection，未声明 exit_urban」，并进一步指出该触发被路由回 HighwayMode 而非进入本地 exit_urban，与台账所述跨模式作用域后果同指。蕴含链：exit_urban 未声明 ⇒ 台账要求的那条 lane_change_urban→exit_urban 边不可能成立，即台账命题为假。同源判据：exit_urban 在作者源全文引用 0 次，两个主张都只能锚在 dist_to_exit<0.7 那一条唯一的作者编辑上。"
+    },
+    "EIS-0053-01|run1/0053-claude": {
+      "hit": true,
+      "equivalence_form": "直接对应",
+      "carrier": "issue",
+      "argument": "台账 EIS-0053-01 的命题是「三条初始边都写在各自 wrapper 内部，PumpControl 这一层没有默认进入点，投影因此注入 UnspecifiedInitial，PumpState 不可达」，并自陈其证据形态就是「作者源未写初始边 + 投影注入 UnspecifiedInitial + initial_target 结构族断言」。已发布 issue [2]（ISSUE-pumpcontrol-initial-targets-placeholder）逐字说同一件事：「模型将 PumpControl 的 [*] 迁移指向 UnspecifiedInitial 占位（编译器在作者未声明初始时注入的占位），因此 initial_target(PumpControl, PumpState) 为 False，且对任何作者声明的直接子状态的析取也为 False」，由 AST-REQ-006-1 与 AST-REQ-007-1 承载。蕴含链：进入 PumpControl 时不落入任何声明子状态，而作者源中除三个 wrapper 内部的 [*] 外再无任何跨区迁移（本格 issue [3][4] 同证 WaterState/MethaneState reaches=False），故 PumpState 不被进入——与台账逐字同一处作者源缺失（PumpControl 层缺 [*] 初始边，全文引用为零次即一处编辑）。"
+    },
+    "EIS-0053-01|run3/0053-claude": {
+      "hit": true,
+      "equivalence_form": "直接对应",
+      "carrier": "issue",
+      "argument": "已发布 issue [2]（ISSUE-PumpControl-default-entry）逐字指出「模型却把 PumpControl 的默认入口 [*] 指向占位子状态 UnspecifiedInitial，因此 initial_target(PumpControl, PumpState) 为 False，且对 NL 三个子状态的析取（REQ-004）也全为 False」，由 AST-REQ-004-1（any-nl-child，False）与 AST-REQ-008-1（PumpState，False）承载。这与台账 EIS-0053-01「PumpControl 这一层没有默认进入点，投影因此注入 UnspecifiedInitial」是同一命题的不同措辞，锚在同一处作者源编辑（PumpControl 层缺 [*] 初始边）。蕴含链：默认入口不落在任何 NL 子状态，且作者源无任何跨区迁移（本格 issue [3][4] 的 reaches=False 同证），故 PumpState 不被进入，即台账的不可达结论。"
+    },
+    "EIS-0053-01|run3/0053-gpt": {
+      "hit": true,
+      "equivalence_form": "直接对应",
+      "carrier": "issue",
+      "argument": "已发布 issue [1]（ISSUE-InitialTargetPumpState）指出「PumpControl 的初始入口没有落入同名声明的 PumpState，而是关联到 UnspecifiedInitial；因此进入 PumpControl 时既不能满足派生的『落入声明子状态』义务，也不能满足『首先转入 PumpState』的义务」，由 AST-REQ-004-1（derived-entry，False）与 AST-REQ-008-1（False）承载。这与台账 EIS-0053-01 所述「PumpControl 这一层没有默认进入点，投影注入 UnspecifiedInitial」指向同一处作者源编辑（PumpControl 层缺 [*] 初始边）。蕴含链：初始入口落在占位而非 PumpState ⇒ 进入 PumpControl 后 PumpState 不被占据，而本格 AST-REQ-010-1/AST-REQ-012-1 显示亦无任何路径进入其它区域，与台账「三个 wrapper 一个都不会被进入」一致。"
+    },
+    "EIS-0007-01|run2/0007-claude": {
+      "hit": true,
+      "equivalence_form": "合取项之一",
+      "carrier": "issue",
+      "argument": "台账 EIS-0007-01 的命题是「顶层唯一初始迁移落在 InitialState」且「InitialState 只有入边没有出边」的合取，据此得出检测流程与避撞控制不可达。已发布 issue [1]（ISSUE-ROOT-REGIONS）逐字证明第一个合取项为缺陷：「根的 [*] -> InitialState 使得默认入口落在这个额外插入的路由承载态上，而非 NL 承认的三个 region 之一」，由 AST-REQ-002-1（initial_target:any-of-three-regions，False）承载，并给出与台账同向的修法「修掉该状态并将 [*] 指向三个真实 region 之一」。同源判据：顶层初始边 `[*] --> InitialState` 在作者源中只此一条，两个主张都锚在这一条作者编辑上，动其一必动其二；产出超出的那部分（根子状态计数为 4）点到的多余元素恰是 InitialState 本身，而非某个正确元素，故不触发 §2.4 的严格超集排除。"
+    },
+    "EIS-0007-03|run1/0007-claude": {
+      "hit": false,
+      "argument": "台账 EIS-0007-03 主张的是 OperationalControls 整棵子树（FeedbackControl/SystemCheck/CommunicationControl）为 NL 未提及的臆造内容、无任何入边、且在同一非正交区内放了三条初始迁移。本格 2 条 issue 无一指向此处：issue [1](ISSUE-REQ-001-root-region-count) 虽因 cardinality=3 为 False 而枚举到 OperationalControls，但它明确把多出的那个判为 InitialState（『多出的 InitialState 与前三个作为区域的复合状态并列』），即把 OperationalControls 当作合法区域之一——与台账主张相反，属纪律 2 点名禁止的按相似度对齐；issue [2](ISSUE-REQ-003-005-007-activation-routing) 关于 CollisionDetection→CollisionAvoidance 的激活路径。断言表中为 False 的 AST-REQ-001-1/003-1/005-1/007-1 分别关于根区域计数与三次碰撞事件后的 CollisionAvoidance 占据，无一以 OperationalControls 或其三个子状态为对象，也无任何关于死代码入边缺失或非确定初始迁移的主张。"
+    }
+  },
+  "note": "EIS-0007-03 一位为 false 的关键在于：唯一触及 OperationalControls 的 cardinality 论证把多余元素归给了 InitialState，等于承认 OperationalControls 是三区域之一，与台账「整棵子树为臆造」的结论方向相反。"
+}

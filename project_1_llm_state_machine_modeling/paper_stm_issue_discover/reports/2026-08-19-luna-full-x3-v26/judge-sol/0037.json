@@ -1,0 +1,399 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0037",
+  "ledger": [
+    {
+      "ledger_id": "EIS-0037-01",
+      "pair": "0037",
+      "D": "D2",
+      "L": "L2",
+      "summary": "三条检测边（`:9`、`:16`、`:23`）指向的是死端叶态 `FrontendCollision`、`RearEndCollision`、`PedestrianCollision`，而真正含控制逻辑的三个 `...Region` 复合态（`:10`、`:17`、`:24`）一条入边都没有——三项避撞控制全部不可达，检测一次后整机卡死。",
+      "detail": "先把两组名字分清楚，它们只差一个后缀，很容易看混。一组是三个叶态：`FrontendCollision`（由 `:9` 引入）、`RearEndCollision`（`:16`）、`PedestrianCollision`（`:23`）。另一组是三个复合态：`FrontendCollisionRegion`（`:10`-`:14`）、`RearEndCollisionRegion`（`:17`-`:21`）、`PedestrianCollisionRegion`（`:24`-`:28`），它们内部各有一个真正的控制状态（`BrakingControl`、`SteeringControl`、`EmergencyStop`）以及一条回到 `Inactive` 的边。\n\n三条检测边指的是第一组。检索全文，以第二组任何一个 `...Region` 为目标的迁移一条都没有。所以三个控制状态全部不可达——NL 第 2、3 句要求的避撞控制一项也不会被激活。\n\n更进一步，第一组那三个叶态自己也是死端：全文没有任何以它们为源的迁移，它们的父 `ActiveState`（:5-:29）在根层也没有出边（`:31 InitialState -up-> ActiveState : Collision Detected` 是入边）。于是检测到一次碰撞之后，整机永久卡在那个死端叶态上。\n\n根因是命名上的一次错位：作者建了两套东西（检测结果态与控制区域），但检测边连到了前者，控制逻辑写在后者里，两者之间没有桥。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 2 句「This sub-machine becomes active when a possible frontend collision, rear-end collision or collision with pedestrian is detected」与第 3 句「The orthogonal regions of the active mode of collision avoidance allow for concurrent activation different of collision avoidance controls」——检测应当导致对应的避撞控制被激活。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法：三个 `...Region` 零入边是可检索的结构事实，不存在任何解释能让控制被激活。反驳不存活。",
+      "L_basis": "判 L2。陈述这条错误需要两个论证：一个可达性排除（从根初始边出发的全部路径都到不了三个控制状态），以及一个困住论证（进入死端叶态之后没有任何后继）。两者都是对行为集合的构造与排除，不是单个系统状态上的静态判断。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "transition",
+        "defect_qualifier": "incorrect",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:child_count:ActiveState",
+          "claims": [
+            "The active collision-avoidance mode lacks the required orthogonal-region structure for concurrent activation of different collision-avoidance controls."
+          ],
+          "locations": [
+            "NL3",
+            "PUML:L5",
+            "PUML:L10",
+            "PUML:L17",
+            "PUML:L24"
+          ],
+          "obligations": [
+            "The active collision-avoidance mode must provide three orthogonal regions capable of concurrent control activation."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:child_count:ActiveState:facet:ff15b9ee2e7f"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:child_count:ActiveState",
+          "claims": [
+            "The authored model does not realize three orthogonal regions for the active collision-avoidance mode."
+          ],
+          "locations": [
+            "NL1",
+            "ActiveState",
+            "ActiveState.FrontendCollisionRegion",
+            "ActiveState.RearEndCollisionRegion",
+            "ActiveState.PedestrianCollisionRegion"
+          ],
+          "obligations": [
+            "The active collision-avoidance mode has three orthogonal regions."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:child_count:ActiveState:facet:8cdc30f8c4ef"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_component:ActiveState",
+          "claims": [
+            "Source component 'ActiveState' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "NL3",
+            "llms_emp_feedback_final_0037.ActiveState.FrontendCollisionRegion.BrakingControl",
+            "PUML:L10",
+            "PUML:L11",
+            "llms_emp_feedback_final_0037.ActiveState.RearEndCollisionRegion.SteeringControl",
+            "PUML:L17",
+            "PUML:L18",
+            "llms_emp_feedback_final_0037.ActiveState.PedestrianCollisionRegion.EmergencyStop",
+            "PUML:L24",
+            "PUML:L25"
+          ],
+          "obligations": [
+            "A collision-avoidance control must be reachable from the machine root so the active mode can activate it."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 3,
+          "facet_keys": [
+            "source:unreachable_component:ActiveState:facet:eba1c98b1b06",
+            "source:unreachable_component:ActiveState:facet:4a475a54001e",
+            "source:unreachable_component:ActiveState:facet:10619579fdfe"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:unreachable_component:ActiveState",
+          "claims": [
+            "Source component 'ActiveState' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "NL2",
+            "tr_0003",
+            "ActiveState.FrontendCollisionRegion.BrakingControl",
+            "tr_0006",
+            "ActiveState.RearEndCollisionRegion.SteeringControl",
+            "tr_0009",
+            "ActiveState.PedestrianCollisionRegion.EmergencyStop"
+          ],
+          "obligations": [
+            "A possible frontend collision must activate the frontend collision control path.",
+            "A rear-end collision must activate the rear-end collision control path.",
+            "A collision with a pedestrian must activate the pedestrian collision control path."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 3,
+          "facet_keys": [
+            "source:unreachable_component:ActiveState:facet:b084fe33f112",
+            "source:unreachable_component:ActiveState:facet:908cbba2aadf",
+            "source:unreachable_component:ActiveState:facet:a974f42a04e2"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型没有把三个碰撞规避区域建模为活动模式下的正交（并发）区域。",
+          "reason": "规格明确要求活动碰撞规避模式的正交区域允许不同碰撞规避控制并发激活。PlantUML 中三种碰撞类型是 Inactive 的三个普通互斥分支；一次进入其中一个分支后只能执行对应控制，无法同时激活 BrakingControl、SteeringControl 和 EmergencyStop。",
+          "where": "ActiveState 内的 FrontendCollisionRegion、RearEndCollisionRegion、PedestrianCollisionRegion，以及从 Inactive 指向三者的三条转换"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "碰撞检测触发条件建模过窄，遗漏了“可能发生”的语义。",
+          "reason": "规格要求在检测到可能的前方碰撞、追尾碰撞或行人碰撞时激活子机。模型只写 Collision Detected / Frontend Collision Detected / Rear-End Collision Detected / Pedestrian Collision Detected，表示已检测到碰撞，而没有表示可能碰撞或碰撞风险；这会把激活时机推迟到实际碰撞检测。",
+          "where": "InitialState -up-> ActiveState : Collision Detected，以及 Inactive 到三个碰撞状态的触发事件"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "模型的三种碰撞控制没有共同的活动碰撞规避模式，且活动状态的入口与内部区域结构不一致。",
+          "reason": "规格描述的是一个在风险检测后变为活动的碰撞规避子机，活动模式内部包含可并发的控制区域。模型进入 ActiveState 后先处于 Inactive，只有再次发生三条互斥事件之一才进入某个碰撞区域；因此“Collision Detected”进入 ActiveState 并不会直接激活相应的规避控制，也没有将检测到的具体风险传递给活动模式内的并发区域。",
+          "where": "ActiveState 的定义、InitialState 到 ActiveState 的转换，以及 ActiveState 内的 Inactive 状态"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "各控制区域的退出目标指向外层 Inactive，不能正确表示各正交区域独立结束后的并发状态管理。",
+          "reason": "若这些状态属于应并发运行的三个区域，每个区域的控制结束应只退出自身区域或使该区域回到初始/空闲子状态，而不应直接把整个活动子机的控制流程汇聚到同一个外层 Inactive。当前连接既未表达区域独立完成，也会破坏多个控制同时激活时的生命周期。",
+          "where": "BrakingControl -down-> Inactive、SteeringControl -down-> Inactive、EmergencyStop -down-> Inactive"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "三个碰撞规避区域未建模为活动模式中的正交区域，不能并发激活不同控制。",
+          "reason": "规格第3条要求活动碰撞规避模式包含正交区域，并允许不同碰撞规避控制并发激活。PlantUML 中三个区域是 `ActiveState` 内的普通子状态，但三者都由同一个 `Inactive` 状态顺序触发，进入一个区域后不能同时进入其他区域，因此不具备正交并发语义。",
+          "where": "`state ActiveState` 内的 `FrontendCollisionRegion`、`RearEndCollisionRegion`、`PedestrianCollisionRegion`，以及它们均从 `Inactive` 进入的转移。"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "子机器的活动条件被错误地建模为单一的“Collision Detected”，且触发条件未限定为三类“可能的”碰撞。",
+          "reason": "规格第2条要求在检测到前向碰撞、追尾碰撞或行人碰撞的可能性时激活该子机器。模型使用笼统的 `Collision Detected` 激活 `ActiveState`，没有表达三类可能性检测，也可能接受未指定类型的碰撞；同时三个具体检测事件只负责从 `Inactive` 转移，未作为子机器激活条件明确建模。",
+          "where": "`InitialState -up-> ActiveState : Collision Detected`，以及 `Inactive -down-> FrontendCollision`、`Inactive -down-> RearEndCollision`、`Inactive -down-> PedestrianCollision` 的事件标签。"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "碰撞规避控制完成后错误地转移到外层的 `Inactive` 状态，破坏了三个区域作为并发区域的独立生命周期。",
+          "reason": "若三个区域属于活动模式的正交区域，各控制区域应可独立响应各自的碰撞避免完成事件；一个区域完成不应直接把整个活动模式或其他并发区域转入同一个 `Inactive`。当前模型把嵌套区域状态的完成目标指向共同外层状态，既未表达独立完成，也无法保持其他控制并发运行。",
+          "where": "三个区域中的 `BrakingControl -down-> Inactive`、`SteeringControl -down-> Inactive`、`EmergencyStop -down-> Inactive` 转移。"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型没有将三个碰撞处理区域声明为正交区域。",
+          "reason": "规格明确要求活动模式的正交区域能够并发激活不同的碰撞避免控制。PlantUML 中这三个状态只是普通嵌套状态，且都通过同一个 `Inactive` 状态分别进入，表示互斥的顺序状态结构，无法同时处于 `BrakingControl`、`SteeringControl` 和 `EmergencyStop` 等多个控制状态。",
+          "where": "`state ActiveState` 内的 `FrontendCollisionRegion`、`RearEndCollisionRegion`、`PedestrianCollisionRegion` 及其连接关系"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "碰撞避免子机的激活条件和激活结构不符合规格。",
+          "reason": "规格要求该子机在检测到可能的前向碰撞、追尾碰撞或行人碰撞时变为活动。模型只有一个泛化的 `Collision Detected` 转移进入 `ActiveState`，随后才从 `ActiveState` 内的 `Inactive` 通过三个互斥转移选择一种碰撞类型；没有把三类可能碰撞检测直接建模为触发子机激活的条件，也没有表达它们可同时触发。",
+          "where": "`InitialState -up-> ActiveState : Collision Detected`，以及 `Inactive` 到三个碰撞状态的转移"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "模型将不同碰撞避免控制限制为一次只能选择一个，不能并发激活。",
+          "reason": "这些转移共享同一源状态 `Inactive`，在状态机语义中形成选择关系；进入任一碰撞区域后还通过其控制状态的 `Collision Avoided` 转移返回 `Inactive`。这与规格所要求的不同碰撞避免控制可并发运行不一致。",
+          "where": "`Inactive -down-> FrontendCollision`、`Inactive -down-> RearEndCollision`、`Inactive -down-> PedestrianCollision` 三条转移"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0037",
+    "ledger_assessments": [
+      {
+        "ledger_id": "EIS-0037-01",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "未命中。finding 只主张 ActiveState 缺少三个正交区域的并发结构，性质是层次/并发结构缺失；台账主张的是三条检测边错误指向三个叶态、Region 无入边并导致控制不可达及叶态死端。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "未命中。child_count finding 仍只主张正交区域结构缺失。unreachable_component finding 主张的是整个 ActiveState 从根不可达，而台账明确存在根到 ActiveState 的入口；即使其位置列出内部控制状态，完整主张的不可达对象和原因仍不相同。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "未命中。完整主张是 ActiveState 整体从根不可达，且仅以三个控制路径作为位置/义务背景；台账的同处对象是三个 Region/控制状态因错误目标而无入边，并非 ActiveState 不可达。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "未命中。issue_1 是正交区域缺失，issue_2 是“可能碰撞”触发语义过窄，issue_3 是活动入口与内部结构不一致但未指认三条检测边错接到叶态，issue_4 是控制完成后退出到外层 Inactive。均未主张台账要求的具体错误目标迁移及其不可达/死端性质。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "未命中。issue_1 主张普通嵌套而非正交，issue_2 主张激活条件和结构不符合规格但没有指认检测边错指三个叶态，issue_3 主张并发控制被互斥限制。它们没有完整主张 Region 因无入边而不可达或叶态进入后无出路。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "未命中。issue_1 和 issue_3 都是并发/互斥结构问题，issue_2 是泛化 Collision Detected 及后续内部选择的激活结构问题；没有指认检测迁移的错误目标、三个 Region 零入边或叶态死端。",
+          "confidence": "high"
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:child_count:ActiveState",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "只对应正交区域/并发结构缺失，未对应台账中的错接迁移、Region 不可达或叶态无出路。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:child_count:ActiveState",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "只主张缺少三个正交区域，属于结构性质，不是台账的具体错误目标与可达性缺陷。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:unreachable_component:ActiveState",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "完整主张是 ActiveState 从根不可达；台账中 ActiveState 有根入口，真正不可达的是三个 Region/控制状态，故对象不一致且主张与模型事实冲突。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:unreachable_component:ActiveState",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "完整主张仍是 ActiveState 整体不可达，位置中的控制路径只是支持背景；未主张台账所述检测边错误指向叶态并使 Region/控制状态无入边。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张三个状态不是正交区域，属于并发结构缺失，不是具体检测边错接和由此造成的不可达/死端。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张“可能碰撞”与“已检测碰撞”的触发语义差异，未指认台账中的错误目标迁移。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 ActiveState 入口与内部区域结构不一致、检测信息未传递，但未明确指认三条检测边指向三个叶态，也未主张 Region 无入边或叶态无出路。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张控制完成后的退出目标和并发区域生命周期错误，性质是退出/层次管理，不是台账的检测边错接导致不可达及死端。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张三个区域为普通嵌套而非正交并发，未覆盖具体错接迁移或 Region 不可达。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张子机激活条件和结构不符合规格，但没有明确主张三条检测边错误指向叶态，因此不能由后果描述替代台账的同处同性质主张。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张控制完成后回到共同 Inactive、破坏独立生命周期，未对应台账的错误目标和不可达/死端缺陷。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张未声明正交区域，性质是并发结构缺失，不是台账中的迁移错接或可达性问题。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张泛化 Collision Detected 及内部互斥选择不符合激活结构，未指认检测边指向三个叶态或 Region 零入边。",
+        "confidence": null
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张不同控制一次只能选择一个，属于并发/互斥性质；未主张台账要求的具体错误目标迁移、控制状态不可达或叶态无出路。",
+        "confidence": null
+      }
+    ],
+    "pair_reason": "冻结台账唯一条目要求命中具体的错误目标迁移与由此造成的三个 Region/控制状态不可达及检测后进入死端叶态。各输出逐项按同处、同性质判断；仅描述正交结构缺失、触发语义过窄、互斥并发限制或退出生命周期错误的输出，不足以覆盖该具体错接迁移主张。"
+  },
+  "status": "ok",
+  "attempts": 1
+}

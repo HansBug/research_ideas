@@ -1,0 +1,684 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0039",
+  "ledger": [
+    {
+      "ledger_id": "DIFF-0039-04",
+      "pair": "0039",
+      "D": "D2",
+      "L": "L1",
+      "summary": "根层同时有两条初始边——`:2 [*] --> AutonomousMode` 与 `:44 [*] --> collision_avoidance_deactive`——而两者之间没有任何 `--` 分隔，处于同一个顺序区域内，根的默认进入点不唯一。",
+      "detail": "全文（`:1`-`:50`）在任何 `state X { }` 块之外有两条 `[*] -->`：`:2` 与 `:44`。它们中间没有任何 `--` 并发分隔符，所以按 PlantUML 的解析都落在根的同一个区域里。\n\nUML 要求一个区域只能有一个默认入口。两条并存意味着机器上电时该走哪一条没有定义。\n\n这一点需要与并发议题分开。把碰撞规避与自动驾驶做成并行部分这件事本身涉及正交区语义，超出本研究的建模对象 $M = (S, E, V, Tr, A)$，那一层不计入；但「一个顺序区域里有两条竞争的初始边」是一条与并发无关的确定性缺陷，在 $M$ 内部就能陈述和判定。\n\n同一份 NL 的其它五份制品都把碰撞规避那部分包进了一个具名复合态（例如 pair 0009 的 `state CollisionAvoidanceSystem {`、pair 0029 的 `state CollisionAvoidance {`），因此它们的根层只有一条初始边；只有 0039 没有包，把碰撞规避的两个状态与那条初始边直接摊在了根层。所以这不是本份 NL 固有的困难，是本 pair 独有的写法。",
+      "D_basis": "判 D2。被违反的义务来自建模语言：UML 要求一个区域只能有一个默认入口，两条并存使默认进入点不唯一，这是一条二值的良构约束，判定不依赖对 NL 的解释。三个判读臂一致认定成立。同一份 NL 的其它五份制品都通过包一层具名复合态避免了这个形态，说明它可避免。需要如实记下：三臂在给理由时都没有主动引出上面这条语言规定，出处是本次重写时补齐的。 不存在可存活的反驳：`:2` 与 `:44` 之间没有 `--`、两条也都不在任何 `state X { }` 内，这是可直接核对的解析事实，不能读成「它们各属一个区」。",
+      "L_basis": "判 L1。陈述这条错误需要导出一个静态事实：`:2` 与 `:44` 两条初始边属于同一个区域（要确认它们之间没有 `--`、也都不在任何 `state X { }` 块内），因而在同一个系统状态下同时可发。这要把 PlantUML 的区域划分规则应用一遍；但它只涉及单个系统状态上的一次判断，不需要构造执行序列，故不到 L2。",
+      "axes": {
+        "defect_locus": "pair",
+        "defect_element": null,
+        "defect_qualifier": null,
+        "defect_logic_kind": "nondeterminism",
+        "defect_reference": "language"
+      }
+    },
+    {
+      "ledger_id": "EIS-0039-01",
+      "pair": "0039",
+      "D": "D2",
+      "L": "L0",
+      "summary": "NL 第 3 句逐字要求 `enter_hwy` 能转到 `cruise` **或** `lane_change`，而制品只建了 `:13 enter_hwy --> cruise` 一条，通往 `lane_change` 的直接边被删掉了。",
+      "detail": "NL 第 3 句逐字为「In the HighwayMode state, the system begins in the enter_hwy substate, and can transition to cruise or lane_change based on the distance to the front vehicle (`dist_to_front<25`) and the availability of an extra lane (`extra_lane=true`).」——「can transition to cruise or lane_change」是一个显式的二选一关系，要求两条边都在。上游参考模型也声明了两条。\n\n制品只有 `:13 enter_hwy --> cruise`。检索以 `enter_hwy` 为源的边，全文就这一条。`lane_change` 因此被降级成只能经 `cruise` 二次到达（`:14`/`:19`）。\n\n「经 cruise 二次到达」不能替代那条直接边：NL 说的是从 `enter_hwy` 可以转到 `lane_change`，这是一条迁移的存在性要求，不是可达性要求。\n\n同一份制品内部提供了对照：作者在 NL 第 7 句对应的城市侧写了三条直接边（`:27`、`:28`、`:29` 分别从 `enter_urban` 通向 `lane_change_urban`、`straight`、`intersection`），说明他并没有采用「用间接可达代替直接边」的惯例，高速侧这一条是漏了。\n\n需要一并记下：第一版台账把这条排除在外，理由是「行为上可等价」。这个理由与上面的迁移存在性要求冲突，也与同模型城市侧的处理不一致。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 3 句「can transition to cruise or lane_change」，它要求的是两条迁移都存在。判读中出现过一种反驳：主张经 `cruise` 二次到达在行为上等价。这条反驳不存活——NL 给出的是 source-target 关系的存在性要求，间接可达不满足它；而且同一份制品在城市侧的三个分支都用了直接边，不存在支撑「间接实现」的作者惯例。",
+      "L_basis": "判 L0。陈述这条错误只需检索以 `enter_hwy` 为源、以 `lane_change` 为目标的迁移，发现没有。这是一次词项层面的存在性比对，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "transition",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0039-02",
+      "pair": "0039",
+      "D": "D1",
+      "L": "L1",
+      "summary": "`:41 AutonomousMode --> HighwayMode : high_way=true` 与 `:42 AutonomousMode --> UrbanMode : urban_way=true` 以复合态整体为源，按普通成组迁移读会覆盖它的全部后代——身处 HighwayMode 时收到 `high_way=true` 会退出并重入 HighwayMode，把已推进的子态进度复位。",
+      "detail": "这两条边写在 `state AutonomousMode { }`（:4-:39）块**之后**的根层，源是复合态 `AutonomousMode`、目标是它的两个子态 `HighwayMode`、`UrbanMode`。\n\n在 UML 里，以复合态为源的迁移是成组迁移，从该复合态的任意后代配置出发都使能。所以按这个读法：处于 `HighwayMode` 深处（比如 `cruise` 或 `lane_change`）时，只要 `high_way=true` 成立，`:41` 就会发火——退出 `HighwayMode`（连带退出当前子态），再重新进入 `HighwayMode` 并经 `:11 [*] --> enter_hwy` 回到起点。已经推进的驾驶阶段被复位。投影确认这两条被路由成 `AutonomousMode` 上的自环加重入。\n\n副作用还不止于此：`InitialState` 与 `FinishState` 也都在 `AutonomousMode` 之下，于是它们各自也多出一条 `high_way` / `urban_way` 的成组出边，而 NL 没有授权这些。\n\nNL 第 11 句逐字为「The system supports dynamic transitions between HighwayMode and UrbanMode based on the conditions `urban_way=true` and `high_way=true`, respectively, facilitating seamless mode shifts during the drive.」——它授权的是两个模式之间的切换，没有授权「在高速模式里再触发一次进入高速模式」。",
+      "D_basis": "判 D1，两读并立。第一种读法把 `:41`/`:42` 当作普通的成组迁移：它们覆盖 `AutonomousMode` 的全部后代，产生 NL 未授权的自重入与进度复位，属过度规定。第二种读法有两条支撑：其一，NL 第 11 句的 during-the-drive 措辞本来就支持模式级的随处切换，这两条边正是那种写法；其二，两条边都不带触发、只有守卫，按 UML 的完成迁移读法它们并非在任意子态随时使能（完成迁移要等所在状态的活动完成）。两种称职读法并立，故判 D1。",
+      "L_basis": "判 L1。陈述这条错误需要导出一个静态结构事实：`:41`/`:42` 的源是目标的祖先，因而构成成组迁移并会重跑 `HighwayMode` 的默认入口。这要把层次归属与 UML 的迁移语义对上才能得出；但它只涉及静态切面（这两条边的性质由结构直接决定），不需要构造执行序列，故不到 L2。",
+      "axes": {
+        "defect_locus": "pair",
+        "defect_element": null,
+        "defect_qualifier": null,
+        "defect_logic_kind": "hierarchy_entry",
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "INS-0039-03",
+      "pair": "0039",
+      "D": "D1",
+      "L": "L0",
+      "summary": "`:13 enter_hwy --> cruise` 这条边既不带事件也不带守卫（逐字没有冒号、没有标签），而 NL 第 3 句要求这个转移基于 `dist_to_front<25` 与 `extra_lane=true`。",
+      "detail": "`:13` 逐字为 `enter_hwy --> cruise`，箭头后面什么都没有。在 UML 里这是完成迁移：进入 `enter_hwy` 后立即可发。\n\nNL 第 3 句把从 `enter_hwy` 出发的转移绑定在两个条件上：「can transition to cruise or lane_change based on the distance to the front vehicle (`dist_to_front<25`) and the availability of an extra lane (`extra_lane=true`)」。\n\n同一份 NL 的其它制品在这条边上都写了条件：pair 0009 的 `:16 enter_hwy --> cruise : dist_to_front>=25`、pair 0049 的 `:10 enter_hwy --> cruise : dist_to_front>=25`。所以这不是本份 NL 里没法写条件，而是本 pair 没写。",
+      "D_basis": "判 D1，两读并立。第一种读法：NL 第 3 句给出的两个条件是这条转移的判据，`:13` 裸边把它们全丢了。第二种读法注意到 NL 的条件分布：第 3 句把 `dist_to_front<25` 与 `extra_lane=true` 并置给了两个目标，而第 5 句「In the cruise substate, if the distance to the front vehicle becomes less than 25 meters and there is an extra lane available, the system transitions to lane_change」把同一对条件明确绑给了 lane_change 分支。据此可以把 `:13` 读作「无条件默认进入 cruise，再由下一跳 `:14 cruise --> lane_change` 承载 NL 第 5 句的条件分支」——NL 确实没有单独给 cruise 分支一个守卫。两种读法都与作者源和 NL 相容，故判 D1。",
+      "L_basis": "判 L0。陈述这条错误只需就地读 `:13` 这一行，看箭头后面有没有冒号跟内容——没有。这是纯词法层面的存在性检查，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "trigger",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "other"
+      }
+    },
+    {
+      "ledger_id": "INS-0039-04",
+      "pair": "0039",
+      "D": "D1",
+      "L": "L2",
+      "summary": "`FinishState` 位于 `AutonomousMode` 层内，因此仍在 `:41 AutonomousMode --> HighwayMode : high_way=true` 这条成组迁移的作用域里——「结束」之后又会被带回高速模式，再由 `:22` 回到 FinishState，构成一个陷阱环。",
+      "detail": "先把承重的事实与不承重的说法分开，因为本条最初的记录把两件事捆在了一起。\n\n**不承重的那一半**：原记录说「模型没有根级终止汇点，全文的 `--> [*]` 只有 `:16`、`:18` 两条且都在 `HighwayMode` 块内、是区域 final 而不是根 exit sink」。这个观察在事实上是对的，但它不构成一条被违反的义务——NL 从来没有要求模型必须有 `--> [*]`，三个判读臂在这一点上一致。\n\n**承重的那一半**：`FinishState` 由 `:22 HighwayMode --> FinishState : auto_finished=true` 与 `:38 UrbanMode --> FinishState : auto_finished=true` 指向，两条都写在 `state AutonomousMode { }`（:4-:39）块内，所以 `FinishState` 是 `AutonomousMode` 的子态。而 `:41 AutonomousMode --> HighwayMode : high_way=true` 是一条以 `AutonomousMode` 为源的成组迁移，按普通成组迁移读法，它对 `AutonomousMode` 的**全部**后代生效，包括 `FinishState`。于是系统进入 `FinishState`（表示自动驾驶结束）之后，只要 `high_way=true` 成立就会被带回 `HighwayMode`，再经 `:22` 回到 `FinishState`——一个来回。\n\n也就是说，作者用来表达终止的那个状态并不真正终止任何东西，终止意图在他自己的源文本上就已失效。\n\n被违反的是 NL 第 6 句「The HighwayMode ends when the system transitions to FinishState, triggered by the `auto_finished=true` condition」与第 10 句 exits 所表达的终止意图。",
+      "D_basis": "判 D1，两读并立。第一种读法：NL 第 6 句的 ends 与第 10 句的 exits 表达了终止意图，而 `FinishState` 仍在 `:41`/`:42` 成组迁移的作用域内、会被带回驾驶模式，该意图失效。第二种读法有两条支撑：其一，NL 第 11 句明确授权行驶中的动态模式切换，被带回模式并不必然违反 NL；其二，`:41`/`:42` 两条边都不带触发、只有守卫，按 UML 的完成迁移读法它们并非在任意后代配置下随时使能。推翻者存活，故判 D1。另需说明本条最初记录里「模型没有根级终止汇点」那一条腿不成立，已从承重理由中剔除（NL 从不要求 `--> [*]`），结论仍为 D1。",
+      "L_basis": "判 L2。陈述这条错误属于活性范畴：要说明进入 `FinishState` 之后机器仍可被带走、并且 `FinishState` 与 `HighwayMode` 之间构成一个可以反复往返的环，必须排除掉存在终止迹的可能，也就是对全部执行路径做穷尽考察。这是对行为集合的构造与排除。",
+      "axes": {
+        "defect_locus": "global",
+        "defect_element": null,
+        "defect_qualifier": null,
+        "defect_logic_kind": "nontermination",
+        "defect_reference": "requirement"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "hypothesis:6d0fafaf28d50f9a",
+          "claims": [
+            "The HighwayMode entry contract lacks an authored enter_hwy-to-lane_change transition realizing the stated extra-lane branch."
+          ],
+          "locations": [
+            "NL3",
+            "PUML:L11",
+            "PUML:L14"
+          ],
+          "obligations": [
+            "The authored HighwayMode entry must contain the NL-required lane_change transition."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:6d0fafaf28d50f9a:facet:15a35d1d3a72"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:f7588e713ec55408",
+          "claims": [
+            "The HighwayMode entry behavior cannot realize the NL-required conditional route from enter_hwy to lane_change."
+          ],
+          "locations": [
+            "NL3",
+            "PUML:L11",
+            "PUML:L14"
+          ],
+          "obligations": [
+            "From enter_hwy, the lane_change behavior required by NL3 must be reachable under its stated condition."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L2",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:f7588e713ec55408:facet:c527445a8d45"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:transition:AutonomousMode.HighwayMode.enter_hwy:dist_to_front<25 and extra_lane=true:AutonomousMode.HighwayMode.lane_change",
+          "claims": [
+            "Source has no matching transition from 'AutonomousMode.HighwayMode.enter_hwy' to 'AutonomousMode.HighwayMode.lane_change' under 'dist_to_front<25 and extra_lane=true'."
+          ],
+          "locations": [
+            "NL3",
+            "PUML:L13",
+            "PUML:L14",
+            "F5",
+            "F25"
+          ],
+          "obligations": [
+            "HighwayMode entry must provide the specified conditional route to lane_change.",
+            "The conditional lane_change branch described from enter_hwy must have the stated source and target."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:transition:AutonomousMode.HighwayMode.enter_hwy:dist_to_front<25 and extra_lane=true:AutonomousMode.HighwayMode.lane_change:facet:3fcdaf4a88bc",
+            "source:transition:AutonomousMode.HighwayMode.enter_hwy:dist_to_front<25 and extra_lane=true:AutonomousMode.HighwayMode.lane_change:facet:4342650237be"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:82f601c2f22b3b68",
+          "claims": [
+            "The enter_hwy to cruise route lacks the required dist_to_front<25 and extra_lane=true condition."
+          ],
+          "locations": [
+            "NL3",
+            "PUML:L13",
+            "F24"
+          ],
+          "obligations": [
+            "The enter_hwy-to-cruise transition must carry the stated compound condition."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:82f601c2f22b3b68:facet:7bee953bc990"
+          ]
+        },
+        {
+          "finding_id": "source:stable_termination:AutonomousMode.FinishState",
+          "claims": [
+            "Required termination target 'AutonomousMode.FinishState' admits a source-level nonterminating continuation."
+          ],
+          "locations": [
+            "AutonomousMode.FinishState"
+          ],
+          "obligations": [
+            "The NL-designated termination state 'FinishState' must be a stable ending target for its declared behavior."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:stable_termination:AutonomousMode.FinishState:facet:3824676c9d20"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:transition:AutonomousMode.HighwayMode:urban_way=true:AutonomousMode.UrbanMode",
+          "claims": [
+            "Source has no matching transition from 'AutonomousMode.HighwayMode' to 'AutonomousMode.UrbanMode' under 'urban_way=true'."
+          ],
+          "locations": [
+            "NL11",
+            "PUML:L41",
+            "PUML:L42"
+          ],
+          "obligations": [
+            "AutonomousMode.HighwayMode must transition directly to AutonomousMode.UrbanMode under urban_way=true.",
+            "The two dynamic mode transitions must preserve their stated directional sources and targets."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:transition:AutonomousMode.HighwayMode:urban_way=true:AutonomousMode.UrbanMode:facet:b5308362454c",
+            "source:transition:AutonomousMode.HighwayMode:urban_way=true:AutonomousMode.UrbanMode:facet:b62566c81009"
+          ]
+        },
+        {
+          "finding_id": "source:transition:AutonomousMode.UrbanMode:high_way=true:AutonomousMode.HighwayMode",
+          "claims": [
+            "Source has no matching transition from 'AutonomousMode.UrbanMode' to 'AutonomousMode.HighwayMode' under 'high_way=true'."
+          ],
+          "locations": [
+            "NL11"
+          ],
+          "obligations": [
+            "AutonomousMode.UrbanMode must transition directly to AutonomousMode.HighwayMode under high_way=true."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:AutonomousMode.UrbanMode:high_way=true:AutonomousMode.HighwayMode:facet:c64bc5604946"
+          ]
+        },
+        {
+          "finding_id": "source:stable_termination:AutonomousMode.FinishState",
+          "claims": [
+            "Required termination target 'AutonomousMode.FinishState' admits a source-level nonterminating continuation."
+          ],
+          "locations": [
+            "AutonomousMode.FinishState"
+          ],
+          "obligations": [
+            "The NL-designated termination state 'FinishState' must be a stable ending target for its declared behavior."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:stable_termination:AutonomousMode.FinishState:facet:3824676c9d20"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "动态模式切换的建模不符合规格，且外部转移目标与层级状态定义存在歧义/不一致",
+          "reason": "规格要求支持 HighwayMode 与 UrbanMode 之间基于 `urban_way=true` 和 `high_way=true` 的动态相互切换。模型只定义了从 AutonomousMode 到 HighwayMode/UrbanMode 的外部转移，没有定义 HighwayMode→UrbanMode 或 UrbanMode→HighwayMode 的转移；同时这两个模式被声明为 AutonomousMode 的内部子状态，外部转移写法并不能表达规格所要求的模式间切换。",
+          "where": "AutonomousMode 的层级定义：`AutonomousMode { ... }` 内部的 `HighwayMode`/`UrbanMode`，以及外部的 `AutonomousMode --> HighwayMode`、`AutonomousMode --> UrbanMode`"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型定义了两个并列的顶层初始伪状态转移，形成两个全局起点。",
+          "reason": "规范描述的是系统从 AutonomousMode 开始，同时碰撞避免系统初始处于 collision_avoidance_deactive；这应表达为同一系统中的并行/正交区域，或明确的复合状态结构。当前 PlantUML 将两个状态都直接连接到顶层 `[ * ]`，没有建模并行区域或父状态关系，因此无法表示一个统一系统实例同时从 AutonomousMode 和 collision_avoidance_deactive 启动，状态机语义与规范的双子系统初始关系不一致。",
+          "where": "模型顶层的两个初始转移：`[*] --> AutonomousMode` 与 `[*] --> collision_avoidance_deactive`"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "缺少 HighwayMode 与 UrbanMode 之间的动态互相切换",
+          "reason": "规范第11条明确要求驾驶过程中支持 HighwayMode 和 UrbanMode 之间基于 `urban_way=true`、`high_way=true` 的动态模式切换。模型只定义了从 `InitialState`（以及从父状态 AutonomousMode 的外部入口）进入两种模式，没有定义 HighwayMode -> UrbanMode 或 UrbanMode -> HighwayMode 的转移，因此无法实现运行中的模式切换。",
+          "where": "AutonomousMode 内部的 `HighwayMode`、`UrbanMode` 以及顶层的 `AutonomousMode --> HighwayMode` / `AutonomousMode --> UrbanMode` 转移"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "UrbanMode 的 exit_urban 没有通往 UrbanMode 终止或 FinishState 的路径",
+          "reason": "规范第8条要求距离城市出口小于 0.7 km 时进入 `exit_urban`，第10条要求 UrbanMode 通过 `auto_finished=true` 转移到 FinishState。模型虽然声明了 `exit_urban`，但没有定义其后继转移；若进入该状态，状态机无法继续完成城市模式退出流程，且 `auto_finished=true` 仅从复合状态 UrbanMode 的边界转移定义，未明确保证可从 `exit_urban` 触发规范要求的退出。",
+          "where": "`lane_change_urban --> exit_urban : dist_to_exit<0.7`"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "碰撞避免激活条件中“前方距离”条件的模式限定表达不完整且不是明确的布尔条件",
+          "reason": "规范要求的是在 HighwayMode 下 `dist_to_front<15`，或在 UrbanMode 下 `dist_to_front<10` 时激活。模型使用 `dist_to_front<15 in HighwayMode` 和 `dist_to_front<10 in UrbanMode` 这种未明确表示模式判定逻辑的语法，未显式表达为 `(HighwayMode && dist_to_front<15) || (UrbanMode && dist_to_front<10)`，因此模式条件的可执行语义不明确，不能确认与规范一致。",
+          "where": "`collision_avoidance_deactive --> collision_avoidance_active : pedestrian_detected || (dist_to_rear<5 && vel>30) || (dist_to_front<15 in HighwayMode || dist_to_front<10 in UrbanMode)`"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0039",
+    "ledger_assessments": [
+      {
+        "ledger_id": "DIFF-0039-04",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本格两条输出都指向 HighwayMode 内 enter_hwy 的 lane_change 分支，没有指认根层同一区域存在两条竞争初始边。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本格输出分别涉及缺失的 enter_hwy→lane_change 边、enter_hwy→cruise 的条件槽位及 FinishState 的终止稳定性，均不是根区域默认入口数量问题。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本格输出涉及模式间迁移和 FinishState 非终止，没有主张根层同一区域有两个默认入口。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出讨论 AutonomousMode 到两个子模式的层级迁移写法，不涉及根层两条初始边。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "输出明确指认同一对根层初始迁移 [*]→AutonomousMode 与 [*]→collision_avoidance_deactive，并主张它们形成两个并列全局起点、使统一系统起始语义不成立；这与台账的同一区域默认入口不唯一是同处同性质的数量/确定性缺陷。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "三条输出分别讨论模式切换、exit_urban 后继及碰撞规避守卫表达，没有涉及双初始边。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0039-01",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "hypothesis:6d0fafaf28d50f9a"
+          ],
+          "reason": "该输出明确主张 HighwayMode 入口缺少从 enter_hwy 到 lane_change 的已创作迁移，位置和“直接迁移缺失”性质均与台账一致。另一条输出改称条件路线不可实现/不可达，不等同于台账的直接边存在性主张。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:transition:AutonomousMode.HighwayMode.enter_hwy:dist_to_front<25 and extra_lane=true:AutonomousMode.HighwayMode.lane_change"
+          ],
+          "reason": "该输出明确主张源中没有从 enter_hwy 到 lane_change、承载指定条件的匹配迁移，正是台账所列直接边缺失。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本格没有讨论 enter_hwy 到 lane_change 的直接迁移；其输出仅涉及模式级切换与 FinishState 终止。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出只讨论 HighwayMode 与 UrbanMode 的动态切换建模，没有指认 enter_hwy→lane_change 缺边。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出只指认根层双初始起点，不涉及 HighwayMode 入口分支。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "三条输出均未主张 enter_hwy→lane_change 直接迁移缺失。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0039-02",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "两条输出都围绕 enter_hwy 的 lane_change 分支，不涉及 AutonomousMode 成组迁移覆盖全部后代所造成的同模式自重入与进度复位。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "虽然 FinishState 非终止输出可能与同一组父态迁移有关，但它主张的是终止目标可继续，属于 INS-0039-04；其余输出也不主张模式内同向守卫导致自重入和进度复位。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "两条模式输出主张缺少 HighwayMode↔UrbanMode 的直接迁移，性质是缺失；台账主张现有父态源迁移过度覆盖后代并产生同模式自重入，性质是多余/层次作用域错误，不能等同。终止输出属于另一台账条目。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出认为父态外部迁移不能表达所需模式间切换，主张缺少 HighwayMode↔UrbanMode 迁移；它没有主张父态源迁移会从任意后代触发同模式重入并复位进度，故性质不同。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出只涉及根层双初始点。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_issue_1 主张缺少模式间直接切换，而非现有成组迁移覆盖过宽造成同模式重入；另外两条也不涉及该性质。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "INS-0039-03",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出主张 lane_change 分支迁移缺失或条件路线不可实现，没有指认现有 enter_hwy→cruise 裸边缺少事件/守卫槽位。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "hypothesis:82f601c2f22b3b68"
+          ],
+          "reason": "输出直接指认同一条 enter_hwy→cruise 迁移缺少 NL 所述 dist_to_front 与 extra_lane 条件，与台账的记法槽位/守卫缺失完全一致。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本格未讨论 enter_hwy→cruise 边的标签或守卫。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出只讨论父态到子模式的动态切换写法。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出只讨论顶层初始迁移数量。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "三条输出没有指认 enter_hwy→cruise 裸边缺条件。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "INS-0039-04",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "两条输出仅讨论 HighwayMode 入口到 lane_change 的迁移，不涉及 FinishState 后续可离开或陷阱环。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:stable_termination:AutonomousMode.FinishState"
+          ],
+          "reason": "输出指认同一终止目标 AutonomousMode.FinishState 存在源级非终止延续，并要求其成为稳定结束目标；这是台账所述进入 FinishState 后仍会被带回驾驶模式的同一非终止性质，即使未展开完整往返环也足以覆盖。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:stable_termination:AutonomousMode.FinishState"
+          ],
+          "reason": "输出同样明确主张 FinishState 不是稳定终点而存在非终止延续，与台账的 FinishState 可被带离并形成循环同处同性质。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出没有讨论 FinishState 的终止稳定性或结束后的继续执行。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出只讨论根层双起点。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_issue_2 主张 exit_urban 无后继、无法完成退出，是无出路/缺失路径；台账主张已到 FinishState 后仍可继续并循环，是相反位置和性质。其余输出亦不匹配。",
+          "confidence": "high"
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "method_run1",
+        "emitted_id": "hypothesis:6d0fafaf28d50f9a",
+        "matched_ledger_ids": [
+          "EIS-0039-01"
+        ],
+        "false_positive": false,
+        "reason": "明确指认 enter_hwy→lane_change 的已创作直接迁移缺失，与 EIS-0039-01 同处同性质。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "hypothesis:f7588e713ec55408",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出主张 NL 条件路线不可实现/不可达；冻结台账只记录该直接边缺失，而制品仍可经 enter_hwy→cruise→lane_change 间接到达。其行为不可达主张不是同一种直接迁移存在性缺陷，也没有其他台账对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:transition:AutonomousMode.HighwayMode.enter_hwy:dist_to_front<25 and extra_lane=true:AutonomousMode.HighwayMode.lane_change",
+        "matched_ledger_ids": [
+          "EIS-0039-01"
+        ],
+        "false_positive": false,
+        "reason": "主张指定源、目标和条件的直接迁移不存在，对应 EIS-0039-01。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:82f601c2f22b3b68",
+        "matched_ledger_ids": [
+          "INS-0039-03"
+        ],
+        "false_positive": false,
+        "reason": "主张 enter_hwy→cruise 边缺少所需条件，对应同一边上的守卫/标签缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:stable_termination:AutonomousMode.FinishState",
+        "matched_ledger_ids": [
+          "INS-0039-04"
+        ],
+        "false_positive": false,
+        "reason": "主张 FinishState 存在非终止延续、不是稳定结束目标，对应台账的结束后返回驾驶模式并可循环。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:transition:AutonomousMode.HighwayMode:urban_way=true:AutonomousMode.UrbanMode",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张缺少 HighwayMode→UrbanMode 的直接迁移。冻结 EIS-0039-02 不是此缺边主张，而是现有 AutonomousMode 成组迁移覆盖过宽导致自重入/复位，性质不同。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:transition:AutonomousMode.UrbanMode:high_way=true:AutonomousMode.HighwayMode",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张缺少 UrbanMode→HighwayMode 的直接迁移；冻结台账没有这一缺失迁移条目，且不能以 EIS-0039-02 的过度覆盖/自重入主张替代。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:stable_termination:AutonomousMode.FinishState",
+        "matched_ledger_ids": [
+          "INS-0039-04"
+        ],
+        "false_positive": false,
+        "reason": "同一 FinishState 的稳定终止失败，对应 INS-0039-04。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "输出主张缺少两个模式之间的直接动态切换，并认为父态外部迁移不能表达该切换；台账 EIS-0039-02 主张的是父态源迁移按成组语义过度覆盖后代、造成同模式自重入和进度复位，两者性质不同。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "DIFF-0039-04"
+        ],
+        "false_positive": false,
+        "reason": "明确指认同一对顶层初始边形成两个并列全局起点，对应根区域默认入口不唯一。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张缺少 HighwayMode 与 UrbanMode 的直接相互切换；冻结台账没有该缺边条目，EIS-0039-02 的性质是现有成组迁移过宽导致自重入。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 exit_urban 无后继、无法到达终止，是 exit_urban 处的无出路/缺失路径问题；INS-0039-04 位于 FinishState，主张结束后仍可离开并非终止，位置和性质均不同。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张碰撞规避激活表达式中的模式限定不明确；冻结台账没有该表达式或守卫记法问题。",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "按“同一处且同一性质”逐项对齐。缺失的 enter_hwy→lane_change 直接迁移、enter_hwy→cruise 裸边缺少条件、FinishState 之后仍可继续、以及根层同一区域双初始边分别只与对应完整主张匹配。关于 HighwayMode/UrbanMode 的输出主张是“缺少模式间直接迁移”，而冻结条目 EIS-0039-02 主张的是以 AutonomousMode 为源的成组迁移覆盖后代并造成同模式自重入/进度复位；二者虽涉及同组层级元素，但缺陷性质不同，故不合并计为命中。"
+  },
+  "status": "ok",
+  "attempts": 1
+}

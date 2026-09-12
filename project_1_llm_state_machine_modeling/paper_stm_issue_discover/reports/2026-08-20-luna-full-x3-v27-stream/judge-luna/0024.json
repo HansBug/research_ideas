@@ -1,0 +1,1377 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0024",
+  "ledger": [
+    {
+      "ledger_id": "DIFF-0024-04",
+      "pair": "0024",
+      "D": "D1",
+      "L": "L0",
+      "summary": "`:19 EmergencyStopping --> InMotion:exit/Send Obstacle Detected` 凭空造出一条从紧急停车回到运动状态的恢复边，而 NL 全文没有任何 EmergencyStopping 的出边、也没有障碍清除后恢复行驶的描述。",
+      "detail": "NL 关于 EmergencyStopping 只说了第 3 句：「When an obstacle is detected, the system enters the EmergencyStopping state, which includes the actions \"Emergency Stop\" and sends the \"Obstacle Detected\" signal.」——只交代了怎么进去和进去之后做什么，没有任何一句说怎么出来。上游参考模型同样没有给这个状态出边。\n\n制品在 `:19` 建了一条 `EmergencyStopping --> InMotion`。也就是说，紧急停车之后系统会自动回到运动状态。\n\n这条边在 NL 里没有依据，属于模型多出的元素。\n\n分类上记作 extra 而不是违规，理由是：NL 并没有对 EmergencyStopping 下过显式的 remain / only / never 一类的义务（对比 NL 第 10 句对 Approaching 就下了「remains ... until」这样的显式义务，那种情形下多一条出边才构成直接违反）。按台账对「模型多出、NL 未点名」这类的处理口径，不足以升级为违规。\n\n不过从领域语义看，这是最不该凭空添加的一类行为：障碍导致的紧急停车自动回到运动状态，在列车控制里是安全性上的严重问题——障碍是否已被清除完全没有被检查。\n\n同一行文本还造成另外两个后果，各自独立成条：`exit/Send Obstacle Detected` 这个标签把输出动作写成了迁移标签（记在 EIS-0024-04），以及这条边使 `EmergencyStopping` 不再是死端（与本 pair 的 `Stopping` 形成对照，见 INS-0024-01）。",
+      "D_basis": "判 D1，两读并立。第一种读法：这条边在 NL 里没有任何依据，是模型凭空添加的恢复通路，属多出的元素。第二种读法：`:19` 的标签 `exit/Send Obstacle Detected` 更像是作者想把 NL 第 3 句要求的那个输出动作放到某个位置，只是放错了地方——他要写的是 EmergencyStopping 的退出动作，顺手写成了一条迁移，而不是有意设计一条恢复触发。这个读法与文本相容（`exit/动作` 正是 UML 退出动作的记法），也解释了为什么这条边没有任何有意义的触发条件。两种读法都不否认这条边客观存在，但对「它是不是一处有意的过度规定」给出不同答案，故判 D1。",
+      "L_basis": "判 L0。陈述这条错误只需把模型里以 `EmergencyStopping` 为源的迁移清单与 NL 里关于这个状态的句子比对，发现模型多出一条 NL 未点名的边。这是一次词项层面的存在性比对，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "transition",
+        "defect_qualifier": "extraneous",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0024-01",
+      "pair": "0024",
+      "D": "D2",
+      "L": "L0",
+      "summary": "NL 第 8 句逐字要求 `Accelerating` 有 `Entry/Accelerate` 动作，而制品里 `Accelerating` 只有 `:7 Accelerating: Accelerating` 这一行与自身同名的描述文字，`Accelerate` 这个动作在全模型不存在。",
+      "detail": "NL 第 8 句逐字为「The system enters the Accelerating substate when motion begins, marked by the \"Entry/Accelerate\" action.」。这是全语料里少数逐字点名动作相位的句子之一。\n\n制品里 `Accelerating` 由 `:6 [*] --> Accelerating` 引入，`:7` 给它加了一行 `Accelerating: Accelerating`——`状态名 : 文本` 描述语法，内容恰好就是状态自己的名字，不携带任何动作语义。投影后这个状态的显示名变成 `Accelerating` 后接 `[PlantUML body] Accelerating`，没有任何 enter 抽象动作。\n\n检索全模型也找不到 `Accelerate` 这个动作：`:8`、`:9` 两条以它为源的迁移标签里没有，其它状态的描述行里也没有。\n\n所以这不是相位差异（entry 还是 do），而是这个动作在模型里根本没有载体。\n\n对照同一份 NL 的 pair 0014：那份至少把整串 `Entry/Accelerate` 搬到了初始迁移的标签上（记在 EIS-0014-02，因为动作在唯一入口上执行、行为等价，判了 D1）。本 pair 连这个都没有——`Accelerate` 这个词一次都没出现。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 8 句「marked by the \"Entry/Accelerate\" action」。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法——`Accelerate` 这个字符串在制品的动作位、效果位、乃至任何标签上都不出现，`:7` 是纯描述文字，没有任何结构可以被解释成「这个动作已经建出来了」。反驳不存活。",
+      "L_basis": "判 L0。陈述这条错误只需把 NL 第 8 句点名的 `Accelerate` 拿去模型里检索动作位与效果位，发现一处都没有。这是一次词项层面的存在性比对，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "effect",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0024-02",
+      "pair": "0024",
+      "D": "D2",
+      "L": "L1",
+      "summary": "NL 第 9 句的 `Send` 是系统发出的输出信号，而 `:14 Approaching --> InMotion:exit/Send` 把它写成了迁移标签——按 PlantUML 的标签文法整串成为触发器，输出被反转成必须由环境提供的输入；同时 `Approaching` 不再声明任何动作。",
+      "detail": "NL 第 9 句逐字为「In the Approaching substate, the system sends the \"Send\" signal and continues to approach the destination.」。这句话有两个合取的要求：发出 Send 信号，并且继续接近目的地（即留在 Approaching 里）。\n\n制品把它写成了 `:14 Approaching --> InMotion:exit/Send`。PlantUML 的迁移标签文法是 `触发[守卫]/效果`，整串 `exit/Send` 被解析成触发 `exit` 加效果 `Send`；投影确认生成了一个名为 `exit_Send`、显示名为 `exit/Send` 的事件。也就是说本该由系统发出的输出，变成了一个要等环境送进来的输入事件，方向完全相反。同时 `Approaching` 这个状态本身不再声明任何动作。\n\n这与相位差异性质不同。同一份 NL 的 pair 0004 把它写成 `do/Send`（放在状态体内，是动作，只是相位可能与参考不同）；本 pair 是把动作整个搬到了迁移上并被读成事件，是语义方向的错误。\n\n值得单独说明的是：即便退一步采纳更宽松的读法——把 `exit` 当触发、`Send` 当效果，从而认为输出方向没有被反转——本条仍然成立。因为在那个读法下，`Send` 发生的时刻是**离开** Approaching 的时候：这条边的目标是 `InMotion`（Approaching 自己的外层复合态），执行它会退出 Approaching、重入 InMotion，并经 `:6 [*] --> Accelerating` 重置回加速阶段。NL 第 9 句的第二个合取项「继续接近目的地」因此被破坏。所以本条不依赖投影结果，从源文本直接可判。\n\n同一行文本造成的第二个独立后果（阶段被重置、违反 NL 第 10 句的 remain-until 义务）记在 EIS-0024-03。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 9 句，它是一个合取：发出 Send 信号，并且继续接近目的地。判读中出现过一种较宽松的读法，把 `exit/Send` 拆成触发 `exit` 加效果 `Send`，以此论证输出方向没有被反转。这条反驳不存活——即便按它读，`Send` 也发生在离开 `Approaching`、重入 `InMotion` 并经内部初始边重置到 `Accelerating` 的时刻，NL 第 9 句的第二个合取项直接被破坏。两种读法下义务都未满足。",
+      "L_basis": "判 L1。陈述这条错误需要导出一个静态事实：`:14` 那串标签按 PlantUML 的 `触发[守卫]/效果` 文法落到了哪个语法槽位上，以及由此产生的方向（输出被读成输入），同时 `Approaching` 的动作段是空的。这要把记法文法应用一遍才能得出，比查某个字符串在不在深一层；但它只涉及模型的静态切面，不需要构造执行序列，故不到 L2。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "effect",
+        "defect_qualifier": "other",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0024-03",
+      "pair": "0024",
+      "D": "D2",
+      "L": "L1",
+      "summary": "`:14 Approaching --> InMotion` 的目标是 Approaching 自己的外层复合态，等价于 `InMotion` 的自迁移——退出并重入复合态、重跑内部初始边，把运动阶段重置回 `Accelerating`，直接违反 NL 第 10 句的 remain-until 义务。",
+      "detail": "NL 第 10 句逐字为「The system remains in the Approaching substate while nearing the destination, until it is ready to stop or decelerate.」。这是一条显式的 remain-until 义务：在 ready to stop 或 decelerate 之前不得离开 Approaching。\n\n`:14` 这条边写在 `state InMotion {`（:5）与 `}`（:15）之间，源是 `Approaching`（InMotion 的子态），目标是 `InMotion` 本身。在 UML 里，从子态指向自己祖先的迁移等价于该祖先的自迁移：执行时会退出 InMotion（连带退出 Approaching）、再重新进入 InMotion，并重跑它的默认入口边 `:6 [*] --> Accelerating`。投影确认了这一路由结果。\n\n后果是运动阶段被重置回加速。而这条边的触发既不是 ready to stop 也不是 decelerate（它的标签是 `exit/Send`，被解析成一个名为 `exit` 的事件），所以它在 NL 明令不得离开的条件下离开了 Approaching。\n\n本条与 EIS-0024-02 出自同一行文本但是两个独立后果：那一条说输出动作被写成了触发（记法方向错误），本条说这条边的目标选错了层级（结构后果）。两条的修法也不同——把 `Send` 改回状态的动作段能解决前者，但只要这条边还指向 `InMotion`，后者依然成立。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 10 句的 remain-until 表述。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法——从子态指向外层复合态的迁移在 UML 里的语义是确定的（退出并重入、重跑默认入口），不存在「其实它只是个内部动作、不会离开」的解释余地；而它的触发也确实不是 NL 允许的那两个条件之一。反驳不存活。",
+      "L_basis": "判 L1。陈述这条错误需要导出一个静态结构事实：`:14` 的目标 `InMotion` 是其源 `Approaching` 的祖先，因此这条边构成外层复合态的自迁移，会重跑 `:6` 的默认入口。这要把层次归属与 UML 的迁移语义对上才能得出，比查名字在不在深一层；但它只涉及静态切面（这条边的性质由结构直接决定），不需要构造执行序列，故不到 L2。",
+      "axes": {
+        "defect_locus": "pair",
+        "defect_element": null,
+        "defect_qualifier": null,
+        "defect_logic_kind": "hierarchy_entry",
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0024-04",
+      "pair": "0024",
+      "D": "D1",
+      "L": "L0",
+      "summary": "NL 第 3 句要求 `EmergencyStopping` 发送 `Obstacle Detected` 信号，而 `:19 EmergencyStopping --> InMotion:exit/Send Obstacle Detected` 把这个输出写成了迁移标签；按标签文法整串被读成触发 `exit` 加效果，且 `EmergencyStopping` 本身不再声明任何动作。",
+      "detail": "NL 第 3 句逐字为「When an obstacle is detected, the system enters the EmergencyStopping state, which includes the actions \"Emergency Stop\" and sends the \"Obstacle Detected\" signal.」。\n\n制品在 `:18 EmergencyStopping: Emergency Stop` 用描述语法放了第一个动作的文字（那一行不产生动作语义），在 `:19` 把第二个输出写成了迁移标签 `exit/Send Obstacle Detected`。按 PlantUML 的 `触发[守卫]/效果` 文法，整串被解析成一个名为 `exit` 的触发加一个效果；投影生成了名为 `exit_Send_Obstacle_Detected`、显示名为 `exit/Send Obstacle Detected` 的事件。也就是说输出被反转成了输入。同时 `EmergencyStopping` 这个状态本身没有声明任何动作。\n\n这与 Approaching 上的那一处（EIS-0024-02）是同一类错误，作者在两个地方用了同一种写法。\n\n本条另外还带出一条 NL 里没有的恢复边，那一层单独记在 DIFF-0024-04。",
+      "D_basis": "判 D1，两读并立。第一种读法按 PlantUML 的迁移标签文法：`exit/Send Obstacle Detected` 被解析成触发 `exit`（模型里没有这个事件）加效果，于是 NL 要求的输出被反转成了输入，而 `EmergencyStopping` 的动作段是空的，义务未兑现。第二种读法注意到 `exit/动作` 恰恰正是 UML 退出动作的标准记法——作者极可能就是想表达「离开该状态时发送 Obstacle Detected」；而 NL 第 3 句只说这个状态包含动作并发送信号，并没有限定必须在 entry 或 do 时点完成，退出时发送也满足字面要求。两种读法都与逐字文本相容，故判 D1。这一点与同 pair 的 EIS-0024-02 不同：那一条即便按宽松读法也仍然违反 NL 第 9 句的第二个合取项（继续接近目的地），所以判 D2；本条的 NL 句子没有那样的附加约束。",
+      "L_basis": "判 L0。陈述这条错误只需把 NL 第 3 句点名的输出 `Obstacle Detected` 拿去模型里检索动作位，发现 `EmergencyStopping` 的动作段是空的、这串字只出现在 `:19` 的迁移标签里。这是一次词项层面的存在性与位置比对，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "effect",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "INS-0024-01",
+      "pair": "0024",
+      "D": "D2",
+      "L": "L2",
+      "summary": "`Stopping` 由 `:16 InMotion --> Stopping: Arrived/Stop, Send Arrived` 隐式声明，只有这一条入边、没有任何出边；父为根、根层无成组出边、全文无 `--> [*]`，到站停车后系统永久停住。",
+      "detail": "`Stopping` 这个名字在全文只出现一次，就是 `:16` 的箭头右侧。它没有被 `state Stopping { }` 显式定义，也没有任何迁移以它为源端。\n\n退路不存在：它的父是根，根层除 `:2 [*] --> DoorsClosing` 外没有其它可继承的成组出边；全文没有任何 `--> [*]`。它是可达的：`:2` → `:4` → `:16`。所以这是一个可达的死锁。\n\n本 pair 有一处很有说服力的内部对照：`EmergencyStopping` 反而有出路——`:19 EmergencyStopping --> InMotion:exit/Send Obstacle Detected` 把它接回了运动状态。也就是说作者并不是不会写恢复边，唯独没有给「到站」这条路径接后续。\n\n从 NL 看，第 2 句「the system can either transition to the Stopping state when it arrives」只说了怎么进去，没说这是终点。这是列车控制系统，到站是一次行程的结束而不是设备生命周期的结束，正常语义应当是开门、复位、准备下一趟。\n\n同一份 NL 的 pair 0004 与 pair 0054 上出现了同型的 Stopping 死锁（分别记为 INS-0004-02 与 INS-0054-01）。",
+      "D_basis": "判 D2。这是一个可达且无任何出路的非预期终止：状态可达、无出边、无可继承的成组出边、全文无终止声明。这一类判定不依赖领域知识也不依赖形式化规约。三个判读臂一致认定成立，且没有任何一臂能拿出「作者显式声明合法终止」的依据。本 pair 的内部对照进一步削弱了「到站即有意终点」这个读法：作者给 EmergencyStopping 写了恢复边，说明他会写，只是这里漏了。",
+      "L_basis": "判 L2。陈述这条错误需要先给出一条到达 `Stopping` 的路径（`:2` → `:4` → `:16`），再穷尽检查全部迁移以确认没有任何一条以它为源，并确认根层无成组出边、全文无终止符。这些都是对行为的构造与排除。",
+      "axes": {
+        "defect_locus": "global",
+        "defect_element": null,
+        "defect_qualifier": null,
+        "defect_logic_kind": "unintended_terminal",
+        "defect_reference": "requirement"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:reachable_deadlock:Stopping",
+          "claims": [
+            "Source state 'Stopping' is reachable, non-final, and has no enabled continuation in the certified fragment."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0024.Stopping"
+          ],
+          "obligations": [
+            "A reachable non-final behavior must admit a continuation or valid termination."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:reachable_deadlock:Stopping:facet:db5a0a916366"
+          ]
+        },
+        {
+          "finding_id": "source:transition:InMotion.Accelerating:approaches its destination, upon receiving the \"Approached/Decelerate\" signal:InMotion.Approaching",
+          "claims": [
+            "The required InMotion.Accelerating -> InMotion.Approaching transition under approaches its destination, upon receiving the \"Approached/Decelerate\" signal is absent or loses its condition."
+          ],
+          "locations": [
+            "NL6"
+          ],
+          "obligations": [
+            "InMotion.Accelerating must transition directly to InMotion.Approaching under approaches its destination, upon receiving the \"Approached/Decelerate\" signal."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:InMotion.Accelerating:approaches its destination, upon receiving the \"Approached/Decelerate\" signal:InMotion.Approaching:facet:22df1cef6275"
+          ]
+        },
+        {
+          "finding_id": "source:transition:InMotion.Cruising:when it approaches the destination, triggered by the \"Approached/Decelerate\" signal:InMotion.Approaching",
+          "claims": [
+            "The required InMotion.Cruising -> InMotion.Approaching transition under when it approaches the destination, triggered by the \"Approached/Decelerate\" signal is absent or loses its condition."
+          ],
+          "locations": [
+            "NL7"
+          ],
+          "obligations": [
+            "InMotion.Cruising must transition directly to InMotion.Approaching under when it approaches the destination, triggered by the \"Approached/Decelerate\" signal."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:InMotion.Cruising:when it approaches the destination, triggered by the \"Approached/Decelerate\" signal:InMotion.Approaching:facet:65b101f2d600"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:InMotion.Accelerating:entry:Entry/Accelerate",
+          "claims": [
+            "The required entry action may be missing from the formal state/action realization for InMotion.Accelerating.",
+            "The required Entry/Accelerate action may be absent from the Accelerating entry lifecycle.",
+            "State 'InMotion.Accelerating' lacks required state_action 'Entry/Accelerate' in the entry phase."
+          ],
+          "locations": [
+            "NL8",
+            "PUML:L6",
+            "F11",
+            "InMotion.Accelerating",
+            "tr_0003"
+          ],
+          "obligations": [
+            "Accelerating has the entry action \"Entry/Accelerate\".",
+            "Accelerating must have the Entry/Accelerate action on entry.",
+            "State 'InMotion.Accelerating' must own required state_action 'Entry/Accelerate' in the entry phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:lifecycle_action:InMotion.Accelerating:entry:Entry/Accelerate:facet:c5113cb2f30d",
+            "source:lifecycle_action:InMotion.Accelerating:entry:Entry/Accelerate:facet:9f0a39a1e92d"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:EmergencyStopping:None:Obstacle Detected",
+          "claims": [
+            "The signal required to be sent by EmergencyStopping may instead be represented only as an incoming trigger or as a composite exit label.",
+            "The required Obstacle Detected output may be attached only as an incoming trigger or may be absent from EmergencyStopping ownership.",
+            "State 'EmergencyStopping' lacks required output_signal 'Obstacle Detected' in any lifecycle phase."
+          ],
+          "locations": [
+            "NL3",
+            "PUML:L17",
+            "PUML:L19",
+            "F8",
+            "F9",
+            "tr_0009",
+            "tr_0010",
+            "EmergencyStopping"
+          ],
+          "obligations": [
+            "EmergencyStopping owns an output signal \"Obstacle Detected\".",
+            "EmergencyStopping must send the Obstacle Detected output signal as a state-owned output.",
+            "State 'EmergencyStopping' must own required output_signal 'Obstacle Detected' in any lifecycle phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:lifecycle_action:EmergencyStopping:None:Obstacle Detected:facet:e2c68cabe8c2",
+            "source:lifecycle_action:EmergencyStopping:None:Obstacle Detected:facet:2e6a47a79b98"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:EmergencyStopping:None:Emergency Stop",
+          "claims": [
+            "State 'EmergencyStopping' lacks required state_action 'Emergency Stop' in any lifecycle phase.",
+            "The required Emergency Stop action may not be realized as an action owned by EmergencyStopping."
+          ],
+          "locations": [
+            "EmergencyStopping",
+            "NL3",
+            "PUML:L18"
+          ],
+          "obligations": [
+            "State 'EmergencyStopping' must own required state_action 'Emergency Stop' in any lifecycle phase.",
+            "EmergencyStopping must include the Emergency Stop state-owned action."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:lifecycle_action:EmergencyStopping:None:Emergency Stop:facet:efdbb7459cdf",
+            "source:lifecycle_action:EmergencyStopping:None:Emergency Stop:facet:04502fe7df5f"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:InMotion.Approaching:during:Send",
+          "claims": [
+            "State 'InMotion.Approaching' lacks required output_signal 'Send' in the during phase."
+          ],
+          "locations": [
+            "InMotion.Approaching"
+          ],
+          "obligations": [
+            "State 'InMotion.Approaching' must own required output_signal 'Send' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D1",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:InMotion.Approaching:during:Send:facet:4b910f8b08d8"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:2cb325e7ea7879e8",
+          "claims": [
+            "The Send output may be attached at exit rather than during the Approaching state's continued operation."
+          ],
+          "locations": [
+            "NL9",
+            "PUML:L14",
+            "tr_0007",
+            "InMotion.Approaching"
+          ],
+          "obligations": [
+            "Approaching must send Send during its continued approach."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:2cb325e7ea7879e8:facet:07a4dea58440"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:lifecycle_action:InMotion.Approaching:during:Send",
+          "claims": [
+            "The named Send output may be modeled only as an exit transition from Approaching rather than as a during-state action, conflicting with the stated continued operation in Approaching.",
+            "State 'InMotion.Approaching' lacks required output_signal 'Send' in the during phase."
+          ],
+          "locations": [
+            "NL9",
+            "PUML:L14",
+            "F18",
+            "tr_0007",
+            "InMotion.Approaching"
+          ],
+          "obligations": [
+            "Approaching must own the named Send output during its operation.",
+            "State 'InMotion.Approaching' must own required output_signal 'Send' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:lifecycle_action:InMotion.Approaching:during:Send:facet:07a4dea58440",
+            "source:lifecycle_action:InMotion.Approaching:during:Send:facet:023a9b4214c1"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:EmergencyStopping:None:Emergency Stop",
+          "claims": [
+            "The named Emergency Stop action may be represented only as a state-body label rather than as a structured owned action.",
+            "State 'EmergencyStopping' lacks required state_action 'Emergency Stop' in any lifecycle phase."
+          ],
+          "locations": [
+            "NL3",
+            "PUML:L17",
+            "PUML:L18",
+            "F28",
+            "EmergencyStopping"
+          ],
+          "obligations": [
+            "EmergencyStopping must include the Emergency Stop state action.",
+            "State 'EmergencyStopping' must own required state_action 'Emergency Stop' in any lifecycle phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:lifecycle_action:EmergencyStopping:None:Emergency Stop:facet:04502fe7df5f",
+            "source:lifecycle_action:EmergencyStopping:None:Emergency Stop:facet:efdbb7459cdf"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:EmergencyStopping:None:Obstacle Detected",
+          "claims": [
+            "The Obstacle Detected signal may be modeled as an incoming trigger to EmergencyStopping and a later transition label rather than as an output owned by EmergencyStopping.",
+            "State 'EmergencyStopping' lacks required output_signal 'Obstacle Detected' in any lifecycle phase."
+          ],
+          "locations": [
+            "NL3",
+            "PUML:L17",
+            "PUML:L19",
+            "F8",
+            "F9",
+            "tr_0009",
+            "tr_0010",
+            "EmergencyStopping"
+          ],
+          "obligations": [
+            "EmergencyStopping must own the Obstacle Detected output signal.",
+            "State 'EmergencyStopping' must own required output_signal 'Obstacle Detected' in any lifecycle phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:lifecycle_action:EmergencyStopping:None:Obstacle Detected:facet:e2c68cabe8c2",
+            "source:lifecycle_action:EmergencyStopping:None:Obstacle Detected:facet:2e6a47a79b98"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:InMotion.Accelerating:entry:Entry/Accelerate",
+          "claims": [
+            "State 'InMotion.Accelerating' lacks required state_action 'Entry/Accelerate' in the entry phase."
+          ],
+          "locations": [
+            "InMotion.Accelerating"
+          ],
+          "obligations": [
+            "State 'InMotion.Accelerating' must own required state_action 'Entry/Accelerate' in the entry phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:InMotion.Accelerating:entry:Entry/Accelerate:facet:9f0a39a1e92d"
+          ]
+        },
+        {
+          "finding_id": "source:reachable_deadlock:Stopping",
+          "claims": [
+            "Source state 'Stopping' is reachable, non-final, and has no enabled continuation in the certified fragment."
+          ],
+          "locations": [
+            "NL2",
+            "llms_emp_feedback_final_0024.Stopping",
+            "Stopping",
+            "deterministic_frontier:source:reachable_deadlock:Stopping"
+          ],
+          "obligations": [
+            "A reachable non-final Stopping state must admit a continuation or valid termination."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:reachable_deadlock:Stopping:facet:92210753f4c6",
+            "source:reachable_deadlock:Stopping:facet:b4b900bb767d"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:lifecycle_action:EmergencyStopping:None:Emergency Stop",
+          "claims": [
+            "The required Emergency Stop state action may not be represented as a formal action owned by EmergencyStopping.",
+            "The required Emergency Stop action may not be realized as an executable action owned by EmergencyStopping.",
+            "State 'EmergencyStopping' lacks required state_action 'Emergency Stop' in any lifecycle phase."
+          ],
+          "locations": [
+            "NL3",
+            "PUML:L18",
+            "F28",
+            "EmergencyStopping"
+          ],
+          "obligations": [
+            "EmergencyStopping owns the required Emergency Stop action.",
+            "EmergencyStopping includes the state-owned action \"Emergency Stop\".",
+            "State 'EmergencyStopping' must own required state_action 'Emergency Stop' in any lifecycle phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:lifecycle_action:EmergencyStopping:None:Emergency Stop:facet:04502fe7df5f",
+            "source:lifecycle_action:EmergencyStopping:None:Emergency Stop:facet:13f557c97de5"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:EmergencyStopping:None:Obstacle Detected",
+          "claims": [
+            "State 'EmergencyStopping' lacks required output_signal 'Obstacle Detected' in any lifecycle phase."
+          ],
+          "locations": [
+            "EmergencyStopping"
+          ],
+          "obligations": [
+            "State 'EmergencyStopping' must own required output_signal 'Obstacle Detected' in any lifecycle phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:EmergencyStopping:None:Obstacle Detected:facet:2e6a47a79b98"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:InMotion.Approaching:during:Send",
+          "claims": [
+            "State 'InMotion.Approaching' lacks required output_signal 'Send' in the during phase.",
+            "The Send output may be attached only to Approaching exit rather than occurring during Approaching as required."
+          ],
+          "locations": [
+            "InMotion.Approaching",
+            "NL9",
+            "PUML14",
+            "F18",
+            "tr_0007"
+          ],
+          "obligations": [
+            "State 'InMotion.Approaching' must own required output_signal 'Send' in the during phase.",
+            "Approaching sends the \"Send\" signal while it is operating."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:lifecycle_action:InMotion.Approaching:during:Send:facet:84ed070965e9",
+            "source:lifecycle_action:InMotion.Approaching:during:Send:facet:07a4dea58440"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:InMotion.Accelerating:entry:Entry/Accelerate",
+          "claims": [
+            "State 'InMotion.Accelerating' lacks required state_action 'Entry/Accelerate' in the entry phase.",
+            "The required Entry/Accelerate action may not be attached to Accelerating's entry lifecycle."
+          ],
+          "locations": [
+            "InMotion.Accelerating",
+            "NL8",
+            "F14",
+            "F2"
+          ],
+          "obligations": [
+            "State 'InMotion.Accelerating' must own required state_action 'Entry/Accelerate' in the entry phase.",
+            "Accelerating is entered with the \"Entry/Accelerate\" action when motion begins."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:lifecycle_action:InMotion.Accelerating:entry:Entry/Accelerate:facet:9f0a39a1e92d",
+            "source:lifecycle_action:InMotion.Accelerating:entry:Entry/Accelerate:facet:c5113cb2f30d"
+          ]
+        },
+        {
+          "finding_id": "source:reachable_deadlock:Stopping",
+          "claims": [
+            "Source state 'Stopping' is reachable, non-final, and has no enabled continuation in the certified fragment."
+          ],
+          "locations": [
+            "NL2",
+            "Stopping",
+            "F27"
+          ],
+          "obligations": [
+            "Reachable non-final stopping behavior must admit a continuation or valid termination."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:reachable_deadlock:Stopping:facet:81120a6ec853"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型将障碍触发条件写为“Obstacle Detected”，但规格要求在检测到障碍物时进入该状态；同时规格明确要求该进入过程包含“Emergency Stop”动作并发送“Obstacle Detected”信号，模型把发送动作放在 EmergencyStopping → InMotion 的退出转移上。",
+          "reason": "动作/信号的归属与时序错误：进入 EmergencyStopping 时未表达发送“Obstacle Detected”，而退出时才发送，不能保证检测到障碍后立即执行规格要求的应急动作和信号。",
+          "where": "InMotion → EmergencyStopping 转移"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "模型定义了 EmergencyStopping: Emergency Stop，但没有把该动作明确建模为进入状态时的 entry 动作；并额外定义了“EmergencyStopping --> InMotion:exit/Send Obstacle Detected”自动退出转移。",
+          "reason": "规格只要求进入 EmergencyStopping 后执行 Emergency Stop 并发送信号，没有规定应急状态自动退出回到 InMotion；该无条件退出会使系统无法保持应急停止状态，且信号发送时机错误。",
+          "where": "EmergencyStopping 状态及其转移"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "模型增加了“Approaching --> InMotion:exit/Send”转移。",
+          "reason": "规格要求 Approaching 状态持续接近目的地，并保持在该状态直到准备停止或减速；没有规定从 Approaching 退出回到 InMotion，也没有规定 exit/Send 动作。该转移违反了保持条件并引入未授权行为。",
+          "where": "Approaching → InMotion 转移"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "模型没有将“Send”作为 Approaching 状态内的发送动作，而是将其写在离开 Approaching 的 exit 动作上。",
+          "reason": "规格第9条要求在 Approaching 子状态中发送“Send”信号并继续接近目的地，动作应属于该状态的行为，而非退出状态时才执行。",
+          "where": "Approaching 状态动作"
+        },
+        {
+          "finding_id": "baseline_issue_5",
+          "issue": "模型把 InMotion 的内部初始状态设置为 Accelerating，但没有建模“motion begins / Entry/Accelerate”这一进入 Accelerating 时的 Entry 动作。",
+          "reason": "规格明确要求运动开始时进入 Accelerating，并标记为“Entry/Accelerate”；模型仅有 Accelerating 的状态描述，没有 Entry/Accelerate 动作。",
+          "where": "InMotion 内部状态结构"
+        },
+        {
+          "finding_id": "baseline_issue_6",
+          "issue": "模型使用“Obstacle Detected”作为转移标签，但未体现“检测到障碍物”这一事件与发送同名信号之间的区别。",
+          "reason": "规格将障碍物检测作为进入条件，并要求进入 EmergencyStopping 后发送“Obstacle Detected”信号；模型标签既未明确检测事件，也未在正确位置表达发送信号，导致触发和输出语义混淆。",
+          "where": "InMotion → EmergencyStopping 转移触发语义"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "EmergencyStopping的进入触发条件与规范不一致。模型使用“Obstacle Detected”作为从InMotion进入EmergencyStopping的迁移触发，但规范要求的是“检测到障碍物”这一事件导致进入；同时规范将“Obstacle Detected”定义为进入EmergencyStopping时发送的信号，而不是迁移条件本身。",
+          "reason": "该迁移把应由进入EmergencyStopping产生的输出信号误建模为进入条件，未表达“检测到障碍物”事件与发送“Obstacle Detected”信号之间的区分。",
+          "where": "`InMotion --> EmergencyStopping: Obstacle Detected`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "EmergencyStopping中缺少规范要求的“Emergency Stop”动作执行语义。模型仅将“Emergency Stop”写成状态说明。",
+          "reason": "规范明确要求EmergencyStopping状态包括动作“Emergency Stop”，而状态描述不能表示该动作是在进入或状态期间执行的动作。",
+          "where": "`EmergencyStopping: Emergency Stop`"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "EmergencyStopping退出迁移多出了规范未定义的返回InMotion路径和动作。",
+          "reason": "规范只规定检测障碍物后进入EmergencyStopping并执行急停、发送信号，没有规定从EmergencyStopping退出回到InMotion，也没有规定`exit/Send Obstacle Detected`这一退出动作。该迁移还将发送障碍物信号错误地放在退出时。",
+          "where": "`EmergencyStopping --> InMotion:exit/Send Obstacle Detected`"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "Approaching子状态的动作和迁移方向不符合规范。模型定义为从Approaching退出并回到InMotion，执行`Send`。",
+          "reason": "规范要求在Approaching子状态中发送“Send”信号并继续接近目的地，且在接近过程中保持Approaching，直到准备停车或减速；没有规定返回InMotion的迁移。`Send`应属于Approaching中的状态/进入动作或内部动作，而非退出InMotion的动作。",
+          "where": "`Approaching --> InMotion:exit/Send`"
+        },
+        {
+          "finding_id": "baseline_issue_5",
+          "issue": "Approaching缺少保持状态直到停车或减速的明确语义。",
+          "reason": "规范第9、10条要求Approaching持续保持并继续接近目的地，直到准备停止或减速。模型只有一个离开Approaching的`exit/Send`迁移，未建模任何“准备停车或减速”的条件，也未表示无迁移时保持该状态的行为。",
+          "where": "`Approaching`及其相关迁移"
+        },
+        {
+          "finding_id": "baseline_issue_6",
+          "issue": "“Entry/Accelerate”动作未按规范建模。",
+          "reason": "规范要求运动开始进入Accelerating时执行`Entry/Accelerate`动作。模型的初始迁移没有该动作，且`Accelerating`只有普通状态说明。",
+          "where": "InMotion内部初始迁移`[*] --> Accelerating`"
+        },
+        {
+          "finding_id": "baseline_issue_7",
+          "issue": "从Approaching发送信号的信号名/时机表达不完整。",
+          "reason": "虽然模型包含`Send`字样，但它被标成退出动作，并且没有表示Approaching状态持续期间发送该信号；因此不能满足规范对Approaching中发送“Send”并继续接近的要求。",
+          "where": "`Approaching --> InMotion:exit/Send`"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "Approaching 子状态错误地迁移回 InMotion，并将 `Send` 建模为退出动作",
+          "reason": "规范第9、10条要求进入 Approaching 后发送“Send”信号并继续处于 Approaching，直到准备停止或减速；没有规定从 Approaching 返回 InMotion 的迁移，也没有规定 `exit` 动作。该迁移会使系统离开 Approaching，违反“保持在 Approaching”语义。",
+          "where": "`Approaching --> InMotion: exit/Send`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "障碍物检测迁移的触发器与规范不一致",
+          "reason": "规范第2、3条要求在检测到障碍物时进入 EmergencyStopping，模型使用 `Obstacle Detected` 作为迁移标签；规范将“Obstacle Detected”描述为进入 EmergencyStopping 后发送的信号，而不是检测事件本身。模型缺少明确的障碍物检测触发条件。",
+          "where": "`InMotion --> EmergencyStopping: Obstacle Detected`"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "EmergencyStopping 错误地自动返回 InMotion，并把障碍物信号放在退出迁移上",
+          "reason": "规范只规定进入 EmergencyStopping 时执行“Emergency Stop”并发送“Obstacle Detected”信号，没有规定 EmergencyStopping 返回 InMotion 的迁移。该迁移还将发送信号延迟到退出时，不能满足进入该状态时发送信号的要求。",
+          "where": "`EmergencyStopping --> InMotion: exit/Send Obstacle Detected`"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "`exit` 伪状态动作的使用不符合已给出的动作语义",
+          "reason": "规范明确给出的 `Entry/Accelerate` 是进入 Accelerating 时的动作，以及 `Arrived/Stop, Send Arrived`、`Closed/SendDeparted` 等迁移动作；没有规定在 Approaching 或 EmergencyStopping 退出时执行这些 `exit` 动作。模型未表达 `Entry/Accelerate`，反而添加了未定义的退出动作。",
+          "where": "`Approaching --> InMotion: exit/Send` 与 `EmergencyStopping --> InMotion: exit/Send Obstacle Detected`"
+        },
+        {
+          "finding_id": "baseline_issue_5",
+          "issue": "未建模进入 Accelerating 时的 `Entry/Accelerate` 动作",
+          "reason": "规范第5、8条明确要求系统开始运动时进入 Accelerating，并以 `Entry/Accelerate` 标记该动作。模型只表示初始子状态迁移，没有 `entry/Accelerate`（或等价的 `Entry/Accelerate`）动作。",
+          "where": "`[*] --> Accelerating` 以及 Accelerating 的状态定义"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0024",
+    "ledger_assessments": [
+      {
+        "ledger_id": "DIFF-0024-04",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "方法输出未主张 EmergencyStopping 到 InMotion 这条额外迁移。",
+          "confidence": null
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "方法输出未主张该额外返回边。",
+          "confidence": null
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "方法输出未主张该额外返回边。",
+          "confidence": null
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_2"
+          ],
+          "reason": "baseline_issue_2 明确主张 EmergencyStopping 自动返回 InMotion 的额外退出转移。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_3"
+          ],
+          "reason": "baseline_issue_3 明确主张 EmergencyStopping 到 InMotion 的未定义返回路径。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_3"
+          ],
+          "reason": "baseline_issue_3 明确主张 EmergencyStopping 错误地自动返回 InMotion。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0024-01",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:lifecycle_action:InMotion.Accelerating:entry:Entry/Accelerate"
+          ],
+          "reason": "finding 直接主张 InMotion.Accelerating entry 阶段缺少 Entry/Accelerate。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:lifecycle_action:InMotion.Accelerating:entry:Entry/Accelerate"
+          ],
+          "reason": "finding 直接主张 Accelerating entry action 缺失。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:lifecycle_action:InMotion.Accelerating:entry:Entry/Accelerate"
+          ],
+          "reason": "finding 直接主张 Accelerating entry lifecycle 未附加 Entry/Accelerate。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_5"
+          ],
+          "reason": "baseline_issue_5 明确主张 Accelerating 缺少 Entry/Accelerate entry 动作。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_6"
+          ],
+          "reason": "baseline_issue_6 明确主张 Entry/Accelerate 未按规范建模。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_5"
+          ],
+          "reason": "baseline_issue_5 明确主张进入 Accelerating 时缺少 Entry/Accelerate。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0024-02",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:lifecycle_action:InMotion.Approaching:during:Send",
+            "hypothesis:2cb325e7ea7879e8"
+          ],
+          "reason": "两个方法 finding 都指向 Approaching 的 Send 被放在 exit/迁移而非状态持续动作；该输出覆盖同一动作槽位错位。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:lifecycle_action:InMotion.Approaching:during:Send"
+          ],
+          "reason": "finding 明确主张 Send 仅作为 Approaching 的退出迁移而非 during 状态输出。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:lifecycle_action:InMotion.Approaching:during:Send"
+          ],
+          "reason": "finding 明确主张 Send 仅附着于 Approaching exit 而非 during 状态输出。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1",
+            "baseline_issue_2"
+          ],
+          "reason": "baseline_issue_1 明确主张 Obstacle Detected 被放在 EmergencyStopping 退出转移上，未作为状态输出；issue_2 也重复说明信号时机错误。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_3"
+          ],
+          "reason": "baseline_issue_3 明确主张 Obstacle Detected 被错误放在 EmergencyStopping 退出迁移上。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_3"
+          ],
+          "reason": "baseline_issue_3 明确主张障碍物信号放在退出迁移上且时机错误。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0024-03",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "方法输出只指出 Send 的状态动作槽位/时机问题，没有主张目标 InMotion 是 Approaching 的外层复合态或该边导致层级重置。",
+          "confidence": null
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "方法输出指出 Send 未在 during 阶段表达，但没有主张 Approaching 到外层 InMotion 的层级目标错误；不存在可引用的 baseline_issue_4。",
+          "confidence": null
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "方法输出没有主张 Approaching 到 InMotion 的目标层级或离开后重置问题。",
+          "confidence": null
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_3"
+          ],
+          "reason": "baseline_issue_3 明确指向 Approaching 到 InMotion 的退出边，并主张该边违反保持条件。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_4",
+            "baseline_issue_5"
+          ],
+          "reason": "baseline_issue_4 主张从 Approaching 退出回 InMotion，baseline_issue_5 主张未保持至允许条件。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "baseline_issue_1 明确主张 Approaching 错误迁移回 InMotion并离开该子状态。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0024-04",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:lifecycle_action:EmergencyStopping:None:Obstacle Detected"
+          ],
+          "reason": "finding 直接主张 EmergencyStopping 缺少 Obstacle Detected 状态拥有输出，且定位包含 :19 迁移标签。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:lifecycle_action:EmergencyStopping:None:Obstacle Detected"
+          ],
+          "reason": "finding 直接主张 Obstacle Detected 被建模为输入触发/迁移标签而非状态输出。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:lifecycle_action:EmergencyStopping:None:Obstacle Detected"
+          ],
+          "reason": "finding 直接主张 EmergencyStopping 缺少所需 Obstacle Detected 输出。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "baseline_issue_1 明确主张输出信号位于 EmergencyStopping 退出转移而非状态动作，覆盖该迁移标签中的输出错位。",
+          "confidence": "medium"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_3"
+          ],
+          "reason": "baseline_issue_3 明确主张 Obstacle Detected 被放在退出迁移而非 EmergencyStopping 输出。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_3"
+          ],
+          "reason": "baseline_issue_3 明确主张障碍物信号放在退出迁移上。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "INS-0024-01",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:reachable_deadlock:Stopping"
+          ],
+          "reason": "finding 直接主张 Stopping 可达、非终态且无继续行为。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:reachable_deadlock:Stopping"
+          ],
+          "reason": "finding 直接主张 Stopping 可达、非终态且无启用的继续行为。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:reachable_deadlock:Stopping"
+          ],
+          "reason": "finding 直接主张 Stopping 可达且无继续行为。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline 输出没有指出 Stopping 可达且无出路。",
+          "confidence": null
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline 输出没有指出 Stopping 的可达死端。",
+          "confidence": null
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline 输出没有指出 Stopping 的可达死端。",
+          "confidence": null
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "method_run1",
+        "emitted_id": "hypothesis:2cb325e7ea7879e8",
+        "matched_ledger_ids": [
+          "EIS-0024-02"
+        ],
+        "false_positive": false,
+        "reason": "直接指向 Approaching 的 Send 被放在 exit 而非状态持续行为，覆盖该输出动作的错位/记法槽位问题；未主张目标层级本身。",
+        "confidence": null
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:lifecycle_action:EmergencyStopping:None:Emergency Stop",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 Emergency Stop 动作缺失，但冻结台账没有该独立条目；EIS-0024-04 只涉及 Obstacle Detected 输出。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:lifecycle_action:EmergencyStopping:None:Obstacle Detected",
+        "matched_ledger_ids": [
+          "EIS-0024-04"
+        ],
+        "false_positive": false,
+        "reason": "同一 EmergencyStopping 位置、同一 Obstacle Detected 输出未作为状态动作而出现在迁移标签中的问题。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:lifecycle_action:InMotion.Accelerating:entry:Entry/Accelerate",
+        "matched_ledger_ids": [
+          "EIS-0024-01"
+        ],
+        "false_positive": false,
+        "reason": "直接主张 Accelerating entry 阶段缺少 Entry/Accelerate。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:lifecycle_action:InMotion.Approaching:during:Send",
+        "matched_ledger_ids": [
+          "EIS-0024-02"
+        ],
+        "false_positive": false,
+        "reason": "直接主张 Approaching 持续阶段缺少 Send 状态输出，位置和性质对应输出动作错放到迁移标签。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:reachable_deadlock:Stopping",
+        "matched_ledger_ids": [
+          "INS-0024-01"
+        ],
+        "false_positive": false,
+        "reason": "直接主张 Stopping 可达且无继续行为，覆盖可达死端。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:transition:InMotion.Accelerating:approaches its destination, upon receiving the \"Approached/Decelerate\" signal:InMotion.Approaching",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "涉及 Accelerating 到 Approaching 的迁移缺失，冻结台账没有该条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:transition:InMotion.Cruising:when it approaches the destination, triggered by the \"Approached/Decelerate\" signal:InMotion.Approaching",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "涉及 Cruising 到 Approaching 的迁移缺失，冻结台账没有该条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:lifecycle_action:EmergencyStopping:None:Emergency Stop",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "仅涉及未列入冻结台账的 Emergency Stop 动作缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:lifecycle_action:EmergencyStopping:None:Obstacle Detected",
+        "matched_ledger_ids": [
+          "EIS-0024-04"
+        ],
+        "false_positive": false,
+        "reason": "同一 EmergencyStopping 输出的状态归属/迁移标签错位。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:lifecycle_action:InMotion.Accelerating:entry:Entry/Accelerate",
+        "matched_ledger_ids": [
+          "EIS-0024-01"
+        ],
+        "false_positive": false,
+        "reason": "同一 Accelerating entry 动作缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:lifecycle_action:InMotion.Approaching:during:Send",
+        "matched_ledger_ids": [
+          "EIS-0024-02"
+        ],
+        "false_positive": false,
+        "reason": "同一 Approaching 中 Send 输出未作为持续状态动作表达。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:reachable_deadlock:Stopping",
+        "matched_ledger_ids": [
+          "INS-0024-01"
+        ],
+        "false_positive": false,
+        "reason": "同一 Stopping 可达无出路问题。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:lifecycle_action:EmergencyStopping:None:Emergency Stop",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "Emergency Stop 动作缺失不是冻结台账条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:lifecycle_action:EmergencyStopping:None:Obstacle Detected",
+        "matched_ledger_ids": [
+          "EIS-0024-04"
+        ],
+        "false_positive": false,
+        "reason": "同一 EmergencyStopping 的 Obstacle Detected 输出未以状态拥有动作表达。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:lifecycle_action:InMotion.Accelerating:entry:Entry/Accelerate",
+        "matched_ledger_ids": [
+          "EIS-0024-01"
+        ],
+        "false_positive": false,
+        "reason": "同一 Accelerating entry 动作缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:lifecycle_action:InMotion.Approaching:during:Send",
+        "matched_ledger_ids": [
+          "EIS-0024-02"
+        ],
+        "false_positive": false,
+        "reason": "同一 Approaching 持续阶段的 Send 输出错位。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:reachable_deadlock:Stopping",
+        "matched_ledger_ids": [
+          "INS-0024-01"
+        ],
+        "false_positive": false,
+        "reason": "同一 Stopping 可达死端。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0024-04"
+        ],
+        "false_positive": false,
+        "reason": "明确指向 EmergencyStopping 输出信号被放在退出转移而非该状态动作；未把它作为 DIFF 的独立额外边主张。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "DIFF-0024-04"
+        ],
+        "false_positive": false,
+        "reason": "明确主张 EmergencyStopping 自动返回 InMotion 的额外退出转移。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [
+          "EIS-0024-03"
+        ],
+        "false_positive": false,
+        "reason": "明确指向 Approaching 到外层 InMotion 的迁移并主张违反保持条件。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [
+          "EIS-0024-02"
+        ],
+        "false_positive": false,
+        "reason": "明确主张 Send 被写成离开 Approaching 的 exit 动作而非状态内输出。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_5",
+        "matched_ledger_ids": [
+          "EIS-0024-01"
+        ],
+        "false_positive": false,
+        "reason": "明确主张 Accelerating 缺少 Entry/Accelerate。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_6",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "只主张 InMotion 到 EmergencyStopping 的触发器与输出信号混淆，未指认 EmergencyStopping 到 InMotion 迁移上的输出错位。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "只涉及进入 EmergencyStopping 的触发事件与同名信号混淆，定位不是冻结台账中的输出迁移问题。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "只涉及 Emergency Stop 动作缺失，冻结台账没有该条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [
+          "DIFF-0024-04",
+          "EIS-0024-04"
+        ],
+        "false_positive": false,
+        "reason": "同一 EmergencyStopping 到 InMotion 转移既被主张为额外返回边，也被主张为把 Obstacle Detected 放在退出标签上。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [
+          "EIS-0024-02",
+          "EIS-0024-03"
+        ],
+        "false_positive": false,
+        "reason": "同一 Approaching 到 InMotion 边同时被主张为 Send 的退出标签错位和离开 Approaching/目标层级错误。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_5",
+        "matched_ledger_ids": [
+          "EIS-0024-03"
+        ],
+        "false_positive": false,
+        "reason": "主张 Approaching 未保持至允许条件且该退出边无规定条件，覆盖 remain-until/层级迁移后果。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_6",
+        "matched_ledger_ids": [
+          "EIS-0024-01"
+        ],
+        "false_positive": false,
+        "reason": "明确主张 Accelerating 缺少 Entry/Accelerate。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_7",
+        "matched_ledger_ids": [
+          "EIS-0024-02"
+        ],
+        "false_positive": false,
+        "reason": "明确主张 Send 虽出现但被建模为退出动作而非 Approaching 持续输出。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0024-03"
+        ],
+        "false_positive": false,
+        "reason": "明确主张 Approaching 返回 InMotion 并离开该子状态，违反保持义务。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "只涉及 InMotion 到 EmergencyStopping 的触发器语义，未指认冻结台账中的 EmergencyStopping 输出迁移问题。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [
+          "DIFF-0024-04",
+          "EIS-0024-04"
+        ],
+        "false_positive": false,
+        "reason": "同一 EmergencyStopping 返回边的额外性与 Obstacle Detected 退出时发送的错位均被明确主张。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [
+          "EIS-0024-02",
+          "EIS-0024-04"
+        ],
+        "false_positive": false,
+        "reason": "明确涉及两条退出迁移中的 exit 动作不当；对 Approaching 的部分覆盖 Send 错位，对 EmergencyStopping 的部分覆盖 Obstacle Detected 错位。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_5",
+        "matched_ledger_ids": [
+          "EIS-0024-01"
+        ],
+        "false_positive": false,
+        "reason": "明确主张进入 Accelerating 时未建模 Entry/Accelerate。",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "已按同一位置与同一性质逐项对齐；方法侧仅将 Accelerate、Approaching 的 Send 错位、Obstacle Detected 错位和 Stopping 死端计为对应，未将未列入冻结台账的 Emergency Stop 或其他迁移缺失计入。baseline_run2 的 EIS-0024-03 仅保留实际存在的 baseline_issue_4 与 baseline_issue_5，未引用未知 supporting id。"
+  },
+  "status": "ok",
+  "attempts": 2
+}

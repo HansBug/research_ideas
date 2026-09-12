@@ -1,0 +1,52 @@
+{
+  "judged_by": "R8",
+  "positions": {
+    "EIS-0019-01|run3/0019-claude": {
+      "hit": false,
+      "argument": "台账 EIS-0019-01 的缺陷是作者对 enter_hwy 的两个互斥目标（cruise 与 lane_change）写了逐字相同的条件、缺少消歧守卫，构成不可区分冲突目标。run3 发布的 11 条 issue 全是「独立事件未声明」（[1] dist_to_front<25、[2] extra_lane=true、[3] dist_to_front<15、[5]-[11] 碰撞相关事件）与 [4] CAS 初始子状态，说的是作者把两个条件融合成一个事件标签、未拆分声明；把它拆成两个独立事件后，enter_hwy 的两条边仍共享同一条件、仍不可区分，故不蕴含台账命题为假，反向亦不蕴含。断言表中 False 的 AST-REQ-006A-1/006B-1/006C-1/007-0/009-0/012-0/016-0/022-0/026-1/027-1~030-1/032-1~034-1 全部是 event_declared 与 CAS initial_target，无一表达 enter_hwy 双目标不可区分或 lane_change 不可达（AST-REQ-008-1 reaches:enter_hwy:cruise 为 True）。"
+    },
+    "EIS-0019-02|run1/0019-claude": {
+      "hit": true,
+      "equivalence_form": "直接对应",
+      "carrier": "issue",
+      "argument": "已发布 issue [2] `ISSUE-CAS-initial`「CollisionAvoidanceSystem 的默认入口不是 collision_avoidance_deactive」，其 rationale 逐字指出模型未声明 [*] -> collision_avoidance_deactive、转换器注入 UnspecifiedInitial 作为占位默认入口；台账 EIS-0019-02 说的正是作者源 CollisionAvoidanceSystem 块内缺少初始边、投影注入 UnspecifiedInitial。两者锚在作者源同一处（该 state 块只声明两状态两互逆边、无 [*] 边）这一条编辑上，只是措辞不同。断言 AST-REQ-023-1 `initial_target:CAS:cad` = False 亦支撑。"
+    },
+    "EIS-0034-01|run3/0034-gpt": {
+      "hit": true,
+      "equivalence_form": "直接对应",
+      "carrier": "issue",
+      "argument": "已发布 issue [1] `ISSUE-InMotion-decomposition` 逐字主张：模型把 InMotion 声明为简单根级状态，把 Accelerating/Cruising/Approaching 声明为 InMotion 的根级兄弟状态，并用从 InMotion 到这些状态的无触发转换表达运动阶段，因此 InMotion 没有三个直接子状态、也没有内部初始入口，进而 Arrived/Obstacle 的组退出响应失败。这与台账 EIS-0034-01「作者从未打开 InMotion 复合状态、三阶段成为顶层兄弟、用无事件边 InMotion --> Accelerating/Cruising/Approaching 连接、层次归属与组退出语义失效」是同一处作者源失误的同一表述。断言 AST-REQ-022-1 state_declared:InMotion:composite、AST-REQ-007-1 cardinality:InMotion:3、AST-REQ-008-1/009-1/010-1 containment 均为 False。"
+    },
+    "EIS-0034-03|run1/0034-claude": {
+      "hit": false,
+      "argument": "台账 EIS-0034-03 的缺陷是作者在 DoorsClosing 上多挂了一份 entry/Accelerate（动作错置到关门阶段）。run1 的 6 条 issue 中最接近的 [5] `ISSUE-REQ-019-Entry_Accelerate-event` 说的是「事件表中无末段等于 Entry_Accelerate 的事件声明」，即缺少一个具名事件，且其 rationale 明确说 REQ-016 的 Accelerating 入口动作检查已为 True——它讨论的是事件声明缺失，与「DoorsClosing 上多出一份同名 entry 动作」既非同一元素（DoorsClosing 从未被提及）也非同一缺陷事实，且方向相反（一个是缺失、一个是冗余错置）。其余 issue [1]-[4]、[6] 分别关于 InMotion 复合结构、Arrived/Obstacle 运行时占据、Approaching 持续性、Send 事件。断言表中无任何 action_declared:DoorsClosing 项，AST-REQ-016-1 action_declared:Accelerating:entry 为 True。"
+    },
+    "EIS-0034-03|run2/0034-claude": {
+      "hit": false,
+      "argument": "run2 仅发布 4 条 issue：[1] InMotion 子状态错置根级、[2] Arrived 下未迁入 Stopping、[3] Obstacle Detected 下未迁入 EmergencyStopping、[4] Approaching 提前离开，无一涉及 DoorsClosing 上多挂的 entry/Accelerate 动作。断言表中 False 的仅 AST-REQ-003-1、004-1、006A-1~006E-1、007-1、013-1，全部关于 InMotion 结构/运行时占据与 Approaching 持续性；关于动作的断言 AST-REQ-011-1 action_declared:Accelerating:entry 与 AST-REQ-012-1 action_declared:Approaching:entry 均为 True（True 断言不承载命中），且本格根本没有针对 DoorsClosing 动作的断言。"
+    },
+    "EIS-0034-05|run2/0034-claude": {
+      "hit": false,
+      "argument": "台账 EIS-0034-05 的缺陷是 EmergencyStopping 缺失 NL 第 3 句要求的 'Obstacle Detected' 信号发送动作（作者只保留了 Emergency Stop）。run2 的 4 条 issue（InMotion 子状态错置、Arrived 未迁入 Stopping、Obstacle Detected 未迁入 EmergencyStopping、Approaching 提前离开）无一主张 EmergencyStopping 缺少输出动作；issue [3] 虽提到 Obstacle Detected，但它讲的是该事件下 InMotion 的运行时占据失败，属另一处失误（§2.2「不同缺陷共用元素名」）。断言表中唯一涉及 EmergencyStopping 动作的 AST-REQ-005-1 action_declared:EmergencyStopping:entry 为 True，按 §3.1 不承载命中。"
+    },
+    "EIS-0056-01|run1/0056-gpt": {
+      "hit": false,
+      "argument": "台账 EIS-0056-01 的缺陷是同一 Intercepted 事件在同一活动配置下有两个无守卫区分的可达目标（正交区内 NoIntercept --> Intercepted 与 composite 出边 SearchState --> FormationAdjustment），即冲突目标不可区分。run1 已发布的 2 条 issue 分别是 [1] 缺少 Mission_Complete 状态、[2] 缺少 uav_count 变量，均与之无关。唯一触及 Intercepted 的 AST-REQ-004-1（occupancy_after 未到 FormationAdjustment）与 supporting AST-REQ-004-2，其对应发现被本格明确列入「被归因策略排除的发现」（representation_debt，证据触及编译器 route_control:R45RouteToken），按 §3.1 不承载命中；且其命题是「运行时未到达 FormationAdjustment」，与「存在两个不可区分目标」互不蕴含（有冲突目标未必不到达，未到达也可能另有原因），蕴含链说不清，按 §四判 false。"
+    },
+    "EIS-0056-02|run3/0056-gpt": {
+      "hit": true,
+      "equivalence_form": "蕴含更根本的原因",
+      "carrier": "issue",
+      "argument": "已发布 issue [2] `ISSUE-UavCountVariableMissing`（断言 AST-REQ-015-1 variable_declared:uav_count = False）主张模型根本没有声明 uav_count 变量。台账 EIS-0056-02 的可断言形式是 effect_declared(source=AttackState, trigger=Attack_Complete, variable=uav_count, sign='negative') = False——作者把递减写进了 guard 槽位 [Decrease UAV Count] 而非 effect 槽位。蕴含链：模型未声明 uav_count 变量，则不可能存在以该变量为对象的负向 effect，故我们的命题为假蕴含台账命题为假，且定位到更上游。两者锚在作者源同一条编辑 `AttackState --> SearchState : Attack Complete [Decrease UAV Count]` 上（作者源全文中递减只出现这一次、uav_count 作为变量出现 0 次），动其一必动其二。"
+    },
+    "EIS-0055-01|run1/0055-claude": {
+      "hit": false,
+      "argument": "本格未发布任何 issue（0 条），按判定纪律第 5 条该格全部位为 false。断言表 AST-REQ-001-1 至 AST-REQ-016-2 共 29 条结果全为 True，按 §3.1 True 断言不承载命中；亦无任何断言涉及 timer 启停或 cooking time 显示/更新的 effect。"
+    },
+    "EIS-0055-01|run2/0055-claude": {
+      "hit": false,
+      "argument": "本格未发布任何 issue（0 条），按判定纪律第 5 条该格全部位为 false。断言表 AST-REQ-001-1 至 AST-REQ-016-2 结果全为 True，按 §3.1 不承载命中；无任何断言触及台账 EIS-0055-01 所述的 timer 启停与 cooking time 显示更新 effect 缺失。"
+    }
+  },
+  "note": "EIS-0056-01|run1/0056-gpt 存在一处判据张力：AST-REQ-004-1 既出现在「已发布断言与结果」表中（False），又被本格「被归因策略排除的发现」区块逐条点名为 representation_debt 而不作为作者模型缺陷发布。我按 §3.1 第三条（被排除区块不承载命中）与 §四反自利纪律从严处理，判 false；即便不引用该条排除规则，该断言表达的「运行时未到达」与台账的「两个不可区分冲突目标」之间双向蕴含链均不成立，结论不变。"
+}

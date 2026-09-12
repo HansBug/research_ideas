@@ -1,0 +1,78 @@
+{
+  "case": "0058",
+  "diffs": [
+    {
+      "verdict": "problem",
+      "ref": "TurnOn: execTime=[(2,s,max),(2,s,min)]\\nAutoFocus: execTime=[(2,s,max),(1,s,min)]\\nDetLight: execTime = [(1,s,max),(0,s,min)]\\nChargedFlash: execTime=[(4,s,max),(2,s,min)]\\nWriteMemory: execTime=[(3,s,max),(2,s,min)]（五者均为简单态）",
+      "gen": "state TurnOn { state \"\"TurnOn\"\" as TurnOn_state }\\nstate AutoFocus { state \"\"AutoFocus\"\" as AutoFocus_state }\\nstate DetLight { ... }\\nstate ChargedFlash { ... }\\nstate WriteMemory { ... }（五个复合壳，块内均无 [*] -->）",
+      "reason": "良构性：gen 把五个本应是简单态的状态各包成一个同名复合壳，壳内只有一个 `_state` 子态、没有初始伪状态。FCSTM 投影在 TurnOn / AutoFocus / DetLight / ChargedFlash / WriteMemory 五个壳内都插入了 `state UnspecifiedInitial` 并给出 `[*] -> UnspecifiedInitial`，即复合态无有效默认子态。其中 `fork1 --> AutoFocus`、`fork1 --> DetLight`、`TakePicture --> WriteMemory` 三条边直接以复合壳为目标（NL 第 2、9 句要求的正是进入 AutoFocus / DetLight / WriteMemory），进入后没有确定的默认子态。参考把这五个状态声明为简单态，NL 第 1、3、4、5、9 句也没有赋予它们任何子结构。五处同一成因合并为一条。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "state choice1 <>\\nchoice1 --> Join1\\nchoice1 --> Junction1",
+      "gen": "AutoFocus_state --> choice1 : [memFull=true]\\n（choice1 无任何出边）",
+      "reason": "良构性：choice1 在 gen 中是普通命名状态且没有任何出边——FCSTM 投影里 `state choice1 named \"choice1\";` 只作为 `AutoFocus -> choice1` 的目标出现，投影中不存在任何以 choice1 为源的迁移。因此 memFull=true 分支一旦被取到就永久停在 choice1，NL 第 10 句要求的 `WriteMemory → Junction1 → TurnOff → [*]` 收尾在该路径上不可达。参考给了 choice1 两条出边（choice1 --> Join1、choice1 --> Junction1），本 case 属吸收态/死端缺陷。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "state Join2 <>\\nJunction3 --> Join2\\nchoice2 --> Join2\\nstate Fork2 <>\\nJoin2 --> Fork2\\nFork2 --> Junction2\\nFork2 --> Flash",
+      "gen": "state Join2 <<join>>\\nJunction3 --> Join2\\nchoice2 --> Join2\\n...\\nstate Join2 {\\nstate fork2 <<fork>>\\nfork2 --> Junction2\\nfork2 --> Flash\\n}",
+      "reason": "良构性：Join2 被声明了两次且种类互相矛盾——先是 `state Join2 <<join>>`（join 伪状态），后是 `state Join2 { ... }`（复合态）。FCSTM 投影显示复合态胜出（`state Join2 named \"Join2\" { pseudo state fork2 ...; state Flash ...; state UnspecifiedInitial ... }`），于是 `Junction3 --> Join2` 与 `choice2 --> Join2`（NL 第 6、7、8 句要求的汇合）进入的是一个没有默认子态的复合态。NL 第 11 句的措辞「In the Fork2 state, which is part of the Join2 substate」本身歧义，参考的处理是保持两者为并列伪状态并用 `Join2 --> Fork2` 相连；gen 的嵌套读法本可接受，但把同一名字同时声明为 join 伪状态和复合态是不可执行的矛盾声明。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "state choice1 <>\\nstate choice2 <>\\nstate choice3 <>\\nstate Junction3 <>\\nstate Junction2 <>\\nstate Junction1 <>",
+      "gen": "（choice1 / choice2 / choice3 / Junction1 / Junction2 / Junction3 均未声明种类，被当作普通状态）",
+      "reason": "参考把这六个节点都声明为 choice / junction 伪状态；gen 未加任何种类声明，FCSTM 投影确认只有 fork1、fork2、Join1 成为 `pseudo state`，上述六个都落成普通 `state`。NL 只以「the choice1 state」「Junction3」「the choice2 state」这类措辞提及它们，没有固定其种类（NL 第 3、6、7、8、9、10 句），因此单就种类漂移而言属写法差异，按口径 1 判 similar；它带来的具体危害（choice1 成为死端）已在上一条单独记账，不在此处重复计数。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "TurnOn: execTime=[(2,s,max),(2,s,min)]（及 AutoFocus / DetLight / ChargedFlash / WriteMemory 四组）",
+      "gen": "TurnOn_state : {max=2s, min=2s}（及 AutoFocus_state {max=2s,min=1s} / DetLight_state {max=1s,min=0s} / ChargedFlash_state {max=4s,min=2s} / WriteMemory_state {max=3s,min=2s}）",
+      "reason": "NL 第 1、3、4、5、9 句给出的五组执行时间上下界在 gen 中全部存在且数值与参考逐一相同（2/2、2/1、1/0、4/2、3/2 秒），只是记法从 execTime 元组降级为状态体文字标注（FCSTM 投影为 `[PlantUML body] {max=2s, min=2s}`）。这属于真正的时长约束（execTime），按口径 4 标为范围外；语义未丢失，故判 similar。",
+      "out_of_scope": "timing"
+    },
+    {
+      "verdict": "similar",
+      "ref": "DetLight --> choice2: <>{prob=0.4}",
+      "gen": "DetLight_state --> choice2 : <<GaStep>>{prob=0.4}",
+      "reason": "NL 第 4 句把该条件写作「when the condition <>{prob=0.4} is met」。gen 保留了 prob=0.4 这一概率标注，只是把匿名的 `<>` 换成了 MARTE 风格的 `<<GaStep>>` 定型。概率标注不是时长约束，属范围内的普通标注；语义未丢失，属写法差异。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "ChargedFlash --> Junction3（无守卫）\\nchoice3 --> Junction3:[Charged=true]",
+      "gen": "ChargedFlash_state --> Junction3 : [Charged=true]\\nchoice3 --> Junction3（无守卫）",
+      "reason": "NL 第 6 句「The ChargedFlash state can lead to Junction3 ... The transition occurs when Charged=true」把 Charged=true 归给 ChargedFlash → Junction3；NL 第 7 句「The choice3 state also transitions to Junction3」则未给 choice3 → Junction3 任何条件。gen 的归属与 NL 逐字一致；参考恰好把守卫挂反了（挂在 choice3 那条边上）。因此判 correct，并记录参考在此处与其自身 NL 分歧。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "[*] --> TurnOn\\nTurnOn --> fork1\\nstate fork1 <>\\nfork1 --> AutoFocus\\nfork1 --> DetLight\\nfork1 --> choice3\\nchoice3 --> ChargedFlash\\nAutoFocus --> choice1: [memFull=true]\\nchoice2 --> Join2\\nchoice2 --> Join1: [sunny=true]\\nstate Join1 <>\\nJoin1 --> Junction2\\nJunction2 --> TakePicture\\nTakePicture -->WriteMemory\\nWriteMemory --> Junction1\\nJunction1 --> TurnOff\\nTurnOff --> [*]\\nFork2 --> Junction2\\nFork2 --> Flash\\nFlash --> Terminate",
+      "gen": "（以上 20 条对应关系在 gen 中逐条存在：[*] --> TurnOn_state、TurnOn_state --> fork1、state fork1 <<fork>>、fork1 --> AutoFocus / DetLight / choice3、choice3 --> ChargedFlash_state、AutoFocus_state --> choice1 : [memFull=true]、choice2 --> Join2、choice2 --> Join1 : [sunny=true]、state Join1 <<join>>、Join1 --> Junction2、Junction2 --> TakePicture、TakePicture --> WriteMemory、WriteMemory_state --> Junction1、Junction1 --> TurnOff、TurnOff --> [*]、fork2 --> Junction2、fork2 --> Flash、Flash --> Terminate）",
+      "reason": "NL 第 1、2、3、5、8、9、10、11 句描述的整条流水在 gen 中完整存在，节点名与守卫文本（[memFull=true]、[sunny=true]）均与参考一致；根初始边无触发，`TurnOff --> [*]` 承载 NL 第 10 句「transitions back to the initial state, represented by [*]」；fork1 与 Join1 也正确声明为 fork / join 伪状态（FCSTM 投影为 `pseudo state`）。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "Fork2 --> Flash\\nFlash --> Terminate（Flash 与 Terminate 均在顶层）",
+      "gen": "state Join2 { ... fork2 --> Flash }\\nFlash --> Terminate（Flash 位于 Join2 内，Terminate 在顶层）",
+      "reason": "因 Flash 首次出现在 `state Join2 { }` 块内，它被绑定为 Join2 的子态，`Flash --> Terminate` 于是成为跨层退出边（FCSTM 投影为 `Flash -> [*]` + `Join2 -> Terminate` 的路由）。NL 第 11 句只说「If the Flash state is activated, it transitions to Terminate, ending the sequence」，未规定 Flash 的归属层级。Terminate 在 gen 与参考中都是汇状态，与 NL 的「ending the sequence」一致。属拆分层级差异，语义说得通。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "state fork1 <>\\nstate Join2 <>（参考语法干净）",
+      "gen": "state \"\"TurnOn\"\" as TurnOn_state（双重引号，共 5 处）\\n@enduml\"（结尾多一个游离双引号）",
+      "reason": "源码语法瑕疵：五处状态声明用了双重双引号 `\"\"X\"\"`，且 @enduml 后多了一个游离的 `\"`（该字符经 hexdump 确认存在于文件末尾）。FCSTM 投影把这两类问题记录为 `source_input.workbook_doubled_state_quotes`（5 处，line 4/17/24/31/51）与 `source_input.workbook_trailing_end_quote`（line 67）两类归一化。经归一化后语义未丢失，故判 similar 而非 problem。",
+      "out_of_scope": null
+    }
+  ],
+  "problem_count": 3,
+  "extra_count": 0,
+  "notes": "拆分粒度原则：以「一个可独立修复的缺陷成因」为一条 diff。五个复合壳缺默认子态是同一成因（同一套 `state X { state \"\"X\"\" as X_state }` 写法），合并为一条 problem；choice1 死端与 Join2 双重声明是两个独立成因（分别需要补出边 / 消除重复声明），各自立条。「六个 choice/junction 未声明伪状态种类」与「choice1 无出边」虽相关但修复动作不同（前者是加 `<>` 声明，后者是补两条出边），且前者本身无危害，故前者判 similar、后者判 problem，不重复计数。20 条与参考一致的正确迁移按对象归并为一条 correct；五组 execTime 归并为一条；两类源码引号瑕疵归并为一条。\n\n逐句核对 NL（11 句）：\nNL1（起于 TurnOn，execTime max 2s / min 2s，随后转 fork1）——满足：`[*] --> TurnOn_state`（无触发）、`TurnOn_state --> fork1`、时长标注 {max=2s,min=2s} 存在；但 TurnOn 被多包了一层无默认子态的复合壳。\nNL2（TurnOn 转 fork1，fork1 含通往 AutoFocus 与 DetLight 的并行分支）——满足：`state fork1 <<fork>>`、`fork1 --> AutoFocus`、`fork1 --> DetLight`；但两个目标是无默认子态的复合壳。\nNL3（AutoFocus execTime 2s/1s，在 memFull=true 时转 choice1）——满足：`AutoFocus_state --> choice1 : [memFull=true]`、{max=2s,min=1s}；但 choice1 无出边、成为死端。\nNL4（DetLight execTime 1s/0s，在 <>{prob=0.4} 时转 choice2）——满足：`DetLight_state --> choice2 : <<GaStep>>{prob=0.4}`、{max=1s,min=0s}。\nNL5（fork1 转 choice3，进而到 ChargedFlash，execTime 4s/2s）——满足：`fork1 --> choice3`、`choice3 --> ChargedFlash_state`、{max=4s,min=2s}。\nNL6（ChargedFlash 通往 Junction3 再到 Join2，条件 Charged=true）——满足，且守卫归属比参考更贴合 NL；但 Join2 是矛盾声明的复合态、无默认子态。\nNL7（choice3 也转 Junction3，到达 Junction3 后汇入 Join2）——满足：`choice3 --> Junction3`（无守卫，符合 NL 未给条件）、`Junction3 --> Join2`。\nNL8（choice2 转 Join2；sunny=true 时汇入 Join1，Join1 通往 Junction2）——满足：`choice2 --> Join2`、`choice2 --> Join1 : [sunny=true]`、`state Join1 <<join>>`、`Join1 --> Junction2`。\nNL9（Junction2 到 TakePicture，再到 WriteMemory，execTime 3s/2s）——满足：`Junction2 --> TakePicture`、`TakePicture --> WriteMemory`、{max=3s,min=2s}；但 WriteMemory 是无默认子态的复合壳。\nNL10（WriteMemory 完成后经 Junction1 到 TurnOff，结束并回到 [*]）——满足：`WriteMemory_state --> Junction1`、`Junction1 --> TurnOff`、`TurnOff --> [*]`。注意此收尾在 memFull=true 分支（停在 choice1）上不可达。\nNL11（Fork2 属于 Join2 子态，可转 Junction2 或 Flash；Flash 转 Terminate 结束）——满足：`fork2 --> Junction2`、`fork2 --> Flash`、`Flash --> Terminate`，且 fork2 被声明为 fork 伪状态、嵌在 Join2 内（NL 字面读法）；但 Join2 的双重矛盾声明属良构性缺陷。\n\n范围外说明：五组 execTime 属真正的时长约束，已标 out_of_scope: timing。`<<GaStep>>{prob=0.4}` 是概率标注、非时长约束，未标 timing。\n\n参考模型自身问题：\n(1) 参考把 [Charged=true] 挂在 `choice3 --> Junction3` 上、`ChargedFlash --> Junction3` 反而无守卫，与 NL 第 6 句「The ChargedFlash state can lead to Junction3 ... The transition occurs when Charged=true」和第 7 句「The choice3 state also transitions to Junction3」的归属相反。gen 在这一点上比参考更贴合 NL。\n(2) 参考的 `fork1 --> AutoFocus`、`fork1 --> DetLight`、`ChargedFlash --> Junction3`、`Junction3 --> Join2`、`choice2 --> Join2`、`choice1 --> Junction1`、`Join1 --> Junction2`、`Junction2 --> TakePicture` 等多条边均无标签；在 fork/join/junction 语境下这是正常的，但 `ChargedFlash --> Junction3` 无守卫与 NL 第 6 句冲突（见上一条）。\n(3) 参考的 Terminate 是死端，NL 第 11 句说「ending the sequence」，与设计角色一致，非错误。"
+}

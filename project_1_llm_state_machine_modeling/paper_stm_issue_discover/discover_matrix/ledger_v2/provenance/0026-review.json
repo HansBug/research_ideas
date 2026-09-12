@@ -1,0 +1,117 @@
+{
+ "case": "0026",
+ "group": "NL03",
+ "llm": "Llama",
+ "diffs": [
+  {
+   "verdict": "problem",
+   "ref": "state Raster_Scanning { region1 -- region2 -- region3 }",
+   "gen": "state SearchingState { TargetSearchingState / FormationAdjustmentState / AttackState 三个兄弟叶状态，单区域 }",
+   "reason": "NL 第 2 句要求搜索期间存在三个不同状态区域；本模型只有一个区域，三个兄弟状态是『搜索/编队/攻击』三种模式而非三个搜索区域。注意 cardinality(scope=SearchingState, count=3) 恰好为真但理由完全错误——19 个谓词里没有区域数谓词，这是一处会产生假阳性的谓词缺口。",
+   "assertable": "cardinality(scope='llms_emp_feedback_final_0026.SearchingState', count=3)  # 会误判为 true",
+   "predicate_exists": false,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "Strike_the_Target: exit/ NumberofCru--",
+   "gen": "AttackState --> TargetSearchingState : Attack Completed",
+   "reason": "NL 第 4 句要求攻击完成后数量递减；该迁移只有 trigger，无 / effect、无 [guard]、无任何计数文本，递减语义在作者源中不存在。与台帐 EXP-0026-EA-001 一致。",
+   "assertable": "effect_declared(source='llms_emp_feedback_final_0026.SearchingState.AttackState', trigger='llms_emp_feedback_final_0026.Attack_Completed', variable='uav_count', sign='negative')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "Formation_Adjustment --> Fly_Along_the_Path（编队调整后回到飞行/搜索）",
+   "gen": "无任何从 FormationAdjustmentState 出发的边",
+   "reason": "FormationAdjustmentState 是一个吸收态：一旦被拦截，swarm 永远无法回到搜索，也无法再攻击或完成任务，直接违反 NL 第 2 句『持续执行搜索任务直到任务完成』。论文与台帐均未记录。",
+   "assertable": "reaches(source='llms_emp_feedback_final_0026.SearchingState.FormationAdjustmentState', target='llms_emp_feedback_final_0026.SearchingState.TargetSearchingState', within_cycles=3)",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "Fly_Along_the_Path --> Formation_Adjustment : Intercepted_by_UAV_interception;  Fly_Along_the_Path_2 --> Strike_the_Target : Mission_assignment...",
+   "gen": "TargetSearchingState --> FormationAdjustmentState : Intercepted;  TargetSearchingState --> AttackState : Task Assignment Received",
+   "reason": "NL 第 3、4 句两条主干迁移语义等价，仅命名不同。",
+   "assertable": "edge_declared(source='llms_emp_feedback_final_0026.SearchingState.TargetSearchingState', trigger='llms_emp_feedback_final_0026.Intercepted', target='llms_emp_feedback_final_0026.SearchingState.FormationAdjustmentState')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "Raster_Scanning --> [*]: when (NumberofCru == 0)",
+   "gen": "TargetSearchingState --> [*] : Mission Completed（final 位于唯一顶层 composite 内部）",
+   "reason": "NL 第 2 句只说『任务完成之前』，未规定完成如何检出；用显式 Mission Completed 事件至少与参考的 count==0 推断同等忠实，甚至更贴 NL。final 是 SearchingState 的局部终态，但 SearchingState 是唯一顶层状态，投影按 FinalWaittr_0006『Completed final boundary』处理，即确实收敛到完成，故不升级为 problem，仅记录局部/全局作用域敏感性。",
+   "assertable": "terminates(scope='[*]', trigger='llms_emp_feedback_final_0026.Mission_Completed')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "Strike_the_Target --> Fly_Along_the_Path_2 : Strike_successful",
+   "gen": "AttackState --> TargetSearchingState : Attack Completed",
+   "reason": "攻击后回归搜索的边存在，命名不同，语义等价（递减缺失已在第 2 条单列）。",
+   "assertable": "occupancy_after(source='llms_emp_feedback_final_0026.SearchingState.AttackState', trigger='llms_emp_feedback_final_0026.Attack_Completed', target='llms_emp_feedback_final_0026.SearchingState.TargetSearchingState')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "Raster_Scanning: do / Target_search",
+   "gen": "TargetSearchingState: Target Search State（描述行）",
+   "reason": "同 0006：NL 对 do-activity 的支撑较弱，描述行承载了同一语义，本组统一按 similar 不计问题数。",
+   "assertable": "action_declared(state='llms_emp_feedback_final_0026.SearchingState.TargetSearchingState', phase='during')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "Strike_the_Target 被拦截自环；when (NumberofCru == 0)；第三区域 do/Determine_a_new_target",
+   "gen": "—",
+   "reason": "参考侧存疑同 0006；其中 when (NumberofCru == 0) 与本 case 的 Mission Completed 事件之争尤为直接：NL 未给出完成条件的形式，参考的写法是推断而非事实。",
+   "assertable": null,
+   "predicate_exists": false,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 3,
+ "extra_count": 0,
+ "vs_paper": "论文：format 栏『syntax error： stm UAV Swarm State Machine』(resolved YES)；grammar 栏 None；语义栏『1. missing regions』，semantic_resolved=0.0。F1 Phase-I 0.3158 → Phase-II 0.35（TP 6→7）。我判的 3 个 problem 中只有第 1 条对应论文 'missing regions'；第 2 条（递减缺失）与第 3 条（编队调整成吸收态）论文均未记录——后者是本 case 最严重的行为缺陷，论文完全漏掉。",
+ "vs_ledger": "台帐 status=expected_issues_found，唯一条目 EXP-0026-EA-001（attack_count_decrease_missing），精确对应我的第 2 条 problem，判断成立。第 1 条（无三区域）与第 3 条（FormationAdjustmentState 无出边）台帐未收，observations 为空。第 3 条可用 reaches 直接断言，属应补的 E1 候选。",
+ "notes": "Llama 的模型是本组最简洁的一份（4 状态 5 迁移），也因此保住了 mission-complete 事件这一 NL 要点；但代价是三区域完全没有，且编队调整状态没有回归边，形成死锁。本 case 同时暴露 cardinality 谓词的假阳性风险：SearchingState 恰有 3 个直接非伪子状态，count=3 为真，却与 NL 说的『三个搜索区域』毫无关系。",
+ "_source_file": "NL03-0026.json",
+ "cross_reference": {
+  "case": "0026",
+  "group": "NL03",
+  "llm": "Llama",
+  "counts": {
+   "correct": 1,
+   "similar": 3,
+   "problem": 3,
+   "extra": 0,
+   "uncertain": 1
+  },
+  "out_of_scope": {},
+  "problems_in_scope": 3,
+  "paper": {
+   "format": "syntax error： stm UAV Swarm State Machine",
+   "grammar": null,
+   "semantic": "1. missing regions",
+   "semantic_resolved": 0.0,
+   "f1_phase1": 0.3157894737,
+   "f1_phase2": 0.35
+  },
+  "ledger": {
+   "status": "expected_issues_found",
+   "e1_ids": [
+    "EXP-0026-EA-001"
+   ],
+   "e1_categories": [
+    "EA"
+   ]
+  },
+  "assertable_problems": 2
+ }
+}

@@ -1,0 +1,1146 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0025",
+  "ledger": [
+    {
+      "ledger_id": "EIS-0025-01",
+      "pair": "0025",
+      "D": "D1",
+      "L": "L1",
+      "summary": "`:8 DoorOpenWithItem --> DoorShutWithItem: Door Closed` 既没有守卫也没在事件名里点出零时，于是在已经输入烹饪时间的情形下关门仍会落到 `DoorShutWithItem`——NL 第 4 句把这个去向限定在「with zero time set」。",
+      "detail": "NL 第 4 句逐字为「From DoorOpenWithItem, the system can transition to DoorShutWithItem if the door is closed with zero time set or to ReadytoCook if cooking time is entered.」。这句话给出的是一个二选一的依赖关系：从 DoorOpenWithItem 关门之后去哪里，取决于时间设没设。\n\n制品建了两条边：`:8` 目标是 `DoorShutWithItem`、触发是 `Door Closed`；`:9` 目标是 `ReadytoCook`、触发是 `Cooking Time Entered`。前一条既没有 `[...]` 形式的守卫，事件名里也没有零时这个条件。\n\n后果是 NL 那条依赖关系在模型里消失了：关门这个动作无论时间设没设，结果都一样。NL 第 4 句里那个 `if` 所承载的对偶义务——时间已设时不应落到 DoorShutWithItem——没有被表达。\n\n这是本 case 与同一份 NL 的其它三份制品（0015、0045、0055）唯一的实质差别。",
+      "D_basis": "判 D1，两读并立。第一种读法把 NL 第 4 句的 `if` 读作排他条件：只有在零时的情况下关门才去 DoorShutWithItem，那么 `:8` 缺守卫就是把限定丢了。第二种读法有两条支撑，都与作者源相容：其一，`if` 也可以读作充分条件而非排他条件，那么 `:8` 无守卫并不违反它；其二，作者可能把「时间设没设」这件事编码进了状态划分本身（`ReadytoCook` 表示已设时间、`DoorShutWithItem` 表示未设时间），那样就不需要额外的守卫，而 NL 也没有说明从 `ReadytoCook` 开门之后此前设的时间是否保留。两种读法都站得住，故判 D1。补充一点边界说明：这里的零时是一个普通数据条件（用户设定的值是否为零），属界内的变量判断，不是必须依赖时钟语义的界外约束。",
+      "L_basis": "判 L1。陈述这条错误的对象是守卫层面的一个静态事实：`:8` 这条边上没有任何守卫，因而它在「时间已设」的情形下同样可发。这属于从模型结构导出的静态判断（issue #189 §1.3.1 把「某守卫恒假」这类守卫层面的判断明列为 L1），只涉及单个系统状态上的一次可发性检查，不需要构造执行序列，故不到 L2。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "guard",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0025-02",
+      "pair": "0025",
+      "D": "D1",
+      "L": "L0",
+      "summary": "NL 第 5、6 句要求显示与更新 cooking time，而制品全篇 18 行只有状态与触发，零变量声明、零迁移 effect、零动作段，这条数据侧语义没有载体。",
+      "detail": "NL 里有四处提到计时与烹饪时间，需要先按建模对象边界切分。建模对象是 $M = (S, E, V, Tr, A)$，不含时钟变量与不变式，所以 NL 第 7 句「where the timer starts」与第 8 句「opening the door stops the timer」属时间语义、在界外，不计入本条。NL 第 5 句「where the cooking time is displayed and updated」与第 6 句「canceling or updating the cooking time」要求的是用户设定的一个普通数据变量上的读写与取消／更新动作，落在 $V$ 与 $A$ 里，属界内。\n\n制品对界内这部分零表达。全文 `:1`-`:18` 没有任何变量声明；`:3`-`:17` 全部十五条迁移的标签冒号后只有一个事件名，没有 `/` 引出的效果；文件里没有任何状态体，因此也没有 entry/exit/do 动作。\n\n所以这不是「换了种写法」，而是无论怎么求值都问不出 cooking time 现在是多少、被谁改过。\n\n根因是制品统一停在「状态加触发」这一层控制骨架的粒度上。`:16 Cooking --> DoorShutWithItem: Timer Expired` 是这种处理的典型：计时部件被当作产生事件的外部环境接进来，模型自己不持有任何量。\n\n本条与 pair 0005 的 EIS-0005-03、pair 0015 的 EIS-0015-01 是同一份 NL 上的同一个缺口，三条同判 D1。",
+      "D_basis": "判 D1，两读并立。第一种读法：NL 第 5、6 句点名的 cooking-time 显示与更新属界内的变量与动作，制品零变量零 effect，义务落空。第二种读法：全图始终只保留控制态、触发与 `Timer Expired` 这个环境事件，可以把状态驻留与外部的人机界面／计时部件读作这些动作的抽象实现；这个抽象层次是全图一以贯之的，不是为本条临时编出来的。它足以削弱「必须显式写 effect」这条推理，但不能完全否掉显示与更新的缺失，故判 D1。另需说明本条最初的记录把界外与界内两类主张捆在了一起（NL 第 7、8 句的 timer 启停属时钟语义、在界外），现按界内那一半判。",
+      "L_basis": "判 L0。陈述这条错误只需把 NL 第 5、6 句点名的那样东西（cooking time 这个量及其显示 / 更新动作）拿去模型里找，发现全文没有变量声明、没有 effect、没有动作段。这是一次词项层面的存在性比对，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "effect",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:guard_presence:DoorOpenWithItem:DoorShutWithItem",
+          "claims": [
+            "The authored Door Closed edge may omit the zero-time guard required by NL4."
+          ],
+          "locations": [
+            "NL4",
+            "PUML:L8",
+            "F22",
+            "tr_0007"
+          ],
+          "obligations": [
+            "The Door Closed transition from DoorOpenWithItem to DoorShutWithItem must require the independent zero-time condition."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:guard_presence:DoorOpenWithItem:DoorShutWithItem:facet:0f97dd3cfc00"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:ReadytoCook:during:cooking time is displayed",
+          "claims": [
+            "State 'ReadytoCook' lacks required state_action 'cooking time is displayed' in the during phase."
+          ],
+          "locations": [
+            "ReadytoCook"
+          ],
+          "obligations": [
+            "State 'ReadytoCook' must own required state_action 'cooking time is displayed' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:ReadytoCook:during:cooking time is displayed:facet:f9ab26457917"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:ReadytoCook:during:cooking time is updated",
+          "claims": [
+            "State 'ReadytoCook' lacks required state_action 'cooking time is updated' in the during phase."
+          ],
+          "locations": [
+            "ReadytoCook"
+          ],
+          "obligations": [
+            "State 'ReadytoCook' must own required state_action 'cooking time is updated' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:ReadytoCook:during:cooking time is updated:facet:25d58d4d4375"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:Cooking:entry:timer starts",
+          "claims": [
+            "State 'Cooking' lacks required state_action 'timer starts' in the entry phase."
+          ],
+          "locations": [
+            "Cooking"
+          ],
+          "obligations": [
+            "State 'Cooking' must own required state_action 'timer starts' in the entry phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:Cooking:entry:timer starts:facet:3205946be7b9"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:Cooking:exit:timer stops",
+          "claims": [
+            "State 'Cooking' lacks required state_action 'timer stops' in the exit phase."
+          ],
+          "locations": [
+            "Cooking"
+          ],
+          "obligations": [
+            "State 'Cooking' must own required state_action 'timer stops' in the exit phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:Cooking:exit:timer stops:facet:61c16ef8adf7"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:transition:DoorOpenWithItem:the door is closed with zero time set:DoorShutWithItem",
+          "claims": [
+            "The required DoorOpenWithItem -> DoorShutWithItem transition under the door is closed with zero time set is absent or loses its condition."
+          ],
+          "locations": [
+            "NL4"
+          ],
+          "obligations": [
+            "DoorOpenWithItem must transition directly to DoorShutWithItem under the door is closed with zero time set."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:DoorOpenWithItem:the door is closed with zero time set:DoorShutWithItem:facet:c5dd5666bab9"
+          ]
+        },
+        {
+          "finding_id": "source:guard_presence:DoorOpenWithItem:DoorShutWithItem",
+          "claims": [
+            "The authored transition tr_0007 may lack the independent zero-time guard required by NL4.",
+            "The authored transition tr_0007 carries only the Door Closed event and no formal zero-time guard is shown, so the zero-time qualification may be unrepresented."
+          ],
+          "locations": [
+            "NL4",
+            "PUML:L8",
+            "F22",
+            "tr_0007"
+          ],
+          "obligations": [
+            "The zero-time door-closing branch from DoorOpenWithItem must have a guard expressing the zero-time condition, not only a door-closed event.",
+            "The DoorOpenWithItem to DoorShutWithItem transition requires the door to be closed with zero time set."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:guard_presence:DoorOpenWithItem:DoorShutWithItem:facet:0f97dd3cfc00"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:Cooking:entry:starts the timer",
+          "claims": [
+            "The required timer-start action may be absent from the Cooking entry action inventory.",
+            "State 'Cooking' lacks required state_action 'starts the timer' in the entry phase."
+          ],
+          "locations": [
+            "NL7",
+            "F15",
+            "tr_0013",
+            "Cooking"
+          ],
+          "obligations": [
+            "The Cooking state must own the timer-start action on entry.",
+            "State 'Cooking' must own required state_action 'starts the timer' in the entry phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:lifecycle_action:Cooking:entry:starts the timer:facet:611a73c0d96e",
+            "source:lifecycle_action:Cooking:entry:starts the timer:facet:db2038e8b514"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:ReadytoCook:during:displaying the cooking time",
+          "claims": [
+            "State 'ReadytoCook' lacks required state_action 'displaying the cooking time' in the during phase."
+          ],
+          "locations": [
+            "ReadytoCook"
+          ],
+          "obligations": [
+            "State 'ReadytoCook' must own required state_action 'displaying the cooking time' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:ReadytoCook:during:displaying the cooking time:facet:b3903d5ad990"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:ReadytoCook:during:updating the cooking time",
+          "claims": [
+            "State 'ReadytoCook' lacks required state_action 'updating the cooking time' in the during phase."
+          ],
+          "locations": [
+            "ReadytoCook"
+          ],
+          "obligations": [
+            "State 'ReadytoCook' must own required state_action 'updating the cooking time' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:ReadytoCook:during:updating the cooking time:facet:1263bdb4358f"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:Cooking:during:stops the timer",
+          "claims": [
+            "State 'Cooking' lacks required state_action 'stops the timer' in the during phase."
+          ],
+          "locations": [
+            "Cooking"
+          ],
+          "obligations": [
+            "State 'Cooking' must own required state_action 'stops the timer' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:Cooking:during:stops the timer:facet:aab7580f88b2"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:transition:DoorOpenWithItem:if the door is closed with zero time set:DoorShutWithItem",
+          "claims": [
+            "The required DoorOpenWithItem -> DoorShutWithItem transition under if the door is closed with zero time set is absent or loses its condition."
+          ],
+          "locations": [
+            "NL4"
+          ],
+          "obligations": [
+            "DoorOpenWithItem must transition directly to DoorShutWithItem under if the door is closed with zero time set."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:DoorOpenWithItem:if the door is closed with zero time set:DoorShutWithItem:facet:743022210376"
+          ]
+        },
+        {
+          "finding_id": "source:guard_presence:DoorOpenWithItem:DoorShutWithItem",
+          "claims": [
+            "The authored DoorOpenWithItem -> DoorShutWithItem transition may lack the required zero-time qualifier."
+          ],
+          "locations": [
+            "NL4",
+            "F22",
+            "tr_0007",
+            "FCSTM:F22"
+          ],
+          "obligations": [
+            "The zero-time branch from DoorOpenWithItem must carry a zero-time guard in addition to the Door Closed event."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:guard_presence:DoorOpenWithItem:DoorShutWithItem:facet:0f97dd3cfc00"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:ReadytoCook:during:cooking time is displayed",
+          "claims": [
+            "State 'ReadytoCook' lacks required output_signal 'cooking time is displayed' in the during phase."
+          ],
+          "locations": [
+            "ReadytoCook"
+          ],
+          "obligations": [
+            "State 'ReadytoCook' must own required output_signal 'cooking time is displayed' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:ReadytoCook:during:cooking time is displayed:facet:f9ab26457917"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:ReadytoCook:during:cooking time is updated",
+          "claims": [
+            "State 'ReadytoCook' lacks required state_action 'cooking time is updated' in the during phase."
+          ],
+          "locations": [
+            "ReadytoCook"
+          ],
+          "obligations": [
+            "State 'ReadytoCook' must own required state_action 'cooking time is updated' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:ReadytoCook:during:cooking time is updated:facet:25d58d4d4375"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:Cooking:entry:timer starts",
+          "claims": [
+            "State 'Cooking' lacks required state_action 'timer starts' in the entry phase."
+          ],
+          "locations": [
+            "Cooking"
+          ],
+          "obligations": [
+            "State 'Cooking' must own required state_action 'timer starts' in the entry phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:Cooking:entry:timer starts:facet:3205946be7b9"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:Cooking:exit:stops the timer",
+          "claims": [
+            "State 'Cooking' lacks required state_action 'stops the timer' in the exit phase."
+          ],
+          "locations": [
+            "Cooking"
+          ],
+          "obligations": [
+            "State 'Cooking' must own required state_action 'stops the timer' in the exit phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:Cooking:exit:stops the timer:facet:ecb2c2f53ff9"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:DoorShut:during:Cancel",
+          "claims": [
+            "State 'DoorShut' lacks required state_action 'Cancel' in the during phase."
+          ],
+          "locations": [
+            "DoorShut"
+          ],
+          "obligations": [
+            "State 'DoorShut' must own required state_action 'Cancel' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:DoorShut:during:Cancel:facet:952b19bb5970"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:ReadytoCook:during:Canceling or updating the cooking time",
+          "claims": [
+            "State 'ReadytoCook' lacks required state_action 'Canceling or updating the cooking time' in the during phase."
+          ],
+          "locations": [
+            "ReadytoCook"
+          ],
+          "obligations": [
+            "State 'ReadytoCook' must own required state_action 'Canceling or updating the cooking time' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:ReadytoCook:during:Canceling or updating the cooking time:facet:7b5c3efe4fa0"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:ReadytoCook:during:display cooking time",
+          "claims": [
+            "State 'ReadytoCook' lacks required output_signal 'display cooking time' in the during phase."
+          ],
+          "locations": [
+            "ReadytoCook"
+          ],
+          "obligations": [
+            "State 'ReadytoCook' must own required output_signal 'display cooking time' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:ReadytoCook:during:display cooking time:facet:848da58bed8b"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:ReadytoCook:during:update cooking time",
+          "claims": [
+            "State 'ReadytoCook' lacks required state_action 'update cooking time' in the during phase."
+          ],
+          "locations": [
+            "ReadytoCook"
+          ],
+          "obligations": [
+            "State 'ReadytoCook' must own required state_action 'update cooking time' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:ReadytoCook:during:update cooking time:facet:e28be4fc43e6"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:ReadytoCook:during:cancel or update cooking time",
+          "claims": [
+            "State 'ReadytoCook' lacks required state_action 'cancel or update cooking time' in the during phase."
+          ],
+          "locations": [
+            "ReadytoCook"
+          ],
+          "obligations": [
+            "State 'ReadytoCook' must own required state_action 'cancel or update cooking time' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:ReadytoCook:during:cancel or update cooking time:facet:0bcf2593ea33"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:Cooking:exit:stops timer",
+          "claims": [
+            "State 'Cooking' lacks required state_action 'stops timer' in the exit phase."
+          ],
+          "locations": [
+            "Cooking"
+          ],
+          "obligations": [
+            "State 'Cooking' must own required state_action 'stops timer' in the exit phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:Cooking:exit:stops timer:facet:8c86c8e4c77d"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "缺少“零时间设定”的条件",
+          "reason": "规格明确要求只有在关门且设定时间为零时，DoorOpenWithItem 才转移到 DoorShutWithItem；模型仅标注 Door Closed，允许任意关门直接转移，放宽了转移条件。",
+          "where": "DoorOpenWithItem --> DoorShutWithItem: Door Closed"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "未体现进入烹饪时间时的条件/语义约束",
+          "reason": "规格将该转移描述为从 DoorOpenWithItem 在输入烹饪时间后进入 ReadytoCook，并与零时间关门路径形成条件区分。模型使用无条件的 Cooking Time Entered 标签，未明确时间必须为非零或有效烹饪时间；若“时间输入”可包括零值，则与规格的分支条件不一致。",
+          "where": "DoorOpenWithItem --> ReadytoCook: Cooking Time Entered"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "未表达取消动作会取消或更新烹饪时间",
+          "reason": "规格要求 Cancel 返回 DoorShutWithItem，并取消或更新烹饪时间；模型只表示状态转移，没有对应的动作/副作用说明。",
+          "where": "ReadytoCook --> DoorShutWithItem: Cancel"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "未表达开门时停止计时器",
+          "reason": "规格要求 Cooking 状态开门会停止计时器后转移到 DoorOpenWithItem；模型只表示转移，没有 stop timer 的动作。",
+          "where": "Cooking --> DoorOpenWithItem: Door Opened"
+        },
+        {
+          "finding_id": "baseline_issue_5",
+          "issue": "未表达计时器到期事件与计时完成动作的语义",
+          "reason": "模型以 Timer Expired 作为转移触发条件并转移到目标状态，基本覆盖路径；但没有显式说明计时器停止/完成等动作。若模型要求完整表达规格行为，这是行为遗漏，不过该项相比其他问题属于动作语义未建模。",
+          "where": "Cooking --> DoorShutWithItem: Timer Expired"
+        },
+        {
+          "finding_id": "baseline_issue_6",
+          "issue": "与Cooking Time Entered转移存在未消除的竞争/歧义",
+          "reason": "同一源状态下，Door Closed 和 Cooking Time Entered 均可触发不同目标，但模型没有守卫条件来区分“零时间设定”和“已输入烹饪时间”，因此不能保证规格要求的条件分流。",
+          "where": "DoorOpenWithItem --> DoorShutWithItem: Door Closed"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "DoorOpenWithItem 到 DoorShutWithItem 的转移缺少“零时间设定”的条件约束",
+          "reason": "规格明确要求只有“门关闭且设定时间为零”时才能进入 DoorShutWithItem；模型仅标注 Door Closed，因此任意关门操作都可能进入该状态，未表达零时间条件。",
+          "where": "`DoorOpenWithItem --> DoorShutWithItem: Door Closed`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "DoorOpenWithItem 到 ReadytoCook 的转移条件表达不完整",
+          "reason": "规格要求从 DoorOpenWithItem 在输入烹饪时间时进入 ReadytoCook，且与关门零时间的条件构成明确区分。模型没有说明输入的时间是否为非零或如何排除零时间情形，因而无法保证与规格中的条件分支一致。",
+          "where": "`DoorOpenWithItem --> ReadytoCook: Cooking Time Entered`"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "从 DoorOpenWithItem 关门的转移未限定“烹饪时间为零”。",
+          "reason": "规格明确要求只有在关门且已设置时间为零时才能进入 DoorShutWithItem；模型对任意 Door Closed 都执行该转移，因此允许已设置非零时间时错误地进入该状态。",
+          "where": "DoorOpenWithItem --> DoorShutWithItem: Door Closed"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "从 DoorOpenWithItem 进入 ReadytoCook 的条件未体现关门要求。",
+          "reason": "规格第4条将两种结果描述为：关门且零时间进入 DoorShutWithItem，或输入烹饪时间进入 ReadytoCook。若“输入时间”可在开门状态发生，则该转移可以符合文字；但模型没有表达时间值条件以及与门状态/动作顺序的约束，导致状态语义不完整。",
+          "where": "DoorOpenWithItem --> ReadytoCook: Cooking Time Entered"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "模型未表达 ReadytoCook 中“烹饪时间被显示和更新”的行为。",
+          "reason": "规格第5条明确要求进入 ReadytoCook 后显示并更新烹饪时间；该 PlantUML 仅表示状态转移，没有对应的 entry/do/action 或时间更新行为。",
+          "where": "DoorShutWithItem --> ReadytoCook: Cooking Time Entered"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "Cancel 转移没有表达“取消或更新时间”的动作语义。",
+          "reason": "规格要求 Cancel 返回 DoorShutWithItem，同时取消或更新烹饪时间；模型仅画出状态转移，未建模时间清除/更新效果。",
+          "where": "ReadytoCook --> DoorShutWithItem: Cancel"
+        },
+        {
+          "finding_id": "baseline_issue_5",
+          "issue": "开门停止计时的动作未建模。",
+          "reason": "规格第8条要求开门时停止计时并转入 DoorOpenWithItem；模型只表示转移，没有 stop timer 的动作，因此状态机未保证该必要副作用。",
+          "where": "Cooking --> DoorOpenWithItem: Door Opened"
+        },
+        {
+          "finding_id": "baseline_issue_6",
+          "issue": "计时器启动行为未建模。",
+          "reason": "规格第7条要求进入 Cooking 时启动计时器；模型只有 Start 触发的状态转移，没有进入动作或其他计时器启动语义，因而 Timer Expired 事件没有可追溯的计时器启动来源。",
+          "where": "Cooking --> DoorShutWithItem: Timer Expired"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0025",
+    "ledger_assessments": [
+      {
+        "ledger_id": "EIS-0025-01",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:guard_presence:DoorOpenWithItem:DoorShutWithItem"
+          ],
+          "reason": "guard_presence issue 指向同一 DoorOpenWithItem 到 DoorShutWithItem 边的零时间守卫缺失。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:transition:DoorOpenWithItem:the door is closed with zero time set:DoorShutWithItem",
+            "source:guard_presence:DoorOpenWithItem:DoorShutWithItem"
+          ],
+          "reason": "transition issue 和 guard issue 都直接指向该迁移及其零时间条件缺失。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:transition:DoorOpenWithItem:if the door is closed with zero time set:DoorShutWithItem",
+            "source:guard_presence:DoorOpenWithItem:DoorShutWithItem"
+          ],
+          "reason": "transition issue 和 guard issue 都主张同一关门零时间分支的条件缺失。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1",
+            "baseline_issue_6"
+          ],
+          "reason": "baseline_issue_1 和 baseline_issue_6 都指向 DoorOpenWithItem 到 DoorShutWithItem 边缺少零时间条件。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "baseline_issue_1 指向同一关门迁移缺少零时间条件。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "baseline_issue_1 明确指出同一迁移未限定烹饪时间为零。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0025-02",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:lifecycle_action:ReadytoCook:during:cooking time is displayed",
+            "source:lifecycle_action:ReadytoCook:during:cooking time is updated"
+          ],
+          "reason": "ReadytoCook 的 displayed 和 updated 两个 state_action 缺失都直接覆盖台账的数据侧显示与更新义务。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:lifecycle_action:ReadytoCook:during:displaying the cooking time",
+            "source:lifecycle_action:ReadytoCook:during:updating the cooking time"
+          ],
+          "reason": "ReadytoCook 的 displaying 和 updating cooking time 两个动作缺失直接覆盖台账。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:lifecycle_action:ReadytoCook:during:cooking time is displayed",
+            "source:lifecycle_action:ReadytoCook:during:cooking time is updated",
+            "source:lifecycle_action:ReadytoCook:during:Canceling or updating the cooking time",
+            "source:lifecycle_action:ReadytoCook:during:cancel or update cooking time",
+            "source:lifecycle_action:ReadytoCook:during:display cooking time",
+            "source:lifecycle_action:ReadytoCook:during:update cooking time"
+          ],
+          "reason": "ReadytoCook 上的显示、更新以及取消或更新动作缺失均指向台账第 5、6 句所涵盖的数据侧语义。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_3"
+          ],
+          "reason": "baseline_issue_3 指向 ReadytoCook 的 Cancel 后未表达取消或更新 cooking time。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本轮只有两条迁移条件问题，没有指向 ReadytoCook 的显示、更新或取消/更新动作。",
+          "confidence": null
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_3",
+            "baseline_issue_4"
+          ],
+          "reason": "baseline_issue_3 覆盖 ReadytoCook 中显示和更新 cooking time，baseline_issue_4 覆盖 Cancel 时取消或更新 cooking time。",
+          "confidence": "high"
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:guard_presence:DoorOpenWithItem:DoorShutWithItem",
+        "matched_ledger_ids": [
+          "EIS-0025-01"
+        ],
+        "false_positive": false,
+        "reason": "指向 DoorOpenWithItem 到 DoorShutWithItem 的同一条关门迁移，并主张缺少零时间守卫，正是台账条目所述的守卫缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:lifecycle_action:ReadytoCook:during:cooking time is displayed",
+        "matched_ledger_ids": [
+          "EIS-0025-02"
+        ],
+        "false_positive": false,
+        "reason": "指向 ReadytoCook 状态的显示动作，并主张该动作缺失，覆盖台账要求的 cooking time 显示缺口。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:lifecycle_action:ReadytoCook:during:cooking time is updated",
+        "matched_ledger_ids": [
+          "EIS-0025-02"
+        ],
+        "false_positive": false,
+        "reason": "指向 ReadytoCook 状态的烹饪时间更新动作缺失，属于台账条目的同一数据读写语义。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:lifecycle_action:Cooking:entry:timer starts",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "台账明确将 timer starts 的时钟语义排除在界外，且 EIS-0025-02 只覆盖 cooking time 的显示、更新和取消/更新，不覆盖计时器启动。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:lifecycle_action:Cooking:exit:timer stops",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "这是 Cooking 状态的计时器停止动作，属于台账明确排除的 timer 语义，不是 cooking time 数据的显示或更新。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:transition:DoorOpenWithItem:the door is closed with zero time set:DoorShutWithItem",
+        "matched_ledger_ids": [
+          "EIS-0025-01"
+        ],
+        "false_positive": false,
+        "reason": "指向同一 DoorOpenWithItem 到 DoorShutWithItem 位置，并主张零时间条件在该迁移上缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:guard_presence:DoorOpenWithItem:DoorShutWithItem",
+        "matched_ledger_ids": [
+          "EIS-0025-01"
+        ],
+        "false_positive": false,
+        "reason": "主张同一关门迁移缺少独立零时间守卫，直接对应台账的 guard missing 性质。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:lifecycle_action:Cooking:entry:starts the timer",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "指向 Cooking 进入时启动计时器，属于台账排除的时钟语义，且位置也不是 EIS-0025-02 的 cooking-time 数据动作。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:lifecycle_action:ReadytoCook:during:displaying the cooking time",
+        "matched_ledger_ids": [
+          "EIS-0025-02"
+        ],
+        "false_positive": false,
+        "reason": "指向 ReadytoCook 的显示烹饪时间动作缺失，覆盖 EIS-0025-02。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:lifecycle_action:ReadytoCook:during:updating the cooking time",
+        "matched_ledger_ids": [
+          "EIS-0025-02"
+        ],
+        "false_positive": false,
+        "reason": "指向 ReadytoCook 的更新烹饪时间动作缺失，覆盖 EIS-0025-02。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:lifecycle_action:Cooking:during:stops the timer",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "这是 Cooking 中停止计时器的时钟动作，台账已明确排除 timer 启停语义。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:transition:DoorOpenWithItem:if the door is closed with zero time set:DoorShutWithItem",
+        "matched_ledger_ids": [
+          "EIS-0025-01"
+        ],
+        "false_positive": false,
+        "reason": "主张同一关门迁移丢失零时间条件，覆盖 EIS-0025-01。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:guard_presence:DoorOpenWithItem:DoorShutWithItem",
+        "matched_ledger_ids": [
+          "EIS-0025-01"
+        ],
+        "false_positive": false,
+        "reason": "主张同一迁移的零时间 guard 缺失，覆盖 EIS-0025-01。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:lifecycle_action:ReadytoCook:during:cooking time is displayed",
+        "matched_ledger_ids": [
+          "EIS-0025-02"
+        ],
+        "false_positive": false,
+        "reason": "ReadytoCook 中显示 cooking time 的动作缺失，与台账同处同性质。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:lifecycle_action:ReadytoCook:during:cooking time is updated",
+        "matched_ledger_ids": [
+          "EIS-0025-02"
+        ],
+        "false_positive": false,
+        "reason": "ReadytoCook 中更新 cooking time 的动作缺失，与台账同处同性质。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:lifecycle_action:Cooking:entry:timer starts",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "Cooking entry 的 timer starts 属界外时钟语义，不在任何冻结台账条目覆盖范围内。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:lifecycle_action:Cooking:exit:stops the timer",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "Cooking exit 的 timer stop 属界外时钟语义，不是 cooking time 数据动作。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:lifecycle_action:Cooking:exit:stops timer",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "同样是 Cooking exit 的计时器停止动作，台账明确排除该时钟语义。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:lifecycle_action:DoorShut:during:Cancel",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "指向 DoorShut 状态的 Cancel 动作，而台账的数据侧条目只主张 cooking time 的显示、更新及取消/更新，且没有指向该状态。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:lifecycle_action:ReadytoCook:during:Canceling or updating the cooking time",
+        "matched_ledger_ids": [
+          "EIS-0025-02"
+        ],
+        "false_positive": false,
+        "reason": "指向 ReadytoCook 的取消或更新 cooking time 动作缺失，直接覆盖台账第 6 句的数据动作缺口。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:lifecycle_action:ReadytoCook:during:cancel or update cooking time",
+        "matched_ledger_ids": [
+          "EIS-0025-02"
+        ],
+        "false_positive": false,
+        "reason": "指向 ReadytoCook 的取消或更新 cooking time 动作缺失，属于 EIS-0025-02 的同一性质。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:lifecycle_action:ReadytoCook:during:display cooking time",
+        "matched_ledger_ids": [
+          "EIS-0025-02"
+        ],
+        "false_positive": false,
+        "reason": "ReadytoCook 的显示 cooking time 动作缺失，覆盖冻结条目的显示义务。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:lifecycle_action:ReadytoCook:during:update cooking time",
+        "matched_ledger_ids": [
+          "EIS-0025-02"
+        ],
+        "false_positive": false,
+        "reason": "ReadytoCook 的更新 cooking time 动作缺失，覆盖冻结条目的更新义务。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0025-01"
+        ],
+        "false_positive": false,
+        "reason": "明确指向 DoorOpenWithItem 到 DoorShutWithItem 的同一迁移，并主张缺少零时间条件。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "指向进入 ReadytoCook 的另一条迁移及其时间输入条件，不是 DoorShutWithItem 迁移上缺少零时间守卫，也不是 EIS-0025-02 所限定的 ReadytoCook 数据动作缺失。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [
+          "EIS-0025-02"
+        ],
+        "false_positive": false,
+        "reason": "指向 ReadytoCook 到 DoorShutWithItem 的 Cancel 位置，并主张取消或更新 cooking time 的动作缺失，覆盖台账第 6 句。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "指向 Cooking 开门迁移上的 stop timer 时钟动作，台账明确将 timer 启停排除在界外。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_5",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "指向 Cooking 到 DoorShutWithItem 的 Timer Expired 迁移及计时器完成语义，不是 EIS-0025-01 的关门零时间 guard，也不在 EIS-0025-02 的数据动作范围内。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_6",
+        "matched_ledger_ids": [
+          "EIS-0025-01"
+        ],
+        "false_positive": false,
+        "reason": "虽表述为竞争/歧义后果，但明确归因于同一 DoorOpenWithItem 到 DoorShutWithItem 边缺少用于区分零时间分支的守卫，覆盖 EIS-0025-01。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0025-01"
+        ],
+        "false_positive": false,
+        "reason": "明确指向同一关门迁移缺少零时间条件。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张的是进入 ReadytoCook 的输入时间条件不完整，未指认 DoorShutWithItem 边上的零时间 guard，也未指认 ReadytoCook 的数据动作载体缺失。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0025-01"
+        ],
+        "false_positive": false,
+        "reason": "明确指向 DoorOpenWithItem 到 DoorShutWithItem 边未限定零时间，和台账完全同处同性质。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "指向 DoorOpenWithItem 到 ReadytoCook 的条件表达以及门状态约束，不是 DoorShutWithItem 边的缺失守卫，亦不等于 cooking-time 显示更新动作缺失。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [
+          "EIS-0025-02"
+        ],
+        "false_positive": false,
+        "reason": "指向 ReadytoCook 中显示和更新 cooking time 的行为缺失，覆盖 EIS-0025-02。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [
+          "EIS-0025-02"
+        ],
+        "false_positive": false,
+        "reason": "指向 ReadytoCook 的 Cancel 迁移未表达取消或更新时间动作，覆盖台账第 6 句。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_5",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "指向 Cooking 开门时停止计时器，属于台账排除的时钟语义。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_6",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "指向 Cooking 进入时启动计时器，属于台账排除的时钟语义，不是 cooking time 数据动作。",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "两条冻结台账均在至少部分输出格中得到同处同性质覆盖。方法侧的关门零时间守卫、ReadytoCook 的 cooking time 显示/更新及取消或更新动作分别命中对应条目；Cooking 的 timer 启停、DoorShut 的 Cancel 以及其他不在冻结主张中的迁移条件均判为 false positive。baseline 的关门边零时间条件命中，ReadytoCook 数据动作仅在明确指向该状态和动作的 issue 中命中。"
+  },
+  "status": "ok",
+  "attempts": 2
+}

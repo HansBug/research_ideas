@@ -1,0 +1,22 @@
+def int R45RouteToken = 0;
+state llms_emp_feedback_final_0000 named "llms_emp_feedback_final_0000" {
+    event Power_On named "Power On";
+    event Condition_Met named "Condition Met";
+    event front_distance_10 named "front_distance > 10";
+    event Human_Steering_Cmd_Brake_Pressed_in_AutoFinal named "Human Steering Cmd, Brake Pressed, in (AutoFinal)";
+    event Power_Off named "Power Off";
+    state HumanDrivingMode named "HumanDrivingMode";
+    state AutonomousMode named "AutonomousMode" {
+        state AutoNavigating named "AutoNavigating";
+        state AutoFinal named "AutoFinal";
+        [*] -> AutoNavigating;
+        AutoNavigating -> AutoFinal : /Condition_Met;
+        AutoNavigating -> [*] : /Human_Steering_Cmd_Brake_Pressed_in_AutoFinal effect { R45RouteToken = 5; };
+        AutoFinal -> [*] : /Human_Steering_Cmd_Brake_Pressed_in_AutoFinal effect { R45RouteToken = 5; };
+    }
+    state FinalState named "FinalState";
+    AutonomousMode -> HumanDrivingMode : if [R45RouteToken == 5] effect { R45RouteToken = 0; };
+    [*] -> HumanDrivingMode : /Power_On;
+    HumanDrivingMode -> AutonomousMode : /front_distance_10;
+    [*] -> FinalState : /Power_Off;
+}

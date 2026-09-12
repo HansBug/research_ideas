@@ -1,0 +1,54 @@
+# baseline asset audit：PR-R1 资产审计总账
+
+## 1. 结论摘要
+
+PR-R1 的核心结论是：历史 baseline 并未作废，但它们不再主要承担“直接击败竞品”的角色，而是分层进入新主线：seed source、converter pressure、error taxonomy、limited comparison 和 related-work evidence。
+
+本轮进一步补充 strict seed 口径：后续 seed 文献调研必须“广搜、严入、分层使用”，不能把旧九个 direct baseline 当作封闭全集，也不能把所有 `<NL, STM>` 共现文献都算 seed。strict seed 仅指 `NL / 自然语言需求 / 用例 / 场景 / 文本描述 -> T0（无关键时间语义）FSM/HSM/EFSM/statechart`，且 STM 在 generation / 派生环节由 NL 产生；Protocol、Resource-flow、BPMN、Petri、Event-B、TLA+、LTL/STL、T1+、Hybrid、已有 STM repair-only 和无生成关系共现材料均不得进入主 strict seed 统计。详见 [strict_seed_literature_survey.md](./strict_seed_literature_survey.md)。
+
+当前最值得进入后续 R2/R3/R6 的高优先级资产是：
+
+1. `structure-and-event-driven-frameworks...`：8 个 reactive-system descriptions、reference solutions、F1 workbook 与 4open artifact，最适合 external same-sample approximate 预演。
+2. `llms_emp`：公开 Drive + 本地 parquet，适合抽 STM 子集作为 seed / judge 校准。
+3. `ttool-ai`：公开 TTool artifact 与 results，适合作为 tool-feedback / SysML XML 转换压力。
+4. `designing-fsm...`：CSV DFSM / trace-oracle repair 近邻，适合修正反馈对照，但不是控制系统真实数据。
+
+不应升级为可运行主对照的资产包括：`req` 私有工业数据、FlowFSM 当前仓库壳、SpecGPT 私有 GT、Pushing Envelope 小样本无 artifact，以及多数 BPMN / TLA+ / LTL / STL / Event-B / PAT / Rebeca / Simulink 近邻。
+
+## 2. R1 资产分层
+
+| 层级 | 条件 | 当前数量 | 代表 | 用途 |
+|---|---|---:|---|---|
+| A | direct baseline + `ASSETS.md` 已补齐 | 9 | 见 [baseline_candidate_matrix.md](../matrices/baseline_candidate_matrix.md) | R2/R3/R6 的主要 prior artifact 候选；其中 strict seed 资格需按 [strict_seed_literature_survey.md](./strict_seed_literature_survey.md) 二次筛。 |
+| B | 强近邻 / 形式化反馈 / 过程模型 | 若干 | PAT-Agent、Event-B Agent、Rebeca、BPMN benchmark | related work、feedback taxonomy、converter boundary；默认不进主 strict seed。 |
+| C | `sources/` 真实控制系统样本 | 787 篇 / 746 正例案例 / 337 条 `T0+FSM/HSM/EFSM` 子池 | CARA、railway、PLC、UAV、elevator 等 | R2 自建 seed 的主要 NL source pool；需另行构造 / 冻结 `STM_0`。 |
+| D | #93/#94/#96 分支局部资产 | branch-local | S1a 九大 baseline、S0a story、PR #9 sample pool | cite-only / defer-to-R2，不作为 main 事实。 |
+| E | 外部新增 seed 文献检索 | pending | use-case/statechart、scenario-to-state-machine、NL requirements to UML SM 等 | PR-R2/R7 前继续扩展；R1 只冻结筛选协议和字段。 |
+
+## 3. 对论文 story 的影响
+
+1. 不能再把 novelty 写成“没有 LLM 做状态机生成”。九个 direct baseline 已覆盖直接生成、协议 FSM 抽取、SysML/PlantUML/Umple/TTool 等路径。
+2. 可以把 novelty 收缩到：给定 `<NL, STM_0>` 后，如何利用结构化诊断、场景/仿真反馈、回归检查、接受/拒绝/回滚协议改善 seed，并记录失败与不收敛。
+3. Baseline 的公平比较应降级为 limited / near / evidence-only 分层：只有 artifact 足够、输入输出可归一、预算可冻结时才进入近似对照。
+4. 论文应主动报告转换风险：若 improvement 来自格式清洗或人工补字段，不能算修正循环收益。
+
+## 4. Handoff 到后续 PR
+
+| 后续 PR | R1 handoff |
+|---|---|
+| R2 | 从 `sources/`、A 层资产和外部新增候选中冻结四例 seed；必须记录为何选 / 不选，并按 strict / extended / near / excluded 分层。 |
+| R3 | 根据 [format_conversion_matrix.md](../matrices/format_conversion_matrix.md) 与 [strict_seed_literature_survey.md](./strict_seed_literature_survey.md) 冻结最小转换器合同，区分 strict seed 的语法归一与 extended seed 的语义补全。 |
+| R4 | 基于候选资产的缺陷类型冻结诊断 / 场景 / 评价门，而不是从 R5 结果倒推指标。 |
+| R6 | 使用 [artifact_availability_ledger.md](../ledgers/artifact_availability_ledger.md) 判断哪些 prior work 能进入 near-approximate comparison，并按 strict subset / extended subset / related-work-only 分层报告。 |
+| R7 | Related Work 按 direct / strict-seed / extended / near / evidence-only / boundary 写作，不做硬排名。 |
+
+## 5. 阶段性边界与未闭合风险
+
+R1 当前有意保持为资产审计层，不提前替代后续实验事实。部分结论看起来仍偏“薄”，原因是转换器、四例 seed、评价门和真实 repair loop 结果尚未闭合；这些内容必须由 PR-R2--R6 回填，而不能在 R1 为了让叙事丰满而提前脑补。
+
+1. R1 未逐篇深审 91 篇 baseline 的代码与 artifact，只对高优先级 direct baseline 和部分强近邻做矩阵化重排。
+2. R1 未重新联网下载 artifact；活链接仍需在正式实验前冻结。
+3. R1 未选择四例样本；任何样本选择必须留给 R2。
+4. R1 未实现转换器；任何“可转换”都是风险评估，不是已通过 adapter 测试。
+5. R1 未证明修正 loop 带来真实改善；论文 story、RQ 和 comparison 角色应在 R2--R6 真实结果出来后允许局部回填和校准。
+6. R1 未完成外部 strict seed 文献穷尽检索；当前只冻结筛选协议、初始事实台账和后续执行方案。

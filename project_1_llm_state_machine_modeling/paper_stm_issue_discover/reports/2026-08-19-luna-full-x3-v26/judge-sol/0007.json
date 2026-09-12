@@ -1,0 +1,423 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0007",
+  "ledger": [
+    {
+      "ledger_id": "EIS-0007-01",
+      "pair": "0007",
+      "D": "D2",
+      "L": "L2",
+      "summary": "顶层唯一的初始迁移 `:2 [*] --> InitialState` 落在 `InitialState` 上，而这个状态只有入边没有出边，于是整机永久停在那里——碰撞检测与避撞控制两棵子树都不可达。",
+      "detail": "`:2` 是全文唯一的根层初始边，目标是 `InitialState`。这个名字此后只在 `:32 CollisionAvoidance --> InitialState : Collision Resolved` 中再次出现，仍然是作为目标。全文没有任何迁移以 `InitialState` 为源端，它也没有被声明为复合态（没有 `state InitialState { }`），因此没有内部结构可以走。\n\n后果是整台机器一启动就停住。`CollisionDetection`（:4-:9）与 `CollisionAvoidance`（:11-:23）虽然彼此之间有 `:31` 相连，但没有任何一条边从 `InitialState` 通向它们，所以两棵子树都不可达。更进一步，`:32` 那条「碰撞解决后回到 InitialState」的边即使能被触发，回来之后系统也再出不去——无法重新武装，第二次碰撞不会再被处理。\n\n这直接违反 NL 第 2 句：「This sub-machine becomes active when a possible frontend collision, rear-end collision or collision with pedestrian is detected.」这句要求子机在检测到碰撞时变为活动，而制品里它永远不会活动。\n\n根因可以从上游工作簿追到：Phase-I（列 I）的原始生成里，`InitialState` 是一个包含整个检测流程的复合状态，语义是连通的；上游论文的语义修复阶段把它改成了一个空的叶状态，同时把检测流程拆出来做成同级的 `CollisionDetection`——拆的时候没有补上从 `InitialState` 到 `CollisionDetection` 的边，可达性就此断掉。也就是说这是修复动作注入的缺陷，不是生成模型原本的错误。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 2 句「This sub-machine becomes active when a possible frontend collision, rear-end collision or collision with pedestrian is detected」——子机必须能变为活动，而制品里它不可达。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法：`InitialState` 没有任何出边、没有内部结构、也没有任何祖先可以继承出边，不存在任何解释能让检测流程被进入。反驳不存活。",
+      "L_basis": "判 L2。陈述这条错误的核心是一个可达性论证：要说明从 `:2` 出发的全部执行路径都到不了 `CollisionDetection` 与 `CollisionAvoidance`。这需要对行为集合做穷尽排除，不是在某个系统状态上读出来的静态事实。",
+      "axes": {
+        "defect_locus": "global",
+        "defect_element": null,
+        "defect_qualifier": null,
+        "defect_logic_kind": "unintended_terminal",
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0007-02",
+      "pair": "0007",
+      "D": "D1",
+      "L": "L0",
+      "summary": "`CollisionAvoidance` 三个区的初始迁移 `:13`、`:17`、`:21` 各自带了一个标签（`Start Braking` / `Steering Engaged` / `Alerts Activated`），若按触发事件读则违反 UML 对初始伪状态出边的规定，且这三个事件在模型里无人产生。",
+      "detail": "`:11` 开 `state CollisionAvoidance {`，块内用 `:12`、`:16`、`:20` 的三个 `--` 分成三个区。每个区的第一行都是一条带标签的默认入口边：`:13 [*] --> AutomaticBraking : Start Braking`、`:17 [*] --> SteeringControl : Steering Engaged`、`:21 [*] --> AlertSystem : Alerts Activated`。\n\n若把冒号后的文本读作触发事件，那么有两层问题。语言层面：UML 2.5.1 规定从初始伪状态出发的迁移不得带触发事件，也不得带守卫。语义层面：这三个事件名在全文（`:1`-`:33`）的其它任何位置都没有出现过，即模型里没有任何迁移的 effect 会产生它们，也没有任何声明把它们标为外部事件——按这个读法，进入 CollisionAvoidance 之后三个区都不会激活任何控制。这与 NL 第 2、3 句的「检测到即激活」语义相冲突（第 3 句「The orthogonal regions of the active mode of collision avoidance allow for concurrent activation different of collision avoidance controls」）。\n\n根因是把「这个控制要开始做什么」写成了进入这个控制的条件。三个标签的文字（开始制动、转向介入、告警启动）读起来更像是进入状态时要执行的动作，而不是等待的事件。",
+      "D_basis": "判 D1，两读并立，且有两条彼此独立的削弱理由。其一，PlantUML 的迁移标签是自由文本，工具不赋予它角色，`:13`/`:17`/`:21` 冒号后的文字既可以读作触发事件，也可以读作 effect（进入时执行的动作）；按 effect 读，UML 那条规定就没有被违反，而且从文字含义看（开始制动、转向介入、告警启动）effect 读法反而更自然。其二，退一步说，即便按触发事件读，「模型内无人产生该事件」也推不出「控制不会激活」——事件完全可以来自模型外部的环境，本文件对 `:6`/`:7`/`:8` 的三个检测事件用的就是同样的处理方式（它们也没有模型内的产生者）。两条削弱理由都成立且都未被排除，故不判 D2。",
+      "L_basis": "判 L0。陈述这条错误只需就地读 `:13`、`:17`、`:21` 这三行，看 `[*] -->` 后面的冒号有没有跟内容；配套的「这三个事件名在全文别处没出现过」也只是对文本做一次名字检索。都在词法层面，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "trigger",
+        "defect_qualifier": "extraneous",
+        "defect_logic_kind": null,
+        "defect_reference": "language"
+      }
+    },
+    {
+      "ledger_id": "EIS-0007-03",
+      "pair": "0007",
+      "D": "D2",
+      "L": "L0",
+      "summary": "`OperationalControls`（:25-:29）整棵子树——信号反馈、健康检查、通信控制——在 NL 里完全没有提及，且它没有任何入边（是死代码），内部还在同一个非正交区里并列写了三条初始迁移。",
+      "detail": "`:25` 开 `state OperationalControls {`，块内是三行默认入口边：`:26 [*] --> FeedbackControl : Signal Feedback`、`:27 [*] --> SystemCheck : Health Check`、`:28 [*] --> CommunicationControl : Communicate Control`。\n\n三个问题叠在一起。\n\n第一，无 NL 依据。NL 只有三句话：第 1 句「There are three region in this diagram」，第 2 句说这个子机在检测到前向碰撞、追尾或行人碰撞时变为活动，第 3 句说避撞的活动模式由正交区支持并发激活不同的避撞控制。信号反馈、健康检查、通信控制这三样在 NL 全文里一个字都没有，也不在避撞这个主题范围内。\n\n第二，死代码。全文只有 `:31 CollisionDetection -down-> CollisionAvoidance : Collision Mode Active` 与 `:32 CollisionAvoidance --> InitialState : Collision Resolved` 两条跨顶层状态的迁移，没有任何一条以 `OperationalControls` 为目标。它既没有入边、也不是根层初始边的目标，因此永远不会被进入。\n\n第三，非确定初始。`:26`-`:28` 三行都是 `[*] -->`，而它们之间没有 `--` 分隔——对比同一文件的 `:11`-`:23`，作者在 CollisionAvoidance 里是用 `--` 明确分区的，说明他知道怎么写正交区。所以这三条初始边处在同一个区里，一个区有三个默认入口，进入时该走哪一条没有定义。\n\n根因是补足了一套「看起来一个控制系统总该有」的通用功能，而不是照着 NL 建。NL 第 1 句只说了三个区，制品在避撞里给了三个区之后又多加了这一整棵与 NL 无关的子树。",
+      "D_basis": "判 D2。三条各自独立的违反：其一，NL 第 1 句「There are three region in this diagram」与第 2、3 句共同界定了这份图的范围就是碰撞检测与避撞控制，`OperationalControls` 的三项功能在 NL 全文没有任何对应，属无依据的过度规定；其二，一个没有任何入边的顶层复合态在任何执行下都不会被进入，是死代码；其三，同一个区里并列三条默认入口边违反 UML 对区域默认入口唯一性的要求，且同文件的 `:12`/`:16`/`:20` 证明作者知道用 `--` 分区。三个判读臂一致认定成立。需要如实记下的是：三臂在给理由时都没有主动引出上面任一条出处，出处是本次重写时补齐的。 三条子主张各自都没有可存活的反驳：NL 全文三句里找不到信号反馈、健康检查、通信控制中的任何一个；「没有入边但仍会被进入」在顺序状态机里不存在这种可能；「三条默认入口其实分属三个区」也被同文件 `:12`/`:16`/`:20` 的 `--` 用法否掉——作者会分区，这里没分。",
+      "L_basis": "判 L0。三条子主张的陈述都在词法层面：把 NL 里出现过的名字集合与模型里的状态名集合比对，即可看出 `OperationalControls` 一族多出；检索全文有没有以它为目标的迁移，是一次名字检索；数 `:25`-`:29` 块内有几条 `[*] -->` 而中间有没有 `--`，是读那五行。都不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "state",
+        "defect_qualifier": "extraneous",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "failed",
+      "findings": []
+    },
+    {
+      "cell": "method_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:child_count:CollisionAvoidance",
+          "claims": [
+            "CollisionAvoidance has a different number of orthogonal regions from the required three.",
+            "CollisionAvoidance has four inventoried concurrent regions although NL1 requires exactly three."
+          ],
+          "locations": [
+            "NL1",
+            "CollisionAvoidance:region:0",
+            "CollisionAvoidance:region:1",
+            "CollisionAvoidance:region:2",
+            "CollisionAvoidance:region:3"
+          ],
+          "obligations": [
+            "The diagram must contain exactly three orthogonal regions.",
+            "The diagram contains exactly three regions."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:child_count:CollisionAvoidance:facet:1c7b9f84b1b6"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:a670dbbfafb4f645",
+          "claims": [
+            "The collision-avoidance sub-machine is unreachable from the root entry, so none of the three required collision detections can activate it through the modeled root behavior."
+          ],
+          "locations": [
+            "NL2",
+            "F62",
+            "F60",
+            "llms_emp_feedback_final_0007.CollisionAvoidance.AutomaticBraking"
+          ],
+          "obligations": [
+            "The collision-avoidance sub-machine must be reachable from the machine root as the response to a listed collision detection."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:a670dbbfafb4f645:facet:45d5b224d987"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "failed",
+      "findings": []
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "碰撞规避子机没有在检测到三类碰撞可能性时被激活",
+          "reason": "规格明确要求在检测到可能的前端碰撞、追尾碰撞或行人碰撞时激活碰撞规避子机。模型只把 CollisionDetection 状态整体连接到 CollisionAvoidance，并没有从三个检测结果状态连接到 CollisionAvoidance，也没有表明这些检测事件会触发 Collision Mode Active，因此三类检测结果均无法按规定激活该子机。",
+          "where": "CollisionDetection 内的 PossibleCollision -> FrontendCollision、RearendCollision、PedestrianCollision 转移，以及 CollisionDetection -down-> CollisionAvoidance : Collision Mode Active"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "CollisionAvoidance 的正交区域数量与模型表达不一致，且缺少对三种不同控制并发激活的完整语义",
+          "reason": "规格要求活动碰撞规避模式包含正交区域，以允许不同碰撞规避控制并发激活。模型在 CollisionAvoidance 中实际只声明了两个正交区域，并将制动、转向、警报混在这两个区域中，无法让三个控制都按独立区域并发启动；OperationalControls 虽含三个初始转移，但它是 CollisionAvoidance 外的独立顶层状态，既不是其正交区域，也没有连接到碰撞规避活动模式，不能补足该并发要求。",
+          "where": "CollisionAvoidance 内两个 `--` 分隔的区域：AutomaticBraking、SteeringControl、AlertSystem；以及独立的 OperationalControls 状态"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "模型未体现“检测到前端、追尾或行人碰撞可能性”是进入碰撞规避的条件",
+          "reason": "该转移的源是整个 CollisionDetection 状态，而不是三个具体碰撞检测结果，并且标签仅描述模式激活，没有与 Frontend Detected、Rear-end Detected、Pedestrian Detected 事件建立条件对应关系。这样模型可能在进入 CollisionDetection 后直接激活 CollisionAvoidance，甚至在未检测到任何规定碰撞类型时激活，违反规格的触发条件。",
+          "where": "CollisionDetection 到 CollisionAvoidance 的无条件转移 `CollisionDetection -down-> CollisionAvoidance : Collision Mode Active`"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "碰撞避免子状态机未覆盖“可能的前端碰撞、追尾碰撞或行人碰撞”三种检测结果的进入条件",
+          "reason": "规格要求该子机器在检测到 possible frontend collision、rear-end collision 或 collision with pedestrian 时变为 active。模型虽定义了 FrontendCollision、RearendCollision、PedestrianCollision 三个状态，但从这些状态没有分别连接到 CollisionAvoidance；只有从复合状态 CollisionDetection 整体出发的一条无明确触发语义的转移，因此无法表达三种检测结果各自触发碰撞避免子机器激活。",
+          "where": "CollisionDetection 内部状态及 `CollisionDetection -down-> CollisionAvoidance : Collision Mode Active` 转移"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "OperationalControls 被建模为第三个顶层复合状态，但未体现其与碰撞避免活动模式的正交并发关系",
+          "reason": "规格中的“三个 region”应属于 active mode of collision avoidance 的正交区域，并允许不同 collision avoidance controls 并发激活。模型在 CollisionAvoidance 内确实用三个 `--` 分隔区域表达了 AutomaticBraking、SteeringControl 和 AlertSystem 的并发区域；但 OperationalControls 位于 CollisionAvoidance 外部，且没有与其建立正交区域关系，因而不能作为该活动模式中的第三个 region。",
+          "where": "`state OperationalControls { ... }` 以及顶层状态结构"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "模型将碰撞避免控制错误地限定为固定的三个控制类别，且没有清晰表达“不同控制可并发激活”的三种检测触发关系",
+          "reason": "规格只要求碰撞避免活动模式的正交区域支持不同碰撞避免控制的并发激活；模型虽然语法上有三个正交区域，但没有从 FrontendCollision、RearendCollision、PedestrianCollision 或统一的有效检测事件向这些区域建立可触发的进入/激活逻辑。仅声明各区域的初始转移不足以证明检测后会并发启动这些控制。",
+          "where": "CollisionAvoidance 的三个区域及其初始转移：`Start Braking`、`Steering Engaged`、`Alerts Activated`"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "碰撞避免子机器没有按三类碰撞检测结果分别定义激活转换",
+          "reason": "规格明确要求在检测到可能的前端碰撞、后端碰撞或行人碰撞时激活该子机器。模型只从`CollisionDetection`复合状态整体连接到`CollisionAvoidance`，没有从`FrontendCollision`、`RearendCollision`和`PedestrianCollision`分别建立到碰撞避免的转换，因此这些检测结果与激活条件之间的对应关系未被建模。",
+          "where": "`CollisionDetection -down-> CollisionAvoidance : Collision Mode Active`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "碰撞检测状态到碰撞避免状态的触发条件不完整且可能无法触发",
+          "reason": "`CollisionDetection`的初始状态进入`PossibleCollision`，随后进入三个具体碰撞状态；这些具体状态均没有离开该复合状态的转换。若按状态机语义，复合状态只有在其内部达到终止伪状态时才可能完成，而模型既没有内部终止状态，也没有从三个检测状态离开的路径，因此`CollisionAvoidance`可能不可达。",
+          "where": "`CollisionDetection`内部状态及其到`CollisionAvoidance`的外部转换"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "未明确表达三个碰撞避免控制区域可并发启动的语义",
+          "reason": "模型确实用三个正交区域分别放置自动制动、转向控制和告警系统，但每个区域的初始转换都带有事件触发条件（`Start Braking`、`Steering Engaged`、`Alerts Activated`）。在未定义事件可独立并发发生、也未定义区域运行语义的情况下，图中没有清楚保证不同控制能够在碰撞避免模式激活时并发激活；规格要求的是正交区域支持不同碰撞避免控制的并发激活，模型对此缺少明确的并发触发/语义表达。",
+          "where": "`CollisionAvoidance`中的三个`--`分隔区域及各区域的初始转换"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0007",
+    "ledger_assessments": [
+      {
+        "ledger_id": "EIS-0007-01",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格运行失败且没有发布 finding，不能计入覆盖。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "hypothesis:a670dbbfafb4f645"
+          ],
+          "reason": "该 finding 明确断言碰撞规避子机从机器根入口不可达，导致三类碰撞检测都不能通过根层行为激活它；这与台账所述根层初始入口落入无出路的 InitialState、从而使 CollisionAvoidance 永远不可达属于同一全局入口可达性缺陷。虽然 finding 未展开 CollisionDetection 也不可达及回到 InitialState 后无法重新武装等后果，但其可执行断言已指向同一根入口断路性质。",
+          "confidence": "medium"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格运行失败且没有发布 finding，不能计入覆盖。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格输出关注三类检测结果状态没有分别连接到 CollisionAvoidance，或顶层 CollisionDetection 到 CollisionAvoidance 的触发条件表达不充分；它们没有指认根层 InitialState 只有入边没有出边这一入口陷阱，属于不同位置和不同缺失。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格输出主张检测结果到 CollisionAvoidance 的进入条件缺失，以及 OperationalControls 的层次关系问题；均未指认根入口停在 InitialState 导致整机后续子树不可达。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_issue_2 虽也声称 CollisionAvoidance 可能不可达，但其指认的是 CollisionDetection 内部没有终止伪状态或离开三个检测状态的路径，和台账的根层 InitialState 无出边不是同一处缺陷；其余输出同样未覆盖根入口陷阱。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0007-02",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格运行失败且没有发布 finding，不能计入覆盖。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "两个 finding 分别主张 CollisionAvoidance 区域数量错误和子机从根入口不可达，均未指认三个区域初始迁移上的标签作为多余触发事件这一记法槽位问题。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格运行失败且没有发布 finding，不能计入覆盖。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "输出讨论检测到规避的激活映射以及区域数量/并发结构，没有主张 :13、:17、:21 的初始迁移标签是不允许或多余的触发事件。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_issue_3 虽顺带列出三个初始迁移标签，但其主张是缺少从碰撞检测结果到区域的激活逻辑，并未断言这些初始迁移上的触发标签本身多余、非法或会使默认入口等待事件；仅提及同一元素不足以命中。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_3"
+          ],
+          "reason": "该 issue 指认 CollisionAvoidance 三个正交区各自的初始转换，并明确把 Start Braking、Steering Engaged、Alerts Activated 读成事件触发条件，主张这些条件未定义且使区域在模式激活时不能明确并发启动。它与台账按触发事件读时所主张的同三条初始边被不当附加触发标签、事件无人产生而可能不激活，是同一位置和同一多余触发条件性质。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0007-03",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格运行失败且没有发布 finding，不能计入覆盖。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "区域数量 finding 指向 CollisionAvoidance 并声称其有四个并发区；根入口 finding 指向 CollisionAvoidance 的全局不可达。二者都没有在 OperationalControls 子树处主张其无 NL 依据、无入边或同一区三条默认入口。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格运行失败且没有发布 finding，不能计入覆盖。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_issue_2 仅把 OperationalControls 作为不能补足 CollisionAvoidance 并发区域数量的旁证，核心主张是 CollisionAvoidance 区域数量和并发结构错误；没有主张 OperationalControls 整棵子树多余、死代码或其内部三条默认入口冲突。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "baseline_issue_2 指认 OperationalControls 位于 CollisionAvoidance 外部，主张其层次归属不能充当活动规避模式的第三个区；台账则主张该顶层子树无需求依据、无入边且内部同一区有三条默认入口。位置有所重合但性质不同，不能命中。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格没有输出针对 OperationalControls 的多余性、无入边死代码或多重默认入口问题。",
+          "confidence": "high"
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:child_count:CollisionAvoidance",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出主张 CollisionAvoidance 有四个并发区而非三个，位置是 CollisionAvoidance 的区域计数；冻结台账没有这一数量缺陷，且 EIS-0007-03 的三重默认入口位于 OperationalControls，不能跨位置对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:a670dbbfafb4f645",
+        "matched_ledger_ids": [
+          "EIS-0007-01"
+        ],
+        "false_positive": false,
+        "reason": "其根入口到 CollisionAvoidance 不可达的主张对应根层 InitialState 入口陷阱造成的全局不可达缺陷。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它要求从三个具体检测结果状态连接到 CollisionAvoidance，属于检测结果到规避模式的触发映射缺失，不是根层 InitialState 无出边，也不是任何其他冻结条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它主张 CollisionAvoidance 只有两个区域并且三个控制未被独立并发建模；冻结台账没有这一数量/结构主张。OperationalControls 只被用作不能补数的旁证，并未被断言为多余死代码或多重默认入口。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它主张 CollisionDetection 到 CollisionAvoidance 的转换没有以三类检测为进入条件，甚至可能无检测即激活；这与台账的根入口无出路、初始边多余触发标签或 OperationalControls 多余性均不同。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出是三种检测结果各自触发 CollisionAvoidance 的进入条件缺失，未指认根层 InitialState 陷阱。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它指认 OperationalControls 的顶层层次归属不符合把第三个区放在 CollisionAvoidance 活动模式内的理解；台账在同一元素上主张的是整棵子树无依据、无入边及内部多默认入口，性质不相同。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它主张检测事件没有进入/激活三个控制区域的逻辑。虽列出三个初始迁移标签，却未主张这些标签作为触发事件本身多余或非法，不能据背景提及对齐 EIS-0007-02。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出要求三类具体检测状态分别定义到 CollisionAvoidance 的激活转换，是未冻结的触发映射缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "它把 CollisionAvoidance 可能不可达归因于 CollisionDetection 内部缺少终止状态和离开三个检测状态的路径；冻结 EIS-0007-01 的不可达根因和位置是顶层 InitialState 无出边，不能因后果相似而命中。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [
+          "EIS-0007-02"
+        ],
+        "false_positive": false,
+        "reason": "它在同三条区域初始转换上把标签认作事件触发条件，并主张这些未定义条件妨碍模式激活时并发启动，语义对应多余触发标签缺陷。",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "按“同一处且同一性质”逐项对齐。仅 method_run2 的根入口不可达主张对应 EIS-0007-01；仅 baseline_run3 的三个正交区初始转换被事件标签阻塞/条件化的主张对应 EIS-0007-02。其余输出要么指向检测结果到 CollisionAvoidance 的触发映射，要么误判 CollisionAvoidance 区域数量/层次，要么提出不同位置、不同根因的不可达性，均不覆盖冻结台账。EIS-0007-03 的完整主张是 OperationalControls 子树多余、无入边且同一区存在三条默认入口；没有输出在该处主张这些性质。"
+  },
+  "status": "ok",
+  "attempts": 1
+}

@@ -1,0 +1,86 @@
+{
+  "case": "0019",
+  "nl_group": "NL05",
+  "diffs": [
+    {
+      "verdict": "problem",
+      "ref": "[*] --> AutonomousMode（顶层，无触发）；state AutonomousMode { [*] --> InitialState（无触发） }",
+      "gen": "[*] --> AutonomousMode: Autonomous mode start\n[*] --> InitialState: Start of autonomous driving mode",
+      "reason": "良构性问题：两条初始迁移都带了触发标签（fcstm 投影为 `[*] -> AutonomousMode : /Autonomous_mode_start` 与 `[*] -> InitialState : /Start_of_autonomous_driving_mode`）。初始伪状态出边不得带触发，否则机器在事件到达前没有合法初始配置。NL 第1句 \"The system begins in the AutonomousMode state, which transitions into the InitialState substate\" 只描述默认入口，没有点名任何触发事件，这两个事件名是把 NL 的叙述文字误当成事件。属口径 3 明列的\"带触发的初始边\"。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "AutonomousMode 内第二区域：`--` / [*] --> collision_avoidance_deactive / collision_avoidance_deactive --> collision_avoidance_active: ...",
+      "gen": "state CollisionAvoidanceSystem {\ncollision_avoidance_deactive --> collision_avoidance_active: ...\ncollision_avoidance_active --> collision_avoidance_deactive: ...\n}（该复合态既无 `[*] -->` 内部默认子态，也没有任何入边）",
+      "reason": "NL 第12句明确写 \"The collision avoidance system is initially in the collision_avoidance_deactive state\"，点名了初始子态义务。生成方的 CollisionAvoidanceSystem 内部没有任何初始迁移（复合态无默认子态），并且顶层唯一的初始迁移指向 AutonomousMode、没有任何迁移进入 CollisionAvoidanceSystem，因此整块碰撞避免逻辑不可达（fcstm 只能注入 `[*] -> UnspecifiedInitial`）。同时命中\"复合态无默认子态\"与\"不可达\"两个良构性子类，且违反 NL 第12句。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "intersection --> straight ；HighwayMode --> FinishState : auto_finished = true / UrbanMode --> FinishState : auto_finished = true（组迁移，任一子态均可结束）",
+      "gen": "straight --> intersection: intersection=true ；enter_urban --> intersection: intersection=true ；（intersection 无任何出边）exit_urban --> FinishState: auto_finished=true（只有 exit_urban 能到 FinishState）",
+      "reason": "生成方的 `intersection` 没有任何出边，而通往 FinishState 的边只挂在 exit_urban 上，因此一旦进入 intersection，就再也无法到达 exit_urban / FinishState，NL 第10句 \"The system exits the UrbanMode state by transitioning to FinishState once `auto_finished=true` is satisfied\" 的退出义务在该配置下不可达（只剩 NL 第11句的 high_way=true 组迁移可以离开 UrbanMode）。参考通过 `intersection --> straight` 与 UrbanMode 级组迁移避免了这一点。属死端/局部不可达良构性问题叠加 NL 第10句义务失效。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "AutonomousMode 内用 `--` 把驾驶模式与碰撞避免放成两个正交区域",
+      "gen": "CollisionAvoidanceSystem 是与 AutonomousMode 并列的顶层复合态（无 `--`，非并发）",
+      "reason": "NL 第12、13 句只描述碰撞避免系统自身的两状态开关逻辑，没有显式要求它与驾驶模式并发运行；参考用正交区域实现属更具体的建模选择。按口径 4，此差异属\"区域的并发语义\"，标 out_of_scope: concurrency；把它建成独立复合态本身说得通，故判 similar（其不可达与缺默认子态问题已单独计入 problem）。",
+      "out_of_scope": "concurrency"
+    },
+    {
+      "verdict": "correct",
+      "ref": "lane_change --> cruise ；enter_urban --> straight ；lane_change_urban -->straight（三条均无标签）",
+      "gen": "lane_change --> cruise: Lane change completed ；enter_urban --> straight: Road ahead is clear ；lane_change_urban --> straight: Lane change completed",
+      "reason": "NL 第4句 \"it can return to cruise once the lane change is completed\"、第7句 \"or straight if the road ahead is clear\"、第8句 \"the system transitions to straight if the lane change is complete\" 都明确给出了条件，生成方逐一标注。参考侧存疑：参考把这三条写成无标签 completion 边，按 UML 语义会在进入 lane_change / enter_urban / lane_change_urban 后立即触发，从而使参考自己声明的其他分支（enter_urban --> lane_change_urban、enter_urban --> intersection、lane_change --> exit_hwy、lane_change_urban --> exit_urban）不可达。因此不能以参考为基准判生成方多余。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "uncertain",
+      "ref": "enter_hwy --> cruise（无标签）",
+      "gen": "enter_hwy --> cruise: dist_to_front<25 & extra_lane=true（与 enter_hwy --> lane_change 使用完全相同的守卫）",
+      "reason": "参考侧存疑：参考的 `enter_hwy --> cruise` 是无标签 completion 边，会即发抢占 `enter_hwy --> lane_change: dist_to_front<25 & extra_lane=true`，使该分支不可达。NL 第3句 \"can transition to cruise or lane_change based on the distance to the front vehicle (`dist_to_front<25`) and the availability of an extra lane (`extra_lane=true`)\" 把同一组条件同时挂给两个目标，本身欠定，因此生成方给两条边贴相同守卫（导致不确定性）也无法判定为错。卡点：NL 未给出区分 cruise 与 lane_change 两个分支的条件，参考此处又不良构，双侧都不能作为判据。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "exit_hwy --> [*] / exit_urban --> [*] 在子机内，HighwayMode --> FinishState / UrbanMode --> FinishState 为父层组迁移",
+      "gen": "ExitHighway --> FinishState: auto_finished=true 与 exit_urban --> FinishState: auto_finished=true 直接写成跨层边（写在 `}` 之后）",
+      "reason": "NL 第6句 \"The HighwayMode ends when the system transitions to FinishState, triggered by the `auto_finished=true` condition\" 与第10句只规定\"退出到 FinishState\"，没有规定必须是任意子态可用的组迁移。生成方限定为\"先到 ExitHighway/exit_urban 再结束\"是说得通的读法（先驶出高速再完成），属结构写法差异。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "FinishState --> [*]",
+      "gen": "（FinishState 无出边）",
+      "reason": "NL 第6、10 句把 FinishState 作为一个普通状态点名，没有要求它继续走向 final。生成方让它成为终态（无出边）与 NL 一致；参考补一条到 final 属更具体，按口径 2 不计问题。（与本 case 的 intersection 不同：intersection 的无出边会切断 NL 第10句的退出路径，故那一条才判 problem。）",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "5 条独立标注的激活边（pedestrian_detected / dist_to_rear<5 & vel>30 / dist_to_rear<15 & vel>60 / dist_to_front<15 & highway = true / dist_to_front<10 & urban=true）",
+      "gen": "collision_avoidance_deactive --> collision_avoidance_active: pedestrian_detected | (dist_to_rear<5 & vel>30) | (dist_to_front<15 in hwy mode or <10 in urban mode)",
+      "reason": "NL 第12句以 \"such as ... or ...\" 列出三类条件，生成方用一条析取边覆盖了这三类，语义等价于 NL 的枚举；参考多出的 `dist_to_rear<15 & vel>60` 是 NL 之外的额外具体化（口径 2）。生成方守卫中残留自然语言 \"in hwy mode or <10 in urban mode\"，形式化程度较弱但未改变语义，故判 similar 而非 problem。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "collision_avoidance_active:Collision_Avoidance_Module --> collision_avoidance_deactive: in(front_inactive) & in (rear_inactive) & in (pedestrian_inactive)",
+      "gen": "collision_avoidance_active --> collision_avoidance_deactive: front_inactive & rear_inactive & pedestrian_inactive",
+      "reason": "NL 第13句 \"returns to the collision_avoidance_deactive state when there is no active danger, as indicated by the conditions `front_inactive`, `rear_inactive`, and `pedestrian_inactive`\"，两侧语义一致，仅 `in(...)` 写法不同。参考侧存疑：参考该行源端写作 `collision_avoidance_active:Collision_Avoidance_Module`，冒号后内容在 PlantUML 中会被当作标签，源状态名不合法，属参考自身语法瑕疵。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "exit_hwy",
+      "gen": "ExitHighway",
+      "reason": "NL 第4、5 句只要求存在\"驶出高速\"的目标状态，命名差异按口径 1 不计问题。UrbanMode 侧 exit_urban 命名两侧一致。",
+      "out_of_scope": null
+    }
+  ],
+  "problem_count": 3,
+  "extra_count": 0,
+  "notes": "拆分粒度原则：一条 diff = 一个可独立修复的现象。两条带触发初始边合成一条（同一修复动作：删触发）；参考侧三条无标签 completion 边合成一条（同一现象、同一判据）；而 enter_hwy 那条单独列 uncertain，因为它额外牵涉 NL 第3句本身的欠定与生成方相同守卫的不确定性。碰撞避免部分拆成\"不可达+无默认子态\"(problem) 与\"并发区域改为顺序复合态\"(similar/out_of_scope) 两条，因为二者需要不同修复动作。\n\nNL 逐句核对：\n1 begins in AutonomousMode → InitialState：满足（但初始边被加了触发，计良构问题）。\n2 InitialState --> HighwayMode:high_way=true / --> UrbanMode:urban_way=true：满足。\n3 HighwayMode 从 enter_hwy 起，可到 cruise 或 lane_change：满足（守卫标注方式见 uncertain 条）。\n4 lane_change --> cruise（完成换道）/ --> exit（dist_to_exit<2）：满足。\n5 cruise --> lane_change（dist_to_front<25 & extra_lane）/ --> exit（dist_to_exit<2）：满足。\n6 HighwayMode 经 auto_finished=true 到 FinishState：满足（限定从 ExitHighway 出发，判 similar）。\n7 UrbanMode 从 enter_urban 起，可到 lane_change_urban / straight / intersection：满足，三条条件均标注。\n8 lane_change_urban --> straight / --> exit_urban(dist_to_exit<0.7)：满足。\n9 straight --> intersection / --> lane_change_urban：满足。\n10 UrbanMode 经 auto_finished=true 到 FinishState：形式上满足，但从 intersection 出发不可达（计 problem）。\n11 HighwayMode <-> UrbanMode 双向切换：满足。\n12 碰撞避免初始为 deactive，三类条件触发 active：条件满足，但\"initially in deactive\"未实现且整块不可达（计 problem）。\n13 三个 inactive 条件回到 deactive：满足。\n\n参考侧存疑位置：(a) `enter_hwy --> cruise`、`lane_change --> cruise`、`enter_urban --> straight`、`lane_change_urban -->straight`、`intersection --> straight` 均为无标签 completion 边，会即发抢占同源的其他分支，使参考自己声明的多条分支不可达；(b) `collision_avoidance_active:Collision_Avoidance_Module` 作为迁移源端不是合法状态名；(c) `InitialState : 初始状态` 混入中文标签；(d) `dist_to_rear<15 & vel>60` 为 NL 之外的条件。"
+}

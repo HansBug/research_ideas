@@ -1,0 +1,124 @@
+{
+ "case": "0016",
+ "group": "NL03",
+ "llm": "GPT-4",
+ "diffs": [
+  {
+   "verdict": "problem",
+   "ref": "state Raster_Scanning { region1 -- region2 -- region3 }（三个兄弟正交区域）",
+   "gen": "state Region1 { Search --> Region2 ... } / state Region2 { ... Region3 } / state Region3 { ... }",
+   "reason": "Search --> Region2 写在 state Region1 {} 体内，PlantUML 按首次出现作用域把 Region2 建成 Region1 的子状态、Region3 建成 Region2 的子状态（FCSTM 投影确认三层嵌套）。NL 第 2 句的『三个不同状态区域』被写成三层包含关系，区域归属语义错误。",
+   "assertable": "containment(parent='llms_emp_feedback_final_0016.SearchMission', child='llms_emp_feedback_final_0016.SearchMission.Region2')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "每个区域各有自己的 [*] -> 初始子状态",
+   "gen": "Region2 / Region3 内的 [*] --> Search 解析到 SearchMission.Region1.Search（越界）",
+   "reason": "三个区域都把内部状态命名为 Search，名字碰撞后 Region2/Region3 的初始迁移目标落在 Region1.Search 上，投影插入 InvalidInitialtr_0005 / InvalidInitialtr_0007，即进入 Region2/Region3 后无定义初始子状态。",
+   "assertable": "initial_target(composite='llms_emp_feedback_final_0016.SearchMission.Region1.Region2', child='llms_emp_feedback_final_0016.SearchMission.Region1.Region2.Search')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "Raster_Scanning --> [*]: when (NumberofCru == 0)",
+   "gen": "Search --> [*] : Finished Region3 Search（唯一指向 final 的边，且在最内层区域内）",
+   "reason": "NL 第 2 句要求搜索『持续到任务完成』；本模型把『第三区域搜索完成』当作结束条件，既无 mission-complete 事件也无顶层终态，属提前完成 + 完成条件错置。",
+   "assertable": "terminates(scope='[*]')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "三个区域同时活动（正交）",
+   "gen": "Region1 →(Finished Region1 Search)→ Region2 →→ Region3 顺序遍历",
+   "reason": "区域被写成顺序推进而非同时活动，属正交并发类差异，照实记录但不升级；『三个区域是否存在』的数量问题已在第 1 条单列。",
+   "assertable": null,
+   "predicate_exists": false,
+   "out_of_scope": "concurrency"
+  },
+  {
+   "verdict": "similar",
+   "ref": "Strike_the_Target: exit/ NumberofCru--",
+   "gen": "Attacking --> SearchMission : Attack Finished / Decrease UAV swarm count",
+   "reason": "递减写在 UML 标准的 trigger / effect 槽位里，作者源已表达该 effect；FCSTM 前端未按 / 切分而合成单事件名 Attack_Finished_Decrease_UAV_swarm_count，属表示/lowering 债务。台帐判 E3 正确。",
+   "assertable": "effect_declared(source='llms_emp_feedback_final_0016.AttackState.Attacking', trigger='llms_emp_feedback_final_0016.Attack_Finished', variable='uav_count', sign='negative')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "extra",
+   "ref": "[*] --> Raster_Scanning（无触发）",
+   "gen": "[*] --> SearchMission : Start Mission",
+   "reason": "初始迁移带 trigger，UML 不允许初始迁移携带触发事件，且 NL 无任何启动事件；属额外元素。",
+   "assertable": "edge_declared(source='[*]', trigger='llms_emp_feedback_final_0016.Start_Mission', target='llms_emp_feedback_final_0016.SearchMission')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "Fly_Along_the_Path --> Formation_Adjustment : Intercepted（区域内单点）",
+   "gen": "SearchMission --> FormationAdjust : Interception Detected（composite 出边）",
+   "reason": "从 composite 发出使拦截在任意搜索子状态都生效，是对参考单点写法的合理泛化，符合 NL 第 3 句。任务分配边 SearchMission --> AttackState 同理。",
+   "assertable": "occupancy_after(source='llms_emp_feedback_final_0016.SearchMission', trigger='llms_emp_feedback_final_0016.Interception_Detected', target='llms_emp_feedback_final_0016.FormationAdjust')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "Raster_Scanning: do / Target_search",
+   "gen": "无 do 动作，也无状态描述行",
+   "reason": "NL 只说 swarm 持续执行搜索任务，do-activity 是参考的一种读法；本组六例统一按 similar 处理不计问题数，但 0016 连描述行也没有，是本组最弱的一份。",
+   "assertable": "action_declared(state='llms_emp_feedback_final_0016.SearchMission', phase='during')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "Strike_the_Target 被拦截自环；when (NumberofCru == 0)；第三区域仅自环 + do/Determine_a_new_target",
+   "gen": "—",
+   "reason": "参考侧存疑同 0006：打击态被拦截自环与 NL 第 3 句相反、任务完成条件是参考自行推断、第三区域内容无 NL 依据。这三类参考元素对所有 6 例都是不可获得的 FN。",
+   "assertable": null,
+   "predicate_exists": false,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 3,
+ "extra_count": 1,
+ "vs_paper": "论文：format/grammar 栏 None；语义栏『missing regions』，semantic_resolved=0.0。F1 Phase-I 0.2273 → Phase-II 0.3333（TP 5→8）。我判的 3 个 problem 中，第 1 条（区域被嵌套）勉强对应论文 'missing regions'，但论文措辞未指出真正病因是 PlantUML 作用域导致的三层嵌套；第 2 条（Search 名字碰撞致 Region2/3 无初始）与第 3 条（提前完成、无 mission-complete）论文均未记录。",
+ "vs_ledger": "台帐 status=candidate_only，0 条 E1，两条 observation：uav_textual_effect_boundary（E3，对应我的第 5 条 similar，判断一致）与 premature_final_projection_depends_on_synthetic_boundary（E2c，对应我的第 3 条 problem，台帐因需借 compiler-owned InvalidFinal 定位而排除）。我的第 1、2 条（区域嵌套、初始越界）台帐未收；这两条在作者源上可直接读出（Search --> Region2 写在 Region1 体内），不依赖 synthetic placeholder，属可补的 E1 候选。",
+ "notes": "GPT-4 是本组唯一显式写出三个 Region 名字的模型，但因 PlantUML 隐式作用域全部退化成三层嵌套 + Search 三重同名，结构比 0006 的『完全没有区域』更难修。递减语义写在标准 / effect 槽位，判定上应算作者已表达。台帐的 E3 边界在此 case 成立。",
+ "_source_file": "NL03-0016.json",
+ "cross_reference": {
+  "case": "0016",
+  "group": "NL03",
+  "llm": "GPT-4",
+  "counts": {
+   "correct": 0,
+   "similar": 4,
+   "problem": 3,
+   "extra": 1,
+   "uncertain": 1
+  },
+  "out_of_scope": {
+   "concurrency": 1
+  },
+  "problems_in_scope": 4,
+  "paper": {
+   "format": null,
+   "grammar": null,
+   "semantic": "missing regions",
+   "semantic_resolved": 0.0,
+   "f1_phase1": 0.2272727273,
+   "f1_phase2": 0.3333333333
+  },
+  "ledger": {
+   "status": "candidate_only",
+   "e1_ids": [],
+   "e1_categories": []
+  },
+  "assertable_problems": 3
+ }
+}

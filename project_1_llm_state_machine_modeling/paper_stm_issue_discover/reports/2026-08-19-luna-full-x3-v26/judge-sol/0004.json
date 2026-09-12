@@ -1,0 +1,574 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0004",
+  "ledger": [
+    {
+      "ledger_id": "EIS-0004-01",
+      "pair": "0004",
+      "D": "D2",
+      "L": "L0",
+      "summary": "`DoorsClosing` 被写成复合态（:4-:6），而它内部的默认入口 `:5 [*] --> DoorsClosing` 指向的是它自己——PlantUML 按全局名字解析，于是初始目标越出了子域，构成语义未定义的畸形结构。",
+      "detail": "制品在 `:4` 开 `state DoorsClosing {`，块内唯一的一行是 `:5 [*] --> DoorsClosing`，`:6` 收尾。\n\n问题出在 `:5` 的目标名。PlantUML 的状态名是全局解析的，`DoorsClosing` 这个名字指的就是外层那个复合态本身，而不是它内部的某个子态（块内没有定义任何子态）。于是这条默认入口边的目标越出了它所在的区域，指向了自己的父态。UML 对复合态默认入口的要求是目标必须落在同一区域内，这条边的语义没有定义。\n\n把这份制品投影成形式化状态机时，这个结构被具体地记录了下来：投影产生了一个名为 `InvalidInitialtr_0002`、说明文字为 `PlantUML initial target outside child scope: DoorsClosing` 的状态。同时还有一个连带后果——因为 `DoorsClosing` 被写成了复合态，`:8 DoorsClosing --> InMotion : Closed/SendDeparted` 这条出边在投影中被降级成了从复合态整体出发的成组迁移，退出语义随之改变。\n\n还有一层是这个复合结构本身没有 NL 依据。NL 第 4 句逐字为「Within the InMotion state, the system operates in three substates: Accelerating, Cruising, and Approaching」——NL 只把子态授予了 InMotion 这一个状态，从头到尾没有说 DoorsClosing 有内部结构。NL 第 1 句「The system starts in the DoorsClosing state and transitions to InMotion when the doors are closed」把 DoorsClosing 当作一个简单状态使用。\n\n根因大概是把「系统从 DoorsClosing 开始」这条要求重复表达了两次：`:2 [*] --> DoorsClosing` 已经表达了它，`:4-:6` 又给它包了一层壳并在壳内再指一次自己。",
+      "D_basis": "判 D2。被违反的义务有两个来源，任一单独成立。其一来自建模语言：复合态的默认入口边其目标必须落在同一区域内，指向自身父态的写法语义未定义，这一点由投影工具具体报出（`PlantUML initial target outside child scope: DoorsClosing`）。其二来自 NL：第 4 句只把三个子态授予 InMotion，NL 全文没有任何一句赋予 DoorsClosing 内部结构，因此这层复合结构是无依据的多出层次。三个判读臂一致认定成立。需要如实记下的是：三臂在给理由时都没有主动引出上面任一条出处，出处是本次重写时补齐的。 不存在能让它成立的第二种读法：默认入口边指向自身父态在 UML 里语义未定义，这不是风格选择；而 NL 全文也确实没有任何一句赋予 DoorsClosing 内部结构，不能解释成「作者按 NL 建的」。",
+      "L_basis": "判 L0。陈述这条错误只需读 `:4`-`:6` 三行，看默认入口边的目标名与它所在块的状态名是不是同一个——纯词法层面的比对。虽然要知道「PlantUML 按全局名字解析」这条规则才能意识到它是自指，但判断本身不需要从模型结构导出新事实，也不需要任何执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "transition",
+        "defect_qualifier": "extraneous",
+        "defect_logic_kind": null,
+        "defect_reference": "language"
+      }
+    },
+    {
+      "ledger_id": "INS-0004-01",
+      "pair": "0004",
+      "D": "D2",
+      "L": "L2",
+      "summary": "`EmergencyStopping`（:32-:35）只有入边 `:30` 没有任何出边，父态是根、根层也没有成组出边或终止符，因此列车一旦因障碍紧急停车就永远无法恢复。",
+      "detail": "制品在 `:30` 写 `InMotion --> EmergencyStopping : Obstacle Detected`，在 `:32-:35` 定义该状态，块内只有两行动作：`:33 EmergencyStopping: entry/Emergency Stop` 与 `:34 EmergencyStopping: do/Send Obstacle Detected`。动作不是迁移，所以这个状态没有任何出边。\n\n退路也不存在：`EmergencyStopping` 的父是根，根层除了 `:2 [*] --> DoorsClosing` 之外没有其它迁移，因此没有可继承的成组出边；全文也没有任何 `--> [*]`，即没有任何终止声明。它同时是可达的——`:2` → `:8` → `:30` 即可到达。所以这是一个可达的死锁。\n\n为什么这不是有意设计。NL 第 3 句逐字为「When an obstacle is detected, the system enters the EmergencyStopping state, which includes the actions \"Emergency Stop\" and sends the \"Obstacle Detected\" signal」——它只说了进入时做什么，没有说这是终点。而这是一套列车控制系统，紧急停车是一个安全响应而不是生命周期的结束；障碍解除后列车需要能够恢复行驶，或者至少需要一个明确的终止。永久卡在紧急停车态意味着这列车此后既不能走也不能正常结束。\n\n根因是漏写了「障碍解除后恢复行驶或就此终止」这条出边。同一份 NL 下的另外两份制品都给了这条退路：`0024` 的 `:19` 与 `0034` 的 `:11` 都为 EmergencyStopping 建了出边，唯独本 pair 没有。这说明 NL 本身并没有妨碍作者建出这条边。\n\n本 pair 还有一个同类死端 `Stopping`，记在 INS-0004-02。",
+      "D_basis": "判 D2。这是一个可达且无任何出路的非预期终止：状态可达、自身与全部祖先都无出边、全文无终止声明。判读中考虑过的第二种读法是「紧急停车是一个锁存的安全态，恢复流程在建模范围之外」，但它不存活——作者没有用任何方式声明这是合法终态（既没有 `--> [*]`，名字也不含终止语义），而「紧急制动后永久无法恢复」在列车控制这个领域是明显不可接受的后果。同一份 NL 下的其它制品对同一个状态给出了显式终态或恢复边，说明这条义务是可实现的。",
+      "L_basis": "判 L2。陈述这条错误需要两件事同时成立：`EmergencyStopping` 可达（给出路径 `:2` → `:8` → `:30`），以及从它出发不存在任何后继——后者要穷尽检查全部迁移，还要确认根层没有可继承的成组出边、全文没有终止符。两者都是对行为的构造与排除。",
+      "axes": {
+        "defect_locus": "global",
+        "defect_element": null,
+        "defect_qualifier": null,
+        "defect_logic_kind": "unintended_terminal",
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "INS-0004-02",
+      "pair": "0004",
+      "D": "D2",
+      "L": "L2",
+      "summary": "`Stopping` 被 `:37` 声明为一个空状态、只有 `:29` 一条入边而没有任何出边，因此列车到站停车后系统永久停住，无法开门、复位或开始下一趟。",
+      "detail": "制品在 `:29` 写 `InMotion --> Stopping : Arrived/Stop, Send Arrived`，在 `:37` 写 `state Stopping`——一个没有块体的空状态声明。全文再没有任何迁移以它为源端。\n\n退路同样不存在：它的父是根，根层除 `:2 [*] --> DoorsClosing` 外没有其它迁移，没有可继承的成组出边；全文也没有任何 `--> [*]`。它是可达的：`:2` → `:8` → `:29`。所以这是一个可达的死锁。\n\n为什么这不是有意设计。NL 第 2 句逐字为「In the InMotion state, the system can either transition to the Stopping state when it arrives, indicated by the \"Arrived/Stop, Send Arrived\" signal, or to the EmergencyStopping state if an obstacle is detected」——它只说了怎么进 Stopping，没有说这是终点。这是列车控制系统，到站是一次行程的结束而不是设备生命周期的结束，正常语义应当是开门、复位、准备下一趟。\n\n同文件内部提供了一条决定性的对照：作者在 `:2`、`:5`、`:11` 三处都用了 `[*]` 记法来表达初始伪状态，说明他知道这个记法；但全文一处 `--> [*]` 都没有，即他从未把任何状态标为终态。因此「到站即有意终点」这个读法拿不到作者的任何表态支持。加之同一 pair 的 `EmergencyStopping` 也是同样的死端形态（记在 INS-0004-01），两处一起看更像是漏写而非设计。\n\n同一份 NL 下的另一个 pair `0054` 出现了同型的 Stopping 死锁（记为 INS-0054-01），两者必须同判。",
+      "D_basis": "判 D2。这是一个可达且无任何出路的非预期终止。判读中考虑过的第二种读法是「到站即为有意终态」，但同文件对照压过了它：作者在三处用过 `[*]` 表达初始伪态，说明他掌握这个记法，却全文没有一处 `--> [*]` 把任何状态标为终态；且同一 pair 的 EmergencyStopping 呈现完全相同的死端形态。两点合起来说明这不是「作者选择在此终止」，而是漏写出边。反驳不存活。",
+      "L_basis": "判 L2。陈述这条错误需要先给出一条到达 `Stopping` 的路径（`:2` → `:8` → `:29`），再穷尽检查全部迁移以确认没有任何一条以它为源，并额外确认根层无成组出边、全文无终止符。这些都是对行为的构造与排除，不是单个系统状态上的静态判断。",
+      "axes": {
+        "defect_locus": "global",
+        "defect_element": null,
+        "defect_qualifier": null,
+        "defect_logic_kind": "unintended_terminal",
+        "defect_reference": "requirement"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:initial_target:None:DoorsClosing",
+          "claims": [
+            "Source composite 'DoorsClosing' has no initial transition to required child 'DoorsClosing'."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0004.puml:line:5",
+            "DoorsClosing"
+          ],
+          "obligations": [
+            "An initial pseudostate transition must target a vertex in the same composite region."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_target:None:DoorsClosing:facet:24ab8607b0a7"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:reachable_deadlock:EmergencyStopping",
+          "claims": [
+            "Source state 'EmergencyStopping' is reachable, non-final, and has no enabled continuation in the certified fragment."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0004.EmergencyStopping"
+          ],
+          "obligations": [
+            "A reachable non-final behavior must admit a continuation or valid termination."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:reachable_deadlock:EmergencyStopping:facet:503d89daad7a"
+          ]
+        },
+        {
+          "finding_id": "source:initial_target:None:DoorsClosing",
+          "claims": [
+            "Source composite 'DoorsClosing' has no initial transition to required child 'DoorsClosing'."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0004.puml:line:5",
+            "DoorsClosing"
+          ],
+          "obligations": [
+            "An initial pseudostate transition must target a vertex in the same composite region."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_target:None:DoorsClosing:facet:24ab8607b0a7"
+          ]
+        },
+        {
+          "finding_id": "source:stable_termination:Stopping",
+          "claims": [
+            "Required termination target 'Stopping' admits a source-level nonterminating continuation."
+          ],
+          "locations": [
+            "Stopping"
+          ],
+          "obligations": [
+            "The NL-designated termination state 'Stopping' must be a stable ending target for its declared behavior."
+          ],
+          "basis": [
+            "unattributed"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:stable_termination:Stopping:facet:4a3fa7c8c6b0"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "source:initial_target:None:DoorsClosing",
+          "claims": [
+            "Source composite 'DoorsClosing' has no initial transition to required child 'DoorsClosing'."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0004.puml:line:5",
+            "DoorsClosing"
+          ],
+          "obligations": [
+            "An initial pseudostate transition must target a vertex in the same composite region."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_target:None:DoorsClosing:facet:24ab8607b0a7"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型在 DoorsClosing 内部又定义了一个同名的 DoorsClosing 子状态，并让初始伪状态转入该子状态。",
+          "reason": "规范只要求系统从 DoorsClosing 状态开始，并在 `Closed/SendDeparted` 时转入 InMotion；没有要求 DoorsClosing 包含同名嵌套状态。该自嵌套会改变状态层级和语义，且可能造成名称歧义或非预期的递归结构。",
+          "where": "DoorsClosing 状态内部：`state DoorsClosing { [*] --> DoorsClosing }`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "模型把 Approaching 中的 `Send` 建模为 do 活动。",
+          "reason": "规范表述为“在 Approaching 子状态中发送 `Send` 信号”，没有规定这是持续执行的 do 活动；模型因此引入了持续活动语义，而非明确的一次性发送动作。若按状态动作语义严格实现，应该明确发送动作发生时机，不能由 `do/Send` 擅自替代。",
+          "where": "InMotion 内的 `state Approaching`：`Approaching: do/Send`"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "模型没有显式表示 Approaching 在接近目的地期间保持不变、直到准备停车或减速的保持/自循环行为。",
+          "reason": "规范第 10 条明确要求系统在 Approaching 中持续保持，直到满足停止或减速条件。模型只有进入 Approaching 的转移，没有任何内部保持、自循环或后续“准备停止/减速”条件；虽然 UML 状态默认可停留，但模型未表达该规范所要求的条件和行为。",
+          "where": "InMotion 内的 Approaching 状态及其转移"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "模型定义了进入 EmergencyStopping 的路径和动作，但没有表示进入该状态后的持续保持、终止或恢复行为。",
+          "reason": "规范至少规定进入该状态时执行 `Emergency Stop` 并发送 `Obstacle Detected` 信号；模型的 entry/do 动作基本覆盖这一点，但状态没有后续语义。若模型意图完整表达系统行为，缺少状态保持或终止定义会使应急停车后的生命周期未建模。不过规范本身也未规定应急状态的退出，因此这是模型完整性方面的有限不符合，而非可确定的错误转移。",
+          "where": "EmergencyStopping：`EmergencyStopping -->` 无任何退出/终止定义"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "EmergencyStopping中的“Obstacle Detected”被建模为 do/Send，而规格要求进入该状态时发送该信号。",
+          "reason": "规格第3条明确要求进入 EmergencyStopping 状态时包含“Emergency Stop”动作并发送“Obstacle Detected”信号；模型将其写成 do 活动，表示在状态内持续执行，而不是入状态动作，未准确表达触发时机。",
+          "where": "state EmergencyStopping 内的 `EmergencyStopping: do/Send Obstacle Detected`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "Approaching中的“Send”被建模为 do/Send，但规格表述为在该子状态发送“Send”信号并持续接近。",
+          "reason": "模型使用 do 动作可以表达持续行为，但未明确“Send”是信号发送，且没有显式表示“继续接近”的动作/行为。若按规格要求对信号和持续接近行为进行建模，该表示不完整。",
+          "where": "state Approaching 内的 `Approaching: do/Send`"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "模型把 `Obstacle Detected` 作为从 InMotion 到 EmergencyStopping 的迁移触发条件，但规格第2条仅说明检测到障碍即可转入，且第3条要求进入状态后发送同名信号；模型未区分检测事件与发送信号。",
+          "reason": "同一文本同时被用作输入触发条件和输出信号，导致模型无法清晰表达“检测到障碍”与“发送障碍检测信号”是两个不同方向的事件；这使第2、3条的因果关系和信号语义不准确。",
+          "where": "`InMotion --> EmergencyStopping : Obstacle Detected` 以及 EmergencyStopping 内的动作"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "障碍物检测触发条件被建模为“Obstacle Detected”，而规格要求的是“检测到障碍物”这一事件触发进入紧急停车；模型将相同短语同时用于触发事件和发送信号，未明确区分检测事件与输出信号。",
+          "reason": "规格第2条将障碍物检测描述为进入 EmergencyStopping 的条件，第3条又要求进入该状态后执行“Emergency Stop”并发送“Obstacle Detected”信号。模型的转移标签直接使用输出信号名称，无法准确表达“检测事件触发、状态内发送信号”的时序和方向。",
+          "where": "InMotion --> EmergencyStopping 转移"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "EmergencyStopping 的发送动作被建模为 `do/Send Obstacle Detected`，而规格要求进入该状态时执行紧急停车并发送信号。",
+          "reason": "`do` 动作表示持续活动/执行期间行为，不等同于进入状态时动作；规格第3条明确是进入 EmergencyStopping 状态所包含的动作，通常应在 entry 动作中发送，或至少明确一次性发送语义。当前模型可能导致信号持续发送，而非进入时发送一次。",
+          "where": "state EmergencyStopping 内部动作"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "Approaching 的动作被建模为 `do/Send`，但规格只要求在该子状态发送“Send”信号并持续接近目的地，未明确其为持续 do 动作；模型也没有显式表示“继续接近目的地”的行为。",
+          "reason": "规格第9、10条要求发送信号并保持接近状态。虽然 `do/Send` 可部分表示发送行为，但没有表示持续接近动作，且若 `Send` 是一次性信号，使用 `do` 可能造成重复发送，无法完整符合规定语义。",
+          "where": "state Approaching 内部动作"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "DoorsClosing 被建模为包含一个无动作、无转移的同名嵌套状态：`state DoorsClosing { [*] --> DoorsClosing }`。",
+          "reason": "规格只要求系统从 DoorsClosing 状态开始，并在收到 `Closed/SendDeparted` 后转入 InMotion。该嵌套自引用会引入一个无法退出的内部初始/自循环结构，且与外部同名状态重复，可能使状态层级和实际初始状态语义不明确。",
+          "where": "state DoorsClosing 内部定义"
+        },
+        {
+          "finding_id": "baseline_issue_5",
+          "issue": "模型同时使用 `[*] --> DoorsClosing` 将顶层初始伪状态指向 DoorsClosing，又在 DoorsClosing 内部使用 `[ * ] --> DoorsClosing`，未明确外部初始状态进入的是哪个层级的 DoorsClosing。",
+          "reason": "规格要求唯一明确的初始运行状态 DoorsClosing。重复同名层级状态可能导致工具解释为顶层状态与嵌套状态两个不同状态，进而使 `Closed/SendDeparted` 转移的源状态与系统实际所在的内部状态不一致。",
+          "where": "DoorsClosing 的初始状态建模"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0004",
+    "ledger_assessments": [
+      {
+        "ledger_id": "EIS-0004-01",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_target:None:DoorsClosing"
+          ],
+          "reason": "输出定位到 DoorsClosing 块内第 5 行的初始伪状态边，并以“初始边没有落到该复合区域所需的子顶点”及同区域义务指认该默认入口目标无效；与台账所述该边解析到父复合态自身、目标越出子域是同一处同一性质。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_target:None:DoorsClosing"
+          ],
+          "reason": "输出定位到 DoorsClosing 块内第 5 行的初始伪状态边，并主张该复合态没有指向区域内合法子顶点的初始迁移；这就是台账中默认入口错误指向父态自身、越出区域的记法/层次错误。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_target:None:DoorsClosing"
+          ],
+          "reason": "输出直接针对第 5 行 DoorsClosing 内部默认入口及其同区域目标义务，主张目标不是合法子顶点；与台账的域外自指初始目标相同。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "该 issue 指向完全相同的 DoorsClosing 复合块和内部默认入口，明确主张规格无依据地增加同名嵌套/自嵌套层次并改变层级语义。虽然它把全局解析后的父态误称为“同名子状态”，但其可发布主张仍覆盖台账独立成立的“DoorsClosing 多出无 NL 依据的复合层次”这一性质。",
+          "confidence": "medium"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本格只报告 EmergencyStopping/Approaching 的动作槽位和 Obstacle Detected 的输入输出方向，没有报告 DoorsClosing 的复合层次或默认入口目标异常。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_4",
+            "baseline_issue_5"
+          ],
+          "reason": "issue_4 指向同一复合块和内部默认入口，主张无规格依据的同名嵌套自引用结构改变初始/退出语义；issue_5 又直接指向顶层与块内两条 DoorsClosing 初始边，主张重复层次使命中的层级不明确。两者各自都在该处主张了台账所含的多余复合层次/错误内部初始目标问题；虽将名字解析描述成两个状态而非父态自指，故置信度降低。",
+          "confidence": "medium"
+        }
+      },
+      {
+        "ledger_id": "INS-0004-01",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本格唯一输出是 DoorsClosing 内部初始目标异常，未涉及 EmergencyStopping 的可达无出路行为。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:reachable_deadlock:EmergencyStopping"
+          ],
+          "reason": "输出明确指认 EmergencyStopping 可达、非终态且在认证片段中没有可用 continuation，位置和“可达的非预期无出路”性质均与台账完全一致。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本格唯一输出是 DoorsClosing 内部初始目标异常，未涉及 EmergencyStopping。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_4"
+          ],
+          "reason": "该 issue 明确定位 EmergencyStopping 无任何退出/终止定义，并主张缺少持续保持、终止或恢复行为使其后续生命周期未建模；这与台账所述进入后无出边、无法恢复或合法终止是同一处同一无出路性质。其理由中的保留意见不取消该可执行缺失断言。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本格报告的是 EmergencyStopping 中发送动作的 do/entry 时机以及检测事件与输出信号未区分，均不是该状态无出边导致的非预期终止。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本格涉及 EmergencyStopping 的两个 issue 都是触发事件/输出信号方向和 do/entry 动作槽位问题，没有主张该状态可达后无继续或终止。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "INS-0004-02",
+        "method_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本格仅报告 DoorsClosing 默认入口异常，没有报告 Stopping 的无出路行为。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "关于 Stopping 的输出主张它作为“要求的终止目标”存在一个非终止 continuation；台账恰恰主张 Stopping 没有任何出边并因此成为非预期终止。两者虽同处但方向和性质相反，不能命中。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本格仅报告 DoorsClosing 默认入口异常，没有涉及 Stopping。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本格没有任何 issue 指认 Stopping 无出边、无终止或无法开始下一趟；Approaching 与 EmergencyStopping 的报告不能拼接为 Stopping 台账主张。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本格所有输出均关于动作槽位或 Obstacle Detected 的事件/信号方向，没有涉及 Stopping。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "本格所有输出均关于 EmergencyStopping、Approaching 或 DoorsClosing，没有涉及 Stopping 的无出路行为。",
+          "confidence": "high"
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0004-01"
+        ],
+        "false_positive": false,
+        "reason": "定位 DoorsClosing 的内部默认入口/同名复合层次，主张该无规格依据的自嵌套层次改变语义，覆盖 EIS-0004-01 所含的多余复合层次问题。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 Approaching 的 Send 被错误放入 do 活动槽位；冻结台账没有该动作槽位条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 Approaching 缺少保持、自循环或后续条件；冻结台账没有该状态行为条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [
+          "INS-0004-01"
+        ],
+        "false_positive": false,
+        "reason": "明确主张 EmergencyStopping 没有退出、终止或恢复定义，覆盖其可达后无出路的台账条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 EmergencyStopping 的发送动作应为进入时动作而非 do 活动；这与台账中的无出边死锁不是同一种性质。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 Approaching 的 Send/do 表示不完整；冻结台账没有对应条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 Obstacle Detected 的检测事件与输出信号方向未区分；冻结台账没有该事件语义条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张进入 EmergencyStopping 的触发事件与状态内输出信号未区分，不是台账所列的 EmergencyStopping 无出路。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 EmergencyStopping 的发送动作误用 do 槽位，不对应冻结台账中的死锁性质。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 Approaching 的 Send 动作槽位及持续接近行为缺失；冻结台账无此条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [
+          "EIS-0004-01"
+        ],
+        "false_positive": false,
+        "reason": "指向 DoorsClosing 同一复合块和内部默认入口，主张无依据的同名嵌套自引用导致层级及初始语义异常，覆盖台账的多余层次/畸形入口主张。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_5",
+        "matched_ledger_ids": [
+          "EIS-0004-01"
+        ],
+        "false_positive": false,
+        "reason": "直接指向顶层和 DoorsClosing 块内重复的初始边，主张同名层级使内部初始目标及源状态层级不明确；语义上覆盖台账的错误内部初始目标/多余复合层次，但其“两种状态”解析与台账的全局自指解释不完全一致。",
+        "confidence": "medium"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:initial_target:None:DoorsClosing",
+        "matched_ledger_ids": [
+          "EIS-0004-01"
+        ],
+        "false_positive": false,
+        "reason": "定位第 5 行 DoorsClosing 默认入口，主张未指向同一区域中的合法子顶点，与台账的域外父态自指完全对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:initial_target:None:DoorsClosing",
+        "matched_ledger_ids": [
+          "EIS-0004-01"
+        ],
+        "false_positive": false,
+        "reason": "定位第 5 行 DoorsClosing 默认入口并主张同区域初始目标义务失败，覆盖 EIS-0004-01。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:reachable_deadlock:EmergencyStopping",
+        "matched_ledger_ids": [
+          "INS-0004-01"
+        ],
+        "false_positive": false,
+        "reason": "明确主张 EmergencyStopping 可达、非终态且没有 continuation，完整覆盖其非预期终止台账条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:stable_termination:Stopping",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "该输出声称 Stopping 存在非终止 continuation，冻结台账则声称它完全没有出边并意外永久停住；方向相反，不能对应。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:initial_target:None:DoorsClosing",
+        "matched_ledger_ids": [
+          "EIS-0004-01"
+        ],
+        "false_positive": false,
+        "reason": "定位第 5 行 DoorsClosing 默认入口并主张目标不满足复合区域内子顶点要求，覆盖 EIS-0004-01。",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "按“同一处且同一性质”逐项对齐。DoorsClosing 的命中仅限于明确指向其复合层次/内部默认入口异常的输出；EmergencyStopping 的命中仅限于明确主张其可达后无继续、终止或恢复的输出；把 Stopping 说成存在非终止 continuation 与台账所述“无任何出边的非预期终止”方向相反，不能命中。其余动作时机、信号方向和 Approaching 行为主张均不属于冻结台账。"
+  },
+  "status": "ok",
+  "attempts": 1
+}

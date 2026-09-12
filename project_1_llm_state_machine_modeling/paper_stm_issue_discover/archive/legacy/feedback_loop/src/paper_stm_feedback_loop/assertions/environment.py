@@ -1,0 +1,95 @@
+"""Public assertion environment API.
+
+Ported pure eval capabilities from legacy agent_loop eval_env at source commit
+c8c1ccba.  This module re-exports the self-contained runtime implementation and
+adds a compact API-doc string that can be exposed to LLM assertion authors.
+"""
+
+from __future__ import annotations
+
+from .runtime import EvalAssertResult, EvalEnvironment, FunctionCallRecord, build_eval_environment
+
+ASSERTION_ENVIRONMENT_API_DOCS = """
+THE ASSERTION ENVIRONMENT
+
+An assertion is one Python *expression* that calls the predicate its Requirement
+names.  You write the expression only -- the runtime supplies the `assert` and
+the message from the sibling fields, and an `expression` beginning with `assert`
+is refused by the schema.  The environment contains the predicate vocabulary and a
+small set of pure builtins -- nothing else.  There is no `simulate`, no
+`fbmcq`, no `states`, no `transitions`, no `transition_exists`, no `path`, no
+`topology`.  Those primitives were removed on purpose: hand-assembling a check
+out of them let a near-tautological bounded query close a real obligation, and
+made it impossible to tell whether a call asked the right question.
+
+WHAT YOU WRITE
+
+    occupancy_after(source="R.Idle", trigger="R.go", target="R.Done") is True
+
+That whole line is the `expression` field.  The `[REQ-001][AST-REQ-001-1]` tag and
+the human-readable text go in `failure_message`, which is a separate required
+field; a trailing message inside `expression` makes it a tuple, and a tuple is
+not a bool.
+
+The arguments are the Requirement's `predicate_bindings`, copied verbatim.
+Paths must come from `declared_model_vocabulary`; literal arguments such as
+`kind`, `sign`, `phase`, `count` and `bound` take the values listed in the
+callable reference.
+
+Combining predicates is allowed and is how a claim over several named elements
+is expressed:
+
+    all([
+        occupancy_after(source="R.A", trigger="R.off", target="R.Final"),
+        occupancy_after(source="R.B", trigger="R.off", target="R.Final"),
+    ]) is True
+
+RETURN CONTRACT
+
+Every predicate returns a strict bool, so you never need to coerce or guard a
+call.  A predicate that cannot answer raises instead of returning a value:
+
+- a binding whose value is not shaped like a model element name: letters, digits
+  and underscores, not starting with a digit, dotted for states and events and
+  bare for variables.  Such a value could never have named anything, so
+  answering "the model does not declare it" would report a defect the model does
+  not have.
+- a variable that is not observable, or a bounded check that returned no
+  terminal verdict.  A non-terminal status is never a False.
+
+A name the model does not declare is a different matter: it is answerable.  The
+existence predicates -- `state_declared`, `variable_declared`, `event_declared`
+-- return False for it, which is what lets a claim about an element the model
+lacks be checked at all.  Assert that existence as a `precondition` and have the
+claim resting on it declare `depends_on`, so an absent element is reported once
+and the dependent claim is recorded as blocked rather than answered.
+
+EVIDENCE FAMILY
+
+`evidence_family` is a required field, and its value is fixed by the predicate
+rather than chosen -- read it off this table:
+Family S -> `structure`, except `edge_declared` and `guard_distinguishable`
+which are `relation`, and `effect_declared` which is `effect`.
+Family B -> `simulation`.  Family P -> `fbmcq`.
+Declaring a family that disagrees with the predicate is a contract violation,
+and the schema accepts no other spelling -- `formal` is the internal name and
+is rejected.
+
+Allowed pure builtins: abs, all, any, bool, float, int, iter, len, list, max,
+min, round, set, sorted, str, sum, tuple.
+""".strip()
+
+
+def get_assertion_environment_api_docs() -> str:
+    """Return readable API documentation for LLM assertion-script authors."""
+
+    return ASSERTION_ENVIRONMENT_API_DOCS
+
+__all__ = [
+    "ASSERTION_ENVIRONMENT_API_DOCS",
+    "get_assertion_environment_api_docs",
+    "EvalAssertResult",
+    "EvalEnvironment",
+    "FunctionCallRecord",
+    "build_eval_environment",
+]

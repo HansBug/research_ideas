@@ -1,0 +1,95 @@
+{
+ "case": "0054",
+ "group": "NL01",
+ "llm": "Claude",
+ "diffs": [
+  {
+   "verdict": "correct",
+   "ref": "[*]-->DoorsClosing / DoorsClosing --> InMotion: Closed/SendDeparted / InMotion --> Stopping: Arrived/Stop, Send Arrived / state InMotion{ [*]-->Accelerating; Accelerating --> Cruising; Accelerating --> Approaching; Cruising --> Approaching }",
+   "gen": "同结构、同触发器文本、同内部默认子状态",
+   "reason": "顶层初始边、DoorsClosing 出边、Arrived 出边、InMotion 复合状态与三个子状态归属、内部初始边与三条内部迁移全部与参考一一对应，覆盖 NL 第 1、2、4、5、6、7 句。Stopping / EmergencyStopping 未显式 state 声明而由迁移目标隐式创建，参考对 Stopping 也是同样写法，属写法差异。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "Accelerating: Entry/Accelerate",
+   "gen": "Accelerating : entry/Accelerate",
+   "reason": "NL 第 8 句逐字点名的 'Entry/Accelerate' 被正确挂在 Accelerating 上并带相位前缀，FCSTM 保留为 enter abstract Accelerate。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "InMotion --> EmergencyStopping: ObstacleDetected（触发器形式）",
+   "gen": "InMotion --> EmergencyStopping : [obstacle detected]（守卫形式）",
+   "reason": "作者把障碍检测写成方括号守卫而不是触发事件。NL 自身两种读法都支持：第 2 句是条件式 'if an obstacle is detected'，第 3 句是事件式 'When an obstacle is detected'，因此不判 problem。要记录的是两点后果：一是 R4.5 投影并未把它当守卫，而是生成了 event _obstacle_detected named '[obstacle detected]'，即事实上仍按触发器消费，行为与参考等价；二是若真按守卫读，这个布尔量在模型里没有对应变量声明，属悬空引用。因为投影后行为等价且 NL 支持条件式读法，判 similar 而非 problem。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "Approaching: Entry/Send",
+   "gen": "Approaching : do/Send",
+   "reason": "与 0004/0044 同类：NL 第 9 句未指定相位，'continues to approach' 支持持续语义，作者选 do 而参考选 entry，FCSTM 保留 during abstract Send，动作未丢失。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "EmergencyStoping:Entry/Emergency Sop, Send Obstacle Detected",
+   "gen": "EmergencyStopping : do/Emergency Stop / EmergencyStopping : do/Send Obstacle Detected",
+   "reason": "NL 第 3 句要求的两个动作都在，且分别带 do 相位，FCSTM 保留为 during abstract EmergencyStop 与 during abstract SendObstacleDetected。仅相位与参考的 entry 不同，而 NL 未指定相位。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "（参考未建模 NL 第 10 句的持续性义务）",
+   "gen": "（作者同样未建模）",
+   "reason": "NL 第 10 句是一条 remain-until 义务，参考与 0054 都没有把它表达为可执行约束（都只依赖 Approaching 无多余出边这一事实被动满足）。所以 0054 在这一点上不比参考差，不判 problem；但要记录：这条义务在整组里只有当模型自己加了多余出边时（0024、0034）才会被台帐以 UA 反向命中，正向验证在双方模型里都缺手段。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 0,
+ "extra_count": 0,
+ "vs_paper": "论文对 0054 三栏（format / grammar / semantic）全为 None，f1_phase1 = f1_phase2 = 0.9545。我的判断与论文一致：0 个 problem、0 个 extra。这是本组唯一三方判断完全一致的 case。台帐也显示 0054 是本组唯一 source_stage = phase_i_generation、phase_i_fallback = true 的 case，与论文 '无幻觉、无需 Phase-II 修正' 自洽。",
+ "vs_ledger": "台帐 0054 状态 candidate_only、expected_issue_count = 0，唯一观察是 E2c/state_action_adapter_missing。我同样判 0 个 problem，与台帐一致。E2c 对本 pair 不构成漏项：0054 的四个动作全部以带相位形式保留在 FCSTM（enter abstract Accelerate、during abstract Send、during abstract EmergencyStop、during abstract SendObstacleDetected）。",
+ "notes": "0054 是 NL01 组表现最好的模型，也是本次 12 个 pair 中唯一没有任何 problem 或 extra 的 NL01 案例：层次、初始化、迁移、四个动作与相位全部到位，且没有添加任何 NL 之外的边或终态。唯一写法特点是把障碍检测写成 [obstacle detected] 守卫形式，投影后仍按事件消费，不影响语义。",
+ "_source_file": "NL01-NL02.json",
+ "cross_reference": {
+  "case": "0054",
+  "group": "NL01",
+  "llm": "Claude",
+  "counts": {
+   "correct": 2,
+   "similar": 3,
+   "problem": 0,
+   "extra": 0,
+   "uncertain": 1
+  },
+  "out_of_scope": {},
+  "problems_in_scope": 0,
+  "paper": {
+   "format": null,
+   "grammar": null,
+   "semantic": null,
+   "semantic_resolved": null,
+   "f1_phase1": 0.9545454545,
+   "f1_phase2": 0.9545454545
+  },
+  "ledger": {
+   "status": "candidate_only",
+   "e1_ids": [],
+   "e1_categories": []
+  },
+  "assertable_problems": 0
+ }
+}

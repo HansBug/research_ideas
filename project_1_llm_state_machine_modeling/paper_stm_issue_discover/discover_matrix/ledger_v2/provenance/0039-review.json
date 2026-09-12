@@ -1,0 +1,133 @@
+{
+ "case": "0039",
+ "group": "NL05",
+ "llm": "Kimi",
+ "diffs": [
+  {
+   "verdict": "correct",
+   "ref": "state AutonomousMode { [*] --> InitialState; InitialState --> HighwayMode/UrbanMode 带守卫; FinishState 在 AutonomousMode 层级被两模式共享 }",
+   "gen": "同构；FCSTM 确认 InitialState、HighwayMode、UrbanMode、FinishState 四者均为 AutonomousMode 的直接子态",
+   "reason": "NL 1/2 的层次与分岔条件、以及 NL 6/10 对共享 FinishState 的隐含要求都被满足。0039 是把 FinishState 放在正确层级的三例之一（另两例为 0019、0059）。",
+   "assertable": null,
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "enter_hwy --> cruise; enter_hwy --> lane_change: dist_to_front<25 & extra_lane=true —— enter_hwy 有两个目标",
+   "gen": "只有 enter_hwy --> cruise（无守卫）；没有 enter_hwy --> lane_change",
+   "reason": "NL 3 逐字写明 enter_hwy 「can transition to cruise or lane_change」，是一个显式的二选一关系，参考模型也声明了两条边。生成侧删掉了 lane_change 分支，把 lane_change 降级为只能从 cruise 二次到达，丢失了 NL 明确给出的 source-target 关系。台帐将其排除为 E2b（indirect_enter_highway_lane_change，认为行为上可等价），我在「声明关系」层面不同意：NL 与参考都承载了这条边。但见下一条 uncertain，参考自身的写法削弱了本条的强度。",
+   "assertable": "edge_declared(source=\"llms_emp_feedback_final_0039.AutonomousMode.HighwayMode.enter_hwy\", trigger=\"llms_emp_feedback_final_0039.dist_to_front_25_extra_lane_true\", target=\"llms_emp_feedback_final_0039.AutonomousMode.HighwayMode.lane_change\")",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "enter_hwy --> cruise（完全无标签，在 FCSTM 语义下是 completion transition，每周期即触发）",
+   "gen": "enter_hwy --> cruise（同样无标签）",
+   "reason": "参考模型自身可疑：它让 enter_hwy --> cruise 不带任何触发或守卫，这条无标签边会立即触发，使参考自己声明的 enter_hwy --> lane_change 实际上不可达。也就是说参考的「两个目标」在行为上等于「一个目标」。0039 与 0059 照抄了这条无标签边并干脆删掉 lane_change 分支，反而更贴近参考的实际行为。论文 §4.2(4) 只是 assume 参考语义正确，此处无法判定谁对，故标 uncertain。",
+   "assertable": null,
+   "predicate_exists": false,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "cruise --> exit_hwy: dist_to_exit<2; lane_change --> exit_hwy: dist_to_exit<2; exit_hwy --> [*]",
+   "gen": "cruise --> [*] : dist_to_exit<2; lane_change --> [*] : dist_to_exit<2（直接进 HighwayMode 区域终态，无 exit_hwy 中间态）",
+   "reason": "关键区别：NL 4/5 只说 \"exit the highway\"，从未命名 exit_hwy 这个状态（对比 NL 8 逐字点名了 exit_urban）。因此 exit_hwy 属参考侧自行引入的中间态，NL 未要求它可观测。把 dist_to_exit<2 接到 HighwayMode 的区域终态，语义上就是「离开高速模式」，说得通。FCSTM 投影为 FinalWaittr_0009/0010 两个完成边界态，之后仍需 auto_finished 才进 FinishState，与 NL 6 不冲突。按 REVIEW_SPEC 关于中间态的口径判 similar。",
+   "assertable": null,
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "AutonomousMode 内用 -- 分隔出并发区：[*] --> collision_avoidance_deactive 在自己的区域内",
+   "gen": "collision_avoidance_deactive / active 直接声明在顶层，且在顶层另写一条 [*] --> collision_avoidance_deactive，与 [*] --> AutonomousMode 并列",
+   "reason": "FCSTM 投影显示根状态同时存在 [*] -> AutonomousMode 与 [*] -> collision_avoidance_deactive 两条初始边，处于同一顺序区域内——根的默认进入点不唯一，这是独立于并发议题的确定性缺陷（其余五例都把碰撞规避包进具名复合态，只有 0039 没有）。并发降级本身标 out_of_scope，但「一个顺序区域里两条竞争初始边」是真实结构缺陷。",
+   "assertable": "initial_target(composite=\"llms_emp_feedback_final_0039\", child=\"llms_emp_feedback_final_0039.AutonomousMode\")",
+   "predicate_exists": true,
+   "out_of_scope": "concurrency"
+  },
+  {
+   "verdict": "extra",
+   "ref": "HighwayMode --> UrbanMode : urban_way = true; UrbanMode --> HighwayMode : high_way = true（模式间直接切换，只在两模式之间生效）",
+   "gen": "在 AutonomousMode 闭合括号之外写 AutonomousMode --> HighwayMode : high_way=true; AutonomousMode --> UrbanMode : urban_way=true（父复合态指向自身后代）",
+   "reason": "这两条边在 UML 语义下从 AutonomousMode 任意配置都使能，FCSTM 投影为 AutonomousMode --> AutonomousMode 自环加 token 22/23 重入。副作用是 NL 未授权的：身处 HighwayMode 时收到 high_way=true 会退出并重入 HighwayMode，把已推进的子态进度复位；InitialState、FinishState 也各多出一条 high_way/urban_way 的组出边。属过度规定。",
+   "assertable": null,
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "HighwayMode --> UrbanMode : urban_way = true; UrbanMode --> HighwayMode : high_way = true",
+   "gen": "无这两条直接边；NL 11 的双向切换由上一条的父级 dispatch 间接实现",
+   "reason": "NL 11 要求 HighwayMode 与 UrbanMode 之间能按 urban_way/high_way 动态互切。生成侧虽无直接边，但父级 AutonomousMode --> HighwayMode/UrbanMode 从任一模式内都使能，行为上覆盖了 NL 11。按 REVIEW_SPEC「不做机械元素比对、语义说得通即 similar」判 similar，与台帐的 E2b parent_scoped_dynamic_mode_dispatch 排除一致。",
+   "assertable": null,
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "intersection --> straight",
+   "gen": "无该边",
+   "reason": "NL 7/9 只规定进入 intersection 的条件，从未规定其出边，参考侧该边属自行补充，缺失不违反 NL。",
+   "assertable": null,
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "lane_change --> cruise（无标签）与 lane_change_urban --> straight（无标签）",
+   "gen": "lane_change --> cruise : lane change completed 与 lane_change_urban --> straight : lane change complete —— 两个拼写不同的事件表达同一概念",
+   "reason": "FCSTM 把它们投影成两个不同的 declared event（lane_change_completed 与 lane_change_complete）。NL 4/8 用的是同一概念（\"once the lane change is completed\" / \"if the lane change is complete\"），事件词汇本应统一。这是词汇一致性瑕疵，不改变任一条迁移的语义，故记 similar。",
+   "assertable": null,
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "五条独立的碰撞激活迁移",
+   "gen": "单条析取守卫，第三/四项写成 \"(dist_to_front<15 in HighwayMode || dist_to_front<10 in UrbanMode)\"",
+   "reason": "语义与 NL 12 一致，析取合并与拆边等价；\"in HighwayMode\" 的散文式写法与参考的 highway = true 形式不同但意图相同，且当前表示下所有碰撞守卫都被投影为不透明 event 名，不构成语义差异。",
+   "assertable": null,
+   "predicate_exists": true,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 2,
+ "extra_count": 1,
+ "vs_paper": "论文三栏全为 null，plantuml_accuracy 34/34、grammar 84/84，f1_phase1 = f1_phase2 = 0.9655（本组第二高）。我判的 2 个 problem 论文一个都没记，其中「根状态两条竞争初始边」属明确的结构确定性缺陷，却未被 f1 口径体现。",
+ "vs_ledger": "台帐 0039 状态为 candidate_only、零条 E1，仅三条观察：E2c parallel_collision_subsystem_boundary、E2b parent_scoped_dynamic_mode_dispatch、E2b indirect_enter_highway_lane_change。我的第 2 条 problem（缺 enter_hwy --> lane_change）对应台帐第三条 E2b，我在声明层面判为 problem；我的第 5 条 problem（根状态双初始边）台帐未记录——台帐的 E2c 只讨论了「是否需要并发」，没讨论「两条初始边落在同一顺序区域」这个与并发无关的确定性后果。台帐的 parent_scoped_dynamic_mode_dispatch 排除我认同，但它只覆盖了「NL 11 是否被满足」，没覆盖父级边带来的复位/过度授权副作用（我记为 extra）。",
+ "notes": "0039 的画像是「结构主干干净、边界处理粗糙」：AutonomousMode 层次与 FinishState 层级都对，出口处理用区域终态也说得通，但把碰撞规避摊到顶层造成根初始不唯一，又用父级到后代的边偷懒实现模式切换。它是本组唯一让 exit_hwy/exit_urban 之外的「离开高速」用区域终态表达的 case，这个选择我认为不该扣分——NL 从未命名 exit_hwy。",
+ "_source_file": "NL05-b.json",
+ "cross_reference": {
+  "case": "0039",
+  "group": "NL05",
+  "llm": "Kimi",
+  "counts": {
+   "correct": 1,
+   "similar": 5,
+   "problem": 2,
+   "extra": 1,
+   "uncertain": 1
+  },
+  "out_of_scope": {
+   "concurrency": 1
+  },
+  "problems_in_scope": 2,
+  "paper": {
+   "format": null,
+   "grammar": null,
+   "semantic": null,
+   "semantic_resolved": null,
+   "f1_phase1": 0.9655172414,
+   "f1_phase2": 0.9655172414
+  },
+  "ledger": {
+   "status": "candidate_only",
+   "e1_ids": [],
+   "e1_categories": []
+  },
+  "assertable_problems": 2
+ }
+}

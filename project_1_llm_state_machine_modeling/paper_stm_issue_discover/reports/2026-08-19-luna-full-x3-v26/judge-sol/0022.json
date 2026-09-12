@@ -1,0 +1,147 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0022",
+  "ledger": [],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "ok",
+      "findings": []
+    },
+    {
+      "cell": "method_run2",
+      "status": "ok",
+      "findings": []
+    },
+    {
+      "cell": "method_run3",
+      "status": "ok",
+      "findings": []
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型要求在 PoweredOn 状态收到 start 后才进入 Operate；规格要求设备一旦上电就进入 Operate。",
+          "reason": "模型把上电后的状态建模为 PoweredOn，并将 start 作为进入 Operate 的条件，导致上电后不会立即处于 Operate，且 start 的语义被建模为从 PoweredOn 到 Operate，而不是单纯的开机信号。",
+          "where": "初始状态与 PoweredOn -> Operate: start 转换"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "模型没有显式建模规格所述的“停止（stopping）”动作或其对应的状态转换。",
+          "reason": "规格明确指出 Operate 内部根据加速、制动或停止等动作在子状态间转换；模型仅定义 accelerating or cruising、braking 和 idle 相关转换，没有任何 stopping 触发条件或独立的停止行为。",
+          "where": "Operate 内部状态转换，尤其 Idle 相关转换"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "模型要求先进入 PoweredOn，再由 start 进入 Operate；这与规格中“设备一旦上电即进入 Operate”不一致。",
+          "reason": "规格第1条规定上电后系统进入 `Operate`，而模型把上电后的初始状态表示为 `PoweredOn`，只有收到 `start` 才进入 `Operate`。规格第2条虽规定可用 `start` 开机，但没有说明需要一个独立的、由上电进入的 `PoweredOn` 状态；模型因此增加了一个不符合“上电即进入 Operate”的中间状态，并使未收到 start 时无法进入 Operate。",
+          "where": "`[*] --> PoweredOn` 和 `PoweredOn --> Operate: start`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "规格提到的“停止”动作没有在模型中明确表示。",
+          "reason": "规格第3条明确指出 Operate 内部根据加速、制动或停止等动作切换子状态。模型仅用 `user idle`、`user accelerating or cruising`、`user braking` 表示转换，没有明确的 stopping/停止事件或对应行为；若“停止”应作为独立动作处理，则该行为在模型中缺失。",
+          "where": "`Operate` 内部状态及其转换，尤其是 `Idle`、`AcceleratingOrCruising`、`Braking` 的事件标签"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "上电后不会直接进入 `Operate`，而是先进入额外的 `PoweredOn` 状态并等待 `start`。",
+          "reason": "规范明确要求设备一旦 powered on，系统就进入 `Operate` 状态；模型却要求先到 `PoweredOn`，再收到 `start` 才进入 `Operate`，因此上电后的状态路径不符合该要求。",
+          "where": "`[*] --> PoweredOn` 以及 `PoweredOn --> Operate: start`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "`start` 被建模为从 `PoweredOn` 进入 `Operate`，但没有表示系统在已处于 `Operate` 或其子状态时可通过 `start` 完成开机。",
+          "reason": "规范规定系统可以用 `start` 信号开启。模型只有一个未定义为关机态的 `PoweredOn` 中间状态，且初始伪状态直接进入该状态，导致 `start` 的开机语义与“上电即进入 Operate”的要求相互错位，无法清晰表示从关机到运行的开机过程。",
+          "where": "`PoweredOn --> Operate: start`"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "规范提到根据“停止”动作在 `Operate` 内切换子状态，模型没有显式的停止动作转换。",
+          "reason": "模型仅用 `user idle` 表示回到 `Idle`，没有 `user stopping` 或等价的明确停止事件。若规范中的 stopping 是独立于 idle 的用户动作，则该行为未被建模；即使意图是将停止归入 `Idle`，也应明确表达该动作映射。",
+          "where": "`Idle --> ...`、`AcceleratingOrCruising --> Idle: user idle`、`Braking --> Idle: user idle`"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0022",
+    "ledger_assessments": [],
+    "emission_assessments": [
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有台账条目可与该关于 PoweredOn、上电后直接进入 Operate 以及 start 转换的主张进行同处同性质对齐。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有台账条目可与该关于 Operate 内缺少显式停止动作或转换的主张进行同处同性质对齐。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有台账条目可与该关于 PoweredOn 中间状态及 start 进入 Operate 的主张进行同处同性质对齐。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有台账条目可与该关于停止动作未被明确表示的主张进行同处同性质对齐。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有台账条目可与该关于上电后先进入 PoweredOn、等待 start 才进入 Operate 的主张进行同处同性质对齐。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有台账条目可与该关于 start 在 PoweredOn 到 Operate 之间的语义错位的主张进行同处同性质对齐。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "冻结台账为空，没有台账条目可与该关于 Operate 内缺少显式停止动作转换的主张进行同处同性质对齐。",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "冻结台账为空，因此不存在任何可被六个输出格命中的台账条目。所有输出 issue 都没有对应 ledger_id，均应判为 false positive；六个格的台账命中集合为空，包括无 finding 的三个 method 格。"
+  },
+  "status": "ok",
+  "attempts": 1
+}

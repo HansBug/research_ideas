@@ -1,0 +1,31 @@
+[
+  {
+    "pair": "0027",
+    "verdicts": [
+      {
+        "record_id": "EIS-0027-01",
+        "arm": "甲",
+        "hit": false,
+        "equivalence_form": null,
+        "argument": "台账命题是「进入 ActiveState 后整机被永久困住：三区末端 junction2/junction3/InitialState 全是死端，ActiveState 没有任何外出迁移，DetectingState 再也不可达」，锚点是缺失的 InitialState --> DetectingState 返回边与 ActiveState 的外出迁移。甲的三条 issue 无一指向该处：[1] 讲融合事件名未拆成三个独立事件声明，与出口/可达性无关；[2] 讲 cardinality(ActiveState)=7 而非 3、建议把 junction2/3/4 与 InitialState 改建为伪状态，这是子状态计数命题，正落在 §2.2 第一条「不同缺陷共用状态名：子状态计数的发现不算作该状态内另一处迁移缺陷的命中」——把四个元素改成伪状态并不恢复 ActiveState 的外出迁移，DetectingState 仍不可达，反向也成立（计数改对了陷阱依旧），二者无蕴含关系；[3] 虽同用 reaches 谓词，但断言的是「从 ActiveState 出发到不了 SteeringControlState 与 SensorControlState」，其根因写明是「三个控制未被组织为可被同时占据的正交区域」，指向的是并发/区域组织这处失误，与「缺少离开 ActiveState 的边」是作者源里两处不同编辑：把三区改成真正正交并不新增任何指向 DetectingState 的迁移，因此 [3] 为假不蕴含台账命题为假（§2.5 第二告诫：区域相同、都提到 ActiveState 不构成蕴含）。全篇没有任何主张涉及 ActiveState 的外出迁移、junction2/junction3 的死端性、或 DetectingState 的再可达性。不确定点：[2] 列出了 ActiveState.InitialState 这一元素，与台账根因（InitialState 被挪进 ActiveState）有元素重叠，但其命题本身仍只是基数不符，且给出的修复方向是改伪状态而非补返回边，故按 §2.5 判为元素重叠而非蕴含。",
+        "note": "甲的 6 条被归因策略排除的发现全部是独立碰撞事件声明缺失（REQ-006~011），与本条台账记录无关，故本条不属于「发现了但没发布」，而是从没发现。"
+      },
+      {
+        "record_id": "EIS-0027-01",
+        "arm": "乙",
+        "hit": false,
+        "equivalence_form": null,
+        "argument": "台账命题是 ActiveState 的陷阱性与 DetectingState 不再可达（reaches 方向）。乙的四条 issue 均不指向该处：[1] 断言「ActiveState 被划分为四个区域、直接非伪子状态数为 4 而非 3，额外的 InitialState 单占一个区域」，这是结构基数命题，§2.2 第一条明确排除子状态计数发现对其它缺陷的顶替；把区域数改为 3（例如删掉 InitialState 那一支）既不新增 ActiveState 的外出迁移、也不恢复 InitialState --> DetectingState，陷阱依旧存在，故 [1] 为假不蕴含台账命题为假；[2] 讲的是「进入」方向——[*] 到控制子状态的入口边无触发、外部激活由 junction1 完成，与「出不去」是相反方向的两条边，不是同一处编辑；[3] 讲融合事件未拆分，无关；[4] 讲 DetectingState 缺少三条按独立事件区分的、通向 ActiveState 的迁移，仍是 DetectingState→ActiveState 的进入侧，而台账要的是 ActiveState/InitialState→DetectingState 的返回侧，方向相反、边不同，补上三条进入边不会让 DetectingState 在进入 ActiveState 之后重新可达。乙全篇未出现「死端」「无外出迁移」「不可达」「无法解除激活」一类主张。不确定点：[1] 与 [4] 都点到了 ActiveState 与 InitialState/DetectingState 这些名字，但按 §2.5，共用名字不构成蕴含链。",
+        "note": "乙的 3 条排除发现均为独立碰撞事件未声明，与本记录无关；本条属从没发现，非发现了未发布。"
+      },
+      {
+        "record_id": "EIS-0027-01",
+        "arm": "丙",
+        "hit": false,
+        "equivalence_form": null,
+        "argument": "台账命题是「ActiveState 无外出迁移、三区末端皆死端、DetectingState 再不可达、子机不能解除激活或重新武装」。丙的三条 issue 均不指向该处：[1] 三种碰撞事件被融合、独立事件未声明，属事件词表缺失，与可达性无关；[2] 缺少以独立事件承载的 DetectingState→ActiveState 激活转换，是进入侧的边，与台账要的返回侧（离开 ActiveState 回到 DetectingState）是作者源里方向相反的两条不同语句，补齐三条进入边后 ActiveState 依然没有任何出口，故不蕴含；[3] 用 invariant 反证 active(Brake) ⇒ active(Sensor) 为假，主张三个控制子状态未组织为正交并行区域、彼此互斥，这是并发语义命题，其修复（把三者置入真正的并行区域）不会新增任何离开 ActiveState 的迁移，也不恢复 InitialState --> DetectingState，因此 [3] 为假与台账为假之间没有蕴含关系（§2.5：区域相同、共同涉及 ActiveState 均不构成蕴含）。丙也未提出任何关于 junction2/junction3 死端性或整机被困的主张。不确定点：[3] 与台账 statement 后半句「BrakeControlState --> junction2 是无触发完成迁移，控制状态形同虚设」有轻微话题邻近，但丙讲的是三态互斥不能同时 active，未涉及该边的无触发性质，也不涉及记录的主命题（reachability 陷阱），故不足以判命中。",
+        "note": "丙的 3 条排除发现均为独立碰撞事件未声明，与本记录无关；本条属从没发现，非发现了未发布。"
+      }
+    ]
+  }
+]

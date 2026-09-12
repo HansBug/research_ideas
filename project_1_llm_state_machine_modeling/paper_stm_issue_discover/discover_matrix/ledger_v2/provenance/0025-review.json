@@ -1,0 +1,90 @@
+{
+ "case": "0025",
+ "group": "NL10",
+ "llm": "Llama",
+ "diffs": [
+  {
+   "verdict": "correct",
+   "ref": "扁平六态 + [*] --> DoorShut + DoorShut 自环 + 15 条迁移对",
+   "gen": "同构",
+   "reason": "六态平级、初始伪态指向 DoorShut、NL 第 1 句的 Cancel 自环与 NL 第 2 句的 DoorOpen→DoorShut 齐备，15 条 source-target 对与参考逐一对应。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "DoorOpenWithItem --> DoorShutWithItem: Door Closed[Zero Time]",
+   "gen": "DoorOpenWithItem --> DoorShutWithItem: Door Closed（无任何限定）",
+   "reason": "该边既无守卫也未在事件名中点出零时，因此在已输入烹饪时间的情形下关门仍然落到 DoorShutWithItem。NL 第 4 句把这个去向限定在『with zero time set』，其对偶义务（时间已设则不应落 DoorShutWithItem）被丢失，NL 所述『门关后去向取决于时间设定』这一依赖关系在模型中消失。这是本 case 与同构的 0015/0045/0055 唯一的实质差别。",
+   "assertable": "19 个谓词中没有任何一个能表达『这条边必须携带区分条件』。guard_distinguishable 只在同一 source+trigger 出现两个目标时才触发，本模型只有一个目标，信息是被静默丢弃而非变成不确定性，故该谓词返回 True 无法暴露；occupancy_after(source=DoorOpenWithItem, trigger=Door_Closed, target=ReadytoCook) 判 False 也无法隔离本 case（0015/0045/0055 同样为 False）。台帐的 eval_assert 用了 any(t.guard for t in transitions(...)) —— 这是绕过谓词词汇直接查原始迁移属性，不属于这 19 个谓词。",
+   "predicate_exists": false,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "5 处 timer / display effect",
+   "gen": "（无任何 effect、变量或状态动作）",
+   "reason": "同 0005/0015：NL 第 5/6/7/8 句显式要求的 timer 启停与 cooking time 显示更新完全缺失。",
+   "assertable": "variable_declared(variable='timer')  # False；或 effect_declared(source='llms_emp_feedback_final_0025.ReadytoCook', trigger='llms_emp_feedback_final_0025.Start', variable='timer', sign='positive')  # False",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "DoorOpenWithItem --> ReadytoCook: Door Closed[Time Remaining]",
+   "gen": "DoorOpenWithItem --> ReadytoCook: Cooking Time Entered",
+   "reason": "同 0015：NL 第 4 句字面写『if cooking time is entered』，生成侧取字面读法，参考侧重读成带守卫的关门事件；两读并存，不判问题。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "ReadytoCook --> ReadytoCook 自环",
+   "gen": "（无）",
+   "reason": "NL 未明确要求，六个模型均无。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 2,
+ "extra_count": 0,
+ "vs_paper": "论文 format 栏『syntax error: stm Microwave』resolved=YES；grammar 与 semantic 栏均 None（论文认为无语义问题）。F1 0.9020 → 0.9020（Phase-II 未改动）。我判的 2 个 problem（零时条件缺失、effect 全缺）论文都没记。",
+ "vs_ledger": "台帐 status=mixed，一条 E1：EXP-0025-GC-001，正对应我的第 1 条 problem，实体判定我认同（NL 第 4 句的 only 读法成立，且与同构的 0045/0055 对照后区分点明确）。但其证据机制有问题：该 assert 形式 any(t.guard ...) 施加到 0045/0055 上同样返回 False（R4.5 把 Door Closed [zero time set] / [time = 0] 整体折成事件名 Door_Closed_zero_time_set / Door_Closed_time_0，全模型零守卫），所以该断言本身无法区分 0025/0035 与 0045/0055——真正做出区分的是人对标签文字的判读。我的第 2 条 problem 台帐只记为被排除的 E2c observation。",
+ "notes": "关于『把守卫条件编进事件名算不算作者已表达』：我的独立判断是——算已表达（NL 可追溯层面），但不算守卫。机器证据是 0045 与 0055 的 R4.5 投影里 [zero time set] / [time = 0] 都变成了事件名后缀而非守卫，与 0015 的 Door_Closed_with_0_time、0005 的 Close_Door_with_Zero_Time 形状完全相同，六个模型无一含守卫。因此台帐在 0025/0035 与 0045/0055 之间的不对称不是它自己的 assert 建立起来的。实质上损失的是『同一物理刺激按内部状态分流』的表达力（决策被推给环境，控制器无法实现），属表示层弱点，按宽容口径判 similar；而 0025/0035 连条件文字都没有，才升级为 problem。",
+ "_source_file": "NL10-a.json",
+ "cross_reference": {
+  "case": "0025",
+  "group": "NL10",
+  "llm": "Llama",
+  "counts": {
+   "correct": 1,
+   "similar": 2,
+   "problem": 2,
+   "extra": 0,
+   "uncertain": 0
+  },
+  "out_of_scope": {},
+  "problems_in_scope": 2,
+  "paper": {
+   "format": "syntax error: stm Microwave",
+   "grammar": null,
+   "semantic": null,
+   "semantic_resolved": null,
+   "f1_phase1": 0.9019607843,
+   "f1_phase2": 0.9019607843
+  },
+  "ledger": {
+   "status": "mixed",
+   "e1_ids": [
+    "EXP-0025-GC-001"
+   ],
+   "e1_categories": [
+    "GC"
+   ]
+  },
+  "assertable_problems": 1
+ }
+}

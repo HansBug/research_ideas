@@ -1,0 +1,135 @@
+{
+ "case": "0006",
+ "group": "NL03",
+ "llm": "GPT-4o",
+ "diffs": [
+  {
+   "verdict": "similar",
+   "ref": "[*] --> Raster_Scanning",
+   "gen": "state \"UAV Swarm State Machine\" as UAVSwarmStateMachine { [*] --> Searching ... }  (no top-level initial)",
+   "reason": "外层 composite 只是机器名包壳，其内部 [*] --> Searching 在通行 PlantUML 习惯下即机器起点，语义说得通；但 R4.5 投影必须插入 UnspecifiedInitial，导致整棵子树在可执行投影里不可达，属脆弱写法而非语义错误。",
+   "assertable": "initial_target(composite='llms_emp_feedback_final_0006', child='llms_emp_feedback_final_0006.UAVSwarmStateMachine')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "state Raster_Scanning { ...region1... -- ...region2... -- ...region3... }",
+   "gen": "Searching / FormationAdjustment / Attack / Intercepted 全部平铺，无任何区域",
+   "reason": "NL 第 2 句 'operates within three different state areas' 是数量断言，本模型一个区域都没有，三区域语义完全缺失。这是数量/结构问题，不是并发风格问题。",
+   "assertable": "cardinality(scope='llms_emp_feedback_final_0006.UAVSwarmStateMachine.Searching', count=3)",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "Strike_the_Target: exit/ NumberofCru--",
+   "gen": "AttackingTarget --> Searching : Attack Complete",
+   "reason": "NL 第 4 句要求攻击完成后 UAV 数量递减；该迁移只有 trigger，既无 / effect 也无 [guard] 也无任何计数文本，递减语义在作者源中完全不存在。与台帐 EXP-0006-EA-001 一致。",
+   "assertable": "effect_declared(source='llms_emp_feedback_final_0006.UAVSwarmStateMachine.Attack.AttackingTarget', trigger='llms_emp_feedback_final_0006.Attack_Complete', variable='uav_count', sign='negative')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "Raster_Scanning --> [*]: when (NumberofCru == 0)",
+   "gen": "模型内无任何 final 状态，也无 mission-complete 事件",
+   "reason": "NL 第 2 句 'Before the mission is completed' 预设存在任务完成这一终结条件；本模型没有终态、没有完成事件，永远无法结束。",
+   "assertable": "terminates(scope='[*]')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "extra",
+   "ref": "Fly_Along_the_Path --> Formation_Adjustment : Intercepted_by_UAV_interception",
+   "gen": "Searching --> Intercepted : Interception Detected;  Intercepted --> FormationAdjustment (无触发)",
+   "reason": "NL 第 3 句是一跳（被拦截即进入编队调整），生成方插入了 NL 未要求的中间状态 Intercepted。completion 迁移会立即触发，不破坏语义，故记为 over-specification。",
+   "assertable": "edge_declared(source='llms_emp_feedback_final_0006.UAVSwarmStateMachine.Searching', trigger='llms_emp_feedback_final_0006.Interception_Detected', target='llms_emp_feedback_final_0006.UAVSwarmStateMachine.FormationAdjustment')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "Fly_Along_the_Path_2 --> Strike_the_Target : Mission_assignment_information_of_loitering_munition",
+   "gen": "Searching --> Attack : Task Assignment Received",
+   "reason": "NL 第 4 句前半句语义等价，仅命名风格不同。",
+   "assertable": "edge_declared(source='llms_emp_feedback_final_0006.UAVSwarmStateMachine.Searching', trigger='llms_emp_feedback_final_0006.Task_Assignment_Received', target='llms_emp_feedback_final_0006.UAVSwarmStateMachine.Attack')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "Formation_Adjustment --> Fly_Along_the_Path (completion);  Strike_the_Target --> Fly_Along_the_Path_2 : Strike_successful",
+   "gen": "AdjustingFormation --> Searching : Adjustment Complete;  AttackingTarget --> Searching : Attack Complete",
+   "reason": "回归边都存在，参考用 completion 迁移，生成方用显式事件；NL 未规定回归方式，两者皆可。",
+   "assertable": "occupancy_after(source='llms_emp_feedback_final_0006.UAVSwarmStateMachine.FormationAdjustment', trigger='llms_emp_feedback_final_0006.Adjustment_Complete', target='llms_emp_feedback_final_0006.UAVSwarmStateMachine.Searching')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "Formation_Adjustment / Strike_the_Target 为叶状态",
+   "gen": "state FormationAdjustment { AdjustingFormation };  state Attack { AttackingTarget }",
+   "reason": "生成方多包了一层单子状态 composite，属无害细化，NL 未禁止。",
+   "assertable": "state_declared(state='llms_emp_feedback_final_0006.UAVSwarmStateMachine.Attack', kind='composite')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "Raster_Scanning: do / Target_search",
+   "gen": "Searching : Target Search Task （状态描述行，非 during 动作）",
+   "reason": "NL 只说 swarm 'performs target search tasks'，参考把它建成 do-activity 属一种读法；生成方用状态描述行承载同一语义。本组六例一致按 similar 处理，不计入问题数。",
+   "assertable": "action_declared(state='llms_emp_feedback_final_0006.UAVSwarmStateMachine.Searching', phase='during')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "Strike_the_Target --> Strike_the_Target : Intercepted_by_UAV_interception;  Raster_Scanning --> [*]: when (NumberofCru == 0);  do/Determine_a_new_target",
+   "gen": "—",
+   "reason": "参考模型自身存疑：(1) 打击态被拦截时自环，与 NL 第 3 句『被拦截即转入编队调整』相反；(2) 把『任务完成』推断成 NumberofCru==0，NL 无此说法；(3) do/Determine_a_new_target、do/Air-to-ground_strike 无 NL 依据，第三区域除自环外无任何 NL 可推信息。这些参考侧内容会无条件计入所有 6 例的 FN。",
+   "assertable": null,
+   "predicate_exists": false,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 3,
+ "extra_count": 1,
+ "vs_paper": "论文：format/grammar 栏均为 None；语义栏记『1.missing regions 2. interaction error』且 semantic_resolved=0.0（作者自认未修好）。F1 Phase-I 0.2222 → Phase-II 0.2553（TP 5→6，FN 21→20，全组最低）。我判的 3 个 problem 中：三区域缺失被论文 'missing regions' 记录；'interaction error' 措辞含糊，勉强可对应我的第 5 条 extra 或递减缺失；终态/任务完成缺失、递减缺失两项论文未明确记录。",
+ "vs_ledger": "台帐 status=expected_issues_found，唯一条目 EXP-0026 同类的 EXP-0006-EA-001（attack_count_decrease_missing），精确对应我的第 3 条 problem，判断成立。三区域缺失与无终态两项台帐未收（本 case observations 为空），属台帐漏项而非表示边界。",
+ "notes": "GPT-4o 在本组是『语义要点最少』的一份：三区域、递减、终止三大 NL 要点全缺，只保住了拦截→编队调整与任务分配→攻击两条主干。唯一顶层 composite 包壳导致投影 UnspecifiedInitial，按单子女、无歧义处理为 similar（对比 0046 同样包壳但有两个子女，判 problem）。3 个 problem 全部在范围内，无 concurrency/timing 例外项。",
+ "_source_file": "NL03-0006.json",
+ "cross_reference": {
+  "case": "0006",
+  "group": "NL03",
+  "llm": "GPT-4o",
+  "counts": {
+   "correct": 1,
+   "similar": 4,
+   "problem": 3,
+   "extra": 1,
+   "uncertain": 1
+  },
+  "out_of_scope": {},
+  "problems_in_scope": 4,
+  "paper": {
+   "format": null,
+   "grammar": null,
+   "semantic": "1.missing regions 2. interaction error",
+   "semantic_resolved": 0.0,
+   "f1_phase1": 0.2222222222,
+   "f1_phase2": 0.2553191489
+  },
+  "ledger": {
+   "status": "expected_issues_found",
+   "e1_ids": [
+    "EXP-0006-EA-001"
+   ],
+   "e1_categories": [
+    "EA"
+   ]
+  },
+  "assertable_problems": 3
+ }
+}

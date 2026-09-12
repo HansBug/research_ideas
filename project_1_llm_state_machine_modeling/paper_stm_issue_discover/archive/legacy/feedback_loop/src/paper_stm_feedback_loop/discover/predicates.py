@@ -1,0 +1,1317 @@
+"""迁移过渡期的旧谓词实现。
+
+现行注册表不在这里，而在
+``pipeline/evidence_discovery/predicate_registry.json``。本文件仍供旧运行链路回放，
+直到模块化重构通过测试门；不得把这里的旧三族词表当作当前公开谓词表。
+
+The legacy predicate vocabulary a requirement claim may use, retained for replay only.
+
+Why a vocabulary at all
+-----------------------
+The splitter used to emit a free-form statement plus a three-way
+``verification_kind`` (``structure`` / ``behavior`` / ``property``), and the
+controller derived the mandatory evidence family from that label.  Two problems
+followed.  First, the label was the *only* machine-readable thing about a
+requirement, so nothing checked that the assertion written for it actually tested
+the claim: an ``edge_declared``-shaped query could close an
+``occupancy_after``-shaped obligation, which is how a false positive survives.
+Second, two different models classified the same sentence differently, because
+the ordered decision was prose and had to be re-derived per sentence.
+
+Naming the predicate fixes both.  The family -- and therefore the mandatory
+evidence -- becomes a table lookup rather than a judgement, and the procedure a
+converter must call becomes checkable against the predicate the splitter chose.
+
+Reading the family column
+-------------------------
+``S`` the claim is about what the artifact *declares*; a structural or relational
+      query decides it outright and is the correct evidence, not a compromise.
+``B`` the claim is about what the model *does* at runtime; ``simulate`` is
+      mandatory because a declaration existing does not mean it is reachable,
+      enabled, or the thing that fires.  Static queries may only locate.
+``P`` the claim is quantified over states, valuations or paths such that neither
+      one query nor one finite run settles it; bounded model checking is
+      mandatory.  When the domain is finitely enumerable the controller may
+      instead expand it into ``B`` claims.
+
+See issue #170 for the derivation, per-predicate implementation notes and the
+infrastructure caveats.
+"""
+
+from __future__ import annotations
+
+import ast
+import json
+from dataclasses import dataclass
+
+FAMILY_STRUCTURE = "S"
+FAMILY_BEHAVIOR = "B"
+FAMILY_PROPERTY = "P"
+
+#: Kept for the existing mandatory-evidence machinery, which is keyed by the
+#: legacy three-way label.  It is now derived, never judged.
+FAMILY_TO_VERIFICATION_KIND = {
+    FAMILY_STRUCTURE: "structure",
+    FAMILY_BEHAVIOR: "behavior",
+    FAMILY_PROPERTY: "property",
+}
+
+
+@dataclass(frozen=True)
+class Predicate:
+    """One nameable claim shape, with the procedure that may discharge it."""
+
+    name: str
+    family: str
+    #: What the predicate asserts, in one line, for the prompt.
+    meaning: str
+    #: The defect class it can expose.  A predicate that cannot expose anything
+    #: has no business in the vocabulary.
+    proves: str
+    #: Required binding names.  The splitter must supply all of them.
+    bindings: tuple[str, ...]
+    #: How strong the answer is.  This is what the producer needs to reason
+    #: about; the mechanism that produces it is not.
+    strength: str
+    #: The evidence call that decides it.  Internal bookkeeping only -- never
+    #: rendered into a prompt, because naming a mechanism the producer cannot
+    #: call only invites it to try.
+    procedure: str
+    #: The bare function name inside ``procedure``.  The prose form is for the
+    #: prompt; this is what the gate compares against the assertion's parsed
+    #: call names, so an easier query cannot close a harder claim.
+    procedure_function: str
+    #: The sentence shape that calls for this predicate, one short line, for the
+    #: forward index.  Everything else here is written from the predicate's side
+    #: -- "what this function asserts" -- which only helps a reader who already
+    #: guessed the answer.  A producer holds a sentence and needs the other
+    #: direction, so the predicates whose names sit furthest from ordinary
+    #: wording are otherwise never reached for at all.  Required, not defaulted:
+    #: a twentieth predicate with no index entry must fail at import rather than
+    #: quietly go missing from the one list a producer scans.
+    nl_index: str
+    #: The same mapping at length -- when to reach for it, and which neighbouring
+    #: predicate takes the claim when the sentence is shaped slightly otherwise.
+    #: Rendered directly under ``asserts``, where the reader is deciding whether
+    #: this is the predicate they want.
+    nl_cue: str
+    #: Optional weaker evidence, allowed only as ``supporting``.
+    locators: tuple[str, ...] = ()
+    #: Honest statement of what the current infrastructure cannot do.
+    caveat: str = ""
+    #: Per-binding format spec: (binding, what it must contain).  Prose about a
+    #: field is not enough -- a producer that cannot see a field's domain guesses
+    #: it, and a guessed literal fails at precheck.
+    field_specs: tuple[tuple[str, str], ...] = ()
+    #: At least three worked calls per predicate, covering the shapes that
+    #: actually occur: the typical case, a literal or special-binding variant,
+    #: and a case whose answer is False -- often a name the model does not
+    #: declare, since that is the shape a precondition is written for.
+    examples: tuple[str, ...] = ()
+
+
+PREDICATES: tuple[Predicate, ...] = (
+    # ---- Family S: artifact declarations -------------------------------
+    #: ⚠️ ⛔ **本文件的 `#: universality:` 注释不再钉具体数字**（2026-08-12 改）——
+#: ⭐ 数字随每轮补强变化，⛔ 钉在注释里必然过期（⚠️ 实测：敌意评审在 6 处发现
+#: 注释里的篇数停留在补强轮之前）。⭐ 唯一真源是
+#: `related_work/provenance/predicate_provenance.md`，⭐ 由 `tools/build_provenance_table.py`
+#: 从裁定后证据生成；⭐ 本注释只保留**分类**与**代表来源**。
+#: universality: ② 元模型定义性 —— 判据由元模型定义直接给出，不需要外部出处。
+    #: 另有 3 个界内真实系统（3 领域）+ 若干篇文献佐证；那是加分，不是必需。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
+    Predicate(
+        "state_declared",
+        FAMILY_STRUCTURE,
+        "the model declares a state at this path, of this kind",
+        "missing or spurious state; a composite written as a leaf",
+        ("state", "kind"),
+        "decides the declaration outright",
+        "states(path=..., exact=True)",
+        "states",
+        nl_index="names a mode, phase or condition the system can be in",
+        nl_cue=(
+            "the sentence names a mode, phase or condition the system can occupy. "
+            "Write one for every such name the sentence uses -- including a name "
+            "the model does not declare, whose False is the missing-state finding. "
+            "When the sentence also says whether the mode has sub-modes, say so in "
+            "`kind`: described as having sub-modes is \"composite\", described as "
+            "indivisible is \"leaf\", and \"any\" when the sentence only implies it "
+            "exists."
+        ),
+        field_specs=(
+            ('state', 'a declared state path, copied verbatim from declared_model_vocabulary'),
+            ('kind', 'one of "leaf" (no substates), "composite" (has substates), "pseudo" (an initial/final marker), or "any" (declared at all)'),
+        ),
+        examples=(
+            'state_declared(state="Sys.ModeA", kind="leaf")  # a simple operating mode',
+            'state_declared(state="Sys.Outer", kind="composite")  # a mode with substates',
+            'state_declared(state="Sys.Ghost", kind="any")  # only asks whether it exists at all',
+        ),
+    ),
+    #: universality: ② 元模型定义性 —— 判据由元模型定义直接给出，不需要外部出处。
+    #: 另有 4 个界内真实系统（3 领域）+ 若干篇文献佐证；那是加分，不是必需。
+    #: ⚠️ 词表形状待确认：本条未写「多余」，而 state_declared 写了。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
+    Predicate(
+        "variable_declared",
+        FAMILY_STRUCTURE,
+        "the model declares a variable of the author's own under this name",
+        "a quantity the NL requires that the model has no variable for",
+        ("variable",),
+        "decides the declaration outright",
+        "variables(name=...)",
+        "variables",
+        nl_index="names a quantity the system tracks: count, level, remaining amount, threshold, limit",
+        nl_cue=(
+            "the sentence reasons about a quantity -- a count, level, remaining "
+            "amount, elapsed measure, threshold or configured limit. A quantity the "
+            "sentence needs and the model has no variable for is a finding no other "
+            "predicate reports, so write it even when a claim about what happens to "
+            "that quantity is written as well."
+        ),
+        caveat=(
+            "Route-control variables the converter generated are not counted: the "
+            "effect facade drops them from every answer, so reporting one as "
+            "declared would promise evidence no other call can deliver."
+        ),
+        field_specs=(
+            (
+                "variable",
+                'the BARE variable name, with no state-path prefix -- variables are '
+                'declared outside the state tree. Either a name copied from the '
+                '`variables` list in declared_model_vocabulary, or the name the '
+                'Requirement proposes for a variable the model should have declared; '
+                'a dotted name is refused, not answered',
+            ),
+        ),
+        examples=(
+            'variable_declared(variable="units")  # True when the author declared it',
+            'variable_declared(variable="retry_limit")  # False when the model declares no such variable',
+            'variable_declared(variable="Sys.units")  # raises: variables take no path prefix',
+        ),
+    ),
+    #: universality: ② 元模型定义性 —— 判据由元模型定义直接给出，不需要外部出处。
+    #: 另有 1 个界内真实系统（1 领域）+ 若干篇文献佐证；那是加分，不是必需。
+    #: ⚠️ 仅 3 源、踩在下限上；但它是 ② 类，不靠这个成立。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
+    Predicate(
+        "event_declared",
+        FAMILY_STRUCTURE,
+        "the model declares an event at this qualified path",
+        "an event the NL names that the model never declares",
+        ("event",),
+        "decides the declaration outright",
+        "events(path=...)",
+        "events",
+        nl_index="names a stimulus: command, request, signal, sensor reading, timeout, fault, operator action",
+        nl_cue=(
+            "the sentence names anything the system reacts to. Write it even when "
+            "you also write the behavioural claim about the same stimulus: "
+            "existence and effect are separately violable, and a transition claim "
+            "about an undeclared event reports the transition, never the missing "
+            "event."
+        ),
+        field_specs=(
+            (
+                "event",
+                'the FULLY QUALIFIED event path, as `<root>.<event>` -- either copied '
+                'from the `events` list in declared_model_vocabulary, or the path the '
+                'Requirement proposes for an event the model should have declared; a '
+                'bare name with no dot is refused, not answered',
+            ),
+        ),
+        examples=(
+            'event_declared(event="Sys.evt")  # True when the author declared it',
+            'event_declared(event="Sys.missing")  # False when the model declares no such event',
+            'event_declared(event="evt")  # raises: events take the qualified path',
+        ),
+    ),
+    #: universality: ③ 无外部依据 —— 裁定后仅 1 源，未达 3 源下限。Limitations 必须明写。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
+    Predicate(
+        "containment",
+        FAMILY_STRUCTURE,
+        "this child is (or is not) a substate of this parent",
+        "misplaced substate; a region attached to the wrong parent",
+        ("parent", "child"),
+        "decides the declaration outright",
+        "states(parent=..., recursive=False)",
+        "states",
+        nl_index="places one named element inside another: \"a sub-mode of\", \"part of\", \"B contains A\"",
+        nl_cue=(
+            "the sentence puts one named element inside another. The enclosing "
+            "level is the one the SENTENCE names; reading it off the model instead "
+            "makes the call true by construction."
+        ),
+        field_specs=(
+            ('parent', 'the declared enclosing state'),
+            ('child', 'the state the sentence places inside parent; False means the model put it '
+                      'somewhere else, and that is the finding'),
+        ),
+        examples=(
+            'containment(parent="Sys.Outer", child="Sys.Outer.Inner")'
+            '  # holds -- and legitimate ONLY because the sentence itself names Outer as the '
+            'enclosing level. Record that level in source_context.nl_parent. Reading the level off '
+            'the model instead makes every such call return True by construction.',
+            'containment(parent="Sys.Outer", child="Sys.Outer.Inner.Deep")'
+            '  # False -- the model wrapped it one level deeper than the sentence allows. '
+            'THIS IS A FINDING, not a mis-encoding: do not re-anchor parent to "Sys.Outer.Inner".',
+            'containment(parent="Sys.Outer", child="Sys.Outer.Absent")'
+            '  # False because the child is not declared at all -- a missing-element finding. '
+            'Write this requirement even though it cannot pass; dropping it is the only way this '
+            'omission goes unreported.',
+        ),
+    ),
+    #: universality: ① 有领域证据 —— 2 个界内真实系统（1 领域）+ 若干篇独立文献。
+    #: 代表来源：The STATEMATE Semantics of Statecharts (10.1145/235321.235322)；State Chart XML (SCXML): State Machine Notat (www.w3.org)。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
+    Predicate(
+        "initial_target",
+        FAMILY_STRUCTURE,
+        "entering this composite starts in this child",
+        "wrong or missing initial child; entry lands in the wrong mode. False means the author "
+        "declared no such default entry at THIS composite -- that is the finding. Do not move "
+        "`composite` down to whatever inner region happens to have one.",
+        ("composite", "child"),
+        "decides the declaration outright",
+        "initial_child(...)",
+        "initial_child",
+        nl_index="says where entry lands: \"starts in\", \"defaults to\", \"initially\", \"on entry the system is in\"",
+        nl_cue=(
+            "the sentence says which sub-mode is active at the instant a composite "
+            "is entered. Also reach for it when the sentence describes entering a "
+            "mode and names what is active at that moment, without using the word "
+            "\"initial\". TWO shapes are legal and the reviewer must accept both: the "
+            "ordinary one binds `composite` and `child`; the one derived from a "
+            "cardinality claim (`derivation.kind = \"entry_follows_cardinality\"`) binds "
+            "`composite` ALONE -- there `child` is forbidden by the schema, an absent "
+            "`child` is the correct shape, and the assertion layer expands it into a "
+            "disjunction over the declared children."
+        ),
+        field_specs=(
+            ('composite', 'the declared composite whose entry is claimed'),
+            ('child', 'the declared substate that entry must land on'),
+        ),
+        examples=(
+            'initial_target(composite="Sys.Outer", child="Sys.Outer.Inner")',
+            'initial_target(composite="Sys", child="Sys.ModeA")  # root entry',
+            'initial_target(composite="Sys.Outer", child="Sys.Outer.Other")  # False when entry lands elsewhere',
+        ),
+    ),
+    #: universality: ② 元模型定义性 —— 判据由元模型定义直接给出，不需要外部出处。
+    #: 另有 10 个界内真实系统（6 领域）+ 若干篇文献佐证；那是加分，不是必需。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
+    Predicate(
+        "edge_declared",
+        FAMILY_STRUCTURE,
+        "the model declares an edge with this source, trigger and target",
+        "a missing or wrongly-targeted declared transition",
+        ("source", "trigger", "target"),
+        "decides the declaration outright",
+        "transition_exists(source=..., event=..., target=...)",
+        "transition_exists",
+        nl_index="the ARTIFACT contains or lacks a transition -- a design-level statement, not run-time behaviour",
+        nl_cue=(
+            "the sentence is about the artifact: a specification that enumerates "
+            "transitions, or a claim that the design is missing one. A sentence "
+            "describing what the running system does when the event arrives is "
+            "occupancy_after instead."
+        ),
+        caveat=(
+            "Use this only when the NL speaks about the model containing an "
+            "edge.  'When X happens the system moves to Y' is a runtime claim: "
+            "use occupancy_after, because a declared edge may be unreachable or "
+            "guard-blocked."
+        ),
+        field_specs=(
+            ('source', 'the declared source state, or "[*]" for the pseudo-initial'),
+            ('trigger', 'the declared event path that labels the edge'),
+            ('target', 'the declared target state'),
+        ),
+        examples=(
+            'edge_declared(source="Sys.ModeA", trigger="Sys.evt", target="Sys.ModeB")',
+            'edge_declared(source="[*]", trigger="Sys.on", target="Sys.ModeA")  # the initial edge',
+            'edge_declared(source="Sys.ModeA", trigger="Sys.evt", target="Sys.Other")  # False when the edge points elsewhere',
+        ),
+    ),
+    #: universality: ② 元模型定义性 —— 判据由元模型定义直接给出，不需要外部出处。
+    #: 另有 5 个界内真实系统（3 领域）+ 若干篇文献佐证；那是加分，不是必需。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
+    Predicate(
+        "effect_declared",
+        FAMILY_STRUCTURE,
+        "this transition declares an effect on this variable, in this direction",
+        "a missing or wrong-signed declared effect",
+        ("source", "trigger", "variable", "sign"),
+        "decides the declaration outright",
+        "effect_deltas(source=..., event=...)",
+        "effect_deltas",
+        nl_index="a transition changes a quantity: increments, decrements, adds, consumes, replenishes, resets",
+        nl_cue=(
+            "the sentence attaches a change of quantity to a transition. Only the "
+            "direction is observable, so a specific amount the sentence names goes "
+            "in `limitations`. When the sentence claims the change actually happens "
+            "as the system runs, rather than that the transition carries it, add "
+            "variable_delta_after."
+        ),
+        locators=("effects(...)",),
+        field_specs=(
+            ('source', 'the declared source state of the transition carrying the effect'),
+            ('trigger', 'the declared event path'),
+            ('variable', "the variable's BARE name, with no state-path prefix -- either copied from the `variables` list in declared_model_vocabulary, or the name the Requirement proposes for a variable the model should have declared"),
+            ('sign', '"negative" for a decrease, "positive" for an increase'),
+        ),
+        examples=(
+            'effect_declared(source="Sys.ModeA", trigger="Sys.done", variable="units", sign="negative")',
+            'effect_declared(source="Sys.ModeA", trigger="Sys.add", variable="units", sign="positive")',
+            'effect_declared(source="Sys.Charging", trigger="Sys.pulse", variable="charge_level", sign="positive")  # False when the model declares no variable under that name',
+        ),
+    ),
+    #: universality: ② 元模型定义性 —— 判据由元模型定义直接给出，不需要外部出处。
+    #: 另有 8 个界内真实系统（4 领域）+ 若干篇文献佐证；那是加分，不是必需。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
+    Predicate(
+        "action_declared",
+        FAMILY_STRUCTURE,
+        "this state declares an entry, exit or during action",
+        "a missing declared action; an action attached to the wrong phase",
+        ("state", "phase"),
+        "decides the declaration outright",
+        "states(path=..., exact=True)",
+        "states",
+        nl_index="behaviour attached to OCCUPYING a state: \"on entering\", \"upon leaving\", \"while in A it continuously\"",
+        nl_cue=(
+            "the sentence attaches behaviour to being in a state rather than to "
+            "taking a transition. It reports only that the phase declares something "
+            "at all, so what the action does belongs in `limitations`."
+        ),
+        caveat=(
+            "Reports whether the phase declares any action at all, not what "
+            "the action does."
+        ),
+        field_specs=(
+            ('state', 'the declared state whose action is claimed'),
+            ('phase', '"entry", "exit", or "during"'),
+        ),
+        examples=(
+            'action_declared(state="Sys.ModeA", phase="entry")',
+            'action_declared(state="Sys.ModeA", phase="exit")',
+            'action_declared(state="Sys.ModeB", phase="during")  # False when no during action is declared',
+        ),
+    ),
+    #: universality: ① 有领域证据 —— 4 个界内真实系统（3 领域）+ 若干篇独立文献。
+    #: 代表来源：Using Abstraction and Model Checking to Dete (10.1109/32.730543)；An Operational Semantics for Stateflow (10.1007/s10009-007-0049-7)。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
+    Predicate(
+        "guard_distinguishable",
+        FAMILY_STRUCTURE,
+        "a shared source and trigger cannot reach two targets indistinguishably",
+        "non-determinism: overlapping or absent discriminating guards",
+        ("source", "trigger"),
+        "decides it over every variable valuation",
+        "conflicting_targets(source=..., event=...)",
+        "conflicting_targets",
+        nl_index="ONE stimulus, DIFFERENT outcomes chosen by a condition: \"if ... otherwise\", \"depending on whether\", \"unless\"",
+        nl_cue=(
+            "the sentence makes one event lead to different outcomes according to "
+            "some condition, including an enumeration of cases under a single "
+            "event. Write it in ADDITION to the per-branch claims: each branch "
+            "claim says its own outcome is possible, and only this one says the "
+            "choice between them is actually determined."
+        ),
+        locators=("guards_overlap(...)",),
+        field_specs=(
+            ('source', 'the declared source state the alternatives leave from'),
+            ('trigger', 'the declared shared event path; raises when no transition leaves source on it'),
+        ),
+        examples=(
+            'guard_distinguishable(source="Sys.Hub", trigger="Sys.pick")  # True when guards separate the targets',
+            'guard_distinguishable(source="Sys.Hub", trigger="Sys.route")  # False when two targets share an empty guard',
+            'guard_distinguishable(source="Sys.Leaf", trigger="Sys.pick")  # raises: no such transition, so undecidable',
+        ),
+    ),
+    #: universality: ③ 无外部依据 —— 裁定后仅 2 源，未达 3 源下限。Limitations 必须明写。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
+    Predicate(
+        "cardinality",
+        FAMILY_STRUCTURE,
+        "this scope declares exactly this many non-pseudo states",
+        "a missing or duplicated mode in an enumerated set",
+        ("scope", "count"),
+        "decides the declaration outright",
+        "states(...)",
+        "states",
+        nl_index="fixes how many: \"exactly N modes\", \"only these three\", \"a single\", or a list presented as complete",
+        nl_cue=(
+            "the sentence closes a set. A list presented as exhaustive is a count "
+            "claim even when the sentence writes no number -- count the items it "
+            "lists. Do not write it for a list the sentence merely draws examples "
+            "from."
+        ),
+        field_specs=(
+            ('scope', 'the state the sentence enumerates the members of. False means the model '
+                      'has a different number THERE -- that is the finding. Do not move `scope` '
+                      'down to an inner region whose count happens to match.'),
+            ('count', 'an integer; pseudo-states and compiler-inserted states are not counted'),
+        ),
+        examples=(
+            'cardinality(scope="Sys.Outer", count=3)  # exactly three direct modes',
+            'cardinality(scope="Sys", count=2)  # top level',
+            'cardinality(scope="Sys.Outer", count=4)  # False when only three are declared',
+        ),
+    ),
+    # ---- Family B: runtime behaviour ------------------------------------
+    #: universality: ① 有领域证据 —— 2 个界内真实系统（1 领域）+ 若干篇独立文献。
+    #: 代表来源：A Method for Testing and Validating Executab (10.1007/s10270-018-0676-3)；UmpleRun: a Dynamic Analysis Tool for Textua (ceur-ws.org)。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
+    Predicate(
+        "occupancy_after",
+        FAMILY_BEHAVIOR,
+        "after this trigger from this state, the system is in this target",
+        "wrong target; a local exit written as global completion; a declared "
+        "edge that is guard-blocked or unreachable at runtime",
+        ("source", "trigger", "target"),
+        "one bounded witness: it shows what this configuration does, not what every run does",
+        "simulate(...).final.is_active(...)",
+        "simulate",
+        nl_index="run-time reaction to a NAMED event: \"when e occurs the system goes to / is then in B\"",
+        nl_cue=(
+            "the sentence describes what the running system does when a named "
+            "stimulus arrives. This is the default for event-driven behaviour; "
+            "edge_declared is only for claims about what the artifact contains."
+        ),
+        locators=("transition_exists(...)", "path(...)"),
+        field_specs=(
+            ('source', 'the configuration the claim is about, or "[*]" for power-on / first entry'),
+            ('trigger', 'the declared event path; the predicate also verifies this event was actually consumed'),
+            ('target', 'the declared state; occupying any leaf inside a composite target counts'),
+            ('within_cycles', 'how many cycles to run; default 1'),
+        ),
+        examples=(
+            'occupancy_after(source="Sys.ModeA", trigger="Sys.evt", target="Sys.ModeB")',
+            'occupancy_after(source="[*]", trigger="Sys.on", target="Sys.ModeA")  # power-on claim',
+            'occupancy_after(source="Sys.ModeA", trigger="Sys.evt", target="Sys.Outer", within_cycles=2)  # composite target, two cycles',
+        ),
+    ),
+    #: universality: ① 有领域证据 —— 2 个界内真实系统（2 领域）+ 若干篇独立文献。
+    #: 代表来源：Using Abstraction and Model Checking to Dete (10.1109/32.730543)；Argos: an Automaton-Based Synchronous Langua (10.1016/S0096-0551(01)00016-9)。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
+    Predicate(
+        "event_consumed",
+        FAMILY_BEHAVIOR,
+        "in this configuration the event is actually consumed",
+        "a dangling event no transition consumes; an event silently ignored in "
+        "the state where the NL requires a response",
+        ("source", "trigger"),
+        "one bounded witness",
+        "simulate(...).cycles[...].consumed_events",
+        "simulate",
+        nl_index="a stimulus must be acted on in some situation -- its False says nothing there handles it",
+        nl_cue=(
+            "the sentence requires the system to react to a stimulus in a "
+            "particular configuration -- \"in A the request must be handled / "
+            "acknowledged / serviced\". False means nothing consumes it there, so "
+            "the stimulus is silently dropped. When the sentence instead requires "
+            "the stimulus NOT to move the system, that is stays_in."
+        ),
+        caveat=(
+            "There is no static substitute: an event being declared does not "
+            "mean any configuration accepts it."
+        ),
+        field_specs=(
+            ('source', 'the configuration the event is offered in'),
+            ('trigger', 'the declared event path'),
+        ),
+        examples=(
+            'event_consumed(source="Sys.ModeA", trigger="Sys.evt")  # True when some transition accepts it here',
+            'event_consumed(source="[*]", trigger="Sys.on")',
+            'event_consumed(source="Sys.ModeB", trigger="Sys.evt")  # False when the event is silently ignored here',
+        ),
+    ),
+    #: universality: ① 有领域证据 —— 5 个界内真实系统（5 领域）+ 若干篇独立文献。
+    #: 代表来源：State-Based Testing: Industrial Evaluation o (10.1109/ISSRE.2012.17)；Mode Confusion Analysis of a Flight Guidance (shemesh.larc.nasa.gov)。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
+    Predicate(
+        "stays_in",
+        FAMILY_BEHAVIOR,
+        "after this trigger the system remains in the same state",
+        "the run does not remain in this state after the trigger cycle",
+        ("source", "trigger"),
+        "one bounded witness",
+        "simulate(...) then compare the active configuration against source",
+        "simulate",
+        nl_index="an event must leave the mode unchanged: \"is ignored\", \"has no effect\", \"remains in\", \"continues to\"",
+        nl_cue=(
+            "the sentence says a stimulus must not move the system out of where it "
+            "is, including a self-loop described in words. False means the run is no "
+            "longer in `source` after that cycle -- which may be a completion or guard "
+            "edge rather than the trigger, so do not report it as \"the event moved the "
+            "system\" without checking `event_consumed`. When the sentence "
+            "instead requires a response and the worry is that none exists, that is "
+            "event_consumed; the *declaration* of a self-loop is edge_declared(s, t, s), since "
+            "this predicate cannot tell an ignored event from a declared one."
+        ),
+        field_specs=(
+            ('source', 'the configuration that must not change'),
+            ('trigger', 'the declared event path; the predicate answers on occupancy alone -- whether the configuration still holds `source` after the trigger cycle, consumed or not'),
+        ),
+        examples=(
+            'stays_in(source="Sys.ModeA", trigger="Sys.noop")  # True whenever the run is still in ModeA afterwards',
+            'stays_in(source="Sys.ModeA", trigger="Sys.evt")  # False when the event moves the system',
+            'stays_in(source="Sys.ModeA", trigger="Sys.other")  # True when the event is simply ignored here -- ignoring is not leaving. A missing self-loop is edge_declared(source, trigger, source) -- not event_declared, which is True whenever the event exists anywhere',
+        ),
+    ),
+    #: universality: ① 有领域证据 —— 0 个界内真实系统（0 领域）+ 若干篇独立文献。
+    #: 代表来源：UmpleRun: a Dynamic Analysis Tool for Textua (ceur-ws.org)；Mode Confusion Analysis of a Flight Guidance (shemesh.larc.nasa.gov)。
+    #: ⚠️ 恰好 3 源、踩在下限上；界内语料侧为 0。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
+    Predicate(
+        "variable_delta_after",
+        FAMILY_BEHAVIOR,
+        "running this trigger changes this variable in this direction",
+        "an effect is declared but the executed path never reaches it: "
+        "declaration and runtime disagree",
+        ("source", "trigger", "variable", "sign"),
+        "one bounded witness",
+        "simulate(...).cycles[...].variables",
+        "simulate",
+        nl_index="the quantity really changes when the system RUNS, not merely that a transition is annotated with it",
+        nl_cue=(
+            "the sentence claims an executed path changes a quantity. Reach for it "
+            "alongside effect_declared whenever the net effect over a sequence of "
+            "steps is what the sentence cares about: an effect declared on an "
+            "unreachable or guard-blocked transition never runs, and only this "
+            "predicate sees that."
+        ),
+        locators=("effect_deltas(...)",),
+        field_specs=(
+            ('source', 'the configuration the run starts from'),
+            ('trigger', 'the declared event path; the predicate verifies it was consumed'),
+            ('variable', "the variable's BARE name -- declared, or proposed by the Requirement"),
+            ('sign', '"negative" or "positive"'),
+        ),
+        examples=(
+            'variable_delta_after(source="Sys.ModeA", trigger="Sys.done", variable="units", sign="negative")',
+            'variable_delta_after(source="Sys.ModeA", trigger="Sys.add", variable="units", sign="positive")',
+            'variable_delta_after(source="Sys.ModeA", trigger="Sys.consume", variable="fuel_reserve", sign="negative")  # False when the model declares no variable under that name',
+        ),
+    ),
+    #: universality: ① 有领域证据 —— 3 个界内真实系统（3 领域）+ 若干篇独立文献。
+    #: 代表来源：Using FRET to Create, Analyze and Monitor Re (ntrs.nasa.gov)；STATEMATE: A Working Environment for the Dev (10.1109/32.54292)。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
+    Predicate(
+        "reaches",
+        FAMILY_BEHAVIOR,
+        "within a bounded number of cycles this target is reachable from here",
+        "an unreachable target: a broken chain or dead branch",
+        ("source", "target", "within_cycles"),
+        "one bounded witness, and it ignores triggers",
+        "simulate(...) multi-cycle",
+        "simulate",
+        nl_index="arrives somewhere with NO single event named: \"eventually\", \"can return to\", \"must be able to get back to\"",
+        nl_cue=(
+            "the sentence says the system eventually arrives somewhere, or arrives "
+            "within some number of steps, without naming the one stimulus that "
+            "takes it there -- \"eventually\", \"can always return to\", \"after the "
+            "sequence completes the system is back in\". When the sentence does name "
+            "the single triggering event, use occupancy_after instead."
+        ),
+        locators=("path(...)",),
+        caveat=(
+            "Reachability here is a bounded witness, not a proof: it runs the "
+            "model forward and reports whether the target was occupied within "
+            "the cycle budget. It ignores triggers, so it cannot stand in for "
+            "occupancy_after."
+        ),
+        field_specs=(
+            ('source', 'the configuration to start from'),
+            ('target', 'the declared state to reach'),
+            ('within_cycles', 'cycle budget; default 3. Every declared event is offered each cycle, so this ignores which trigger caused it'),
+        ),
+        examples=(
+            'reaches(source="Sys.ModeA", target="Sys.Idle", within_cycles=3)',
+            'reaches(source="[*]", target="Sys.ModeB", within_cycles=5)',
+            'reaches(source="Sys.ModeA", target="Sys.Dead", within_cycles=3)  # False: unreachable within the budget',
+        ),
+    ),
+    #: universality: ① 有领域证据 —— 2 个界内真实系统（1 领域）+ 若干篇独立文献。
+    #: 代表来源：PLC Implementation of Symbolic, Modular Supe (10.1016/j.ifacol.2018.06.317)；Supremica--An Efficient Tool for Large-Scale (10.1016/j.ifacol.2017.08.427)。
+    #: ⚠️ 只硬证了定义的一半：17 条候选里 10 条用 deadlock-freedom 顶替，已被裁定改判或拒收。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
+    Predicate(
+        "terminates",
+        FAMILY_BEHAVIOR,
+        "the model actually finishes",
+        "premature or impossible completion: the final state is unreachable, "
+        "or the path to it is guard-blocked",
+        ("scope",),
+        "one bounded witness",
+        "simulate(...).final.is_ended",
+        "simulate",
+        nl_index="the run ENDS: \"shuts down\", \"completes\", \"the cycle finishes\", \"powers off\", a named final state",
+        nl_cue=(
+            "the sentence describes the run finishing. A named end / final / done "
+            "state is this claim even when the sentence never uses the word "
+            "terminate. A claim that a cold start can finish binds `scope=\"[*]\"`."
+        ),
+        locators=("topology(...)",),
+        field_specs=(
+            ('scope', 'the configuration to start from, or "[*]" for a cold start'),
+            ('trigger', 'optional; when given only that event is offered, otherwise every declared event is'),
+        ),
+        examples=(
+            'terminates(scope="Sys.Draining", trigger="Sys.shutdown")  # does this event finish the model',
+            'terminates(scope="[*]")  # can the model finish at all from a cold start',
+            'terminates(scope="Sys.ModeA")  # False when no run from here reaches a final state',
+        ),
+    ),
+    # ---- Family P: quantified properties --------------------------------
+    #: universality: ① 有领域证据 —— 41 个界内真实系统（10 领域）+ 若干篇独立文献。
+    #: 代表来源：Using Abstraction and Model Checking to Dete (10.1109/32.730543)；Execution and Verification of UML State Mach (10.1007/978-3-319-10431-7_22)。
+    #: ⚠️ 同源折扣：Dwyer 系已按 DOI 归一为一个来源。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
+    Predicate(
+        "invariant",
+        FAMILY_PROPERTY,
+        "within the bound this condition always holds",
+        "a violated mutual exclusion; a reachable unsafe state; a broken "
+        "never/always constraint",
+        ("scope", "condition", "bound"),
+        "holds for every run up to the bound, and says nothing beyond it",
+        "fbmcq('check invariant <= k: ...')",
+        "fbmcq",
+        nl_index="constrains the WHOLE run: \"never\", \"at no time\", \"must always\", \"shall not while\"",
+        nl_cue=(
+            "the sentence constrains every instant rather than one step. "
+            "`condition` is an FCSTM state expression, so the constrained thing "
+            "must be expressible as which states are active; a constraint over a "
+            "variable value is not this predicate."
+        ),
+        caveat=(
+            "Writing !(active(A) && active(B)) for siblings of one sequential "
+            "region is a tautology and proves nothing.  Only holds is False is "
+            "a violation; a non-terminal status is invalid, never False."
+        ),
+        field_specs=(
+            ('scope', 'the declared state the run starts in'),
+            ('condition', 'an FCSTM boolean expression such as !active("Sys.Fault"); NOT a bare state path'),
+            ('bound', 'how many steps to check; default 5. Larger bounds cost exponentially more'),
+        ),
+        examples=(
+            'invariant(scope=\'Sys.ModeA\', condition=\'!active("Sys.Fault")\', bound=4)',
+            'invariant(scope=\'[*]\', condition=\'!active("Sys.Fault") && !active("Sys.Dead")\', bound=3)',
+            'invariant(scope=\'Sys.ModeA\', condition=\'!active("Sys.ModeB")\', bound=2)  # False when ModeB is reachable in two steps',
+        ),
+    ),
+    #: universality: ① 有领域证据 —— 17 个界内真实系统（6 领域）+ 若干篇独立文献。
+    #: 代表来源：User-friendly Model Checking Integration in  (download.fortiss.org)；A Method for Testing and Validating Executab (10.1007/s10270-018-0676-3)。
+    #: ⚠️ 对应关系缺口：文献的 Response 模式几乎一律是无界 eventually，本谓词的界是步数。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
+    Predicate(
+        "response_within",
+        FAMILY_PROPERTY,
+        "every occurrence of this trigger is answered within the bound; `response` is the state path that counts as the answer, not an expression",
+        "a missing or conditional response to a mandatory trigger",
+        ("trigger", "response", "bound"),
+        "holds for every run up to the bound, and says nothing beyond it",
+        "fbmcq('check response <= k: ...')",
+        "fbmcq",
+        nl_index="EVERY occurrence of a stimulus must be answered by a deadline: \"must respond within\", \"no later than\"",
+        nl_cue=(
+            "the sentence obliges an answer to each occurrence of a stimulus, with "
+            "a bound. `response` is a state path -- the answer must be entering a "
+            "state; if the required answer is anything else, this is not the "
+            "predicate."
+        ),
+        field_specs=(
+            ('trigger', 'the declared event path that creates the obligation'),
+            ('response', 'the declared STATE PATH that counts as the answer; not an expression'),
+            ('bound', 'step horizon; default 5'),
+            ('source', 'the configuration the obligation is about; supply it, or the event is offered where nothing can consume it'),
+        ),
+        examples=(
+            'response_within(trigger="Sys.evt", response="Sys.ModeB", bound=3, source="Sys.ModeA")',
+            'response_within(trigger="Sys.on", response="Sys.ModeA", bound=2, source="[*]")',
+            'response_within(trigger="Sys.evt", response="Sys.Never", bound=3, source="Sys.ModeA")  # False: no run answers in time',
+        ),
+    ),
+    #: universality: ① 有领域证据 —— 23 个界内真实系统（8 领域）+ 若干篇独立文献。
+    #: 代表来源：A Method for Testing and Validating Executab (10.1007/s10270-018-0676-3)；Formal Methods Case Studies for DO-333 (NASA (shemesh.larc.nasa.gov)。
+    #: ⚠️ 同源折扣：多条出自同一作者组的同一微波炉案例。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
+    Predicate(
+        "persists_until",
+        FAMILY_PROPERTY,
+        "this state holds continuously until this release condition",
+        "premature exit from a state that must persist",
+        ("state", "release", "bound"),
+        "holds for every run up to the bound, and says nothing beyond it",
+        "fbmcq('check invariant <= k' per release-frame case split; weak until)",
+        "fbmcq",
+        nl_index="a state is held CONTINUOUSLY until a later condition: \"remains ... until\", \"is maintained while\"",
+        nl_cue=(
+            "the sentence says a state must not be left before some later condition "
+            "holds. `release` is an FCSTM state expression, so a release that is "
+            "really an event belongs in response_within instead."
+        ),
+        caveat=(
+            "Infeasible on the pairs where formula construction exceeds budget; "
+            "expand into B-family claims when the domain is enumerable."
+        ),
+        field_specs=(
+            ('state', 'the declared state that must hold'),
+            ('release', 'an FCSTM boolean expression that ends the obligation, such as active("Sys.Done")'),
+            ('bound', 'step horizon; default 5'),
+        ),
+        examples=(
+            'persists_until(state=\'Sys.Hold\', release=\'active("Sys.Done")\', bound=4)',
+            'persists_until(state=\'Sys.Search\', release=\'active("Sys.Found")\', bound=3)',
+            'persists_until(state=\'Sys.Hold\', release=\'active("Sys.Done")\', bound=2)  # False when the run can leave Hold early',
+        ),
+    ),
+)
+
+PREDICATE_BY_NAME = {item.name: item for item in PREDICATES}
+_ALL_PROCEDURE_FUNCTIONS = frozenset(item.procedure_function for item in PREDICATES)
+PREDICATE_NAMES = frozenset(PREDICATE_BY_NAME)
+#: Declaration order, for building a stable Literal in the schema.
+PREDICATE_ORDER: tuple[str, ...] = tuple(item.name for item in PREDICATES)
+
+
+def family_of(predicate: str) -> str | None:
+    """Return the family of a predicate name, or ``None`` when unknown."""
+
+    entry = PREDICATE_BY_NAME.get(predicate)
+    return entry.family if entry is not None else None
+
+
+def verification_kind_of(predicate: str) -> str | None:
+    """Derive the legacy three-way label from a predicate name.
+
+    This replaces the prose ordered decision the splitter used to apply per
+    sentence, which is why two models disagreed on the same requirement.
+    """
+
+    family = family_of(predicate)
+    return FAMILY_TO_VERIFICATION_KIND.get(family) if family else None
+
+
+#: Optional keyword arguments beyond the required bindings, with the runtime
+#: default, so the signature shown to the producer is the real one.
+PREDICATE_OPTIONS: dict[str, tuple[str, ...]] = {
+    "occupancy_after": ("within_cycles: int = 1",),
+    "reaches": ("within_cycles: int = 3",),
+    "terminates": ("trigger: str | None = None",),
+    "invariant": ("bound: int = 5",),
+    "response_within": ("bound: int = 5", "source: str | None = None"),
+    "persists_until": ("bound: int = 5",),
+}
+
+#: Binding names whose value is one of a fixed value list, not a model element.
+FREE_FORM_BINDINGS = frozenset(
+    {"kind", "sign", "phase", "count", "bound", "condition", "release"}
+)
+
+#: The literal value lists, rendered into the signature so the producer never
+#: has to guess and the reviewer never has to reject a legal literal.
+_LITERAL_ARGS = {
+    "count": "count: int",
+    "kind": 'kind: "leaf"|"composite"|"pseudo"|"any"',
+    "sign": 'sign: "negative"|"positive"',
+    "phase": 'phase: "entry"|"exit"|"during"',
+    "condition": "condition: str",
+    "release": "release: str",
+    "bound": "bound: int",
+    "within_cycles": "within_cycles: int",
+}
+
+
+def signature_of(name: str) -> str:
+    """Render the exact callable signature of one predicate."""
+
+    entry = PREDICATE_BY_NAME[name]
+    args = [_LITERAL_ARGS.get(b, f"{b}: str") for b in entry.bindings]
+    listed = set(entry.bindings)
+    args.extend(
+        opt
+        for opt in PREDICATE_OPTIONS.get(name, ())
+        if opt.split(":")[0].strip() not in listed
+    )
+    return f"{name}({', '.join(args)}) -> bool"
+
+
+#: The predicates that ask whether the model declares an element at all.
+#: A False from one of these is not a vacuous pass but the answer: nothing was
+#: looked up and found empty, the question *was* "is it there".  So a name absent
+#: from the frozen model is legitimate in exactly these calls, whatever role the
+#: assertion carries -- which is what lets a requirement whose own predicate is an
+#: existence check be discharged by one assertion instead of a precondition plus a
+#: byte-identical dependent.
+EXISTENCE_PREDICATES = frozenset(
+    {"state_declared", "variable_declared", "event_declared"}
+)
+
+
+#: 绑定名 → 该元素种类的存在性谓词。派生用，不手写谓词对。
+#:
+#: 每个谓词都**预设**它所绑元素存在：`occupancy_after(source=A, trigger=E, target=B)` 只有在
+#: A、B 是状态、E 是事件时才有意义。这是预设（presupposition）而不是经验关联 —— 它从签名本身
+#: 就能读出来，与语料无关。
+#:
+#: 为什么它值得被显式化：一句 NL 往往同时承载「这个要素存在」与「它如何行为」两重义务，而
+#: 生产者只写后者。v37 实测 ① 需求层 91 位里 23 位的台账 primary 是 `event_declared` —— NL
+#: 点名了刺激、模型没声明它，而需求集里只有关于迁移的主张，从不断言该事件是否存在。
+#:
+#: provenance: 形式语义中的预设（presupposition）—— 一个带参谓词的可满足性预设其论元存在；
+#: 需求工程通则：规范点名的要素必须存在，这是独立于其行为的一条义务。
+_BINDING_ELEMENT_KIND = {
+    "state": "state_declared",
+    "source": "state_declared",
+    "target": "state_declared",
+    "parent": "state_declared",
+    "child": "state_declared",
+    "composite": "state_declared",
+    "scope": "state_declared",
+    "response": "state_declared",
+    "event": "event_declared",
+    "trigger": "event_declared",
+    "variable": "variable_declared",
+}
+
+#: 强制配对的元素种类。状态已有前置扫描（见 splitter prompt 的 "substates it names by name"），
+#: 事件与变量此前**没有任何对应机制**，所以只对这两类强制 —— 范围有界，且正对着实测缺口。
+_PAIRED_ELEMENT_KINDS = frozenset({"event_declared", "variable_declared"})
+
+
+def presupposes(name: str) -> tuple[tuple[str, str], ...]:
+    """``(binding, existence_predicate)`` pairs this predicate presupposes.
+
+    Derived from the predicate's own ``field_specs`` -- never hand-listed, so a new predicate
+    gets its presuppositions for free and cannot silently miss one.
+
+    :param name: predicate name.
+    :return: pairs for the bindings that name a model element of another kind.
+    """
+
+    entry = PREDICATE_BY_NAME.get(name)
+    if entry is None:
+        return ()
+    return tuple(
+        (binding, _BINDING_ELEMENT_KIND[binding])
+        for binding, _ in entry.field_specs
+        if binding in _BINDING_ELEMENT_KIND
+        and _BINDING_ELEMENT_KIND[binding] != name
+    )
+
+
+def paired_presuppositions(name: str) -> tuple[tuple[str, str], ...]:
+    """The subset of :func:`presupposes` that a supporting assertion must discharge."""
+
+    return tuple(
+        (binding, predicate)
+        for binding, predicate in presupposes(name)
+        if predicate in _PAIRED_ELEMENT_KINDS
+    )
+
+
+def accepted_bindings(name: str) -> frozenset[str]:
+    """Every keyword one predicate accepts: required bindings plus its options."""
+
+    entry = PREDICATE_BY_NAME[name]
+    optional = {
+        opt.split(":")[0].strip() for opt in PREDICATE_OPTIONS.get(name, ())
+    }
+    return frozenset(entry.bindings) | optional
+
+
+def misspelled_binding_findings(expression: str) -> tuple[str, ...]:
+    """Return predicate calls that pass a keyword the predicate does not accept.
+
+    At runtime this is a `TypeError`, which the controller cannot dispatch on --
+    but the static gates run first, and they mis-diagnose it.  `variable_declared`
+    was briefly spelled with a `name=` keyword; a script written that way had its
+    proposed name invisible to the reference gate, which then reported the
+    *dependent* assertion as holding an unresolved reference.  The producer was
+    told to fix a name that was correct, in an assertion that was correct, while
+    the actual typo sat one line above.
+
+    Naming the accepted keywords turns that into one round.
+
+    :param expression: the assertion's terminal Python expression.
+    :return: one finding per offending call; empty when every keyword is accepted.
+    """
+
+    tree = None
+    for mode in ("eval", "exec"):
+        try:
+            tree = ast.parse(expression, mode=mode)
+            break
+        except SyntaxError:
+            continue
+    if tree is None:
+        return ()
+    findings: list[str] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Name):
+            continue
+        called = node.func.id
+        if called not in PREDICATE_BY_NAME:
+            continue
+        allowed = accepted_bindings(called)
+        unknown = sorted(
+            str(keyword.arg)
+            for keyword in node.keywords
+            if keyword.arg is not None and keyword.arg not in allowed
+        )
+        if unknown:
+            findings.append(
+                f"{called} does not accept {unknown}; its bindings are "
+                f"{sorted(allowed)}"
+            )
+    return tuple(dict.fromkeys(findings))
+
+
+def binding_examples(name: str) -> tuple[tuple[str, str], ...]:
+    """Re-emit each worked call of ``name`` as the JSON binding dict.
+
+    The requirement stages write `predicate_bindings`, the assertion stages
+    write a call, and the two must agree on every value.  Deriving the dict form
+    from the call form by parsing it makes that agreement structural rather than
+    a thing two prompt authors have to keep in step by hand.  Values are
+    stringified because that is what the schema stores.
+
+    :param name: predicate name.
+    :return: ``(json_object, note)`` per example; the note is the call's comment.
+    """
+
+    entry = PREDICATE_BY_NAME[name]
+    rendered: list[tuple[str, str]] = []
+    for example in entry.examples:
+        call, _, note = example.partition("  # ")
+        node = ast.parse(call.strip(), mode="eval").body
+        assert isinstance(node, ast.Call)  # noqa: S101 - table is ours, checked in tests
+        pairs = {
+            kw.arg: str(ast.literal_eval(kw.value))
+            for kw in node.keywords
+            if kw.arg is not None
+        }
+        rendered.append((json.dumps(pairs, ensure_ascii=False), note.strip()))
+    return tuple(rendered)
+
+
+def vocabulary_prompt() -> str:
+    """Render the vocabulary for the requirement stages.
+
+    Says what each predicate decides, what defect it exposes, and how strong the
+    answer is.  It deliberately does not say how any of them is computed: the
+    requirement stages choose a claim shape, and the mechanism is not theirs to
+    reason about.
+    """
+
+    lines = [
+        "Predicate vocabulary. Every claim must name exactly one predicate from "
+        "this closed list. The family, and therefore the evidence the controller "
+        "requires, follows from the predicate -- you do not choose it.",
+        "",
+        "How the bindings look, one per family:",
+        '  state_declared   -> {"state": "Sys.ModeA", "kind": "leaf"}',
+        '  occupancy_after  -> {"source": "Sys.ModeA", "trigger": "Sys.evt", "target": "Sys.ModeB"}',
+        '  invariant        -> {"scope": "Sys.ModeA", "condition": "!active(\\"Sys.Fault\\")", "bound": "4"}',
+        "",
+        "Every binding the predicate lists must be present, and every value that "
+        "names a model element is a name: copied verbatim from "
+        "`declared_model_vocabulary` when the model declares it, or -- when the "
+        "sentence requires an element this model does not declare -- the name that "
+        "element should have, taken from the sentence's own wording, together with "
+        "a `limitations` entry recording that the model declares nothing under it. "
+        'Do not substitute a different declared element that happens to fit the '
+        'slot. "[*]" is the initial configuration, so a requirement binding it to '
+        '`source` or `scope` -- including the signature examples below that do so -- '
+        'is a claim anchored at power-on and must carry '
+        '`source_context.behavior_phase = "initialization"`. That is true even when '
+        'the claim is about the run ending: `terminates(scope="[*]")` asks whether a '
+        'cold start can finish, and the anchor is still the initial configuration. '
+        'Any other phase there is refused, because anchoring a running-system claim '
+        'before the machine has entered anything asks a different question -- and if '
+        'the model happens to be wrong in that configuration, the answer comes back '
+        'true for a reason the sentence never asked about. The remaining bindings take one '
+        "of the literal values shown in the signature.",
+        "",
+        "Which predicate the sentence is asking for. Scan the sentence against "
+        "this list BEFORE reading the catalogue: the catalogue is indexed by "
+        "predicate, and answers 'what does this one assert' -- useful only once "
+        "you have already guessed which one you want. A sentence routinely "
+        "matches several lines, and each match is a separate Requirement, "
+        "because each is separately violable. Matching means the sentence makes "
+        "that claim, not that its words merely appear.",
+    ]
+    width = max(len(item.name) for item in PREDICATES)
+    for item in PREDICATES:
+        lines.append(f"  {item.name.ljust(width)}  <- {item.nl_index}")
+    for family, title in (
+        (
+            FAMILY_STRUCTURE,
+            "Family S -- claims about what the model declares. Answered from the "
+            "declarations, which is the correct evidence for them, not a shortcut.",
+        ),
+        (
+            FAMILY_BEHAVIOR,
+            "Family B -- claims about what the model does when it runs.",
+        ),
+        (
+            FAMILY_PROPERTY,
+            "Family P -- claims quantified over runs, checked up to a bound.",
+        ),
+    ):
+        lines.append(f"\n{title}")
+        for item in PREDICATES:
+            if item.family != family:
+                continue
+            lines.append(f"- `{signature_of(item.name)}`")
+            lines.append(f"    asserts: {item.meaning}")
+            lines.append(f"    reach for it when: {item.nl_cue}")
+            lines.append(f"    exposes: {item.proves}")
+            lines.append(f"    strength: {item.strength}")
+            if item.caveat:
+                lines.append(f"    boundary: {item.caveat}")
+            lines.append("    bindings, each required:")
+            for binding, spec in item.field_specs:
+                lines.append(f"      - {binding}: {spec}")
+            paired = paired_presuppositions(item.name)
+            if paired:
+                owed = ", ".join(
+                    f"`{predicate}` on the `{binding}` you bind" for binding, predicate in paired
+                )
+                lines.append(
+                    f"    also owes: {owed}. Naming an element is asserting it exists, and that "
+                    "claim is separately violable -- a transition claim about an event the model "
+                    "never declares reports the transition, never the missing event. Write it as "
+                    "a `supporting` assertion on the same Requirement (NOT a `precondition`: a "
+                    "precondition that comes back False makes the controller skip the primary, "
+                    "so the missing element would become the reason the real question is never "
+                    "asked)."
+                )
+            lines.append("    predicate_bindings examples:")
+            for payload, note in binding_examples(item.name):
+                suffix = f"   # {note}" if note else ""
+                lines.append(f"      {payload}{suffix}")
+    return "\n".join(lines)
+
+
+def callable_prompt() -> str:
+    """Render the callable reference for the assertion stages.
+
+    Signature, what it decides, how strong the answer is, where it stops, and a
+    worked example.  Nothing about how it is implemented -- an assertion cannot
+    reach the mechanism, so describing it only tempts the producer to try.
+    """
+
+    lines = [
+        "Callable predicate reference. These are the ONLY evidence functions in "
+        "the assertion environment. Each returns a strict bool and raises when it "
+        "cannot answer, so you never guard a call.",
+        "",
+        "Arguments that name a model element take that element's name: copied "
+        "verbatim from `declared_model_vocabulary` when the model declares it, or "
+        "the name the Requirement proposes when it does not -- the existence "
+        "predicates answer which of the two it is, so both are ordinary values "
+        "here. `[*]` is also accepted wherever a source is expected, for the "
+        "initial configuration: use it when the claim is about power-on or first "
+        "entry and has no named source state. `condition` and `release` are FCSTM "
+        "expressions rather than names. Arguments shown with a value list take one "
+        "of those values.",
+        "",
+        "The `expression` field holds a bare boolean EXPRESSION. Do not write "
+        "`assert`, do not append a message, do not end with a semicolon: the "
+        "controller wraps what you give it as `assert (<your expression>), "
+        "<your failure_message>`, so an `assert` inside the field produces "
+        "`assert (assert ...), \"...\"` and the whole script fails to parse. The "
+        "`[REQ-xxx][AST-xxx]` label belongs in the separate `failure_message` "
+        "field, never in the expression.",
+        "",
+        "    right:  state_declared(state=\"Sys.ModeA\", kind=\"leaf\") is True",
+        "    wrong:  assert state_declared(state=\"Sys.ModeA\", kind=\"leaf\") is True, \"[REQ-001] ...\"",
+        "",
+        "Worked expressions -- several per family, covering every argument shape.",
+        "",
+        "Family S (declarations). Note that `kind`, `phase`, `sign` and `count` "
+        "take a listed literal, not a path:",
+        '    state_declared(state="Sys.ModeA", kind="leaf") is True',
+        '    containment(parent="Sys.Outer", child="Sys.Outer.Inner") is True',
+        '    cardinality(scope="Sys.Outer", count=3) is True',
+        '    action_declared(state="Sys.ModeA", phase="entry") is True',
+        '    effect_declared(source="Sys.ModeA", trigger="Sys.done", variable="units", sign="negative") is True',
+        "",
+        "Family B (runtime). `source` is the configuration the claim is about; "
+        'use "[*]" when the claim is about power-on or first entry:',
+        '    occupancy_after(source="Sys.ModeA", trigger="Sys.evt", target="Sys.ModeB") is True',
+        '    occupancy_after(source="[*]", trigger="Sys.on", target="Sys.ModeA") is True',
+        '    event_consumed(source="Sys.ModeA", trigger="Sys.evt") is True',
+        '    terminates(scope="Sys.Draining", trigger="Sys.shutdown") is True',
+        "",
+        "Family P (bounded over all runs). `condition` and `release` are FCSTM "
+        "expressions, not paths:",
+        '    invariant(scope="Sys.ModeA", condition=\'!active("Sys.Fault")\', bound=4) is True',
+        '    response_within(trigger="Sys.evt", response="Sys.ModeB", bound=3, source="Sys.ModeA") is True',
+        '    persists_until(state="Sys.Hold", release=\'active("Sys.Done")\', bound=4) is True',
+        "",
+        "A claim over several named elements folds with all(). An existence check "
+        "is the one thing that never folds into the claim resting on it: a single "
+        "verdict cannot distinguish an element that is missing from one that is "
+        "present and behaves wrongly, and those take different repairs. Keep those "
+        "two as separate assertions linked by depends_on:",
+        '    all([occupancy_after(source="Sys.RegionA.Working", trigger="Sys.abort", target="Sys.Idle"),',
+        '         occupancy_after(source="Sys.RegionB.Working", trigger="Sys.abort", target="Sys.Idle")]) is True',
+        '    event_declared(event="Sys.recalibrate") is True    # precondition',
+        '    edge_declared(source="Sys.Idle", trigger="Sys.recalibrate", target="Sys.Calibrating") is True    # depends_on it',
+        "The pairing above is required for any element kind the model does not "
+        "declare -- state, event, variable or action -- not only for the kind shown.",
+        "",
+        "Besides these you may use only plain builtins: len, all, any, bool, int, "
+        "str, sorted, sum, min, max, set, list, tuple, abs, round, float, iter. "
+        "Anything else is not in the namespace.",
+    ]
+    for family, title in (
+        (FAMILY_STRUCTURE, "Family S -- decided from the declarations"),
+        (FAMILY_BEHAVIOR, "Family B -- decided by running the model"),
+        (FAMILY_PROPERTY, "Family P -- decided up to a bound over all runs"),
+    ):
+        lines.append(f"\n{title}")
+        for item in PREDICATES:
+            if item.family != family:
+                continue
+            lines.append(f"  `{signature_of(item.name)}`")
+            lines.append(f"      decides: {item.meaning}")
+            lines.append(f"      strength: {item.strength}")
+            if item.caveat:
+                lines.append(f"      boundary: {item.caveat}")
+            for binding, spec in item.field_specs:
+                lines.append(f"      arg {binding}: {spec}")
+            for example in item.examples:
+                lines.append(f"      e.g. {example}")
+    return "\n".join(lines)
+
+
+def procedure_mismatch(
+    predicate: str, called_functions: frozenset[str] | set[str]
+) -> tuple[str, str] | None:
+    """Return ``(required, note)`` when a primary assertion dodges the procedure.
+
+    The gate exists because a locator answers a neighbouring, *easier* question.
+    ``transition_exists`` says an edge is declared; ``occupancy_after`` asks
+    whether the system actually gets there.  Closing the second with the first
+    reports "satisfied" for a model whose declared edge is unreachable or
+    guard-blocked, and reports a violation for a model that reaches the target
+    through declared follow-up transitions.  Pair 0006's false positive was
+    exactly this substitution.
+
+    Returns ``None`` when the predicate is unknown or absent -- an unnamed claim
+    keeps the pre-predicate behaviour rather than being rejected, so v1/v2
+    artifacts and producers that have not adopted the vocabulary still run.
+
+    :param predicate: the Requirement's declared predicate name.
+    :param called_functions: evidence functions parsed from the assertion.
+    :return: ``None`` when acceptable, else the required function and a note.
+    """
+
+    entry = PREDICATE_BY_NAME.get(predicate)
+    if entry is None:
+        return None
+    # The predicate is itself the callable now, so the check is exact: the
+    # primary assertion must call *this* predicate.  Checking only the underlying
+    # primitive was the weaker form -- it could not tell whether the call asked
+    # the right question, which is how a tautological bounded query passed.
+    if predicate in called_functions:
+        return None
+    used = sorted(called_functions & PREDICATE_NAMES)
+    if used:
+        note = (
+            f"predicate {predicate!r} must be discharged by calling "
+            f"{signature_of(predicate)}; the primary assertion called "
+            f"{used} instead. Another predicate answers a different question, so "
+            "it cannot close this claim."
+        )
+    else:
+        # No evidence call at all.  Pair 0006's converter reached this after the
+        # Reviewer had rejected every substitute release condition: it wrote
+        # `expression: "False"` with a rationale explaining why the model cannot
+        # satisfy the claim.  That is a conclusion, not a check -- it asserts a
+        # defect on no evidence -- so rejecting it is right.  But the producer had
+        # nowhere left to go, and repeated the shape until the run died.  Naming
+        # the exit turns a dead end into one more round.
+        note = (
+            f"predicate {predicate!r} must be discharged by calling "
+            f"{signature_of(predicate)}; the primary assertion called no "
+            "predicate at all. A literal such as `False` asserts a defect on no "
+            "evidence and can never be accepted. If the claim needs a model "
+            "element this model does not declare, name that element: assert its "
+            "existence as a `precondition` under the name it should have, and "
+            "have this primary list that precondition in depends_on."
+        )
+    return (predicate, note)
+
+
+def unmodelled_claim_paths(
+    *,
+    statement: str,
+    bindings: dict[str, str],
+    expressions: tuple[str, ...],
+    known_paths: frozenset[str],
+) -> tuple[str, ...]:
+    """Return declared model paths the statement names but nothing tests.
+
+    Pair 0029 carried a requirement asserting two things at once -- that a state
+    is contained in a parent *and* that entering the parent starts there -- and
+    only the second half was asserted.  The requirement was then reported
+    satisfied, because nothing noticed the first half had no evidence.
+
+    Detecting that in general needs to read the sentence, which is not something
+    to do deterministically.  What *is* deterministic is weaker and still useful:
+    the statement names declared model paths that appear in neither the
+    predicate's bindings nor any primary expression.  Each one is a candidate
+    untested claim.
+
+    This is reported, never enforced.  A statement legitimately names context
+    paths, so a hard gate here would reject valid work; the point is to make the
+    residue visible and measurable before deciding whether it needs a gate.
+
+    :param statement: the requirement statement text.
+    :param bindings: the requirement's ``predicate_bindings``.
+    :param expressions: primary assertion expressions for that requirement.
+    :param known_paths: declared state/event paths from the frozen inspect.
+    :return: sorted paths named by the statement but covered nowhere.
+    """
+
+    covered = " ".join([*bindings.values(), *expressions])
+    return tuple(
+        sorted(
+            path
+            for path in known_paths
+            if path and path in statement and path not in covered
+        )
+    )
+
+
+__all__ = [
+    "EXISTENCE_PREDICATES",
+    "accepted_bindings",
+    "misspelled_binding_findings",
+    "FAMILY_BEHAVIOR",
+    "FAMILY_PROPERTY",
+    "FAMILY_STRUCTURE",
+    "FAMILY_TO_VERIFICATION_KIND",
+    "PREDICATES",
+    "PREDICATE_BY_NAME",
+    "PREDICATE_NAMES",
+    "PREDICATE_ORDER",
+    "Predicate",
+    "family_of",
+    "verification_kind_of",
+    "FREE_FORM_BINDINGS",
+    "PREDICATE_OPTIONS",
+    "callable_prompt",
+    "procedure_mismatch",
+    "signature_of",
+    "vocabulary_prompt",
+]

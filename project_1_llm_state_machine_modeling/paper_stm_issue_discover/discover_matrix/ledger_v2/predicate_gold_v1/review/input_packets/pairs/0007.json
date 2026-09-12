@@ -1,0 +1,308 @@
+{
+  "instructions": [
+    "Recover obligation O from the complete NL, author PlantUML, ledger reasoning, and cited formal semantics before proposing any executable property.",
+    "Do not infer inputs from state-name similarity, old planned mappings, v60 actual outputs, reference models, or execution results.",
+    "State missing quantifier, scope, timing, domain, bound, or environment information explicitly instead of inventing it."
+  ],
+  "ledger_items": [
+    {
+      "axes": {
+        "defect_element": null,
+        "defect_locus": "global",
+        "defect_logic_kind": "unintended_terminal",
+        "defect_qualifier": null,
+        "defect_reference": "requirement"
+      },
+      "d_basis": "判 D2。被违反的义务有成文出处，即 NL 第 2 句「This sub-machine becomes active when a possible frontend collision, rear-end collision or collision with pedestrian is detected」——子机必须能变为活动，而制品里它不可达。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法：`InitialState` 没有任何出边、没有内部结构、也没有任何祖先可以继承出边，不存在任何解释能让检测流程被进入。反驳不存活。",
+      "d_tier": "D2",
+      "detail": "`:2` 是全文唯一的根层初始边，目标是 `InitialState`。这个名字此后只在 `:32 CollisionAvoidance --> InitialState : Collision Resolved` 中再次出现，仍然是作为目标。全文没有任何迁移以 `InitialState` 为源端，它也没有被声明为复合态（没有 `state InitialState { }`），因此没有内部结构可以走。\n\n后果是整台机器一启动就停住。`CollisionDetection`（:4-:9）与 `CollisionAvoidance`（:11-:23）虽然彼此之间有 `:31` 相连，但没有任何一条边从 `InitialState` 通向它们，所以两棵子树都不可达。更进一步，`:32` 那条「碰撞解决后回到 InitialState」的边即使能被触发，回来之后系统也再出不去——无法重新武装，第二次碰撞不会再被处理。\n\n这直接违反 NL 第 2 句：「This sub-machine becomes active when a possible frontend collision, rear-end collision or collision with pedestrian is detected.」这句要求子机在检测到碰撞时变为活动，而制品里它永远不会活动。\n\n根因可以从上游工作簿追到：Phase-I（列 I）的原始生成里，`InitialState` 是一个包含整个检测流程的复合状态，语义是连通的；上游论文的语义修复阶段把它改成了一个空的叶状态，同时把检测流程拆出来做成同级的 `CollisionDetection`——拆的时候没有补上从 `InitialState` 到 `CollisionDetection` 的边，可达性就此断掉。也就是说这是修复动作注入的缺陷，不是生成模型原本的错误。",
+      "l_basis": "判 L2。陈述这条错误的核心是一个可达性论证：要说明从 `:2` 出发的全部执行路径都到不了 `CollisionDetection` 与 `CollisionAvoidance`。这需要对行为集合做穷尽排除，不是在某个系统状态上读出来的静态事实。",
+      "l_tier": "L2",
+      "ledger_id": "EIS-0007-01",
+      "ledger_json_pointer": "/items/EIS-0007-01",
+      "origin_family": "expected_issue（原台账已记录）",
+      "pair_id": "0007",
+      "source_text": {
+        "l_basis_rule": "须证明可达且无出路（全路径）",
+        "l_decided_by": "规则档",
+        "meta_review": "**判 D2**：三臂一致认定它违反了 NL 里这句「This sub-machine becomes active when a possible frontend collision, rear-end collision or 」，且三方都尝试过推翻、都没找到站得住的第二种读法 —— 义务有成文条文可引、反驳不存活，是 `D2-lit`。",
+        "statement": "顶层唯一初始迁移落在 InitialState，而 InitialState 只有入边没有出边，整机永久停在该状态：检测流程与避撞控制都不可达，`CollisionAvoidance --> InitialState : Collision Resolved` 回来后也再也出不去（无法重新武装）。这是对 NL 第2句（检测到碰撞时子机becomes active）的硬性违反。核对 workbook：Phase-I（列 I）里 InitialState 是**包含检测流程的复合状态**，语义连通；论文语义修复阶段把它改成空叶状态并把检测流程拆成同级 CollisionDetection，才造成不可达——属修复引入缺陷。",
+        "verdict_reason": null
+      },
+      "summary": "顶层唯一的初始迁移 `:2 [*] --> InitialState` 落在 `InitialState` 上，而这个状态只有入边没有出边，于是整机永久停在那里——碰撞检测与避撞控制两棵子树都不可达。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0007/0007.md",
+        "sha256": "sha256:cf88b0a0d3072c930ff348407fa5bfd4d3bd793cc6368223214b2d3faee97143"
+      }
+    },
+    {
+      "axes": {
+        "defect_element": "trigger",
+        "defect_locus": "element",
+        "defect_logic_kind": null,
+        "defect_qualifier": "extraneous",
+        "defect_reference": "language"
+      },
+      "d_basis": "判 D1，两读并立，且有两条彼此独立的削弱理由。其一，PlantUML 的迁移标签是自由文本，工具不赋予它角色，`:13`/`:17`/`:21` 冒号后的文字既可以读作触发事件，也可以读作 effect（进入时执行的动作）；按 effect 读，UML 那条规定就没有被违反，而且从文字含义看（开始制动、转向介入、告警启动）effect 读法反而更自然。其二，退一步说，即便按触发事件读，「模型内无人产生该事件」也推不出「控制不会激活」——事件完全可以来自模型外部的环境，本文件对 `:6`/`:7`/`:8` 的三个检测事件用的就是同样的处理方式（它们也没有模型内的产生者）。两条削弱理由都成立且都未被排除，故不判 D2。",
+      "d_tier": "D1",
+      "detail": "`:11` 开 `state CollisionAvoidance {`，块内用 `:12`、`:16`、`:20` 的三个 `--` 分成三个区。每个区的第一行都是一条带标签的默认入口边：`:13 [*] --> AutomaticBraking : Start Braking`、`:17 [*] --> SteeringControl : Steering Engaged`、`:21 [*] --> AlertSystem : Alerts Activated`。\n\n若把冒号后的文本读作触发事件，那么有两层问题。语言层面：UML 2.5.1 规定从初始伪状态出发的迁移不得带触发事件，也不得带守卫。语义层面：这三个事件名在全文（`:1`-`:33`）的其它任何位置都没有出现过，即模型里没有任何迁移的 effect 会产生它们，也没有任何声明把它们标为外部事件——按这个读法，进入 CollisionAvoidance 之后三个区都不会激活任何控制。这与 NL 第 2、3 句的「检测到即激活」语义相冲突（第 3 句「The orthogonal regions of the active mode of collision avoidance allow for concurrent activation different of collision avoidance controls」）。\n\n根因是把「这个控制要开始做什么」写成了进入这个控制的条件。三个标签的文字（开始制动、转向介入、告警启动）读起来更像是进入状态时要执行的动作，而不是等待的事件。",
+      "l_basis": "判 L0。陈述这条错误只需就地读 `:13`、`:17`、`:21` 这三行，看 `[*] -->` 后面的冒号有没有跟内容；配套的「这三个事件名在全文别处没出现过」也只是对文本做一次名字检索。都在词法层面，不需要从模型结构导出新事实，也不需要执行序列。",
+      "l_tier": "L0",
+      "ledger_id": "EIS-0007-02",
+      "ledger_json_pointer": "/items/EIS-0007-02",
+      "origin_family": "expected_issue（原台账已记录）",
+      "pair_id": "0007",
+      "source_text": {
+        "l_basis_rule": "NL 点名的元素模型没有／模型多出 NL 未点名的元素 —— 词项对比即可陈述",
+        "l_decided_by": "规则档",
+        "meta_review": "L13/L17/L21 标签既可读作 trigger 也可读作 effect（PlantUML 不赋角色），且即便按 trigger 读，模型内无人产生该事件本身也推不出控制不会激活——两条独立的削弱理由都成立。",
+        "statement": "三个区的初始迁移各自带一个模型中无人产生的触发事件，因此即使进入 CollisionAvoidance 也没有任何控制被激活，违反 NL 第2、3句\"检测即激活\"的语义（UML 亦不允许初始迁移带触发）。",
+        "verdict_reason": null
+      },
+      "summary": "`CollisionAvoidance` 三个区的初始迁移 `:13`、`:17`、`:21` 各自带了一个标签（`Start Braking` / `Steering Engaged` / `Alerts Activated`），若按触发事件读则违反 UML 对初始伪状态出边的规定，且这三个事件在模型里无人产生。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0007/0007.md",
+        "sha256": "sha256:cf88b0a0d3072c930ff348407fa5bfd4d3bd793cc6368223214b2d3faee97143"
+      }
+    },
+    {
+      "axes": {
+        "defect_element": "state",
+        "defect_locus": "element",
+        "defect_logic_kind": null,
+        "defect_qualifier": "extraneous",
+        "defect_reference": "requirement"
+      },
+      "d_basis": "判 D2。三条各自独立的违反：其一，NL 第 1 句「There are three region in this diagram」与第 2、3 句共同界定了这份图的范围就是碰撞检测与避撞控制，`OperationalControls` 的三项功能在 NL 全文没有任何对应，属无依据的过度规定；其二，一个没有任何入边的顶层复合态在任何执行下都不会被进入，是死代码；其三，同一个区里并列三条默认入口边违反 UML 对区域默认入口唯一性的要求，且同文件的 `:12`/`:16`/`:20` 证明作者知道用 `--` 分区。三个判读臂一致认定成立。需要如实记下的是：三臂在给理由时都没有主动引出上面任一条出处，出处是本次重写时补齐的。 三条子主张各自都没有可存活的反驳：NL 全文三句里找不到信号反馈、健康检查、通信控制中的任何一个；「没有入边但仍会被进入」在顺序状态机里不存在这种可能；「三条默认入口其实分属三个区」也被同文件 `:12`/`:16`/`:20` 的 `--` 用法否掉——作者会分区，这里没分。",
+      "d_tier": "D2",
+      "detail": "`:25` 开 `state OperationalControls {`，块内是三行默认入口边：`:26 [*] --> FeedbackControl : Signal Feedback`、`:27 [*] --> SystemCheck : Health Check`、`:28 [*] --> CommunicationControl : Communicate Control`。\n\n三个问题叠在一起。\n\n第一，无 NL 依据。NL 只有三句话：第 1 句「There are three region in this diagram」，第 2 句说这个子机在检测到前向碰撞、追尾或行人碰撞时变为活动，第 3 句说避撞的活动模式由正交区支持并发激活不同的避撞控制。信号反馈、健康检查、通信控制这三样在 NL 全文里一个字都没有，也不在避撞这个主题范围内。\n\n第二，死代码。全文只有 `:31 CollisionDetection -down-> CollisionAvoidance : Collision Mode Active` 与 `:32 CollisionAvoidance --> InitialState : Collision Resolved` 两条跨顶层状态的迁移，没有任何一条以 `OperationalControls` 为目标。它既没有入边、也不是根层初始边的目标，因此永远不会被进入。\n\n第三，非确定初始。`:26`-`:28` 三行都是 `[*] -->`，而它们之间没有 `--` 分隔——对比同一文件的 `:11`-`:23`，作者在 CollisionAvoidance 里是用 `--` 明确分区的，说明他知道怎么写正交区。所以这三条初始边处在同一个区里，一个区有三个默认入口，进入时该走哪一条没有定义。\n\n根因是补足了一套「看起来一个控制系统总该有」的通用功能，而不是照着 NL 建。NL 第 1 句只说了三个区，制品在避撞里给了三个区之后又多加了这一整棵与 NL 无关的子树。",
+      "l_basis": "判 L0。三条子主张的陈述都在词法层面：把 NL 里出现过的名字集合与模型里的状态名集合比对，即可看出 `OperationalControls` 一族多出；检索全文有没有以它为目标的迁移，是一次名字检索；数 `:25`-`:29` 块内有几条 `[*] -->` 而中间有没有 `--`，是读那五行。都不需要从模型结构导出新事实，也不需要执行序列。",
+      "l_tier": "L0",
+      "ledger_id": "EIS-0007-03",
+      "ledger_json_pointer": "/items/EIS-0007-03",
+      "origin_family": "expected_issue（原台账已记录）",
+      "pair_id": "0007",
+      "source_text": {
+        "l_basis_rule": "NL 点名的元素模型没有／模型多出 NL 未点名的元素 —— 词项对比即可陈述",
+        "l_decided_by": "规则档",
+        "meta_review": "**判 D2**：三臂一致判它成立，⚠️ 但都没给出可引的 NL 原句或领域义务 —— ⛔ 建议你顺手核一眼它的义务出处，若拿不出出处应降到 D1。",
+        "statement": "整棵子树是 NL 完全未提及的臆造内容（信号反馈、健康检查、通信控制），且无任何入边（死代码），内部还在同一个非正交区里放了三条初始迁移（非确定初始）。属 over-specification 叠加结构缺陷。",
+        "verdict_reason": null
+      },
+      "summary": "`OperationalControls`（:25-:29）整棵子树——信号反馈、健康检查、通信控制——在 NL 里完全没有提及，且它没有任何入边（是死代码），内部还在同一个非正交区里并列写了三条初始迁移。",
+      "worksheet_ref": {
+        "excerpt": null,
+        "json_pointer": null,
+        "line_end": null,
+        "line_start": null,
+        "model_element": null,
+        "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/ledger_v2/provenance/relabel/nl_0007/0007.md",
+        "sha256": "sha256:cf88b0a0d3072c930ff348407fa5bfd4d3bd793cc6368223214b2d3faee97143"
+      }
+    }
+  ],
+  "ledger_sha256": "sha256:b5a38d3d24a51e980e5b9f5afc7c8c66aded59f3b51f16afe67e0deb592d0e36",
+  "metadata_refs": [
+    {
+      "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0007/source_meta.json",
+      "role": "SOURCE_META",
+      "selected_fields": {
+        "selected_stage": "phase_ii_semantic",
+        "source_locator": "sheet=STM Results; row=7; excel_row=9; selected_cell=AE9; selected=Result with Semantic Checking",
+        "source_pair_id": "llms_emp_feedback_final_0007",
+        "stm0_role": "author_feedback_final_plantuml"
+      },
+      "sha256": "sha256:782467ef4e3008740986d808a83a09ffaaf357b4d9d06d472618e96e21f98ae3"
+    },
+    {
+      "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0007/fcstm_meta.json",
+      "role": "FCSTM_META",
+      "selected_fields": {
+        "academic_eligible": false,
+        "academic_ineligibility_reason": "whole_model_behavior_equivalence_and_simulation_not_claimed; use only the working-contract attribution-scoped source-static capability",
+        "artifact_role": "r4_5_attribution_scoped_discover_input",
+        "parse_status": "ok",
+        "simulation_status": "ineligible",
+        "source_static_discover_eligible": true
+      },
+      "sha256": "sha256:2284940f9a1a0c81567b25ae34b2c1e97c2ee81f635c61e64bfd1da55e9f5fb2"
+    }
+  ],
+  "nl": {
+    "lines": [
+      {
+        "number": 1,
+        "text": "1. There are three region in this diagram"
+      },
+      {
+        "number": 2,
+        "text": "2. This sub-machine becomes active when a possible frontend collision, rear-end collision or collision with pedestrian is detected."
+      },
+      {
+        "number": 3,
+        "text": "3. The orthogonal regions of the active mode of collision avoidance allow for concurrent activation different of collision avoidance controls."
+      }
+    ],
+    "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0007/nl.txt",
+    "role": "AUTHOR_NL",
+    "sha256": "sha256:49854d044ad99f16a710021500f5e972da93b27635a41144d9b91d32444c0f63"
+  },
+  "packet_sha256": "sha256:a17fa05fb8e0c8cbd00f8de0e2f7d8868952cba5240e1e25fd9679335214156b",
+  "pair_id": "0007",
+  "plantuml": {
+    "lines": [
+      {
+        "number": 1,
+        "text": "@startuml"
+      },
+      {
+        "number": 2,
+        "text": "[*] --> InitialState"
+      },
+      {
+        "number": 3,
+        "text": ""
+      },
+      {
+        "number": 4,
+        "text": "state CollisionDetection {"
+      },
+      {
+        "number": 5,
+        "text": "[*] --> PossibleCollision"
+      },
+      {
+        "number": 6,
+        "text": "PossibleCollision --> FrontendCollision : Frontend Detected"
+      },
+      {
+        "number": 7,
+        "text": "PossibleCollision --> RearendCollision : Rear-end Detected"
+      },
+      {
+        "number": 8,
+        "text": "PossibleCollision --> PedestrianCollision : Pedestrian Detected"
+      },
+      {
+        "number": 9,
+        "text": "}"
+      },
+      {
+        "number": 10,
+        "text": ""
+      },
+      {
+        "number": 11,
+        "text": "state CollisionAvoidance {"
+      },
+      {
+        "number": 12,
+        "text": "--"
+      },
+      {
+        "number": 13,
+        "text": "[*] --> AutomaticBraking : Start Braking"
+      },
+      {
+        "number": 14,
+        "text": "AutomaticBraking --> BrakingComplete : Braking Done"
+      },
+      {
+        "number": 15,
+        "text": ""
+      },
+      {
+        "number": 16,
+        "text": "--"
+      },
+      {
+        "number": 17,
+        "text": "[*] --> SteeringControl : Steering Engaged"
+      },
+      {
+        "number": 18,
+        "text": "SteeringControl --> SteeringComplete : Steering Finished"
+      },
+      {
+        "number": 19,
+        "text": ""
+      },
+      {
+        "number": 20,
+        "text": "--"
+      },
+      {
+        "number": 21,
+        "text": "[*] --> AlertSystem : Alerts Activated"
+      },
+      {
+        "number": 22,
+        "text": "AlertSystem --> AlertComplete : Alert Process Done"
+      },
+      {
+        "number": 23,
+        "text": "}"
+      },
+      {
+        "number": 24,
+        "text": ""
+      },
+      {
+        "number": 25,
+        "text": "state OperationalControls {"
+      },
+      {
+        "number": 26,
+        "text": "[*] --> FeedbackControl : Signal Feedback"
+      },
+      {
+        "number": 27,
+        "text": "[*] --> SystemCheck : Health Check"
+      },
+      {
+        "number": 28,
+        "text": "[*] --> CommunicationControl : Communicate Control"
+      },
+      {
+        "number": 29,
+        "text": "}"
+      },
+      {
+        "number": 30,
+        "text": ""
+      },
+      {
+        "number": 31,
+        "text": "CollisionDetection -down-> CollisionAvoidance : Collision Mode Active"
+      },
+      {
+        "number": 32,
+        "text": "CollisionAvoidance --> InitialState : Collision Resolved"
+      },
+      {
+        "number": 33,
+        "text": "@enduml"
+      }
+    ],
+    "repository_path": "project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples/llms_emp_feedback_final_0007/stm0.puml",
+    "role": "AUTHOR_PLANTUML",
+    "sha256": "sha256:b703cade3844700c2705caa20001f515b16438ca308f973c7e4caf2f263478f4"
+  },
+  "schema_version": "paper1.predicate-gold.review-input-packet.v1",
+  "visibility": {
+    "execution_results_visible": false,
+    "other_track_conclusions_visible": false,
+    "planned_predicate_mapping_visible": false,
+    "v60_actual_predicate_visible": false
+  }
+}

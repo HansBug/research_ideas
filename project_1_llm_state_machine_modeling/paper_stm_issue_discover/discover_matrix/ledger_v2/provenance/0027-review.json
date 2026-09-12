@@ -1,0 +1,95 @@
+{
+ "case": "0027",
+ "group": "NL07",
+ "llm": "Llama",
+ "diffs": [
+  {
+   "verdict": "correct",
+   "ref": "三个 `--` 正交区",
+   "gen": "state ActiveState { -- BrakeControlState -- SteeringControlState -- SensorControlState }",
+   "reason": "NL 第1、3句的并发区机制与参考一致（三个有内容的区）。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "avoid_frontend_collision --> front_inactive: dist_to_front>15 等（每区避撞后回到常备态，可重新检测）",
+   "gen": "BrakeControlState --> junction2（junction2 无出边）；SteeringControlState --> junction3（无出边）；SensorControlState --> junction4 --> InitialState（InitialState 在 ActiveState 内且无出边）；ActiveState 本身无任何出边",
+   "reason": "进入 ActiveState 后整机被永久困住：三个区的末端 junction2 / junction3 / InitialState 全是死端，ActiveState 没有任何外出迁移，DetectingState 再也不可达，子机既不能解除激活也不能重新武装（参考模型每区都回到常备态）。而且 BrakeControlState --> junction2 是无触发完成迁移，控制状态形同虚设。核对 workbook：Phase-I 与 format 修复后（列 I / 列 U）都有 `InitialState --> DetectingState : No Collision detected` 这条返回边，是论文语义修复阶段把 InitialState 挪进 ActiveState 并删掉该边，才形成陷阱——又一处修复引入缺陷。",
+   "assertable": "reaches(source=\"llms_emp_feedback_final_0027.ActiveState\", target=\"llms_emp_feedback_final_0027.DetectingState\", within_cycles=5) → 期望 True 实得 False",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "参考每区有独立的检测守卫",
+   "gen": "单一事件 \"Frontend Collision or Rear-end Collision or Collision with Pedestrian detected\"",
+   "reason": "NL 第2句本身是三种碰撞的析取，用一个析取命名的事件表达激活不违反该句（但不可分辨具体类型，投影里生成了一个超长事件标识符）。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "区↔碰撞类型",
+   "gen": "区↔执行机构（制动/转向/传感），其中 SensorControlState 严格说是传感而非避撞控制",
+   "reason": "同 0007：NL 第3句未规定区按类型划分；按控制划分是字面读法，故记差异。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "(参考直接 X --> Y)",
+   "gen": "DetectingState --> junction1 --> ActiveState（junction1 为普通中转状态，区体首行也是 `--` 产生空区 0）",
+   "reason": "junction1 是无触发透传，语义等价于直连；且它是论文 format 修复阶段引入的（Phase-I 是直连边），不计生成方的 over-specification。空区 0 同 0007/0017。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "参考带入 NL 未提及的量化守卫（dist_to_front / vel / urban / highway 等）",
+   "gen": "(不可能生成)",
+   "reason": "同 0007/0017：NL07 参考模型包含输入中不存在的信息，F1 ground truth 不可达（0027 Phase-II F1 仅 0.690）。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 1,
+ "extra_count": 0,
+ "vs_paper": "论文：format 栏记 \"syntax error: stm CollisionAvoidance\"（resolved YES）；grammar 栏 None；semantic 栏记 \"missing regions\"（semantic_resolved=1.0）；F1 0.3774 → 0.6897。我判的 1 个 problem 论文没记，且该 problem 正是论文语义阶段删除返回边所致（论文自称已修复区结构，却在同一次改写中造成了整机陷阱）。",
+ "vs_ledger": "台帐 0 条 E1，status 为 no_supported_finding 且**没有任何 observation**。我判出 1 个 problem（ActiveState 吸收陷阱、检测流程不可重入）台帐与论文都没有——这是台帐在 NL07 上的实质漏记，与 0017 的\"真干净 0 条\"不同。",
+ "notes": "0027 说明台帐\"NL 明确要求\"这一 E1 纳入口径的盲区：NL07 从未明说\"避撞后要回到检测\"，因此死端/陷阱这类内部一致性缺陷落在台帐口径之外；但它显然破坏 NL 第2句反复激活的前提，可用 reaches 正面断言。",
+ "_source_file": "NL07-a.json",
+ "cross_reference": {
+  "case": "0027",
+  "group": "NL07",
+  "llm": "Llama",
+  "counts": {
+   "correct": 1,
+   "similar": 3,
+   "problem": 1,
+   "extra": 0,
+   "uncertain": 1
+  },
+  "out_of_scope": {},
+  "problems_in_scope": 1,
+  "paper": {
+   "format": "syntax error: stm CollisionAvoidance",
+   "grammar": null,
+   "semantic": "missing regions",
+   "semantic_resolved": 1.0,
+   "f1_phase1": 0.3773584906,
+   "f1_phase2": 0.6896551724
+  },
+  "ledger": {
+   "status": "no_supported_finding",
+   "e1_ids": [],
+   "e1_categories": []
+  },
+  "assertable_problems": 1
+ }
+}

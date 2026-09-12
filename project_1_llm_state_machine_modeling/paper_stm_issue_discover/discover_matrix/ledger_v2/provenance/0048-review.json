@@ -1,0 +1,128 @@
+{
+ "case": "0048",
+ "group": "NL04",
+ "llm": "DeepSeek",
+ "diffs": [
+  {
+   "verdict": "problem",
+   "ref": "state fork1 <>;  fork1 --> AutoFocus;  fork1 --> DetLight（fork 与两个目标是兄弟）",
+   "gen": "state fork1 <<fork>> { fork1 --> AutoFocus;  fork1 --> DetLight }",
+   "reason": "把 fork 的出边写在它自己的 body 里，PlantUML 于是把 AutoFocus 与 DetLight 建成 fork1 的子状态，且 fork1 没有初始子状态（投影插入 fork1.UnspecifiedInitial）；TurnOn --> fork1 进入后落点未定义。NL 第 2 句只说 fork1 引出两条并行路径，未说它们是 fork1 的子状态。",
+   "assertable": "containment(parent='llms_emp_feedback_final_0048.fork1', child='llms_emp_feedback_final_0048.fork1.AutoFocus')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "state Join2 <>;  choice2 --> Join1 : [sunny=true];  Join1 --> Junction2（Join1 与 Join2 是兄弟伪状态）",
+   "gen": "state Join2 <<join>> { Join2 --> Join1 }",
+   "reason": "同一病灶：Join1 变成 Join2 的子状态且 Join2 无初始子状态，于是 Junction3 --> Join2 与 choice2 --> Join2 进入后停滞，Join1 只能靠 Join2 自身的出边到达。NL 第 8 句要求 Join1 由 sunny=true 从 choice2 汇入，而非藏在 Join2 内部。",
+   "assertable": "initial_target(composite='llms_emp_feedback_final_0048.Join2', child='llms_emp_feedback_final_0048.Join2.Join1')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "state Fork2 <>;  Fork2 --> Junction2;  Fork2 --> Flash",
+   "gen": "state Fork2 <<fork>> { Fork2 --> Junction2;  Fork2 --> Flash }（Flash 成为 Fork2 子状态，Fork2 无初始）",
+   "reason": "第三处同型缺陷：Flash 被建成 Fork2 的子状态，Fork2 无初始子状态，Join2 --> Fork2 进入后落点未定义，NL 第 11 句的『Fork2 可去 Junction2 或 Flash』二选一语义退化。",
+   "assertable": "initial_target(composite='llms_emp_feedback_final_0048.Fork2', child='llms_emp_feedback_final_0048.Fork2.Flash')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "choice2 --> Join2（无守卫）;  choice2 --> Join1 : [sunny=true]",
+   "gen": "choice2 --> Join2 : [sunny=true];  Join2 --> Join1（无条件）",
+   "reason": "NL 第 8 句要求无条件进入 Join2、sunny=true 时才汇入 Join1；本模型把 sunny 守卫挪到 Join2 边上并让 Join1 无条件跟在 Join2 之后，条件与分支双双错位。与台帐 EXP-0048-GC-001 一致。",
+   "assertable": "edge_declared(source='llms_emp_feedback_final_0048.choice2', trigger='llms_emp_feedback_final_0048._sunny_true', target='llms_emp_feedback_final_0048.Join2.Join1')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "state choice1 <>; state choice2 <>; state choice3 <>; state Junction1 <>; state Junction2 <>; state Junction3 <>",
+   "gen": "choice1 / choice2 / choice3 / Junction1 / Junction2 / Junction3 均为普通状态（无 stereotype）",
+   "reason": "10 个伪状态里只有 fork1 / Join2 / Fork2 带 stereotype，而这三个又同时被误用成 composite；6 个 choice/junction 完全退化为普通状态，NL 逐句点名的 choice、junction 语义丢失。伪状态结构在范围内，正常判。",
+   "assertable": "state_declared(state='llms_emp_feedback_final_0048.choice1', kind='pseudo')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "TurnOn: execTime=[(2,s,max),(2,s,min)]；AutoFocus (2,1)；DetLight (1,0)；ChargedFlash (4,2)；WriteMemory (3,2)",
+   "gen": "TurnOn : max=2s, min=2s；AutoFocus : max=2s, min=1s；DetLight : max=1s, min=0s；ChargedFlash : max=4s, min=2s；WriteMemory : max=3s, min=2s（状态 body 注解）",
+   "reason": "5 处执行时间全部保留、max 与 min 都在、且载体是状态自身而非迁移标签，是本组语义上最贴近参考 execTime 的一份。时间类差异标 out_of_scope: timing；19 谓词无状态 timing 查询，无法断言（同台帐 E2c）。",
+   "assertable": null,
+   "predicate_exists": false,
+   "out_of_scope": "timing"
+  },
+  {
+   "verdict": "similar",
+   "ref": "Flash --> Terminate（Terminate 为吸收态，无 final）",
+   "gen": "Flash --> Terminate;  Terminate --> [*]",
+   "reason": "多出一个全局终态；NL 第 11 句说 Flash 进入 Terminate『ending the sequence』，把 Terminate 做成终结是合理读法，参考只是留作吸收态。",
+   "assertable": "terminates(scope='llms_emp_feedback_final_0048.Fork2.Flash')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "[*] --> TurnOn; TurnOn --> fork1; AutoFocus --> choice1:[memFull=true]; DetLight --> choice2:<>{prob=0.4}; fork1 --> choice3; choice3 --> ChargedFlash; ChargedFlash --> Junction3:[Charged=true]; choice3 --> Junction3; Junction3 --> Join2; Join1 --> Junction2; Junction2 --> TakePicture; TakePicture --> WriteMemory; WriteMemory --> Junction1; Junction1 --> TurnOff; TurnOff --> [*]; Join2 --> Fork2; Flash --> Terminate",
+   "gen": "同名同向 17 条边均存在，且 memFull=true 与 Charged=true 都写在正确的边上、用标准 [ ... ] 守卫记法",
+   "reason": "本组 NL 边覆盖最完整的一份：闪光分支的 choice3 --> ChargedFlash、ChargedFlash --> Junction3 [Charged=true]、choice3 --> Junction3 三条同时齐备（其余五例至少缺一条），memFull 守卫位置也是唯一与 NL 第 3 句完全一致的之一。",
+   "assertable": "edge_declared(source='llms_emp_feedback_final_0048.choice3', trigger='<无触发>', target='llms_emp_feedback_final_0048.Junction3')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "choice1 --> Join1; choice1 --> Junction1; fork/join 无正交区域; state X <> 退化; NL 第 6 句与参考的 Charged=true 位置冲突",
+   "gen": "—",
+   "reason": "参考侧存疑同 0008。本 case 因为把 Charged=true 放在 ChargedFlash --> Junction3（NL 第 6 句读法），会与参考的 choice3 --> Junction3:[Charged=true] 不匹配而被计成 FP+FN，实际上它比参考更贴 NL。",
+   "assertable": null,
+   "predicate_exists": false,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 5,
+ "extra_count": 0,
+ "vs_paper": "论文：format 栏『syntax error: stm [stateMachine] SystemStateMachine [SystemStateMachineDiagram]』(resolved YES)；grammar 栏 None；语义栏『1. Missing Junction Pseudostate, Fork Pseudostate, Join use state join1 <<join>> to represent join pseudostate』，semantic_resolved=0.0。F1 Phase-I 0.6957 → Phase-II 0.7463（TP 24→25）。论文语义栏对应我的第 5 条（choice/junction 未声明为伪状态）；我判的第 1、2、3 条（fork1/Join2/Fork2 被写成无初始的 composite，三处入口未定义）与第 4 条（sunny 守卫错位，台帐已收）论文均未记录。",
+ "vs_ledger": "台帐 status=mixed，1 条 E1：EXP-0048-GC-001（sunny 守卫挂错分支 + Join1 挪到 Join2 之后）对应我的第 4 条。observation camera_timing_adapter_missing（E2c）对应我的第 6 条 timing。我的第 1、2、3 条（三处 composite 化伪状态且无初始子状态）台帐未收，但 containment / initial_target 谓词现成可用、投影里已有三个 UnspecifiedInitial 作证，属应补的 E1 候选；第 5 条（6 个 choice/junction 未声明为伪状态）台帐亦未收。",
+ "notes": "DeepSeek 是本组 NL 边覆盖最完整的一份（闪光分支三条边全齐、两处守卫位置正确、5 处执行时间 max+min 全保留且写在状态上）。它的全部真问题都源于一个统一的记法误用：给 fork1 / Join2 / Fork2 同时加 stereotype 和大括号，把出边写进 body，于是三处都变成无初始子状态的 composite。5 个 problem 中 1 条标 timing（在 similar 中未计入），实际计入的 5 条全部在范围内。",
+ "_source_file": "NL04-0048.json",
+ "cross_reference": {
+  "case": "0048",
+  "group": "NL04",
+  "llm": "DeepSeek",
+  "counts": {
+   "correct": 1,
+   "similar": 2,
+   "problem": 5,
+   "extra": 0,
+   "uncertain": 1
+  },
+  "out_of_scope": {
+   "timing": 1
+  },
+  "problems_in_scope": 5,
+  "paper": {
+   "format": "syntax error: stm [stateMachine] SystemStateMachine [SystemStateMachineDiagram]",
+   "grammar": null,
+   "semantic": "1. Missing Junction Pseudostate, Fork Pseudostate, Join use state join1 <<join>> to represent join pseudostate",
+   "semantic_resolved": 0.0,
+   "f1_phase1": 0.6956521739,
+   "f1_phase2": 0.7462686567
+  },
+  "ledger": {
+   "status": "mixed",
+   "e1_ids": [
+    "EXP-0048-GC-001"
+   ],
+   "e1_categories": [
+    "GC"
+   ]
+  },
+  "assertable_problems": 5
+ }
+}

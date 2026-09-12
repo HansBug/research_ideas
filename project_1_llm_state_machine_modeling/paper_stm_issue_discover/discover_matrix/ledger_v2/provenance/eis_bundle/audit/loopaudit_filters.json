@@ -1,0 +1,612 @@
+{
+ "filters": [
+  {
+   "stage": "split_requirements",
+   "location": "discover/nodes.py:1234-1250 (gates in discover/capability.py:687-743 initialization_anchored_findings, 746-818 termination_proposal_findings, 601-684 redundant_proposal_findings)",
+   "criterion": "Any of the three step-gates returning a finding raises ValueError over the WHOLE RequirementSet; the producer gets <=5 contract repairs (MAX_REQUIREMENT_CONTRACT_REPAIRS=5, nodes.py:87), then the run fails.",
+   "blocks": "A requirement whose predicate_bindings propose a name the vocabulary already declares under another parent, or anchor source/scope at '[*]' without behavior_phase='initialization', or propose a subject where the model ends the run on that (source,trigger).",
+   "tightness": "恰当",
+   "why": "All three exist because the shape they refuse is verifiably true-because-of-the-defect or reports a present element as missing. The cost is that one bad requirement rejects the whole set, but the repair loop absorbs it.",
+   "evidence": "0000-claude L000-000004-split-requirements-failed: \"ValueError: requirements are anchored or named against what the frozen model already says: ['REQ-006 binds ['source'] to [*] with source_context.behavior_phase='termination'. That anchors the claim before the machine has entered anything...']\" — repaired on the next round; 0000-gpt hit the same gate at L000-000006.",
+   "affected_directions": [
+    "entry",
+    "termination",
+    "naming"
+   ],
+   "estimated_affected_count": 3
+  },
+  {
+   "stage": "convert_assertions",
+   "location": "discover/nodes.py:1530-1932; gate cluster at 1614-1856 (misspelled_binding 1614, placeholder_bindings 1622, dependency gates 1638-1666, unresolved_reference_findings 1667, procedure_mismatch 1718, ALLOWED_PRIMARY_EVIDENCE_FAMILIES 1743, MANDATORY_PRIMARY_EVIDENCE_FAMILIES + mandatory_waiver 1763-1807, source_omitting_response_calls 1830-1845, condition_non_vacuity_findings 1822-1826/1846)",
+   "criterion": "Any gate raises ValueError over the whole AssertionScript. <=5 contract repairs (MAX_ASSERTION_CONTRACT_REPAIRS=5, nodes.py:89).",
+   "blocks": "Scripts naming an element the frozen STM lacks without the precondition+depends_on shape; a primary whose evidence family is too weak for the requirement kind; a vacuous sibling conjunction in invariant/persists_until; a source-blind response_within on a non-initialization requirement.",
+   "tightness": "恰当偏紧",
+   "why": "unresolved_reference_findings is the load-bearing one: a relation query over a non-existent element matches nothing and PASSES, so refusing it is required for soundness. But it is script-global: one bad reference re-rolls every assertion, and the only legal alternative shape (existence precondition) is what later gets downgraded by bind_attribution (see the bind_attribution/precondition-inheritance filter).",
+   "evidence": "0006-gpt L000-000030-convert-assertions-failed: \"ValueError: assertions reference model elements the frozen STM does not declare: [\\\"REQ-006/AST-REQ-006-1: unresolved model reference variable='uav_count'\\\"]\"; same cell again at L000-000054; 0029-gpt L000-000032 (target='...UrbanMode.FinishState'); 0050-gpt L000-000054 (trigger='...human_steering_cmd', trigger='...brake_pressed').",
+   "affected_directions": [
+    "missing_element",
+    "effect",
+    "event"
+   ],
+   "estimated_affected_count": 4
+  },
+  {
+   "stage": "precheck_and_seal",
+   "location": "discover/nodes.py:2124-2144 (blocked_by)",
+   "criterion": "An assertion whose depends_on prerequisite did not evaluate True is NOT RUN. status='blocked'; no AssertionResult is sealed. Downstream, blocked_requirements (nodes.py:3430-3434) disqualifies the requirement from satisfied_requirement_ids.",
+   "blocks": "Every claim resting on a missing element. The dependent's own defect is never measured, so a requirement yields at most one finding (the precondition's).",
+   "tightness": "恰当",
+   "why": "By design: the dependent cannot be evaluated against an element that does not exist. But it caps recall at one finding per missing-element requirement, and if the precondition is later downgraded the whole requirement produces zero findings.",
+   "evidence": "0050-gpt Public Check: {\"assertion_id\": \"AST-REQ-005-1\", \"status\": \"blocked\", \"error\": \"prerequisite(s) AST-REQ-005-0 did not hold, so this claim has nothing to evaluate\"} — and AST-REQ-005-0 was then downgraded to representation_debt, so REQ-005 published nothing at all.",
+   "affected_directions": [
+    "missing_element"
+   ],
+   "estimated_affected_count": 10
+  },
+  {
+   "stage": "precheck_and_seal",
+   "location": "discover/nodes.py:2254-2259 seal gate; assertions/checker.py:144-208 outcome computation",
+   "criterion": "Only `checked.outcome in {'valid','sealed_false'}` AND `type(checked.value) is bool` is sealed. Any predicate that RAISES (UnsupportedEvidence and friends) produces outcome='invalid', value=None (checker.py:147-159, 259-266) and is recorded as status='invalid' — never as a result, never as a finding.",
+   "blocks": "Every defect whose only expressible form makes a predicate refuse. AssertionResult.truth_value is StrictBool (schemas.py:511), so None can not exist downstream: the pipeline has no 'unknown' verdict at all.",
+   "tightness": "恰当（就 soundness 而言）/ 过紧（就 recall 而言）",
+   "why": "Refusing rather than answering False is correct — a refusal is not evidence. But the consequence is binary: a refusal becomes a repair request and, if unrepairable, a CoverageGap; it never reaches the reader as 'this may be a defect we cannot decide'. Every predicate self-limit therefore silently subtracts from recall.",
+   "evidence": "0006-claude precheck round 1 invalid_assertion_ids=['AST-REQ-003-1'] with error {'type':'UnsupportedEvidence','message':'occupancy_after is False over 1 cycle(s) but True over 2, so the answer is about the horizon rather than the model...'} — here the refusal was CORRECT (it stopped v17's fabricated issue). 9 of the other 10 v18 rejections were \"binding 'target' cannot be [*]\".",
+   "affected_directions": [
+    "termination",
+    "behaviour",
+    "horizon"
+   ],
+   "estimated_affected_count": 10
+  },
+  {
+   "stage": "precheck_and_seal",
+   "location": "discover/nodes.py:2449-2725 (repair budget + quarantine); constants at nodes.py:94 MAX_ASSERTION_PRECHECK_REPAIRS=5, nodes.py:97 NO_PROGRESS_SEMANTIC_REPEATS=3, nodes.py:100 MAX_PRECHECK_ROUNDS=12",
+   "criterion": "An assertion that stays invalid for 5 item-local repairs, or repeats the same semantic failure identity 3 times, or is marked unrepairable ('exceeded its budget on this model'), is dropped from the script (_filter_assertion_script, nodes.py:450-473) and written as a CoverageGap with blocks_full_coverage=True for primaries.",
+   "blocks": "Any requirement whose assertion the producer cannot make executable.",
+   "tightness": "恰当",
+   "why": "Bounded and audited: the gap is published, coverage_status flips to 'partial', so the loss is visible rather than silent. This is the one filter that leaves a first-class trace.",
+   "evidence": "Did not fire in v18: all 8 cells have coverage_gaps=[] and coverage_status='full'.",
+   "affected_directions": [],
+   "estimated_affected_count": 0
+  },
+  {
+   "stage": "review_assertions",
+   "location": "discover/nodes.py:2852-2885 -> _quarantine_reviewed_assertions at discover/nodes.py:332-447; budget nodes.py:88 MAX_ASSERTION_REVIEW_REPAIRS=5",
+   "criterion": "review_assertions cannot edit an expression; it can only set decision='revise' with per-assertion findings, which sends the script back to convert_assertions. After >5 revise rounds it DELETES the still-flagged assertions from the already-sealed payload and re-seals (nodes.py:363-386).",
+   "blocks": "An assertion that already executed and already returned False can be removed post-hoc by an LLM reviewer, and its sealed False is dropped from the released payload.",
+   "tightness": "过紧（原理上）",
+   "why": "This is the only place where an LLM verdict deletes measured execution truth. It is bounded and writes a CoverageGap, but there is no check that the deleted assertion was not the run's only true finding. No instance in v18, so the risk is latent rather than realised.",
+   "evidence": "0 instances in v18: every cell's coverage_gaps is empty, so no review_unresolved quarantine occurred. Reviewer influence was limited to revise rounds (e.g. 0050-gpt L000-000040 -> L000-000044 convert -> L000-000048 precheck).",
+   "affected_directions": [],
+   "estimated_affected_count": 0
+  },
+  {
+   "stage": "release_results",
+   "location": "discover/nodes.py:2942-2998",
+   "criterion": "No filtering. Verifies script_hash / tool_env_hash / sealed payload hash and copies the sealed tuple into ReleasedAssertionResults.",
+   "blocks": "Nothing. A `None` can never arrive here: AssertionResult.truth_value is StrictBool and precheck refuses to seal a non-bool.",
+   "tightness": "恰当",
+   "why": "It is an integrity checkpoint, not a policy gate. The 'what happens to a None' question is answered entirely at precheck_and_seal:2254-2259.",
+   "evidence": "v18: released = 151 results across 8 cells, exactly equal to the count of status='executable' public executions (151); no result was dropped at release.",
+   "affected_directions": [],
+   "estimated_affected_count": 0
+  },
+  {
+   "stage": "bind_attribution",
+   "location": "discover/nodes.py:3087-3093 (debt_refs) + 3140-3142 (status); matcher at common/refs.py:44-71",
+   "criterion": "debt_refs = { ref in frozen source_trace.attribution_exclusions : reference_matches(ref, observed) }, where observed = every string flattened out of check_detail.function_call_trace. Non-empty => status='representation_debt', source_level_claim_allowed=False. It is a plain set intersection: ANY single touched excluded element downgrades the whole finding — there is no weighting, no 'was the False caused by it', no per-predicate exemption.",
+   "blocks": "Every False whose evidence trace mentions one compiler-owned element. Note reference_matches only resolves the kinds in REFERENCE_KINDS (event/state/transition/variable/effect/guard/route_control), so in practice only `compiler:state:` (51 corpus-wide) and `compiler:route_control:` (33) match structurally; `compiler:transition_segment:` (1131), `compiler:event_projection:` (387), `compiler:root:` (60), `compiler:synthetic_transition:` (28) and `compiler:lifecycle_action:` (16) only match on a byte-identical string that the evidence layer must emit deliberately.",
+   "tightness": "过紧",
+   "why": "Measured: replaying all 123 provably-expressible manual-review assertions through the real evidence layer and this exact procedure gives 67 safe / 38 representation_debt / 18 unattributed. 31 of the 38 debt rows are verdict='problem', i.e. human-confirmed real defects that can never become a confirmed issue. Cause split: `compiler:state:` alone 21 rows, `compiler:route_control:R45RouteToken` alone 14, both 1, `compiler:event_projection:` 2.",
+   "evidence": "0029-gpt Attribution binding: {\"assertion_id\": \"AST-REQ-017-1\", \"exclusion_refs\": [\"compiler:state:llms_emp_feedback_final_0029.UrbanMode.UnspecifiedInitial\"], \"rationale\": \"Assertion evidence touches compiler-owned or lowering-excluded elements.\", \"source_refs\": [\"source:state:UrbanMode\",\"source:state:UrbanMode.enter_urban\"], \"status\": \"representation_debt\"}",
+   "affected_directions": [
+    "entry",
+    "termination",
+    "behaviour",
+    "relation"
+   ],
+   "estimated_affected_count": 38
+  },
+  {
+   "stage": "bind_attribution",
+   "location": "discover/nodes.py:3087-3093 via assertions/predicate_api.py:897 and 914 (_initial_child_of self._note(entry))",
+   "criterion": "`initial_target` records the entry edge's target as a reference. The PlantUML->FCSTM converter injects `[*] -> UnspecifiedInitial` into every composite that lacks a default initial edge, and that synthetic state is listed in the pair's attribution_exclusions as `compiler:state:<...>.UnspecifiedInitial`. So an `initial_target` False on a composite missing its default child ALWAYS touches an excluded element.",
+   "blocks": "The whole 'composite has no / wrong default sub-state' defect class — the `entry` direction.",
+   "tightness": "过紧",
+   "why": "Confirmed by construction and by measurement. Corpus: 28 UnspecifiedInitial exclusions across 16 of 60 pairs. Replay: 18 of the 21 initial_target findings (86%) come back representation_debt, 17 of them via UnspecifiedInitial, spanning 14 distinct pairs (0014,0019,0028,0029,0032,0035,0043,0044,0046,0047,0048,0053,0057,0058). The predicate comment at predicate_api.py:886-896 states this is deliberate — but the effect is that the source model's genuine missing-initial-edge defect and the converter's scaffolding are indistinguishable to attribution, and the source defect always loses.",
+   "evidence": "0029-claude excluded_findings[0]: {\"issue_id\": \"ISSUE-REQ-005\", \"title\": \"HighwayMode 初始子状态非 enter_hwy(表示债务)\", \"rationale\": \"AST-REQ-005-1 的 initial_target 返回 False,但绑定标记为 representation_debt(涉及 compiler:state:HighwayMode.UnspecifiedInitial 等 lowering 产物),按契约归入 excluded_findings。\", \"attribution_status\": \"representation_debt\"} — and 0029-gpt's REQ-007/REQ-017 identically. Manual review 0029#3 (`initial_target(composite=...HighwayMode, child=...enter_hwy)`) is verdict='problem', i.e. a real defect.",
+   "affected_directions": [
+    "entry"
+   ],
+   "estimated_affected_count": 18
+  },
+  {
+   "stage": "bind_attribution",
+   "location": "discover/nodes.py:3087-3093 via assertions/predicate_api.py:641-658 (_note_transitions route-control note)",
+   "criterion": "When a relational/behavioural query matches a transition whose guard or effect text contains a route-control variable, the evidence layer notes `route_control:<var>`, which reference_matches against `compiler:route_control:R45RouteToken`. The escape hatch `filtered_route_control:<var>` (used only by effect_declared, predicate_api.py:952-954) does NOT match, because 'filtered_route_control' is not in REFERENCE_KINDS.",
+   "blocks": "Any terminates / reaches / occupancy_after / guard_distinguishable / stays_in / event_consumed finding on a transition the converter routed.",
+   "tightness": "过紧",
+   "why": "R45RouteToken is on essentially every cross-hierarchy transition the converter lowers, so this taints a large share of behavioural evidence for reasons that have nothing to do with whether the source model is defective. Measured: 15 of 123 (12%) blocked this way, across predicates terminates(4), guard_distinguishable(4), reaches(3), occupancy_after(2), event_consumed(1), stays_in(1).",
+   "evidence": "0050-claude Attribution: {\"assertion_id\": \"AST-REQ-005-2\", \"exclusion_refs\": [\"compiler:route_control:R45RouteToken\"], \"status\": \"representation_debt\", \"source_refs\": [\"source:state:AutonomousMode\",\"source:state:HumanDrivingMode\"]} — the cell's only False, so 0050-claude published 0 issues.",
+   "affected_directions": [
+    "termination",
+    "behaviour",
+    "relation"
+   ],
+   "estimated_affected_count": 15
+  },
+  {
+   "stage": "bind_attribution",
+   "location": "discover/nodes.py:3034-3046 (inherited_refs) + 3069-3070 (union into observed)",
+   "criterion": "A `precondition`'s observed-reference set is unioned with declared_path_bindings(dependent.expression, known_model_paths) for every assertion that depends on it. The debt check then runs over that union — so the precondition inherits the dependent's compiler-owned path bindings.",
+   "blocks": "A clean 'the model does not declare element X' finding, whenever the dependent that needed X happens to name a compiler-synthesized state. known_model_paths (nodes.py:1103-1113) deliberately includes compiler-owned states, and model_vocabulary renders them into the converter prompt, so the producer is shown the synthetic path as a legal binding.",
+   "tightness": "过紧",
+   "why": "This is the most damaging single instance found. The inheritance was added to rescue preconditions from `unattributed` (and it works: 7 of 9 v18 preconditions were rescued to safe). But it also imports debt that the precondition's own evidence never touched, converting a source-level finding into representation debt because of a path the CONVERTER chose and the pipeline itself advertised.",
+   "evidence": "0050-gpt: AST-REQ-005-0 = `event_declared(event=\"llms_emp_feedback_final_0050.human_steering_cmd\")` -> False. Its dependent AST-REQ-005-1 = `occupancy_after(source=\"llms_emp_feedback_final_0050.AutonomousMode.FinalWaittr_0005\", ...)`. Binding: {\"assertion_id\": \"AST-REQ-005-0\", \"exclusion_refs\": [\"compiler:state:llms_emp_feedback_final_0050.AutonomousMode.FinalWaittr_0005\"], \"status\": \"representation_debt\"}. Identically for AST-REQ-011-0 (`brake_pressed`). This IS pair 0050's single manual-review problem (0050#4, `event_declared(event=\"llms_emp_feedback_final_0050.human_steering_cmd\")`, verdict='problem'), and the run published 0 issues.",
+   "affected_directions": [
+    "missing_element"
+   ],
+   "estimated_affected_count": 2
+  },
+  {
+   "stage": "bind_attribution",
+   "location": "discover/nodes.py:3103-3113 (safe_entries) + 3143-3148 (fallback to unattributed); matcher at nodes.py:3226-3232 keys on entry['intermediate_elements']",
+   "criterion": "status='safe' requires at least one matched frozen trace entry with attribution_boundary.source_level_claim_allowed=True AND representation_related!=True AND conversion_or_lowering_related!=True, AND a non-empty source_refs. Otherwise 'unattributed'.",
+   "blocks": "Any False whose evidence names ONLY elements the model does not declare — because an absent element cannot appear in any trace entry's intermediate_elements. 'The model is missing X' is structurally unattributable.",
+   "tightness": "过紧，但已有部分逃生通道",
+   "why": "Replay: 18 of 123 land here, 16 of them existence checks (event_declared 6/6 = 100%, state_declared 6, containment 4). The designed escape is precondition + depends_on, whose inherited refs supply the dependent's declared paths — validated against v18: the replica disagreed with the run on exactly 9 bindings, all preconditions, 7 rescued unattributed->safe and 2 pushed unattributed->representation_debt. So the real-pipeline loss is smaller than 18, but the escape hatch is exactly the one the previous filter poisons.",
+   "evidence": "0006-gpt excluded_findings[0]: {\"issue_id\": \"ISSUE-REQ-005-UavCountUnattributed\", \"title\": \"模型未声明表示无人机群数量的 uav_count 变量，但归因不安全\", \"rationale\": \"已释放断言 AST-REQ-005-1 为 false，角色为 primary，但归因状态为 unattributed。根据裁定规则，unattributed 的 false 主断言不得确认为问题...\", \"attribution_status\": \"unattributed\"}",
+   "affected_directions": [
+    "missing_element"
+   ],
+   "estimated_affected_count": 18
+  },
+  {
+   "stage": "bind_attribution",
+   "location": "discover/nodes.py:3117-3118 + 3126-3139 (PATH_TAINT_AMBIGUOUS_REF nodes.py:104, FORMAL_EXAMINED_ONLY_REF nodes.py:107); emitters at predicate_api.py:588-589 and 1597",
+   "criterion": "If the simulation's fired-transition derivation is not unique ('simulation:path_taint:ambiguous'), or the FBMCQ answer rests only on absence-of-counterexample ('formal:examined_only'), the finding is forced to 'unattributed' BEFORE the debt/safe branches are even considered.",
+   "blocks": "Behavioural findings on models with ambiguous path derivation, and every bounded-model-checking negative.",
+   "tightness": "恰当",
+   "why": "Both are sound: an unresolved path segment may touch compiler-owned elements, and 'no counterexample within the bound' is not a witness. Low volume in practice.",
+   "evidence": "Replay: 2 of 123 (0058#3 reaches, 0044#1 terminates), both path_taint_ambiguous. 0 formal:examined_only, because no v18 requirement carried an fbmcq primary.",
+   "affected_directions": [
+    "behaviour"
+   ],
+   "estimated_affected_count": 2
+  },
+  {
+   "stage": "bind_attribution",
+   "location": "discover/nodes.py:3010-3012 + 3094-3102 + 3119-3125; predicate at nodes.py:3200-3217",
+   "criterion": "If the frozen working contract sets capability_eligibility.simulation.status=='ineligible' (or summary.simulation_status=='ineligible'), EVERY simulation-family False becomes representation_debt regardless of its refs.",
+   "blocks": "All Family-B (simulation) evidence on such a pair.",
+   "tightness": "恰当（且当前为死代码）",
+   "why": "Fail-closed and well scoped, but it never fires on this corpus.",
+   "evidence": "All 60 working_contracts report capability_eligibility.simulation.status='eligible_with_exclusions'; 0 pairs are 'ineligible'.",
+   "affected_directions": [],
+   "estimated_affected_count": 0
+  },
+  {
+   "stage": "adjudicate_results",
+   "location": "discover/nodes.py:3266-3294 + 3341-3407",
+   "criterion": "issue eligibility = truth_value IS False (3271-3273, strict identity so no coercion) AND role in {'primary','precondition'} (3266-3270) AND attribution_status=='safe' (3349-3354). Deterministic post-checks force the LLM adjudicator to account for EVERY safe-false primary as an issue (3400-3403) and every non-safe false primary as an excluded finding (3404-3407); requirement_id must match (3358-3367) and groups must be disjoint (3355-3357). Any violation raises and fails the node.",
+   "blocks": "Nothing beyond what attribution already decided — this stage cannot lose a safe False. It is the enforcement point, not the loss point.",
+   "tightness": "恰当",
+   "why": "This is the well-designed part of the chain: the LLM has no discretion to drop a finding. `precondition` was explicitly admitted into primary_assertion_ids (comment at 3261-3265) so a missing element can still be reported when its dependent is blocked. A False precondition also disqualifies the requirement from satisfied_requirement_ids (3408-3418, 3430-3434).",
+   "evidence": "v18: issue_assertions == safe_false_assertions held in all 8 cells (20 published issues == 20 safe-false primary/precondition results); excluded_assertions == unsafe_false_assertions (7 == 6 representation_debt + 1 unattributed, primary/precondition only).",
+   "affected_directions": [],
+   "estimated_affected_count": 0
+  },
+  {
+   "stage": "adjudicate_results",
+   "location": "discover/nodes.py:3275 + 3317-3337",
+   "criterion": "A False with role=='supporting' is projected into excluded_observations with disposition='supporting_false' and can never create an issue.",
+   "blocks": "Corroborating evidence that is False on its own. If the primary is True (or blocked, or downgraded), a supporting False is the run's only signal and it is discarded.",
+   "tightness": "恰当偏紧",
+   "why": "Sound in principle — supporting evidence is corroboration. But it becomes the whole story when the primary answers True for horizon/settle reasons: 0050-claude's ONLY False in the entire cell was a supporting edge_declared, and the cell published nothing.",
+   "evidence": "0050-claude excluded_observations: [{\"assertion_id\": \"AST-REQ-005-2\", \"disposition\": \"supporting_false\", \"rationale\": \"Supporting evidence evaluated False. It is retained for diagnosis but cannot create a Repair issue.\", \"role\": \"supporting\"}]",
+   "affected_directions": [
+    "relation"
+   ],
+   "estimated_affected_count": 7
+  },
+  {
+   "stage": "publish",
+   "location": "discover/nodes.py:3510-3563",
+   "criterion": "Pure projection of adjudication into DiscoverCompleted; coverage_status='partial' iff any gap blocks_full_coverage.",
+   "blocks": "Nothing.",
+   "tightness": "恰当",
+   "why": "No policy applied at publish.",
+   "evidence": "v18: issues in discover-completed.json == adjudication.issues in every cell.",
+   "affected_directions": [],
+   "estimated_affected_count": 0
+  }
+ ],
+ "v18_stats": {
+  "published": 20,
+  "representation_debt": 6,
+  "unattributed": 1,
+  "assertions_none": 0,
+  "precheck_rejected": 10,
+  "_notes": {
+   "scope": "8 cells = 4 pairs x 2 profiles, runs/paper1/matrix-v18/",
+   "released_assertions": 151,
+   "released_true": 117,
+   "released_false": 34,
+   "false_primary_or_precondition": 27,
+   "false_supporting": 7,
+   "attribution_safe": 25,
+   "attribution_representation_debt": 8,
+   "attribution_unattributed": 1,
+   "excluded_findings_total": 7,
+   "excluded_observations_total": 7,
+   "blocked_assertions": 10,
+   "coverage_gaps": 0,
+   "assertions_none_explanation": "0 by construction: AssertionResult.truth_value is StrictBool (schemas.py:511) and precheck only seals `type(checked.value) is bool` (nodes.py:2258). A predicate refusal (UnsupportedEvidence) yields outcome='invalid', value=None and is counted under precheck_rejected, never released.",
+   "precheck_rejected_detail": {
+    "0000-gpt": [
+     "AST-REQ-005-2"
+    ],
+    "0006-claude": [
+     "AST-REQ-003-1"
+    ],
+    "0029-gpt": [
+     "AST-REQ-015-2",
+     "AST-REQ-026-2",
+     "AST-REQ-027-2"
+    ],
+    "0050-claude": [
+     "AST-REQ-005-2"
+    ],
+    "0050-gpt": [
+     "AST-REQ-006-2",
+     "AST-REQ-007-2",
+     "AST-REQ-008-2",
+     "AST-REQ-009-2"
+    ]
+   },
+   "precheck_rejected_causes": {
+    "binding 'target' cannot be [*]": 9,
+    "occupancy_after horizon self-check": 1
+   },
+   "node_level_rejections": {
+    "split_requirements step-gates": 3,
+    "convert_assertions reference gate": 4
+   },
+   "per_cell": {
+    "0000-claude": {
+     "issues": 2,
+     "excluded_findings": 0,
+     "excluded_observations": 0,
+     "released": 9,
+     "false": 2,
+     "safe": 2
+    },
+    "0000-gpt": {
+     "issues": 2,
+     "excluded_findings": 0,
+     "excluded_observations": 2,
+     "released": 12,
+     "false": 4,
+     "safe": 4
+    },
+    "0006-claude": {
+     "issues": 3,
+     "excluded_findings": 0,
+     "excluded_observations": 1,
+     "released": 7,
+     "false": 4,
+     "safe": 4
+    },
+    "0006-gpt": {
+     "issues": 3,
+     "excluded_findings": 1,
+     "excluded_observations": 0,
+     "released": 8,
+     "false": 4,
+     "safe": 3,
+     "unattributed": 1
+    },
+    "0029-claude": {
+     "issues": 5,
+     "excluded_findings": 2,
+     "excluded_observations": 2,
+     "released": 45,
+     "false": 9,
+     "safe": 6,
+     "representation_debt": 3
+    },
+    "0029-gpt": {
+     "issues": 5,
+     "excluded_findings": 2,
+     "excluded_observations": 1,
+     "released": 50,
+     "false": 8,
+     "safe": 6,
+     "representation_debt": 2
+    },
+    "0050-claude": {
+     "issues": 0,
+     "excluded_findings": 0,
+     "excluded_observations": 1,
+     "released": 8,
+     "false": 1,
+     "representation_debt": 1
+    },
+    "0050-gpt": {
+     "issues": 0,
+     "excluded_findings": 2,
+     "excluded_observations": 0,
+     "released": 12,
+     "false": 2,
+     "representation_debt": 2
+    }
+   }
+  }
+ },
+ "corpus_replay": {
+  "what": "每条人工审阅提出、且被独立复跑证明可用 19 谓词写出并返回 False 的断言，逐条送进真实证据层，再用 bind_attribution 的原判据算归因状态。",
+  "script": "/tmp/code_audit/replay_attribution.py",
+  "data": "/tmp/code_audit/replay_attribution.json",
+  "validation": "对 v18 八格 34 条 False 用记录中的 check_detail 复算，25/34 与运行记录逐条一致；9 条差异全部是 precondition，即本复算器刻意未建模的 inherited_refs 机制（7 条 unattributed->safe，2 条 unattributed->representation_debt）。",
+  "total_manual_rows": 153,
+  "captured": 123,
+  "declared_not_expressible": 30,
+  "attribution": {
+   "safe": 67,
+   "representation_debt": 38,
+   "unattributed": 18
+  },
+  "attribution_problem_rows_only": {
+   "safe": 60,
+   "representation_debt": 31,
+   "unattributed": 17,
+   "total": 108
+  },
+  "debt_by_exclusion_kind": {
+   "compiler:state only": 21,
+   "compiler:route_control only": 14,
+   "both": 1,
+   "compiler:event_projection only": 2
+  },
+  "debt_by_scaffold": {
+   "UnspecifiedInitial": 17,
+   "InvalidInitial/InvalidFinal": 3,
+   "FinalWait": 2,
+   "R45RouteToken": 15,
+   "event_projection": 2
+  },
+  "by_predicate": {
+   "initial_target": {
+    "representation_debt": 18,
+    "safe": 3
+   },
+   "state_declared": {
+    "safe": 8,
+    "unattributed": 6
+   },
+   "containment": {
+    "safe": 9,
+    "unattributed": 4
+   },
+   "edge_declared": {
+    "safe": 11,
+    "representation_debt": 2
+   },
+   "reaches": {
+    "representation_debt": 5,
+    "safe": 3,
+    "unattributed": 1
+   },
+   "terminates": {
+    "representation_debt": 4,
+    "safe": 3,
+    "unattributed": 1
+   },
+   "event_consumed": {
+    "safe": 5,
+    "representation_debt": 2
+   },
+   "occupancy_after": {
+    "safe": 5,
+    "representation_debt": 2
+   },
+   "guard_distinguishable": {
+    "representation_debt": 4,
+    "safe": 2
+   },
+   "event_declared": {
+    "unattributed": 6
+   },
+   "action_declared": {
+    "safe": 6
+   },
+   "cardinality": {
+    "safe": 5
+   },
+   "effect_declared": {
+    "safe": 3
+   },
+   "persists_until": {
+    "safe": 3
+   },
+   "stays_in": {
+    "representation_debt": 1,
+    "safe": 1
+   }
+  },
+  "corpus_exclusion_census": {
+   "compiler:transition_segment": 1131,
+   "compiler:event_projection": 387,
+   "compiler:root": 60,
+   "compiler:state": 51,
+   "compiler:route_control": 33,
+   "compiler:synthetic_transition": 28,
+   "compiler:lifecycle_action": 16,
+   "source:normalization": 6,
+   "_pairs_with_UnspecifiedInitial": "16/60",
+   "_UnspecifiedInitial_total": 28
+  }
+ },
+ "ground_truth_scope": {
+  "note": "人工审阅 60 个模型共 153 条计入问题（122 problem + 31 extra），其中 123 条可表述。v18 只覆盖 4 个 pair。",
+  "v18_pairs_manual_problems": {
+   "0000": 2,
+   "0006": 3,
+   "0029": 5,
+   "0050": 1,
+   "total": 11
+  },
+  "v18_published_per_profile": {
+   "0000": 2,
+   "0006": 3,
+   "0029": 5,
+   "0050": 0
+  },
+  "conclusion": "v18 在其 4 个 pair 上是 10/11，唯一漏的一条（0050 的 human_steering_cmd）正是被 bind_attribution 的 precondition 继承降级掉的，且因为台账把 0050 记为无期望缺陷，该漏检在 REPORT.md 里被记成『0 confirmed 即为正解』。"
+ },
+ "self_limits": [
+  {
+   "predicate": "initial_target",
+   "raises": "UnsupportedEvidence",
+   "condition": "the composite declares >1 unconditional initial edge",
+   "location": "assertions/predicate_api.py:916-921",
+   "makes_undecidable": "入口唯一性 / 多默认进入点类缺陷（manual review 0033#1 明确记为不可表述：'initial_target 的 refuse 语义把整个「多默认进入点」族变成不可判定'）"
+  },
+  {
+   "predicate": "initial_target",
+   "raises": "UnsupportedEvidence",
+   "condition": ">1 initial edge and none is unconditional (every one carries a guard or trigger)",
+   "location": "assertions/predicate_api.py:922-927",
+   "makes_undecidable": "带守卫初始边导致的入口非确定；manual review 0007#3 记为不可表述（既进不了 initial_target 也进不了 guard_distinguishable，因为后者拒绝 source='[*]'）"
+  },
+  {
+   "predicate": "occupancy_after",
+   "raises": "UnsupportedEvidence",
+   "condition": "False at the asked horizon but True at some larger horizon within _HORIZON_PROBE",
+   "location": "assertions/predicate_api.py:1112-1134",
+   "makes_undecidable": "任何目标位于事件之后的完成边之外的行为义务；这是唯一一个已证明阻止了捏造 issue 的自限（v17 的 0006-claude 假阳性），代价是把良性多跳与真缺陷一起判为不可答（manual review 0006#4）"
+  },
+  {
+   "predicate": "occupancy_after / reaches / response_within / persists_until",
+   "raises": "UnsupportedEvidence",
+   "condition": "target / response / state binding equals the model root",
+   "location": "assertions/predicate_api.py:399-426 (_reject_undiscriminating_root), called at 1105, 1277, 1512, 1560",
+   "makes_undecidable": "以整个模式（根）为主语的义务；必须改写为叶态，NL 未点名叶态时无合法写法"
+  },
+  {
+   "predicate": "reaches / terminates (_bounded_witness)",
+   "raises": "UnsupportedEvidence",
+   "condition": "the BFS witness search spends _SEARCH_BUDGET=4000 runs without a witness",
+   "location": "assertions/predicate_api.py:1301 (_SEARCH_BUDGET), 1405-1413",
+   "makes_undecidable": "事件字母表大 / horizon 深的可达性与终止义务；预算耗尽被显式记为拒答而非 False"
+  },
+  {
+   "predicate": "reaches / terminates (_bounded_witness)",
+   "raises": "UnsupportedEvidence",
+   "condition": "the variable values that distinguish bounded runs cannot be read",
+   "location": "assertions/predicate_api.py:1381-1389",
+   "makes_undecidable": "任何需要变量可观测性去重的多步搜索"
+  },
+  {
+   "predicate": "response_within (_default_init)",
+   "raises": "UnsupportedEvidence",
+   "condition": "`source` omitted and the trigger is declared on >1 source",
+   "location": "assertions/predicate_api.py:1620-1638",
+   "makes_undecidable": "源未被 NL 点名的响应义务"
+  },
+  {
+   "predicate": "guard_distinguishable",
+   "raises": "UnsupportedEvidence",
+   "condition": "no declared transition leaves `source` on `trigger`",
+   "location": "assertions/predicate_api.py:997-1002",
+   "makes_undecidable": "守卫冲突义务在触发被 converter 投影改名后不可判定（正确的设计：返回 True 才是 pair-0029 的捏造源）"
+  },
+  {
+   "predicate": "guard_distinguishable (_indistinguishable)",
+   "raises": "UnsupportedEvidence",
+   "condition": "the structured public API cannot decide guard overlap",
+   "location": "assertions/predicate_api.py:1060-1067",
+   "makes_undecidable": "需要 SMT 级守卫重叠判定的可区分性义务"
+  },
+  {
+   "predicate": "stays_in",
+   "raises": "UnsupportedEvidence",
+   "condition": "`source` is a composite (every observation reports root..leaf, so a composite subject is trivially satisfied)",
+   "location": "assertions/predicate_api.py:1215-1222",
+   "makes_undecidable": "模式级稳定性义务；NL 不点名叶态时无合法写法"
+  },
+  {
+   "predicate": "stays_in",
+   "raises": "UnsupportedEvidence",
+   "condition": "source='[*]' and the run enters no state before the trigger",
+   "location": "assertions/predicate_api.py:1191-1198",
+   "makes_undecidable": "上电前稳定性义务"
+  },
+  {
+   "predicate": "cardinality",
+   "raises": "UnsupportedEvidence",
+   "condition": "the model declares no state at `scope`",
+   "location": "assertions/predicate_api.py:1082-1088",
+   "makes_undecidable": "对不存在 scope 的计数义务；须先用 state_declared 前提断言 scope 存在"
+  },
+  {
+   "predicate": "variable_delta_after",
+   "raises": "UnsupportedEvidence",
+   "condition": "the variable is not observable in the simulation state",
+   "location": "assertions/predicate_api.py:1258-1264",
+   "makes_undecidable": "NL 命名的量在模型中无变量声明时的数值义务（0006 的 uav_count 即此形）"
+  },
+  {
+   "predicate": "invariant / response_within / persists_until (_formal_holds)",
+   "raises": "UnsupportedEvidence",
+   "condition": "fbmcq disabled / solver budget exceeded / non-terminal verdict",
+   "location": "assertions/predicate_api.py:1655-1679",
+   "makes_undecidable": "所有 Family P 有界形式化义务；'exceeded its budget on this model' 还被 precheck 标为 unrepairable（nodes.py:2489），第一次失败即耗尽"
+  },
+  {
+   "predicate": "any (_require_well_formed_names)",
+   "raises": "UnsupportedEvidence",
+   "condition": "binding == '[*]' outside {source, scope}",
+   "location": "assertions/predicate_api.py:277 (_PSEUDO_INITIAL_BINDINGS), 358-367",
+   "makes_undecidable": "'应存在一条到终止的边' 这一族义务无法用 edge_declared 写出（target='[*]' 被拒），只能走 terminates；这是 v18 全部 10 次 precheck 拒收中的 9 次"
+  },
+  {
+   "predicate": "cardinality / guard_distinguishable (_reject_pseudo_initial)",
+   "raises": "UnsupportedEvidence",
+   "condition": "scope/source == '[*]'",
+   "location": "assertions/predicate_api.py:285-312",
+   "makes_undecidable": "初始伪态出边的守卫可区分性（与 initial_target 的多守卫拒答叠加成完全盲区，见 0007#3）"
+  },
+  {
+   "predicate": "any (_require_identifier)",
+   "raises": "UnsupportedEvidence",
+   "condition": "binding is not identifier-shaped / has too few path segments / is a placeholder",
+   "location": "assertions/predicate_api.py:161-215",
+   "makes_undecidable": "占位符式主张；必须改写为 precondition + depends_on（正确设计，但该改写正是 bind_attribution 继承污染的入口）"
+  },
+  {
+   "predicate": "any (_budget)",
+   "raises": "UnsupportedEvidence",
+   "condition": "within_cycles/bound < 1 or > MAX_BUDGET",
+   "location": "assertions/predicate_api.py:79-104",
+   "makes_undecidable": "需要超过 MAX_BUDGET 步 horizon 的义务"
+  },
+  {
+   "predicate": "_simulate / run",
+   "raises": "UnsupportedEvidence",
+   "condition": "the model cannot be hot-started in the pinned configuration",
+   "location": "assertions/predicate_api.py:550-557, 1364-1370",
+   "makes_undecidable": "以不可达/合成配置为源的行为义务"
+  }
+ ],
+ "top_causes": [
+  "1 (C) — bind_attribution 的排除表求交是一个无权重的集合交，任何一次证据触及即整条降级。对 123 条已证明可表述且实测 False 的断言重放该过程：67 safe / 38 representation_debt / 18 unattributed，即 46% 被归因层吃掉；只看人工判定为真缺陷的 108 条，则 60 safe / 31 debt / 17 unattributed。证据：/tmp/code_audit/replay_attribution.json；复现命令 `venv/bin/python /tmp/code_audit/replay_attribution.py`；该复算器对 v18 八格 34 条 False 中的 25 条与运行记录逐条一致，9 条差异全部是 precondition（继承机制，见第 3 条）。",
+  "2 (C) — `initial_target` + `UnspecifiedInitial`：投影给每个缺默认初始边的复合态注入合成子态，该子态在 attribution_exclusions 中，而 predicate_api.py:897/914 又必须把决定答案的入口登记为 ref。结果 21 条 initial_target 发现中 18 条（86%）必然降级，覆盖 14 个 pair；语料中 16/60 个 pair 有共 28 个 UnspecifiedInitial。这正是任务假设的那条链，代码与运行数据都确认成立。证据：0029-claude/0029-gpt 的 excluded_findings 共 4 条，rationale 逐字点名 UnspecifiedInitial。",
+  "3 (C) — precondition 继承把编译器路径带进债务检查，并因此在 pair 0050 造成一次被记为'正解'的漏检。nodes.py:3034-3046 把 dependent 的 declared_path_bindings 并入 precondition 的 observed；known_model_paths(nodes.py:1103-1113) 与 model_vocabulary 又刻意把 compiler-owned 状态展示给 converter。0050-gpt 的 AST-REQ-005-0 = `event_declared(\"...human_steering_cmd\")` -> False（人工审阅 0050#4 判定的唯一真问题），其 dependent 以 `AutonomousMode.FinalWaittr_0005` 为 source，于是 exclusion_refs=['compiler:state:...FinalWaittr_0005'] -> representation_debt -> 0 issue。台账记 pair 0050 无期望缺陷，REPORT.md 因而把它记为『0 confirmed 即为正解』。这是一次对论文结论有直接影响的静默漏检。",
+  "4 (I) — `compiler:route_control:R45RouteToken` 污染行为族证据。predicate_api.py:641-658 在匹配到的迁移 guard/effect 文本含路由变量时登记 `route_control:R45RouteToken`，与排除项结构匹配；豁免拼法 `filtered_route_control:` 只有 effect_declared 在用。重放中 15/123（12%）因此降级，涉及 terminates(4)/guard_distinguishable(4)/reaches(3)/occupancy_after(2)/event_consumed(1)/stays_in(1)。实例：0050-claude 全格唯一的 False（AST-REQ-005-2）即此因，该格发布 0 issue。",
+  "5 (I) — 『模型缺某元素』这一最常见缺陷类在归因上先天不可绑定。safe 需要 matched frozen trace entry，而缺失元素不可能出现在任何 entry 的 intermediate_elements 中。重放中 event_declared 6/6 全部 unattributed，state_declared 6、containment 4 同因，合计 16/18。既有逃生通道（precondition+depends_on 的 ref 继承）在 v18 救回 7/9，但同一通道正是第 3 条的污染入口——救与毁是同一段代码。实例：0006-gpt 的 ISSUE-REQ-005-UavCountUnattributed。",
+  "6 (I) — 词表自限把整类缺陷变成『无结果』而不是『不确定』。precheck 只封 strict bool（nodes.py:2254-2259），AssertionResult.truth_value 是 StrictBool（schemas.py:511），所以拒答既不是 False 也不是 unknown，只能进修复循环、最终成为 CoverageGap。v18 十次 precheck 拒收全部是 UnsupportedEvidence，其中 9 次是 `binding 'target' cannot be [*]`——即『应有一条到终止的边』这族义务写不出 edge_declared 形态。另 1 次是 occupancy_after 的 horizon 自检，该次拒答是正确的（挡住了 v17 的捏造）。",
+  "7 (M) — 排除表里 90% 的条目其实匹配不上。common/refs.py:14-24 的 REFERENCE_KINDS 只含 event/state/transition/variable/effect/guard/route_control，所以 `compiler:transition_segment:`(1131)、`compiler:event_projection:`(387)、`compiler:root:`(60)、`compiler:synthetic_transition:`(28)、`compiler:lifecycle_action:`(16) 只能靠证据层刻意发出的逐字符串匹配（目前仅 _note_event_projection 一处这么做）。这既解释了为何整体降级率没有更高，也意味着这张表的实际覆盖面与它的字面规模严重不符——是一处未被记录的松口，改动 REFERENCE_KINDS 会让降级率大幅上升。",
+  "8 (M，但对结论表述关键) — v18 八格本身并不是大规模漏检。把人工审阅按 v18 的 4 个 pair 取子集：0000=2、0006=3、0029=5、0050=1，共 11 条真问题；v18 每个 profile 发布 0000=2、0006=3、0029=5、0050=0。也就是说 10/11 命中、1 条漏（即第 3 条的 0050）。任务背景里 123 vs 20 的落差主要是口径错配（123 覆盖 60 个模型，20 覆盖 4 个模型 x 2 个 profile）。真正的风险不在已跑的八格，而在把同一套过滤器推到 60 个模型上：按重放结果，届时会有 46% 的可表述真缺陷在归因层被吃掉。"
+ ]
+}

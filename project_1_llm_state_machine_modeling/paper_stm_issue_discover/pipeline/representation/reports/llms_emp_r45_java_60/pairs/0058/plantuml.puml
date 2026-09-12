@@ -1,0 +1,67 @@
+@startuml
+
+state TurnOn {
+state ""TurnOn"" as TurnOn_state
+}
+TurnOn_state : {max=2s, min=2s}
+
+[*] --> TurnOn_state
+TurnOn_state --> fork1
+
+state fork1 <<fork>>
+fork1 --> AutoFocus
+fork1 --> DetLight
+fork1 --> choice3
+
+state AutoFocus {
+state ""AutoFocus"" as AutoFocus_state
+}
+AutoFocus_state : {max=2s, min=1s}
+
+AutoFocus_state --> choice1 : [memFull=true]
+
+state DetLight {
+state ""DetLight"" as DetLight_state
+}
+DetLight_state : {max=1s, min=0s}
+
+DetLight_state --> choice2 : <<GaStep>>{prob=0.4}
+
+state ChargedFlash {
+state ""ChargedFlash"" as ChargedFlash_state
+}
+ChargedFlash_state : {max=4s, min=2s}
+
+choice3 --> ChargedFlash_state
+ChargedFlash_state --> Junction3 : [Charged=true]
+choice3 --> Junction3
+
+state Join2 <<join>>
+Junction3 --> Join2
+
+choice2 --> Join2
+choice2 --> Join1 : [sunny=true]
+
+state Join1 <<join>>
+Join1 --> Junction2
+
+Junction2 --> TakePicture
+TakePicture --> WriteMemory
+state WriteMemory {
+state ""WriteMemory"" as WriteMemory_state
+}
+WriteMemory_state : {max=3s, min=2s}
+
+WriteMemory_state --> Junction1
+Junction1 --> TurnOff
+TurnOff --> [*]
+
+state Join2 {
+state fork2 <<fork>>
+fork2 --> Junction2
+fork2 --> Flash
+}
+
+Flash --> Terminate
+
+@enduml"

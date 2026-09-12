@@ -1,0 +1,86 @@
+{
+ "case": "0031",
+ "group": "NL02",
+ "llm": "Kimi",
+ "diffs": [
+  {
+   "verdict": "extra",
+   "ref": "（参考模型中 Brake_Caliper_Closed_State 无任何出边）",
+   "gen": "ClampingState --> InitialState : Transition Missing Feedback",
+   "reason": "NL 没有任何关于钳夹之后返回初态的描述，参考模型里钳夹态是吸收状态。作者新增了一条从 ClampingState 回到 InitialState 的边，属无 NL 依据的过度指定；因 NL 未给钳夹态显式 remain/only/never 义务，不升级为 problem。",
+   "assertable": "not transition_exists(source='llms_emp_feedback_final_0031.ClampingState', event='llms_emp_feedback_final_0031.Transition_Missing_Feedback')  # 谓词与归因链成立，但缺 NL 显式禁止依据",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "（不适用：疑似评审批注泄漏进制品）",
+   "gen": "ClampingState --> InitialState : Transition Missing Feedback",
+   "reason": "该标签文本 'Transition Missing Feedback' 读起来不像事件名，而像一句评审批注（'这条迁移缺少 feedback'）。结合论文对 0031 记的 semantic 幻觉 '1. missing transition and state'，存在一种可能：作者在 Phase-II 审查时把批注写进了模型标签位。若成立，这条边不是 Kimi 的原始输出，而是人工编辑痕迹，不应作为 LLM 过度指定的证据。证据不足以定论（0031 的其他部分未见人工归一痕迹，与 0001/0011 逐字节相同那种情况不同），故记 uncertain 供核查。同时这也再次印证：这批模型确实在 label 位写描述文本而非事件名——这是我判定 'Entering Clamping State' 为散文的旁证之一。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "Brake_Caliper_Relaxed_State / Running_State --> Brake_Caliper_Relaxed_State",
+   "gen": "（作者模型没有该状态与该边）",
+   "reason": "论文对 0031 记的 'missing transition and state'（resolved = 0.0）指的就是这两个只存在于参考、NL 从未提及的元素。这不是相对 NL 的缺失，而是参考自身越出 NL 范围，按规范记 uncertain 而非 problem。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "Braking_State --> Brake_Caliper_Closed_State（无标签完成迁移）",
+   "gen": "BrakingState --> ClampingState : Entering Clamping State",
+   "reason": "与本组其余五个 case 同一判断：自指描述文本，NL 第 3 句未给触发器；按描述读，作者意图与参考的完成迁移一致。0031 自身的 'Transition Missing Feedback' 标签进一步佐证该 label 位在被用作散文。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "[*] --> Initial_State / Initial_State --> Braking_State / Initial_State --> Running_State / Braking_State --> Initial_State / Running_State --> Initial_State",
+   "gen": "[*] --> InitialState / InitialState --> BrakingState : Brake Signal Received / InitialState --> OperationalState : Signal Transmission Fails / BrakingState --> InitialState : Signal Feedback Sent / OperationalState --> InitialState : Signal Feedback Sent",
+   "reason": "初始边与 NL 第 2 句的三段语义（收到制动信号进制动态、传输失败进操作态、反馈发出回初态）全部覆盖，与参考对应；触发器命名差异属风格。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 0,
+ "extra_count": 1,
+ "vs_paper": "论文 format / grammar 栏为 None，semantic 栏记 '1. missing transition and state'（semantic_resolved = 0.0），f1 从 0.9167 降到 0.8889（Phase-II 后反而下降）。论文那条 semantic 记录指向参考独有、NL 无依据的松钳状态，我按规范记为参考侧 uncertain。我判的 1 个 extra 论文未记录。f1 在 Phase-II 后下降这一点值得注意：若 Phase-II 只做语义检查而制品变差，说明该阶段的编辑并非单调改进。",
+ "vs_ledger": "台帐 0031 状态 candidate_only、expected_issue_count = 0，唯一观察是 E2a/eventless_label_ambiguity（与本组其余五 case 完全同文）。我判的 extra 台帐未记，理由成立（NL 欠定，无显式禁止依据）。另需提醒台帐：0031 的 'Transition Missing Feedback' 标签疑似人工批注泄漏，这类语料完整性风险目前既不在 E1 也不在任何 E2 观察里，建议单列。",
+ "notes": "0031 对 NL 三句话忠实，唯一超出是钳夹态回初态的边。它最有价值的地方是那个标签文本：'Transition Missing Feedback' 几乎不可能是 LLM 心里的事件名，既支持 'NL02 组的 label 位在写散文' 这一判断，也提示制品可能被人工批注污染。",
+ "_source_file": "NL01-NL02.json",
+ "cross_reference": {
+  "case": "0031",
+  "group": "NL02",
+  "llm": "Kimi",
+  "counts": {
+   "correct": 1,
+   "similar": 1,
+   "problem": 0,
+   "extra": 1,
+   "uncertain": 2
+  },
+  "out_of_scope": {},
+  "problems_in_scope": 1,
+  "paper": {
+   "format": null,
+   "grammar": null,
+   "semantic": "1. missing transition and state",
+   "semantic_resolved": 0.0,
+   "f1_phase1": 0.9166666667,
+   "f1_phase2": 0.8888888889
+  },
+  "ledger": {
+   "status": "candidate_only",
+   "e1_ids": [],
+   "e1_categories": []
+  },
+  "assertable_problems": 0
+ }
+}

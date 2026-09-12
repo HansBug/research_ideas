@@ -1,0 +1,86 @@
+{
+  "case": "0034",
+  "nl_group": "NL01",
+  "diffs": [
+    {
+      "verdict": "problem",
+      "ref": "state InMotion{ [*]-->Accelerating ; Accelerating --> Cruising: ... ; Accelerating --> Approaching: ... ; Cruising --> Approaching: ... }",
+      "gen": "InMotion --> Accelerating\nInMotion --> Cruising\nInMotion --> Approaching\n（三个状态与 InMotion 同级，无 `state InMotion { ... }` 块）",
+      "reason": "NL 第4句明确写 \"Within the InMotion state, the system operates in three substates: Accelerating, Cruising, and Approaching\"，点名了层次隶属。生成方把三者写成 InMotion 的兄弟状态并用三条**无标签** completion 边连接（fcstm 中四者同级）。两重后果：(1) NL 第4句的层次结构完全丢失，InMotion 也没有默认子态；(2) 三条无触发 completion 边会在进入 InMotion 后立即、不确定地触发，抢占 `InMotion --> Stopping : Arrived/Stop, Send Arrived` 与 `InMotion --> EmergencyStopping : Obstacle Detected`，使 NL 第2句的两条迁移实际不可达。命中口径 3 的\"NL 点名元素缺失\"与\"无触发 completion 边造成不该有的即发迁移\"。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "（参考未给 DoorsClosing 任何动作；`Accelerating: Entry/Accelerate` 只挂在 Accelerating 上）",
+      "gen": "DoorsClosing : entry/Accelerate",
+      "reason": "NL 第8句把该动作明确归属给加速子态：\"The system enters the Accelerating substate when motion begins, marked by the 'Entry/Accelerate' action\"；NL 第1句 \"The system starts in the DoorsClosing state and transitions to InMotion when the doors are closed\" 未赋予 DoorsClosing 任何动作。生成方在 Accelerating 上正确挂了 entry/Accelerate，却又额外把同一动作挂到 DoorsClosing，等于\"车门尚未关闭即开始加速\"，与 NL 第1句的时序义务矛盾。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "EmergencyStoping:Entry/Emergency Sop, Send Obstacle Detected",
+      "gen": "EmergencyStopping : entry/Emergency Stop",
+      "reason": "NL 第3句明确点名两个动作：\"the EmergencyStopping state, which includes the actions 'Emergency Stop' and sends the 'Obstacle Detected' signal\"。生成方只保留 Emergency Stop，\"Send Obstacle Detected\" 信号发送在全模型中没有任何对应元素，属 NL 点名元素缺失。（判据取自 NL 第3句本身，不依赖参考；参考该行把状态名误拼为 EmergencyStoping，见下条。）",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "Approaching: Entry/Send",
+      "gen": "Approaching : entry/Decelerate",
+      "reason": "NL 第9句明确写 \"In the Approaching substate, the system sends the 'Send' signal and continues to approach the destination\"，点名了 Approaching 内的 Send 动作。生成方把它替换为 entry/Decelerate，而 Decelerate 已经由迁移标签 \"Approached/Decelerate\"（NL 第6、7句）承载，结果是 NL 第9句的 Send 动作在全模型中缺失。属 NL 点名元素缺失。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "extra",
+      "ref": "（参考中 EmergencyStopping 无任何出边）",
+      "gen": "EmergencyStopping --> [*] : Obstacle Cleared",
+      "reason": "NL 第3句只描述进入紧急停车状态及其动作，十句 NL 都没有\"障碍清除\"事件或紧急停车后的退出行为，参考也没有该边。属生成方新增元素（它确实消除了紧急停车的死端，但语义未被 NL 授权）。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "extra",
+      "ref": "（参考中 Approaching 无出边，仅有 `Approaching: Approaching` 标签）",
+      "gen": "Approaching --> [*] : Destination Missed",
+      "reason": "NL 第10句写 \"The system remains in the Approaching substate while nearing the destination, until it is ready to stop or decelerate\"，只给出\"准备停车/减速\"两种出路，没有\"错过目的地\"这一事件，参考也没有。属生成方新增元素；由于三个子态被写成顶层状态，这条边还直接指向顶层 final，绕过了 NL 第2句的 Stopping 路径。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "extra",
+      "ref": "Accelerating --> Cruising: Reached Cruising/Cruise（Cruise 作为迁移效果）",
+      "gen": "Accelerating --> Cruising : Reached Cruising/Cruise\nCruising : entry/Cruise",
+      "reason": "NL 第5句 \"moving to the Cruising substate once cruising speed is reached, as indicated by the 'Reached Cruising/Cruise' signal\" 只把 Cruise 作为该迁移的效果。生成方保留了迁移效果，又额外在 Cruising 上加了 entry/Cruise，同一动作被重复承载；NL 与参考都没有该 entry 动作，属新增元素。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "（参考只有 InMotion --> Stopping: Arrived/Stop, Send Arrived，无 Approaching 出边）",
+      "gen": "Approaching --> Stopping : Ready to Stop",
+      "reason": "NL 第10句 \"until it is ready to stop or decelerate\" 明确点名\"准备停车\"这一出路，生成方实现了。参考侧存疑：参考的 Approaching 除标签外没有任何出边（在 InMotion 内为吸收态），未承载 NL 第10句的\"ready to stop\"，因此不能以参考为基准判生成方多余。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "Approaching: Approaching",
+      "gen": "（无对应标签/活动）",
+      "reason": "参考该行是一个退化标签（状态名重复写成标签内容，推测原意为 do/Approaching），对应 NL 第10句 \"continues to approach the destination\"。NL 只说\"保持在该子态继续接近\"，没有点名一个必需的活动名，生成方省略不违反 NL；参考写法本身也不构成可靠语义基准。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "uncertain",
+      "ref": "EmergencyStoping:Entry/Emergency Sop, Send Obstacle Detected（状态名少一个 p，动作名 Sop 拼错）",
+      "gen": "EmergencyStopping : entry/Emergency Stop（挂在正确的状态上）",
+      "reason": "参考侧存疑：`EmergencyStoping` 与迁移目标 `EmergencyStopping` 不同名，在 PlantUML 中会额外创建一个孤立状态，导致该 entry 动作挂空（挂在一个没有任何入边的幽灵状态上）；\"Emergency Sop\" 亦为拼写错误。生成方把动作挂在正确状态上优于参考。卡点：由于参考此处不良构，无法据参考判定动作列表的权威形式；\"Send Obstacle Detected\" 的缺失已依据 NL 第3句单独判为 problem。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "[*]-->DoorsClosing ；DoorsClosing --> InMotion: Closed/SendDeparted ；InMotion --> EmergencyStopping: ObstacleDetected ；Accelerating --> Approaching: Approached/Decelerate ；Cruising --> Approaching: Approached/Decelerate",
+      "gen": "[*] --> DoorsClosing ；DoorsClosing --> InMotion : Closed/SendDeparted ；InMotion --> EmergencyStopping : Obstacle Detected ；Accelerating --> Approaching : Approached/Decelerate ；Cruising --> Approaching : Approached/Decelerate",
+      "reason": "NL 第1句、第2句后半、第6句、第7句对应的迁移与触发/效果两侧一致（仅 ObstacleDetected 与 \"Obstacle Detected\" 的空格差异），初始边均无触发，良构。",
+      "out_of_scope": null
+    }
+  ],
+  "problem_count": 4,
+  "extra_count": 3,
+  "notes": "拆分粒度原则：一条 diff = 一个可独立修复的现象。把\"三个子态写成兄弟 + 三条无标签边\"合成一条（同一处修复：包进 `state InMotion { [*] --> Accelerating ... }` 并删除三条平级边即同时消掉层次缺失与即发迁移）；而三条新增边/动作（Obstacle Cleared、Destination Missed、entry/Cruise）分别独立，各自单列。\n\nNL 逐句核对：\n1 \"starts in DoorsClosing, transitions to InMotion on Closed/SendDeparted\"：迁移满足；但 DoorsClosing 被额外挂上 entry/Accelerate，与本句时序矛盾（计 problem）。\n2 \"InMotion 可到 Stopping（Arrived/Stop, Send Arrived）或 EmergencyStopping（障碍）\"：两条边都写了，但被三条无标签 completion 边抢占，实际不可达（计入第 1 条 problem）。\n3 \"EmergencyStopping 包含 'Emergency Stop' 动作并发送 'Obstacle Detected' 信号\"：只满足 Emergency Stop，Send Obstacle Detected 缺失（计 problem）。\n4 \"Within the InMotion state, ... three substates: Accelerating, Cruising, Approaching\"：三个状态存在但不是子状态（计 problem）。\n5 \"从 Accelerating 到 Cruising，Reached Cruising/Cruise\"：满足（另多出重复的 entry/Cruise，记 extra）。\n6 \"Accelerating --> Approaching: Approached/Decelerate\"：满足。\n7 \"Cruising --> Approaching: Approached/Decelerate\"：满足。\n8 \"进入 Accelerating 时 Entry/Accelerate\"：满足（Accelerating : entry/Accelerate）。\n9 \"Approaching 中发送 'Send' 信号并继续接近\"：不满足（entry/Decelerate 取代了 Send，计 problem）。\n10 \"保持在 Approaching 直到准备停车或减速\"：满足（Approaching --> Stopping : Ready to Stop），另多出 Destination Missed 出口（记 extra）。\n\n附注：Stopping 在两侧都无出边（NL 也未描述离开 Stopping），属双方共有，不计为差异。\n参考侧存疑位置：(a) `EmergencyStoping` 拼写错误导致 entry 动作挂在幽灵状态、\"Emergency Sop\" 拼错；(b) `Approaching: Approaching` 退化标签；(c) Approaching 在 InMotion 内无出边，未承载 NL 第10句的 ready-to-stop；(d) Stopping 无出边、全模型无 final。"
+}

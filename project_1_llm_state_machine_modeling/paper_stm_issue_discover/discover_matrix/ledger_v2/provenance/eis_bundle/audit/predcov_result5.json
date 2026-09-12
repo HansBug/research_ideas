@@ -1,0 +1,501 @@
+{
+  "batch": 5,
+  "groups": ["NL01", "NL10"],
+  "method_note": "每条断言都在 R4.5 FCSTM 投影上实跑（fbmcq_max_bound=3，故 P 族 bound<=3）。除实测缺陷模型返回 False 外，还对同组结构正确的姊妹模型做了 oracle 对照（NL01 用 0004，NL10 用 0015），确认同一表达式在正确模型上返回 True——否则该表达式不是「正确模型应当满足的性质」，不计为可表述。",
+  "items": [
+    {
+      "case": "0004",
+      "diff_index": 0,
+      "verdict": "problem",
+      "stratum": "wellformedness",
+      "expressible": true,
+      "assertion": "state_declared(state='llms_emp_feedback_final_0004.DoorsClosing', kind='leaf')",
+      "predicates": ["state_declared"],
+      "measured": false,
+      "measured_raw": "False",
+      "note": "NL 第 4 句只把三个子状态授予 InMotion，从未给 DoorsClosing 子状态，故正确模型中 DoorsClosing 是叶子。作者把它写成复合态且内部初始伪状态指向自己，投影出 InvalidInitialtr_0002 named 'PlantUML initial target outside child scope: DoorsClosing'，复合态无任何合法默认子态。实测 False，缺陷被捕获。等价形 cardinality(scope='...DoorsClosing', count=0) 亦实测 False。",
+      "rewrote_from": ""
+    },
+    {
+      "case": "0014",
+      "diff_index": 0,
+      "verdict": "problem",
+      "stratum": "nl_named",
+      "expressible": true,
+      "assertion": "initial_target(composite='llms_emp_feedback_final_0014', child='llms_emp_feedback_final_0014.DoorsClosing')",
+      "predicates": ["initial_target"],
+      "measured": false,
+      "measured_raw": "False",
+      "note": "NL 第 1 句 'The system starts in the DoorsClosing state'。0014 顶层无 [*] --> 边，投影合成 [*] -> UnspecifiedInitial，谓词从该唯一入口作答故返回 UnspecifiedInitial != DoorsClosing。BRIEF 坑 3 不适用：这条合成初始边不带触发。oracle 对照：0004 上同形表达式 initial_target(composite='llms_emp_feedback_final_0004', child='...0004.DoorsClosing') 实测 True。",
+      "rewrote_from": ""
+    },
+    {
+      "case": "0014",
+      "diff_index": 1,
+      "verdict": "problem",
+      "stratum": "nl_named",
+      "expressible": true,
+      "assertion": "action_declared(state='llms_emp_feedback_final_0014.InMotion.Accelerating', phase='entry')",
+      "predicates": ["action_declared"],
+      "measured": false,
+      "measured_raw": "False",
+      "note": "NL 第 8 句逐字点名相位与动作名（'marked by the \"Entry/Accelerate\" action'），故 phase='entry' 是 NL 直接授权的，不是猜相位。作者把整串搬到 InMotion 内部初始边标签，投影降级为 event Entry_Accelerate 且 Accelerating 无任何动作。相位无关形 any([entry,during,exit]) 亦实测 False（0014 全模型零 abstract 动作）。oracle 对照：0004 的 'Accelerating: entry/Accelerate' 投影为 enter abstract Accelerate，同形表达式为 True，说明该断言能区分正误。",
+      "rewrote_from": ""
+    },
+    {
+      "case": "0014",
+      "diff_index": 2,
+      "verdict": "problem",
+      "stratum": "nl_named",
+      "expressible": true,
+      "assertion": "not state_declared(state='llms_emp_feedback_final_0014.EmergencyStopping.Entry', kind='any')",
+      "predicates": ["state_declared"],
+      "measured": false,
+      "measured_raw": "False",
+      "note": "'Entry: Emergency Stop' 在 PlantUML 里不是动作语法，被读成一个叫 Entry 的状态加描述，投影出 state Entry named 'Entry\\n[PlantUML body] Emergency Stop' 并连带合成 EmergencyStopping.UnspecifiedInitial。NL 第 4 句只把子状态授予 InMotion，故正确模型不存在该路径。等价形 cardinality(scope='...EmergencyStopping', count=0) 亦实测 False（Entry + UnspecifiedInitial 均计入，见 BRIEF 坑 5）。",
+      "rewrote_from": ""
+    },
+    {
+      "case": "0014",
+      "diff_index": 3,
+      "verdict": "problem",
+      "stratum": "nl_named",
+      "expressible": true,
+      "assertion": "any([action_declared(state='llms_emp_feedback_final_0014.InMotion.Approaching', phase='entry'), action_declared(state='llms_emp_feedback_final_0014.InMotion.Approaching', phase='during'), action_declared(state='llms_emp_feedback_final_0014.InMotion.Approaching', phase='exit')])",
+      "predicates": ["action_declared"],
+      "measured": false,
+      "measured_raw": "False",
+      "note": "NL 第 9 句要求 Approaching 发送 'Send' 信号但不指定相位，故改用相位无关的 any([...]) 三相位形。0014 的 Approaching 只有描述文本、零动作，实测 False。之所以重写：现有字段的 phase='during' 也实测 False，但参考模型把 Send 放在 entry（0004 用 do/Send、参考用 Entry/Send），单 during 形在正确模型上同样为 False，不构成 oracle。",
+      "rewrote_from": "action_declared(state='llms_emp_feedback_final_0014.InMotion.Approaching', phase='during')"
+    },
+    {
+      "case": "0024",
+      "diff_index": 0,
+      "verdict": "problem",
+      "stratum": "nl_named",
+      "expressible": true,
+      "assertion": "action_declared(state='llms_emp_feedback_final_0024.InMotion.Accelerating', phase='entry')",
+      "predicates": ["action_declared"],
+      "measured": false,
+      "measured_raw": "False",
+      "note": "同 0014#1：NL 第 8 句逐字点名 'Entry/Accelerate'，相位由 NL 授权。0024 的 Accelerating 只有与自身同名的空描述，实测 False。相位无关形亦 False。",
+      "rewrote_from": ""
+    },
+    {
+      "case": "0024",
+      "diff_index": 1,
+      "verdict": "problem",
+      "stratum": "nl_named",
+      "expressible": true,
+      "assertion": "any([action_declared(state='llms_emp_feedback_final_0024.InMotion.Approaching', phase='entry'), action_declared(state='llms_emp_feedback_final_0024.InMotion.Approaching', phase='during'), action_declared(state='llms_emp_feedback_final_0024.InMotion.Approaching', phase='exit')])",
+      "predicates": ["action_declared"],
+      "measured": false,
+      "measured_raw": "False",
+      "note": "作者把输出信号 Send 写成迁移标签，投影为 event exit_Send named 'exit/Send'（输出被反转为输入事件），Approaching 因此零动作。NL 第 9 句不指定相位，故用相位无关形；现有字段的 phase='exit' 虽也实测 False，但 exit 相位在正确模型上同样为 False（参考放在 entry），不构成 oracle，故重写。",
+      "rewrote_from": "action_declared(state='llms_emp_feedback_final_0024.InMotion.Approaching', phase='exit')"
+    },
+    {
+      "case": "0024",
+      "diff_index": 2,
+      "verdict": "problem",
+      "stratum": "nl_contradiction",
+      "expressible": true,
+      "assertion": "persists_until(state='llms_emp_feedback_final_0024.InMotion.Approaching', release='active(\"llms_emp_feedback_final_0024.Stopping\") || active(\"llms_emp_feedback_final_0024.EmergencyStopping\")', bound=3)",
+      "predicates": ["persists_until"],
+      "measured": false,
+      "measured_raw": "False",
+      "note": "NL 第 10 句是显式 remain-until 义务。多出边 Approaching --> InMotion (exit/Send) 被投影为 InMotion -> InMotion : if [R45RouteToken == 7]，等价于复合态自迁移，重跑内部初始把运动阶段重置回 Accelerating——既非 Stopping 也非 EmergencyStopping，义务未解除即离开，实测 False。**release 必须同时含 EmergencyStopping**：只写 active(Stopping) 时，0004（无此多出边的正确姊妹）实测也是 False（NL 第 2 句的 Obstacle Detected 合法离开 Approaching 却不去 Stopping），即单 release 形不是 oracle；两 release 形在 0004 上实测 True，可区分。备选 B 族形 not reaches(source='...InMotion.Approaching', target='...InMotion.Accelerating', within_cycles=3) 亦实测 False，且 0004 对照为 True。",
+      "rewrote_from": "not transition_exists(source='llms_emp_feedback_final_0024.InMotion.Approaching', event='llms_emp_feedback_final_0024.exit_Send')"
+    },
+    {
+      "case": "0024",
+      "diff_index": 3,
+      "verdict": "problem",
+      "stratum": "nl_named",
+      "expressible": true,
+      "assertion": "any([action_declared(state='llms_emp_feedback_final_0024.EmergencyStopping', phase='entry'), action_declared(state='llms_emp_feedback_final_0024.EmergencyStopping', phase='during'), action_declared(state='llms_emp_feedback_final_0024.EmergencyStopping', phase='exit')])",
+      "predicates": ["action_declared"],
+      "measured": false,
+      "measured_raw": "False",
+      "note": "NL 第 3 句要求 EmergencyStopping 执行 Emergency Stop 并发送 Obstacle Detected；作者把输出写成迁移标签（event exit_Send_Obstacle_Detected），该状态零动作，实测 False。NL 未指定相位，故用相位无关形；现有 phase='exit' 形也 False 但同样非 oracle。",
+      "rewrote_from": "action_declared(state='llms_emp_feedback_final_0024.EmergencyStopping', phase='exit')"
+    },
+    {
+      "case": "0024",
+      "diff_index": 4,
+      "verdict": "extra",
+      "stratum": "over_specification_benign",
+      "expressible": true,
+      "assertion": "not reaches(source='llms_emp_feedback_final_0024.EmergencyStopping', target='llms_emp_feedback_final_0024.InMotion.Accelerating', within_cycles=3)",
+      "predicates": ["reaches"],
+      "measured": false,
+      "measured_raw": "False",
+      "note": "按 BRIEF 要求 4 写成后果而非存在性：这条凭空的恢复边使紧急停车状态能自动回到运动阶段。NL 全文与参考都没有 EmergencyStopping 的出边，故正确模型中该状态是吸收态、无法到达 Accelerating。实测 False；0004 对照 not reaches(source='...0004.EmergencyStopping', target='...0004.InMotion.Accelerating', within_cycles=3) 实测 True。备选 not occupancy_after(source='...EmergencyStopping', trigger='...exit_Send_Obstacle_Detected', target='...InMotion') 亦实测 False，但它必须点名多出的事件（属前提），故不采用。",
+      "rewrote_from": "not transition_exists(source='llms_emp_feedback_final_0024.EmergencyStopping', event='llms_emp_feedback_final_0024.exit_Send_Obstacle_Detected')"
+    },
+    {
+      "case": "0034",
+      "diff_index": 0,
+      "verdict": "problem",
+      "stratum": "nl_named",
+      "expressible": true,
+      "assertion": "containment(parent='llms_emp_feedback_final_0034.InMotion', child='llms_emp_feedback_final_0034.InMotion.Accelerating')",
+      "predicates": ["containment"],
+      "measured": false,
+      "measured_raw": "False",
+      "note": "NL 第 4 句明确三个运动阶段是 InMotion 的子状态。0034 从未打开 InMotion，三者被声明为顶层兄弟。实测 False。NL 点名三个子态的完整形 all([containment(..Accelerating), containment(..Cruising), containment(..Approaching)]) 亦实测 False；cardinality(scope='...0034.InMotion', count=3) 亦 False。oracle 对照：0004 上 all([三条 containment]) 实测 True。",
+      "rewrote_from": ""
+    },
+    {
+      "case": "0034",
+      "diff_index": 1,
+      "verdict": "problem",
+      "stratum": "nl_named",
+      "expressible": true,
+      "assertion": "initial_target(composite='llms_emp_feedback_final_0034.InMotion', child='llms_emp_feedback_final_0034.InMotion.Accelerating')",
+      "predicates": ["initial_target"],
+      "measured": false,
+      "measured_raw": "False",
+      "note": "NL 第 5 句 'The system begins in the Accelerating substate'。0034 的 InMotion 是叶子且用三条无事件完成迁移代替嵌套初始边，谓词读不到 initial_targets 返回 None != child，实测 False（不抛异常）。oracle 对照：0004 上 initial_target(composite='...0004.InMotion', child='...0004.InMotion.Accelerating') 实测 True。",
+      "rewrote_from": ""
+    },
+    {
+      "case": "0034",
+      "diff_index": 2,
+      "verdict": "problem",
+      "stratum": "nl_named",
+      "expressible": true,
+      "assertion": "not action_declared(state='llms_emp_feedback_final_0034.DoorsClosing', phase='entry')",
+      "predicates": ["action_declared"],
+      "measured": false,
+      "measured_raw": "False",
+      "note": "NL 第 8 句把 'Entry/Accelerate' 归属给 Accelerating，NL 全文没给 DoorsClosing 任何动作。0034 在 DoorsClosing 上多挂了一份同名 entry 动作（enter abstract Accelerate），实测 False。更强的相位无关形 not any([entry,during,exit]) 亦实测 False。这一条与下面 #3/#4 不同：它只需要「不存在动作」，不需要命名动作内容，所以在词表内可表述。",
+      "rewrote_from": ""
+    },
+    {
+      "case": "0034",
+      "diff_index": 3,
+      "verdict": "problem",
+      "stratum": "nl_named",
+      "expressible": false,
+      "attempted": [
+        "action_declared(state='llms_emp_feedback_final_0034.Approaching', phase='during') -> False，但 NL 第 9 句不指定相位，而参考/0004 把 Send 放在 entry/do，同一表达式在正确模型上同样 False，故这个 False 来自猜相位而非缺陷",
+        "any([action_declared(...,'entry'), action_declared(...,'during'), action_declared(...,'exit')]) -> True（enter abstract Decelerate 满足了它），没抓住缺陷"
+      ],
+      "shape": "「状态必须声明某个具名动作（Send）」+「不得携带被错置的迁移效果（Decelerate）」——action_declared 的签名只有 (state, phase)，无法命名动作内容；当该状态已有别的动作时，存在性形被满足，相位形又只能靠猜。",
+      "closest_gap": "真词表缺口：缺一个能对动作内容作断言的谓词（如 action_declared(state, phase, action=...) 或 action_count(state, n)）。"
+    },
+    {
+      "case": "0034",
+      "diff_index": 4,
+      "verdict": "problem",
+      "stratum": "nl_named",
+      "expressible": false,
+      "attempted": [
+        "action_declared(state='llms_emp_feedback_final_0034.EmergencyStopping', phase='during') -> False，但 NL 第 3 句不指定相位（0004 把这两个动作放在 entry+do），故非 oracle",
+        "any([三相位 action_declared]) -> True（enter abstract EmergencyStop 满足了它），没抓住缺陷"
+      ],
+      "shape": "「同一状态必须声明两个动作，其中一个发送具名信号 Obstacle Detected」——19 谓词既不能数动作个数，也不能命名动作内容；只保留了两者之一时任何存在性形都被满足。",
+      "closest_gap": "真词表缺口：缺动作计数 / 动作命名能力（与 0034#3 同源）。"
+    },
+    {
+      "case": "0034",
+      "diff_index": 5,
+      "verdict": "problem",
+      "stratum": "nl_contradiction",
+      "expressible": true,
+      "assertion": "persists_until(state='llms_emp_feedback_final_0034.Approaching', release='active(\"llms_emp_feedback_final_0034.Stopping\") || active(\"llms_emp_feedback_final_0034.EmergencyStopping\")', bound=3)",
+      "predicates": ["persists_until"],
+      "measured": false,
+      "measured_raw": "False",
+      "note": "NL 第 10 句 remain-until 义务。多出边 Approaching --> [*] : Destination Missed 在义务未解除时离开 Approaching 并直接完成，实测 False。与 0024#2 同形，release 同样必须含 EmergencyStopping 才能在正确模型上成立（0004 对照 True）。备选 not terminates(scope='llms_emp_feedback_final_0034.Approaching') 亦实测 False，且该 scope 下唯一的终止见证就是 Destination_Missed（Approaching 无法回到 InMotion，故与 #6 隔离），0004 对照 not terminates 为 True。",
+      "rewrote_from": "not transition_exists(source='llms_emp_feedback_final_0034.Approaching', event='llms_emp_feedback_final_0034.Destination_Missed')"
+    },
+    {
+      "case": "0034",
+      "diff_index": 6,
+      "verdict": "extra",
+      "stratum": "over_specification_benign",
+      "expressible": true,
+      "assertion": "not terminates(scope='llms_emp_feedback_final_0034.EmergencyStopping')",
+      "predicates": ["terminates"],
+      "measured": false,
+      "measured_raw": "False",
+      "note": "按 BRIEF 要求 4 写成后果：NL 全文与参考都没有完成语义，故正确模型从 EmergencyStopping 无法终止。实测 False；0004 对照 not terminates(scope='...0004.EmergencyStopping') 实测 True。该 scope 下唯一终止见证是 Obstacle_Cleared，与 #5 隔离。",
+      "rewrote_from": "not transition_exists(source='llms_emp_feedback_final_0034.EmergencyStopping', event='llms_emp_feedback_final_0034.Obstacle_Cleared')"
+    },
+    {
+      "case": "0044",
+      "diff_index": 0,
+      "verdict": "problem",
+      "stratum": "nl_named",
+      "expressible": true,
+      "assertion": "initial_target(composite='llms_emp_feedback_final_0044.InMotion', child='llms_emp_feedback_final_0044.InMotion.Accelerating')",
+      "predicates": ["initial_target"],
+      "measured": false,
+      "measured_raw": "False",
+      "note": "NL 第 5/8 句共同要求进入 InMotion 默认落到 Accelerating。0044 建了复合态与三个子态但漏了内部初始伪状态，投影合成 UnspecifiedInitial 与 [*] -> UnspecifiedInitial，谓词从该唯一入口作答返回 UnspecifiedInitial，实测 False。0004 对照 True。",
+      "rewrote_from": ""
+    },
+    {
+      "case": "0044",
+      "diff_index": 1,
+      "verdict": "extra",
+      "stratum": "uncertain_stratum",
+      "expressible": true,
+      "assertion": "not terminates(scope='llms_emp_feedback_final_0044.Stopping')",
+      "predicates": ["terminates"],
+      "measured": false,
+      "measured_raw": "False",
+      "note": "后果形：NL 全文无完成 / 断电 / 收尾语义，参考也无终态，故正确模型的两个吸收态都不能终止。实测 False；覆盖两条边的合并形 not any([terminates(scope='...Stopping'), terminates(scope='...EmergencyStopping')]) 亦实测 False。0004 对照 not terminates(scope='...0004.Stopping') 实测 True。现有字段就是 19 谓词形且返回 False，故沿用。",
+      "rewrote_from": ""
+    },
+    {
+      "case": "0005",
+      "diff_index": 0,
+      "verdict": "problem",
+      "stratum": "nl_named",
+      "expressible": true,
+      "assertion": "stays_in(source='llms_emp_feedback_final_0005.DoorShut', trigger='llms_emp_feedback_final_0005.Cancel')",
+      "predicates": ["stays_in"],
+      "measured": false,
+      "measured_raw": "False",
+      "note": "NL 第 1 句 'can either remain in DoorShut if a Cancel action is performed' 是显式自环义务。0005 把它写成状态体描述文字（DoorShut named 'DoorShut\\n[PlantUML body] Cancel'），模型中无该迁移，Cancel 在 DoorShut 不被消费，实测 False。oracle 对照：0015（有 DoorShut -> DoorShut : /Cancel）上同形表达式实测 True。",
+      "rewrote_from": ""
+    },
+    {
+      "case": "0005",
+      "diff_index": 1,
+      "verdict": "problem",
+      "stratum": "nl_contradiction",
+      "expressible": true,
+      "assertion": "all([containment(parent='llms_emp_feedback_final_0005', child='llms_emp_feedback_final_0005.DoorShutWithItem'), containment(parent='llms_emp_feedback_final_0005', child='llms_emp_feedback_final_0005.ReadytoCook'), containment(parent='llms_emp_feedback_final_0005', child='llms_emp_feedback_final_0005.Cooking')])",
+      "predicates": ["containment"],
+      "measured": false,
+      "measured_raw": "False",
+      "note": "PlantUML 前向引用把这三个 ID 钉成 DoorOpenWithItem 的后代，形成四层嵌套，使 active(DoorShutWithItem) 蕴含 active(DoorOpenWithItem)，违反 NL 第 4/5/6/8 句的互斥处理。**必须重写**：现有字段的 invariant(scope='[*]', condition='!(active(...DoorOpenWithItem) && active(...DoorOpenWithItem.DoorShutWithItem))', bound=5) 在本 case 上实跑得到的是 **None**（bound=5 超过 controller_max_bound=3 直接 unsupported；把 bound 降到 3 或 2 仍是 None，fbmcq 子进程报 'partition check exceeded assignment budget.'；只有 bound=1 返回 True，是空真）。按 BRIEF「None 不算可表述」，P 族在这个语料最深的模型上不可用。改用 S 族扁平结构形：NL10 参考与其余 5 个同组模型都把六态组织为平级集合，oracle 对照 0015 上同形表达式实测 True。",
+      "rewrote_from": "invariant(scope='[*]', condition='!(active(\"llms_emp_feedback_final_0005.DoorOpenWithItem\") && active(\"llms_emp_feedback_final_0005.DoorOpenWithItem.DoorShutWithItem\"))', bound=5)"
+    },
+    {
+      "case": "0005",
+      "diff_index": 2,
+      "verdict": "extra",
+      "stratum": "over_specification_benign",
+      "expressible": false,
+      "attempted": [
+        "cardinality(scope='llms_emp_feedback_final_0005', count=6) -> False，但它是「顶层应有 NL 点名的六个态」这一计数，False 的成因是 #1 的嵌套（顶层只剩 3 个），无法隔离本条的四个自造叶子态；且 0015 对照为 True，说明它测的是嵌套不是自造态",
+        "cardinality(scope='llms_emp_feedback_final_0005.DoorOpenWithItem', count=0) -> False，同样与 #1 的嵌套混同（该 scope 的 3 个子态里有 2 个是被错误嵌套的 NL 态）",
+        "not any([state_declared('...DoorIdleWithItem'), state_declared('...ItemInside'), state_declared('...WaitingToStart'), state_declared('...ActiveCooking')]) -> False，但这正是「这个多出的元素存在」，BRIEF 要求 4 明确排除",
+        "occupancy_after(source='...DoorOpen', trigger='...Place_Item_Inside', target='...DoorOpenWithItem') -> occupancy_after 接受 target 的任意后代叶子，自造的 DoorIdleWithItem 被算作占据 DoorOpenWithItem，所以为 True，写不出「必须恰好占据该态本身」"
+      ],
+      "shape": "「多出的自造默认子态」没有可观测的行为后果可表达：occupancy_after 对后代满足（无「恰好占据」语义）、stays_in 拒绝复合态主体，只剩存在性/计数形；而计数形又与同 case 的嵌套缺陷混同，无法隔离。",
+      "closest_gap": "真词表缺口：缺「恰好占据该状态本身（exact occupancy）」的行为谓词，以及能隔离单个多余元素的计数口径。"
+    },
+    {
+      "case": "0005",
+      "diff_index": 3,
+      "verdict": "problem",
+      "stratum": "nl_named",
+      "expressible": false,
+      "attempted": [
+        "variable_declared(variable='timer') -> False，但这在全语料 60 个模型上恒为 False（BRIEF 坑 6：唯一被声明的变量是 converter 的 R45RouteToken，实测 33 个文件各有一条 def int R45RouteToken 且 variable_declared 对它按设计返回 False），即空真式 False，不能区分正误",
+        "effect_declared(source='llms_emp_feedback_final_0005.ReadytoCook.WaitingToStart', trigger='llms_emp_feedback_final_0005.Start', variable='timer', sign='positive') -> False，但 effect_declared 要求 timer 是带符号数值增减的变量，而 NL 与参考都把它表述为动作/输出；且 R4.5 把 'trigger/effect' 标签整串折叠成一个事件名（NL01 已实证：'Closed/SendDeparted' -> event Closed_SendDeparted，无 effect 块），全语料 442 条 effect 块 100% 是 R45RouteToken，所以参考忠实的渲染（Start/Start Timer）也一样是 False",
+        "any([action_declared(state='...ReadytoCook.Cooking', phase='entry'), action_declared(..., 'during'), action_declared(..., 'exit')]) -> False，但 NL 第 7 句只说 'where the timer starts'，未把它固定为状态局部动作；把它写成迁移 effect 的正确模型在这个表达式上同样为 False"
+      ],
+      "shape": "「非数值的动作 / 输出信号义务（Start Timer、Stop Timer、Display / Update Cooking Time）」无法在 19 谓词中表达：effect 通道（effect_declared / variable_declared / variable_delta_after）要求变量+符号且在本语料恒为空；action 通道（action_declared）只看相位不看动作名，且 NL 未指定动作挂在状态还是迁移上，两种正确渲染会给出相反答案。",
+      "closest_gap": "真词表缺口：缺「迁移/状态必须携带具名的抽象动作或输出信号」这一谓词（非数值 effect），并需要与 R4.5 的 trigger/effect 折叠一并解决。"
+    },
+    {
+      "case": "0015",
+      "diff_index": 3,
+      "verdict": "problem",
+      "stratum": "nl_named",
+      "expressible": false,
+      "attempted": [
+        "variable_declared(variable='timer') -> False（全语料空真，同上）",
+        "effect_declared(source='llms_emp_feedback_final_0015.ReadytoCook', trigger='llms_emp_feedback_final_0015.Start', variable='timer', sign='positive') -> False（语义类别不符 + 参考渲染同样 False）",
+        "any([action_declared(state='llms_emp_feedback_final_0015.Cooking', phase='entry'/'during'/'exit')]) -> False（NL 未固定挂载位置，非 oracle）"
+      ],
+      "shape": "同 0005#3：非数值动作 / 输出信号义务不可表述。",
+      "closest_gap": "同 0005#3。"
+    },
+    {
+      "case": "0025",
+      "diff_index": 1,
+      "verdict": "problem",
+      "stratum": "nl_named",
+      "expressible": false,
+      "attempted": [
+        "guard_distinguishable(source='llms_emp_feedback_final_0025.DoorOpenWithItem', trigger='llms_emp_feedback_final_0025.Door_Closed') -> True（BRIEF 坑 2 实测确认：该 source+trigger 只有一个目标，空集空真，信息被静默丢弃而非变成不确定性）",
+        "occupancy_after(source='llms_emp_feedback_final_0025.DoorOpenWithItem', trigger='llms_emp_feedback_final_0025.Door_Closed', target='llms_emp_feedback_final_0025.ReadytoCook') -> False，但它无法隔离本 case：0015/0045/0055 上同形表达式同样为 False（那三个 case 的门关事件另有名字，Door_Closed 在 DoorOpenWithItem 处不被消费），且 NL 第 4 句并没有说『门关去 ReadytoCook』，这不是正确模型该满足的性质"
+      ],
+      "shape": "「这条边必须携带区分条件（zero time set）」——单目标时 guard_distinguishable 空真恒 True；19 谓词里没有任何一个能对某条边是否带守卫作正面断言。补充实测事实：R4.5 不把方括号解析为守卫，全语料 31 个方括号标签分布在 11 个 pair、无一成为守卫（0045 折成 event Door_Closed_zero_time_set、0055 折成 Door_Closed_time_0、0015 折成 Door_Closed_with_0_time），所以即使作者写了 [zero time set] 也只是换个事件名，`guard_distinguishable` 这条路在整组上都走不通。",
+      "closest_gap": "真词表缺口：缺『边必须携带区分条件 / 守卫非空』谓词；并且 R4.5 表示层不产出守卫，两处缺口叠加。"
+    },
+    {
+      "case": "0025",
+      "diff_index": 2,
+      "verdict": "problem",
+      "stratum": "nl_named",
+      "expressible": false,
+      "attempted": [
+        "variable_declared(variable='timer') -> False（全语料空真）",
+        "effect_declared(source='llms_emp_feedback_final_0025.ReadytoCook', trigger='llms_emp_feedback_final_0025.Start', variable='timer', sign='positive') -> False（语义类别不符 + 参考渲染同样 False）",
+        "any([action_declared(state='llms_emp_feedback_final_0025.Cooking', phase='entry'/'during'/'exit')]) -> False（非 oracle）"
+      ],
+      "shape": "同 0005#3：非数值动作 / 输出信号义务不可表述。",
+      "closest_gap": "同 0005#3。"
+    },
+    {
+      "case": "0035",
+      "diff_index": 0,
+      "verdict": "problem",
+      "stratum": "wellformedness",
+      "expressible": true,
+      "assertion": "initial_target(composite='llms_emp_feedback_final_0035', child='llms_emp_feedback_final_0035.DoorShut')",
+      "predicates": ["initial_target"],
+      "measured": false,
+      "measured_raw": "False",
+      "note": "NL 第 1 句 'The microwave starts in the DoorShut state.'。生成侧用 <<initial>> 构造型代替初始伪态边，全模型无 [*] --> 边，R4.5 合成 UnspecifiedInitial，谓词返回它，实测 False。该合成初始边不带触发，BRIEF 坑 3 不适用。oracle 对照：0015 上 initial_target(composite='...0015', child='...0015.DoorShut') 实测 True。",
+      "rewrote_from": ""
+    },
+    {
+      "case": "0035",
+      "diff_index": 1,
+      "verdict": "problem",
+      "stratum": "nl_named",
+      "expressible": true,
+      "assertion": "occupancy_after(source='llms_emp_feedback_final_0035.DoorOpen', trigger='llms_emp_feedback_final_0035.Door_Closed', target='llms_emp_feedback_final_0035.DoorShut')",
+      "predicates": ["occupancy_after"],
+      "measured": false,
+      "measured_raw": "False",
+      "note": "NL 第 2 句 'The door can be closed to return to the DoorShut state.'。0035 该位置被一条 DoorOpen 自环占据，Door_Closed 在 DoorOpen 处不被消费，实测 False（horizon 自检未触发，说明不是 bound artifact）。oracle 对照：0015 上同形表达式实测 True。",
+      "rewrote_from": ""
+    },
+    {
+      "case": "0035",
+      "diff_index": 2,
+      "verdict": "extra",
+      "stratum": "over_specification_benign",
+      "expressible": true,
+      "assertion": "not stays_in(source='llms_emp_feedback_final_0035.DoorOpen', trigger='llms_emp_feedback_final_0035.Item_Removed')",
+      "predicates": ["stays_in"],
+      "measured": false,
+      "measured_raw": "False",
+      "note": "后果形（B 族）：NL 第 3 句只把 Item Removed 挂在 DoorOpenWithItem 上，故正确模型的 DoorOpen 不吸收该事件。stays_in 要求事件被消费，所以在正确模型上为 False、取否后为 True；本模型有自环故 stays_in=True、取否为 False。实测 False；oracle 对照：0015 上 not stays_in(source='...0015.DoorOpen', trigger='...0015.Item_Removed') 实测 True。这不是存在性断言而是「该配置不得吸收该事件」的行为断言。",
+      "rewrote_from": "stays_in(source='llms_emp_feedback_final_0035.DoorOpen', trigger='llms_emp_feedback_final_0035.Item_Removed')"
+    },
+    {
+      "case": "0035",
+      "diff_index": 3,
+      "verdict": "problem",
+      "stratum": "nl_named",
+      "expressible": false,
+      "attempted": [
+        "guard_distinguishable(source='llms_emp_feedback_final_0035.DoorOpenWithItem', trigger='llms_emp_feedback_final_0035.Door_Closed') -> True（BRIEF 坑 2 实测确认，单目标空真）",
+        "occupancy_after(source='llms_emp_feedback_final_0035.DoorOpenWithItem', trigger='llms_emp_feedback_final_0035.Door_Closed', target='llms_emp_feedback_final_0035.ReadytoCook') -> False，但同 0025#1 无法隔离且不是 NL 所述性质"
+      ],
+      "shape": "同 0025#1：「这条边必须携带区分条件」不可表述。",
+      "closest_gap": "同 0025#1。"
+    },
+    {
+      "case": "0035",
+      "diff_index": 4,
+      "verdict": "problem",
+      "stratum": "nl_named",
+      "expressible": false,
+      "attempted": [
+        "variable_declared(variable='timer') -> False（全语料空真）",
+        "effect_declared(source='llms_emp_feedback_final_0035.ReadytoCook', trigger='llms_emp_feedback_final_0035.Start', variable='timer', sign='positive') -> False（语义类别不符 + 参考渲染同样 False）",
+        "any([action_declared(state='llms_emp_feedback_final_0035.Cooking', phase='entry'/'during'/'exit')]) -> False（非 oracle）"
+      ],
+      "shape": "同 0005#3：非数值动作 / 输出信号义务不可表述。",
+      "closest_gap": "同 0005#3。"
+    },
+    {
+      "case": "0045",
+      "diff_index": 2,
+      "verdict": "problem",
+      "stratum": "nl_named",
+      "expressible": false,
+      "attempted": [
+        "variable_declared(variable='timer') -> False（全语料空真）",
+        "effect_declared(source='llms_emp_feedback_final_0045.ReadytoCook', trigger='llms_emp_feedback_final_0045.Start', variable='timer', sign='positive') -> False（语义类别不符 + 参考渲染同样 False）",
+        "any([action_declared(state='llms_emp_feedback_final_0045.Cooking', phase='entry'/'during'/'exit')]) -> False（非 oracle）"
+      ],
+      "shape": "同 0005#3：非数值动作 / 输出信号义务不可表述。",
+      "closest_gap": "同 0005#3。"
+    },
+    {
+      "case": "0055",
+      "diff_index": 3,
+      "verdict": "problem",
+      "stratum": "nl_named",
+      "expressible": false,
+      "attempted": [
+        "variable_declared(variable='timer') -> False（全语料空真）",
+        "effect_declared(source='llms_emp_feedback_final_0055.ReadytoCook', trigger='llms_emp_feedback_final_0055.Start', variable='timer', sign='positive') -> False（语义类别不符 + 参考渲染同样 False）",
+        "any([action_declared(state='llms_emp_feedback_final_0055.Cooking', phase='entry'/'during'/'exit')]) -> False（非 oracle）"
+      ],
+      "shape": "同 0005#3：非数值动作 / 输出信号义务不可表述。",
+      "closest_gap": "同 0005#3。"
+    }
+  ],
+  "totals": {
+    "expressible": 22,
+    "not_expressible": 11
+  },
+  "by_predicate": {
+    "action_declared": 6,
+    "initial_target": 4,
+    "state_declared": 2,
+    "containment": 2,
+    "persists_until": 2,
+    "terminates": 2,
+    "stays_in": 2,
+    "occupancy_after": 1,
+    "reaches": 1,
+    "variable_declared": 0,
+    "event_declared": 0,
+    "edge_declared": 0,
+    "effect_declared": 0,
+    "guard_distinguishable": 0,
+    "cardinality": 0,
+    "event_consumed": 0,
+    "variable_delta_after": 0,
+    "invariant": 0,
+    "response_within": 0
+  },
+  "gap_shapes": [
+    {
+      "shape": "动作内容不可命名 / 不可计数：断言需要说『该状态必须声明名为 Send / Obstacle Detected 的动作』或『必须有两个动作』，但 action_declared 的签名只有 (state, phase)。当该状态已挂了别的动作时，任何存在性形都被满足（实测 any([三相位]) 为 True）；改用单一相位形虽能得到 False，但 NL 未指定相位、正确渲染也可能落在别的相位，那个 False 来自猜相位而不是缺陷。",
+      "items": ["0034#3", "0034#4"],
+      "count": 2,
+      "closest_gap": "action_declared(state, phase, action=...) 或 action_count(state, n)"
+    },
+    {
+      "shape": "非数值动作 / 输出信号义务不可表述：NL 要求的 Start Timer / Stop Timer / Display + Update Cooking Time 既不是数值变量增减，也未被 NL 固定为状态局部动作。effect 通道（variable_declared / effect_declared / variable_delta_after）需要变量+符号，且在本语料恒为空——实测 60 个 FCSTM 共 442 条 effect 块 100% 是 converter 的 R45RouteToken，33 条 def int 全是它，variable_declared 对它按设计返回 False；action 通道只看相位。加之 R4.5 把 'trigger/effect' 标签整串折叠成一个事件名（NL01 实证：'Closed/SendDeparted' -> event Closed_SendDeparted），参考忠实的渲染也一样测不出来。",
+      "items": ["0005#3", "0015#3", "0025#2", "0035#4", "0045#2", "0055#3"],
+      "count": 6,
+      "closest_gap": "『迁移/状态必须携带具名抽象动作或输出信号』谓词（非数值 effect），并需与 R4.5 的 trigger/effect 折叠一并解决"
+    },
+    {
+      "shape": "『这条边必须携带区分条件』不可表述：单目标时 guard_distinguishable 空集空真恒 True（两条实测均为 True），信息被静默丢弃而非变成不确定性；19 谓词中没有任何一个能对某条边是否带守卫作正面断言。叠加的表示层事实：R4.5 不把方括号解析为守卫，全语料 31 个方括号标签分布在 11 个 pair、无一成为守卫（0045 -> event Door_Closed_zero_time_set、0055 -> Door_Closed_time_0、0015 -> Door_Closed_with_0_time），所以整组都走不通。",
+      "items": ["0025#1", "0035#3"],
+      "count": 2,
+      "closest_gap": "『边必须携带区分条件 / 守卫非空』谓词 + R4.5 守卫解析"
+    },
+    {
+      "shape": "多余元素无可观测后果、只剩存在性：自造的默认子态在行为层无法暴露——occupancy_after 接受 target 的任意后代叶子（没有『恰好占据该态本身』语义）、stays_in 拒绝复合态主体；能返回 False 的只有存在性形（BRIEF 要求 4 明确排除）和计数形，而计数形又与同 case 的嵌套缺陷混同、无法隔离。",
+      "items": ["0005#2"],
+      "count": 1,
+      "closest_gap": "『恰好占据该状态本身（exact occupancy）』行为谓词；以及可隔离单个多余元素的计数口径"
+    }
+  ],
+  "side_findings": [
+    "P 族在语料最深的模型上不可用：0005 的 invariant(scope='[*]', ...) 在 bound=2/3 实跑返回 None（fbmcq 子进程报 'partition check exceeded assignment budget.'，inconclusive_kind=execution_error），bound=5 直接超 controller_max_bound=3 判 unsupported，bound=1 才返回 True 但是空真。台帐把这条写成首选 assertable，实际执行不出 False。",
+    "persists_until 的 release 必须覆盖 NL 允许的全部解除条件：0004（NL01 组结构正确的姊妹）在 release='active(Stopping)' 下实测 False、在 release='active(Stopping) || active(EmergencyStopping)' 下实测 True。前者会把正确模型也判成违规，属假阳性写法。",
+    "action_declared 相关的可表述性完全取决于『缺陷状态是否零动作』：0014 / 0024 全模型零 abstract 动作，故相位无关的 any([...]) 形能捕获；0034 / 0044 有动作（实测全语料仅 0004=4、0034=5、0044=3、0054=4 条，共 16 条，全在 NL01），此时缺失具名动作的缺陷就落到词表缺口里。",
+    "台帐中 4 条现有 assertable 使用了不在 19 谓词内的 transition_exists（0024#2、0024#4、0034#5、0034#6），本批已全部重写为 persists_until / reaches / terminates 形并实测 False。"
+  ]
+}

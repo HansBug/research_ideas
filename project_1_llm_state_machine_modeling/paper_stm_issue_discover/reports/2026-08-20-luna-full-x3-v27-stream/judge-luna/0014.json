@@ -1,0 +1,2302 @@
+{
+  "schema": "paper1.luna_semantic_pair_judgement.v1",
+  "pair": "0014",
+  "ledger": [
+    {
+      "ledger_id": "EIS-0014-01",
+      "pair": "0014",
+      "D": "D2",
+      "L": "L0",
+      "summary": "制品顶层完全没有初始伪状态——全文没有任何根层 `[*] -->`，冷启动时的初始配置未定义，而 NL 第 1 句明确要求系统从 `DoorsClosing` 开始。",
+      "detail": "NL 第 1 句逐字为「The system starts in the DoorsClosing state and transitions to InMotion when the doors are closed, triggered by the \"Closed/SendDeparted\" signal.」。前半句给出的是初始化要求。\n\n制品在 `:2` 写 `state DoorsClosing`——只是声明这个状态存在，没有把它标成起点。全文（`:1`-`:28`）唯一的 `[*]` 出现在 `:7`，而 `:7` 位于 `state InMotion {`（:6）与 `}`（:18）之间，是 InMotion 的内部默认入口，不是根层的。所以根层没有任何初始伪状态。\n\n后果是冷启动时机器不知道该处在哪个状态。投影时这一点被显式记录下来：生成了一个名为 `UnspecifiedInitial` 的占位状态以及一条 `[*] -> UnspecifiedInitial` 的边，表示「作者没有指定初始状态」。\n\n根因是把 NL 第 1 句只当成了一条迁移要求而漏掉了初始化要求。那句话其实说了两件事——从哪里开始、以及在什么条件下走到 InMotion；制品只建了后者（`:4 DoorsClosing --> InMotion: Closed/SendDeparted`）。对照同一份 NL 的 pair 0004，那份在 `:2` 写了 `[*] --> DoorsClosing`，说明 NL 本身并没有妨碍作者建出这条边。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 1 句「The system starts in the DoorsClosing state」。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法——`:2` 的 `state DoorsClosing` 只是状态声明，PlantUML 里它不蕴含任何初始语义（同文件的 `:7` 证明作者知道 `[*] -->` 这个记法），而投影结果也确认初始状态未指定。反驳不存活。",
+      "L_basis": "判 L0。陈述这条错误只需检索全文根层有没有 `[*] -->` 这种形式的行，发现一条都没有。这是纯词法层面的存在性检查，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "transition",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0014-02",
+      "pair": "0014",
+      "D": "D1",
+      "L": "L1",
+      "summary": "NL 第 8 句逐字要求 `Accelerating` 有一个入口动作 `Entry/Accelerate`，而作者把整串文本搬到了 `:7 [*] --> Accelerating : Entry/Accelerate` 的标签位置——按 PlantUML 的标签约定它被读成「触发 Entry、效果 Accelerate」，于是 `Accelerating` 不再声明任何 entry 动作，初始迁移反而被挂上了本不该有的触发。",
+      "detail": "NL 第 8 句逐字为「The system enters the Accelerating substate when motion begins, marked by the \"Entry/Accelerate\" action.」。这是全语料里少数逐字点名动作相位的句子之一——它明确说这是一个 entry 动作。在 PlantUML 里表达 entry 动作的写法是在状态体内写 `Accelerating : entry / Accelerate`。\n\n制品把这串文本原样搬到了迁移标签上：`:7 [*] --> Accelerating : Entry/Accelerate`。PlantUML 的迁移标签遵循 `触发 / 效果` 的约定，所以这串文本被拆成触发 `Entry` 与效果 `Accelerate`。投影结果确认了这一点：生成了一个名为 `Entry_Accelerate`、显示名为 `Entry/Accelerate` 的事件，边写成 `[*] -> Accelerating : /Entry_Accelerate`。\n\n后果有两个。其一，`Accelerating` 状态本身没有声明任何 entry 动作，NL 第 8 句点名的相位没有兑现。其二，`InMotion` 的默认入口边被挂上了一个触发，而 UML 规定初始伪状态的出边不得带触发。\n\n需要说明这属于作者侧的问题而不是表示层降级：降级的直接原因就写在作者的源文本里（他把动作放进了标签槽位），换任何一个遵循 PlantUML 约定的解析器结果都一样。\n\n根因是记法槽位用错：动作有它专属的位置（状态体内的 entry/exit/do 段），把它写进迁移标签会被按另一套语法解读。",
+      "D_basis": "判 D1，两读并立。第一种读法按记法槽位判：NL 第 8 句点名的是 entry 相位，而制品里 `Accelerating` 的 entry 段是空的，动作跑到了迁移标签上并被拆成触发加效果，义务未兑现。第二种读法按行为等价判：`:7` 是进入 `Accelerating` 的唯一入口迁移，标签拆开后效果 `Accelerate` 恰好在这条唯一入口上执行——凡是进入 `Accelerating` 就会执行 `Accelerate`，这与声明一个 entry 动作在行为上等价，差别只是记法位置从状态的 entry 段挪到了迁移标签。第二种读法与结构事实相容且行为可核，构成削弱型反驳，故判 D1。需要注意 D1 只针对「动作相位有没有兑现」这一条主张；同一行还带来的「初始迁移不得有触发」是另一个层面的问题。",
+      "L_basis": "判 L1。陈述这条错误需要导出一个静态事实：`:7` 那串标签按 PlantUML 的 `触发 / 效果` 约定被拆成什么、落到了哪个语法槽位上，以及 `Accelerating` 的 entry 段实际是空的。这要把记法的解析规则应用一遍才能得出，比查某个字符串在不在深一层；但它只涉及模型的静态切面，不需要执行序列，故不到 L2。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "effect",
+        "defect_qualifier": "other",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0014-03",
+      "pair": "0014",
+      "D": "D2",
+      "L": "L1",
+      "summary": "`:25 Entry: Emergency Stop` 在 PlantUML 里不是动作语法而是「给一个名为 Entry 的状态加描述」，于是 NL 第 3 句要求的 Emergency Stop 动作被降级成了 `EmergencyStopping` 内部的一个虚假子状态。",
+      "detail": "NL 第 3 句逐字为「When an obstacle is detected, the system enters the EmergencyStopping state, which includes the actions \"Emergency Stop\" and sends the \"Obstacle Detected\" signal.」。这要求 `EmergencyStopping` 带一个 Emergency Stop 动作。\n\n制品在 `:24` 开 `state EmergencyStopping {`，块内写了 `:25 Entry: Emergency Stop` 与 `:26 EmergencyStopping: Obstacle Detected`。\n\n`:25` 这一行的语法是 `名字 : 文本`，PlantUML 会把它理解成「给名为 `Entry` 的那个状态加一行描述文字」。而 `Entry` 这个名字之前没出现过，于是它被顺手声明成一个新状态，且因为这行写在 `EmergencyStopping` 块内，它成了 `EmergencyStopping` 的子状态。投影结果确认：产生了一个名为 `Entry`、显示名为 `Entry\\n[PlantUML body] Emergency Stop` 的状态；又因为 `EmergencyStopping` 突然有了子状态却没有默认入口，还连带生成了 `EmergencyStopping.UnspecifiedInitial` 与一条 `[*] -> UnspecifiedInitial` 的占位边。\n\n后果是双重的：`EmergencyStopping` 既没有拿到 NL 要求的动作，又莫名变成了一个带子状态的复合态。而 NL 第 4 句只把子状态授予了 `InMotion`（「Within the InMotion state, the system operates in three substates」），没有任何一句给 `EmergencyStopping` 子结构。\n\n根因与 EIS-0014-02 同类：动作被写进了错误的语法槽位。PlantUML 里表达入口动作的正确写法是 `EmergencyStopping : entry / Emergency Stop`——名字位要写状态自己的名字。作者把相位名写到了名字位上。\n\n本条与 VU-0014-01 分工不同：本条说 Emergency Stop 这个动作变成了状态，那一条说 Obstacle Detected 这个输出信号被吞进了描述文字。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 3 句「which includes the actions \"Emergency Stop\"」。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法——`:25` 的解析结果是一个状态而不是一个动作，这一点由投影结果直接确认，不存在「换一种解释就成了动作」的余地；而附带产生的虚假复合结构也没有任何 NL 依据。反驳不存活。",
+      "L_basis": "判 L1。陈述这条错误需要导出一个静态解析事实：`Entry: Emergency Stop` 按 PlantUML 的 `名字 : 文本` 规则被解析成一个名为 `Entry` 的状态，而不是 `EmergencyStopping` 的入口动作。这要把解析规则应用一遍并看清作用域归属，比查某个字符串在不在深一层；但它只涉及静态切面，不需要执行序列，故不到 L2。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "effect",
+        "defect_qualifier": "other",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "EIS-0014-04",
+      "pair": "0014",
+      "D": "D2",
+      "L": "L0",
+      "summary": "NL 第 9 句要求 `Approaching` 发出 `Send` 信号，而制品里 `Approaching`（:14-:17）只有两行描述文本，`Send` 这个动作在模型的任何相位、任何迁移上都不存在。",
+      "detail": "NL 第 9 句逐字为「In the Approaching substate, the system sends the \"Send\" signal and continues to approach the destination.」。这是一条输出动作要求。上游参考模型用 `Entry/Send` 承载了它。\n\n制品在 `:14` 开 `state Approaching {`，块内两行都是描述文字：`:15 Approaching: Nearing Destination` 与 `:16 Approaching: Ready to Stop/Decelerate`。两行都是 `状态名 : 文本` 语法，只往状态框里加显示文字，不产生任何动作。\n\n检索全模型也找不到这个动作：`Approaching` 在投影后只有一个显示名字符串，没有任何 enter 或 during 抽象动作；全文也没有任何迁移的效果位上出现 `Send`。\n\n所以这不是相位差异（entry 还是 do）、也不是命名差异，而是这个输出动作在模型里根本没有载体。\n\n根因与本 pair 的另外两条同源：作者用 `状态名 : 文本` 这一种语法承载了本该分别落到不同槽位的东西——`:15` 是对状态含义的描述（无害），`:16` 想表达的可能是一条迁移，而 NL 第 9 句要求的输出动作则被整个漏掉了。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 9 句「the system sends the \"Send\" signal」。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法——`Send` 这个字符串在制品的动作位、效果位上一处都不出现，`:15`/`:16` 两行是纯描述文字，没有任何结构可以被解释成「这个输出已经建出来了」。反驳不存活。",
+      "L_basis": "判 L0。陈述这条错误只需把 NL 第 9 句点名的 `Send` 拿去模型里检索动作位与效果位，发现一处都没有。这是一次词项层面的存在性比对，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "effect",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    },
+    {
+      "ledger_id": "VU-0014-01",
+      "pair": "0014",
+      "D": "D2",
+      "L": "L0",
+      "summary": "NL 第 3 句要求 `EmergencyStopping` 发出 `Obstacle Detected` 信号，而 `:26 EmergencyStopping: Obstacle Detected` 只是把这串字吞进了状态的描述文字里；模型里唯一的 `Obstacle Detected` 是 `:21` 上的输入触发，不是输出。",
+      "detail": "NL 第 3 句逐字为「When an obstacle is detected, the system enters the EmergencyStopping state, which includes the actions \"Emergency Stop\" and sends the \"Obstacle Detected\" signal.」。这里 `Obstacle Detected` 出现了两次角色：句首的「检测到障碍」是进入这个状态的输入条件，句尾的「sends the Obstacle Detected signal」是进入之后要发出的输出信号。\n\n制品只建了输入那一侧。`:21 InMotion --> EmergencyStopping: Obstacle Detected` 把它用作触发事件，这是对的。输出那一侧写成了 `:26 EmergencyStopping: Obstacle Detected`——`状态名 : 文本` 语法，结果这串字被并进状态的显示名里（投影后 `EmergencyStopping` 的名字变成 `EmergencyStopping` 后接 `[PlantUML body] Obstacle Detected`），状态内没有任何 enter 或 during 动作。\n\n所以模型里 `Obstacle_Detected` 只有一个身份：输入触发。NL 要求的那次输出没有载体。\n\n根因是同一个名字承担两种角色时，只建出了先出现的那一种。这类错误在输入与输出同名的场合特别隐蔽——文本里能搜到这个名字，看起来像是建了，实际只建了一半。\n\n本条属于第一版台账漏记、后从各实验臂未被认领的产出中提取回来的一类。它与 EIS-0014-03 分工不同：那一条说 Emergency Stop 这个动作被解析成了一个虚假子状态，本条说 Obstacle Detected 这个输出被吞进了描述文字。两处都在 `EmergencyStopping` 块内，但一处产生了多余的状态、一处丢失了输出，修法不同。",
+      "D_basis": "判 D2。被违反的义务有成文出处，即 NL 第 3 句「and sends the \"Obstacle Detected\" signal」。三个独立判读臂都认定成立，且都没能给出站得住的第二种读法——`:26` 是描述语法不是动作语法，投影结果确认那串字进了状态名；而模型里唯一的 `Obstacle_Detected` 用在输入触发位上，输入不能顶替输出。反驳不存活。",
+      "L_basis": "判 L0。陈述这条错误只需检索模型的动作位与效果位上有没有 `Obstacle Detected` 这个输出，发现没有（它只出现在 `:21` 的触发位与 `:26` 的描述文字里）。这是一次词项层面的存在性与角色比对，不需要从模型结构导出新事实，也不需要执行序列。",
+      "axes": {
+        "defect_locus": "element",
+        "defect_element": "effect",
+        "defect_qualifier": "missing",
+        "defect_logic_kind": null,
+        "defect_reference": "requirement"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "method_run1",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:unreachable_component:DoorsClosing",
+          "claims": [
+            "Source component 'DoorsClosing' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0014.DoorsClosing"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:DoorsClosing:facet:20b958ba8d3a"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_component:InMotion",
+          "claims": [
+            "Source component 'InMotion' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0014.InMotion.Accelerating",
+            "llms_emp_feedback_final_0014.InMotion.Cruising",
+            "llms_emp_feedback_final_0014.InMotion.Approaching"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:InMotion:facet:760ac3b9ce48"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_component:Stopping",
+          "claims": [
+            "Source component 'Stopping' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0014.Stopping"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:Stopping:facet:bf8f2c0940ac"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_component:EmergencyStopping",
+          "claims": [
+            "Source component 'EmergencyStopping' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0014.EmergencyStopping.Entry"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:EmergencyStopping:facet:e627c191dc52"
+          ]
+        },
+        {
+          "finding_id": "source:initial_contract:InMotion",
+          "claims": [
+            "Initial pseudostate scope 'InMotion' has 1 outgoing edge(s) carrying a trigger or guard (llms_emp_feedback_final_0014.puml:line:7); the declared UML initial-transition profile forbids a trigger and guard on an initial pseudostate outgoing edge."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0014.InMotion"
+          ],
+          "obligations": [
+            "An initial pseudostate outgoing transition must not carry a trigger or guard."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:InMotion:facet:760ac3b9ce48"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:EmergencyStopping:None:Emergency Stop",
+          "claims": [
+            "The required Emergency Stop action may be absent from the formal action inventory and therefore not owned by EmergencyStopping.",
+            "The Emergency Stop action may be represented only as a nested state body label and may not be attached as a lifecycle action to EmergencyStopping.",
+            "State 'EmergencyStopping' lacks required state_action 'Emergency Stop' in any lifecycle phase."
+          ],
+          "locations": [
+            "NL3",
+            "FCSTM F27-F31",
+            "inspect.abstract_action_inventory",
+            "F27",
+            "F28",
+            "pyfcstm.inspect.abstract_action_inventory",
+            "EmergencyStopping"
+          ],
+          "obligations": [
+            "EmergencyStopping includes the state-owned Emergency Stop action.",
+            "EmergencyStopping must own the Emergency Stop action.",
+            "State 'EmergencyStopping' must own required state_action 'Emergency Stop' in any lifecycle phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:lifecycle_action:EmergencyStopping:None:Emergency Stop:facet:04502fe7df5f",
+            "source:lifecycle_action:EmergencyStopping:None:Emergency Stop:facet:efdbb7459cdf"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:EmergencyStopping:None:Obstacle Detected",
+          "claims": [
+            "The required Obstacle Detected output may be absent as a state-owned action or signal.",
+            "The required Obstacle Detected output may be absent as a state-owned output signal of EmergencyStopping.",
+            "State 'EmergencyStopping' lacks required output_signal 'Obstacle Detected' in any lifecycle phase."
+          ],
+          "locations": [
+            "NL3",
+            "FCSTM F8",
+            "inspect.abstract_action_inventory",
+            "F27",
+            "F26",
+            "pyfcstm.inspect.abstract_action_inventory",
+            "EmergencyStopping"
+          ],
+          "obligations": [
+            "EmergencyStopping sends the Obstacle Detected signal as an owned output.",
+            "EmergencyStopping must send the Obstacle Detected signal.",
+            "State 'EmergencyStopping' must own required output_signal 'Obstacle Detected' in any lifecycle phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:lifecycle_action:EmergencyStopping:None:Obstacle Detected:facet:e2c68cabe8c2",
+            "source:lifecycle_action:EmergencyStopping:None:Obstacle Detected:facet:2e6a47a79b98"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:InMotion.Accelerating:entry:Accelerate",
+          "claims": [
+            "The required Accelerate entry action may not be represented as an action owned by Accelerating.",
+            "State 'InMotion.Accelerating' lacks required state_action 'Accelerate' in the entry phase."
+          ],
+          "locations": [
+            "NL8",
+            "FCSTM F15",
+            "inspect.abstract_action_inventory",
+            "InMotion.Accelerating"
+          ],
+          "obligations": [
+            "Motion begins by entering Accelerating with the Accelerate entry action.",
+            "State 'InMotion.Accelerating' must own required state_action 'Accelerate' in the entry phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:lifecycle_action:InMotion.Accelerating:entry:Accelerate:facet:12c740117145",
+            "source:lifecycle_action:InMotion.Accelerating:entry:Accelerate:facet:eaae3558c982"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:InMotion.Approaching:None:Send",
+          "claims": [
+            "The required Send output may be absent from Approaching's state-owned action inventory.",
+            "The required Send output may not be represented as an action owned by Approaching.",
+            "State 'InMotion.Approaching' lacks required output_signal 'Send' in any lifecycle phase."
+          ],
+          "locations": [
+            "NL9",
+            "FCSTM F14-F16",
+            "inspect.abstract_action_inventory",
+            "F14",
+            "pyfcstm.inspect.abstract_action_inventory",
+            "InMotion.Approaching"
+          ],
+          "obligations": [
+            "Approaching sends the Send signal while it continues approaching.",
+            "Approaching must send the Send signal while approaching.",
+            "State 'InMotion.Approaching' must own required output_signal 'Send' in any lifecycle phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:lifecycle_action:InMotion.Approaching:None:Send:facet:488ab4d38656",
+            "source:lifecycle_action:InMotion.Approaching:None:Send:facet:669d7e9104d4"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_event_consumers:DoorsClosing",
+          "claims": [
+            "Exact event 'Closed/SendDeparted' has authored consumers ['tr_0001'], but none is reachable in required scope(s) ['DoorsClosing']; the selected event identity came from transition 'tr_0001'."
+          ],
+          "locations": [
+            "tr_0001"
+          ],
+          "obligations": [
+            "Event concept 'doors are closed' must be consumed while required scope 'DoorsClosing' is active."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_event_consumers:DoorsClosing:facet:9881f8af4d44"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_event_consumers:InMotion",
+          "claims": [
+            "Exact event 'Arrived/Stop, SendArrived' has authored consumers ['tr_0006'], but none is reachable in required scope(s) ['InMotion']; the selected event identity came from transition 'tr_0006'.",
+            "Exact event 'Obstacle Detected' has authored consumers ['tr_0007'], but none is reachable in required scope(s) ['InMotion']; the selected event identity came from transition 'tr_0007'."
+          ],
+          "locations": [
+            "tr_0006",
+            "tr_0007"
+          ],
+          "obligations": [
+            "Event concept 'arrives' must be consumed while required scope 'InMotion' is active.",
+            "Event concept 'obstacle is detected' must be consumed while required scope 'InMotion' is active."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:unreachable_event_consumers:InMotion:facet:9ab7b5e894e5",
+            "source:unreachable_event_consumers:InMotion:facet:236f58179868"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_event_consumers:InMotion.Accelerating",
+          "claims": [
+            "Exact event 'Reached Cruising/Cruise' has authored consumers ['tr_0003'], but none is reachable in required scope(s) ['InMotion.Accelerating']; the selected event identity came from transition 'tr_0003'.",
+            "Exact event 'Approached/Decelerate' has authored consumers ['tr_0004'], but none is reachable in required scope(s) ['InMotion.Accelerating']; the selected event identity came from transition 'tr_0004'."
+          ],
+          "locations": [
+            "tr_0003",
+            "tr_0004"
+          ],
+          "obligations": [
+            "Event concept 'cruising speed is reached' must be consumed while required scope 'InMotion.Accelerating' is active.",
+            "Event concept 'approaches its destination' must be consumed while required scope 'InMotion.Accelerating' is active."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:unreachable_event_consumers:InMotion.Accelerating:facet:dc5f6fd89c8c",
+            "source:unreachable_event_consumers:InMotion.Accelerating:facet:e93251f7af03"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_event_consumers:InMotion.Cruising",
+          "claims": [
+            "Exact event 'Approached/Decelerate' has authored consumers ['tr_0005'], but none is reachable in required scope(s) ['InMotion.Cruising']; the selected event identity came from transition 'tr_0005'."
+          ],
+          "locations": [
+            "tr_0005"
+          ],
+          "obligations": [
+            "Event concept 'approaches the destination' must be consumed while required scope 'InMotion.Cruising' is active."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_event_consumers:InMotion.Cruising:facet:59f53a749de3"
+          ]
+        },
+        {
+          "finding_id": "source:event_missing_scope:InMotion:tr_0002",
+          "claims": [
+            "Exact event 'Entry/Accelerate' has no consumer in required scope(s) ['InMotion']; observed event identity came from transition 'tr_0002'."
+          ],
+          "locations": [
+            "tr_0002"
+          ],
+          "obligations": [
+            "Event concept 'motion begins' must be consumed while required scope 'InMotion' is active."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:event_missing_scope:InMotion:tr_0002:facet:ede5d0247ad5"
+          ]
+        },
+        {
+          "finding_id": "source:initial_contract:llms_emp_feedback_final_0014",
+          "claims": [
+            "Source composite 'llms_emp_feedback_final_0014' has no initial transition to required child 'DoorsClosing'.",
+            "No source-graph path reaches target 'DoorsClosing' from the exact root entry 'llms_emp_feedback_final_0014'.",
+            "No source-graph path reaches target 'InMotion' from the exact root entry 'llms_emp_feedback_final_0014'."
+          ],
+          "locations": [
+            "NL1",
+            "F34",
+            "llms_emp_feedback_final_0014",
+            "llms_emp_feedback_final_0014.DoorsClosing",
+            "W_UNREACHABLE_STATE",
+            "F35",
+            "llms_emp_feedback_final_0014.InMotion.Accelerating"
+          ],
+          "obligations": [
+            "The system must start in DoorsClosing at the root scope.",
+            "The declared DoorsClosing behavior must be reachable from root entry.",
+            "The motion behavior must be reachable after the required root start and DoorsClosing transition."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 3,
+          "facet_keys": [
+            "source:initial_contract:llms_emp_feedback_final_0014:facet:321daabe8b6b",
+            "source:initial_contract:llms_emp_feedback_final_0014:facet:798ecf76b350",
+            "source:initial_contract:llms_emp_feedback_final_0014:facet:dc477dbd7ef8"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run2",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:unreachable_component:DoorsClosing",
+          "claims": [
+            "Source component 'DoorsClosing' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0014.DoorsClosing"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:DoorsClosing:facet:20b958ba8d3a"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_component:InMotion",
+          "claims": [
+            "Source component 'InMotion' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0014.InMotion.Accelerating",
+            "llms_emp_feedback_final_0014.InMotion.Cruising",
+            "llms_emp_feedback_final_0014.InMotion.Approaching"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:InMotion:facet:760ac3b9ce48"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_component:Stopping",
+          "claims": [
+            "Source component 'Stopping' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0014.Stopping"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:Stopping:facet:bf8f2c0940ac"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_component:EmergencyStopping",
+          "claims": [
+            "Source component 'EmergencyStopping' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0014.EmergencyStopping.Entry"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:EmergencyStopping:facet:598d5932d6b5"
+          ]
+        },
+        {
+          "finding_id": "source:initial_contract:InMotion",
+          "claims": [
+            "Initial pseudostate scope 'InMotion' has 1 outgoing edge(s) carrying a trigger or guard (llms_emp_feedback_final_0014.puml:line:7); the declared UML initial-transition profile forbids a trigger and guard on an initial pseudostate outgoing edge."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0014.InMotion"
+          ],
+          "obligations": [
+            "An initial pseudostate outgoing transition must not carry a trigger or guard."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:InMotion:facet:760ac3b9ce48"
+          ]
+        },
+        {
+          "finding_id": "source:transition:DoorsClosing:when the doors are closed, triggered by the \"Closed/SendDeparted\" signal:InMotion",
+          "claims": [
+            "The required DoorsClosing -> InMotion transition under when the doors are closed, triggered by the \"Closed/SendDeparted\" signal is absent or loses its condition."
+          ],
+          "locations": [
+            "NL1"
+          ],
+          "obligations": [
+            "DoorsClosing must transition directly to InMotion under when the doors are closed, triggered by the \"Closed/SendDeparted\" signal."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:DoorsClosing:when the doors are closed, triggered by the \"Closed/SendDeparted\" signal:InMotion:facet:01560d722d74"
+          ]
+        },
+        {
+          "finding_id": "source:transition:InMotion:when it arrives, indicated by the \"Arrived/Stop, Send Arrived\" signal:Stopping",
+          "claims": [
+            "The required InMotion -> Stopping transition under when it arrives, indicated by the \"Arrived/Stop, Send Arrived\" signal is absent or loses its condition."
+          ],
+          "locations": [
+            "NL2"
+          ],
+          "obligations": [
+            "InMotion must transition directly to Stopping under when it arrives, indicated by the \"Arrived/Stop, Send Arrived\" signal."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:InMotion:when it arrives, indicated by the \"Arrived/Stop, Send Arrived\" signal:Stopping:facet:2ccda2b18f84"
+          ]
+        },
+        {
+          "finding_id": "source:transition:InMotion.Accelerating:once cruising speed is reached, as indicated by the \"Reached Cruising/Cruise\" signal:InMotion.Cruising",
+          "claims": [
+            "The required InMotion.Accelerating -> InMotion.Cruising transition under once cruising speed is reached, as indicated by the \"Reached Cruising/Cruise\" signal is absent or loses its condition."
+          ],
+          "locations": [
+            "NL5"
+          ],
+          "obligations": [
+            "InMotion.Accelerating must transition directly to InMotion.Cruising under once cruising speed is reached, as indicated by the \"Reached Cruising/Cruise\" signal."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:InMotion.Accelerating:once cruising speed is reached, as indicated by the \"Reached Cruising/Cruise\" signal:InMotion.Cruising:facet:0411db2420fd"
+          ]
+        },
+        {
+          "finding_id": "source:transition:InMotion.Accelerating:approaches its destination, upon receiving the \"Approached/Decelerate\" signal:InMotion.Approaching",
+          "claims": [
+            "The required InMotion.Accelerating -> InMotion.Approaching transition under approaches its destination, upon receiving the \"Approached/Decelerate\" signal is absent or loses its condition."
+          ],
+          "locations": [
+            "NL6"
+          ],
+          "obligations": [
+            "InMotion.Accelerating must transition directly to InMotion.Approaching under approaches its destination, upon receiving the \"Approached/Decelerate\" signal."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:InMotion.Accelerating:approaches its destination, upon receiving the \"Approached/Decelerate\" signal:InMotion.Approaching:facet:54043bbb9d3e"
+          ]
+        },
+        {
+          "finding_id": "source:transition:InMotion.Cruising:when it approaches the destination, triggered by the \"Approached/Decelerate\" signal:InMotion.Approaching",
+          "claims": [
+            "The required InMotion.Cruising -> InMotion.Approaching transition under when it approaches the destination, triggered by the \"Approached/Decelerate\" signal is absent or loses its condition."
+          ],
+          "locations": [
+            "NL7"
+          ],
+          "obligations": [
+            "InMotion.Cruising must transition directly to InMotion.Approaching under when it approaches the destination, triggered by the \"Approached/Decelerate\" signal."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:transition:InMotion.Cruising:when it approaches the destination, triggered by the \"Approached/Decelerate\" signal:InMotion.Approaching:facet:515fc64348be"
+          ]
+        },
+        {
+          "finding_id": "source:initial_contract:llms_emp_feedback_final_0014",
+          "claims": [
+            "Source composite 'llms_emp_feedback_final_0014' has no initial transition to required child 'DoorsClosing'.",
+            "No source-graph path reaches target 'DoorsClosing' from the exact root entry 'llms_emp_feedback_final_0014'."
+          ],
+          "locations": [
+            "NL1",
+            "F34",
+            "llms_emp_feedback_final_0014.UnspecifiedInitial",
+            "DoorsClosing",
+            "llms_emp_feedback_final_0014.DoorsClosing"
+          ],
+          "obligations": [
+            "The system starts in DoorsClosing.",
+            "Behavior declared as part of the system must be reachable from root entry, including DoorsClosing."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:initial_contract:llms_emp_feedback_final_0014:facet:321daabe8b6b",
+            "source:initial_contract:llms_emp_feedback_final_0014:facet:798ecf76b350"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:e8947e185d5480d7",
+          "claims": [
+            "The authored initial transition into Accelerating may violate the unconditional initial-entry contract because it carries the Entry_Accelerate event label."
+          ],
+          "locations": [
+            "NL5",
+            "NL8",
+            "F15",
+            "llms_emp_feedback_final_0014.InMotion"
+          ],
+          "obligations": [
+            "The initial transition into InMotion must be unconditional and enter Accelerating."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:e8947e185d5480d7:facet:5356f70beb9f"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:64a501852f9a090c",
+          "claims": [
+            "The required Emergency Stop action may not be represented as a formal lifecycle action owned by EmergencyStopping."
+          ],
+          "locations": [
+            "NL3",
+            "PUML:L25",
+            "F27-F28"
+          ],
+          "obligations": [
+            "EmergencyStopping must own the Emergency Stop action."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:64a501852f9a090c:facet:04502fe7df5f"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:60d01a614f3199fc",
+          "claims": [
+            "The required Obstacle Detected output signal may not be realized as a state-owned output of EmergencyStopping."
+          ],
+          "locations": [
+            "NL3",
+            "F8",
+            "F27",
+            "F33"
+          ],
+          "obligations": [
+            "EmergencyStopping must send the Obstacle Detected signal."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:60d01a614f3199fc:facet:e2c68cabe8c2"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:77d7c6675317c046",
+          "claims": [
+            "The named Send output may be absent from the Approaching state's formal action inventory."
+          ],
+          "locations": [
+            "NL9",
+            "InMotion.Approaching",
+            "F14"
+          ],
+          "obligations": [
+            "Approaching must send the Send signal while operating."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:77d7c6675317c046:facet:07a4dea58440"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:EmergencyStopping:None:Emergency Stop",
+          "claims": [
+            "State 'EmergencyStopping' lacks required state_action 'Emergency Stop' in any lifecycle phase."
+          ],
+          "locations": [
+            "EmergencyStopping"
+          ],
+          "obligations": [
+            "State 'EmergencyStopping' must own required state_action 'Emergency Stop' in any lifecycle phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:EmergencyStopping:None:Emergency Stop:facet:13f557c97de5"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:EmergencyStopping:None:Obstacle Detected",
+          "claims": [
+            "State 'EmergencyStopping' lacks required output_signal 'Obstacle Detected' in any lifecycle phase."
+          ],
+          "locations": [
+            "EmergencyStopping"
+          ],
+          "obligations": [
+            "State 'EmergencyStopping' must own required output_signal 'Obstacle Detected' in any lifecycle phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:EmergencyStopping:None:Obstacle Detected:facet:2e6a47a79b98"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:InMotion.Approaching:during:Send",
+          "claims": [
+            "State 'InMotion.Approaching' lacks required output_signal 'Send' in the during phase."
+          ],
+          "locations": [
+            "InMotion.Approaching"
+          ],
+          "obligations": [
+            "State 'InMotion.Approaching' must own required output_signal 'Send' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:InMotion.Approaching:during:Send:facet:84ed070965e9"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:314d372dbe9e15f9",
+          "claims": [
+            "The root initial target may be wrong: the model's root entry does not target DoorsClosing."
+          ],
+          "locations": [
+            "NL1",
+            "F34",
+            "llms_emp_feedback_final_0014.UnspecifiedInitial"
+          ],
+          "obligations": [
+            "The system starts in DoorsClosing."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D1",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:314d372dbe9e15f9:facet:d5da39f32973"
+          ]
+        },
+        {
+          "finding_id": "source:guard_presence:DoorsClosing:InMotion",
+          "claims": [
+            "The DoorsClosing transition may lack the independent closed-door guard required by NL1."
+          ],
+          "locations": [
+            "NL1",
+            "tr_0001",
+            "F35",
+            "DoorsClosing -> InMotion"
+          ],
+          "obligations": [
+            "The transition on closed doors must include the stated closed-door qualification."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L1",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:guard_presence:DoorsClosing:InMotion:facet:a7eb4f525ef4"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "method_run3",
+      "status": "completed",
+      "findings": [
+        {
+          "finding_id": "source:unreachable_component:DoorsClosing",
+          "claims": [
+            "Source component 'DoorsClosing' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0014.DoorsClosing"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:DoorsClosing:facet:9f252c8190ec"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_component:InMotion",
+          "claims": [
+            "Source component 'InMotion' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0014.InMotion.Accelerating",
+            "llms_emp_feedback_final_0014.InMotion.Cruising",
+            "llms_emp_feedback_final_0014.InMotion.Approaching"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:InMotion:facet:efe472ee0a06"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_component:Stopping",
+          "claims": [
+            "Source component 'Stopping' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0014.Stopping"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:Stopping:facet:db5a0a916366"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_component:EmergencyStopping",
+          "claims": [
+            "Source component 'EmergencyStopping' is unreachable from the source root entry."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0014.EmergencyStopping.Entry"
+          ],
+          "obligations": [
+            "Behavior declared as part of the system must be reachable from root entry."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_component:EmergencyStopping:facet:db5a0a916366"
+          ]
+        },
+        {
+          "finding_id": "source:initial_contract:InMotion",
+          "claims": [
+            "Initial pseudostate scope 'InMotion' has 1 outgoing edge(s) carrying a trigger or guard (llms_emp_feedback_final_0014.puml:line:7); the declared UML initial-transition profile forbids a trigger and guard on an initial pseudostate outgoing edge."
+          ],
+          "locations": [
+            "llms_emp_feedback_final_0014.InMotion"
+          ],
+          "obligations": [
+            "An initial pseudostate outgoing transition must not carry a trigger or guard."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:initial_contract:InMotion:facet:efe472ee0a06"
+          ]
+        },
+        {
+          "finding_id": "source:initial_contract:llms_emp_feedback_final_0014",
+          "claims": [
+            "Source composite 'llms_emp_feedback_final_0014' has no initial transition to required child 'DoorsClosing'.",
+            "No source-graph path reaches target 'DoorsClosing' from the exact root entry 'llms_emp_feedback_final_0014'."
+          ],
+          "locations": [
+            "NL1",
+            "F34",
+            "llms_emp_feedback_final_0014.UnspecifiedInitial",
+            "DoorsClosing",
+            "FCSTM:F34",
+            "llms_emp_feedback_final_0014.DoorsClosing"
+          ],
+          "obligations": [
+            "llms_emp_feedback_final_0014 must initially enter DoorsClosing.",
+            "The system starts in the DoorsClosing state.",
+            "The system starts in DoorsClosing.",
+            "The root system entry must reach the declared initial DoorsClosing state."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:initial_contract:llms_emp_feedback_final_0014:facet:321daabe8b6b",
+            "source:initial_contract:llms_emp_feedback_final_0014:facet:798ecf76b350"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_event_consumers:DoorsClosing",
+          "claims": [
+            "Exact event 'Closed/SendDeparted' has authored consumers ['tr_0001'], but none is reachable in required scope(s) ['DoorsClosing']; the selected event identity came from transition 'tr_0001'."
+          ],
+          "locations": [
+            "tr_0001"
+          ],
+          "obligations": [
+            "Event concept 'Closed' must be consumed while required scope 'DoorsClosing' is active."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_event_consumers:DoorsClosing:facet:c947661d05b3"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_event_consumers:InMotion",
+          "claims": [
+            "Exact event 'Arrived/Stop, SendArrived' has authored consumers ['tr_0006'], but none is reachable in required scope(s) ['InMotion']; the selected event identity came from transition 'tr_0006'.",
+            "Exact event 'Obstacle Detected' has authored consumers ['tr_0007'], but none is reachable in required scope(s) ['InMotion', 'InMotion.Accelerating', 'InMotion.Approaching', 'InMotion.Cruising']; the selected event identity came from transition 'tr_0007'."
+          ],
+          "locations": [
+            "tr_0006",
+            "tr_0007"
+          ],
+          "obligations": [
+            "Event concept 'Arrived' must be consumed while required scope 'InMotion' is active.",
+            "Event concept 'obstacle detected' must be consumed while required scope 'InMotion' is active.",
+            "Event concept 'obstacle detected' must be consumed while required scope 'InMotion.Accelerating' is active.",
+            "Event concept 'obstacle detected' must be consumed while required scope 'InMotion.Approaching' is active.",
+            "Event concept 'obstacle detected' must be consumed while required scope 'InMotion.Cruising' is active."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:unreachable_event_consumers:InMotion:facet:bf3fea31cb83",
+            "source:unreachable_event_consumers:InMotion:facet:7e136b91540d"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_event_consumers:InMotion.Accelerating",
+          "claims": [
+            "Exact event 'Reached Cruising/Cruise' has authored consumers ['tr_0003'], but none is reachable in required scope(s) ['InMotion.Accelerating']; the selected event identity came from transition 'tr_0003'.",
+            "Exact event 'Approached/Decelerate' has authored consumers ['tr_0004'], but none is reachable in required scope(s) ['InMotion.Accelerating']; the selected event identity came from transition 'tr_0004'."
+          ],
+          "locations": [
+            "tr_0003",
+            "tr_0004"
+          ],
+          "obligations": [
+            "Event concept 'Reached Cruising' must be consumed while required scope 'InMotion.Accelerating' is active.",
+            "Event concept 'Approached' must be consumed while required scope 'InMotion.Accelerating' is active."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 2,
+          "facet_keys": [
+            "source:unreachable_event_consumers:InMotion.Accelerating:facet:80040a6769f1",
+            "source:unreachable_event_consumers:InMotion.Accelerating:facet:f31a27331edb"
+          ]
+        },
+        {
+          "finding_id": "source:unreachable_event_consumers:InMotion.Cruising",
+          "claims": [
+            "Exact event 'Approached/Decelerate' has authored consumers ['tr_0005'], but none is reachable in required scope(s) ['InMotion.Cruising']; the selected event identity came from transition 'tr_0005'."
+          ],
+          "locations": [
+            "tr_0005"
+          ],
+          "obligations": [
+            "Event concept 'Approached' must be consumed while required scope 'InMotion.Cruising' is active."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L2",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:unreachable_event_consumers:InMotion.Cruising:facet:87d87c6c30a4"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:EmergencyStopping:during:Emergency Stop",
+          "claims": [
+            "State 'EmergencyStopping' lacks required state_action 'Emergency Stop' in the during phase."
+          ],
+          "locations": [
+            "EmergencyStopping"
+          ],
+          "obligations": [
+            "State 'EmergencyStopping' must own required state_action 'Emergency Stop' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:EmergencyStopping:during:Emergency Stop:facet:988ee44974c4"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:EmergencyStopping:during:Obstacle Detected",
+          "claims": [
+            "State 'EmergencyStopping' lacks required output_signal 'Obstacle Detected' in the during phase."
+          ],
+          "locations": [
+            "EmergencyStopping"
+          ],
+          "obligations": [
+            "State 'EmergencyStopping' must own required output_signal 'Obstacle Detected' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:EmergencyStopping:during:Obstacle Detected:facet:6f60c0b65de0"
+          ]
+        },
+        {
+          "finding_id": "source:lifecycle_action:InMotion.Approaching:during:Send",
+          "claims": [
+            "State 'InMotion.Approaching' lacks required output_signal 'Send' in the during phase."
+          ],
+          "locations": [
+            "InMotion.Approaching"
+          ],
+          "obligations": [
+            "State 'InMotion.Approaching' must own required output_signal 'Send' in the during phase."
+          ],
+          "basis": [
+            "causal_dual_certificate"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W2",
+          "facet_count": 1,
+          "facet_keys": [
+            "source:lifecycle_action:InMotion.Approaching:during:Send:facet:023a9b4214c1"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:ca42983e04b8588d",
+          "claims": [
+            "The InMotion initial transition may violate the unconditional-initial-entry requirement because the mapped source label is lowered as an event trigger."
+          ],
+          "locations": [
+            "NL5",
+            "NL8",
+            "FCSTM:F15",
+            "llms_emp_feedback_final_0014.InMotion"
+          ],
+          "obligations": [
+            "The InMotion initial entry must enter Accelerating without a trigger or guard."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:ca42983e04b8588d:facet:97cd230ce610"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:d1ae640ecf2b3bba",
+          "claims": [
+            "EmergencyStopping may not own the required Emergency Stop action and Obstacle Detected output as executable state-owned actions."
+          ],
+          "locations": [
+            "NL3",
+            "FCSTM:F25-F31",
+            "EmergencyStopping"
+          ],
+          "obligations": [
+            "The event-triggered entry into EmergencyStopping must realize the required Emergency Stop action and Obstacle Detected signal in that state."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:d1ae640ecf2b3bba:facet:9aeba6050bb5"
+          ]
+        },
+        {
+          "finding_id": "hypothesis:75e2b7e21250c007",
+          "claims": [
+            "Approaching may not contain the required Send output signal as a state-owned action."
+          ],
+          "locations": [
+            "NL9",
+            "FCSTM:F14",
+            "InMotion.Approaching"
+          ],
+          "obligations": [
+            "The Approaching state must own the Send output signal during its operation."
+          ],
+          "basis": [
+            "source_localized"
+          ],
+          "d_level": "D2",
+          "l_level": "L0",
+          "witness_level": "W1",
+          "facet_count": 1,
+          "facet_keys": [
+            "hypothesis:75e2b7e21250c007:facet:5f505776bfc3"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run1",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "将“检测到障碍物”错误建模为转移标签，而未明确表示规范要求的障碍物检测触发事件及其发送信号语义",
+          "reason": "规范要求在检测到障碍物时进入 EmergencyStopping，并在该状态执行“Emergency Stop”且发送“Obstacle Detected”信号。模型只把 `Obstacle Detected` 放在转移上，未建模为触发条件/事件与状态内发送动作的清晰组合，且状态内的同名文本不是发送动作标注。",
+          "where": "InMotion 到 EmergencyStopping 的转移：`InMotion --> EmergencyStopping: Obstacle Detected`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "未建模 EmergencyStopping 状态发送“Obstacle Detected”信号的动作",
+          "reason": "状态内部的 `EmergencyStopping: Obstacle Detected` 是普通状态描述/内部文字，而非明确的 entry/do/exit 动作或信号发送语句；因此不能保证进入该状态后实际发送规范要求的信号。",
+          "where": "EmergencyStopping 状态：`EmergencyStopping: Obstacle Detected`"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "“Entry/Accelerate”被错误放在从复合状态初始伪状态到 Accelerating 的转移上",
+          "reason": "规范要求系统进入 Accelerating 子状态时执行 `Entry/Accelerate` 动作。该模型把 Entry 当作转移标签，而不是 Accelerating 的进入动作；从语义上不能准确表达进入 Accelerating 时执行加速动作。",
+          "where": "InMotion 内部初始转移：`[*] --> Accelerating : Entry/Accelerate`"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "未建模 Approaching 状态发送 `Send` 信号以及持续停留的行为",
+          "reason": "规范明确要求在 Approaching 中发送 `Send` 信号，并在接近目的地时保持该子状态，直到准备停止或减速。模型仅包含两条无触发器、无动作语义的状态内部文字，既没有 `Send` 动作，也没有表示保持/自循环或其他可执行状态行为。",
+          "where": "Approaching 状态：`Approaching: Nearing Destination` 与 `Approaching: Ready to Stop/Decelerate`"
+        },
+        {
+          "finding_id": "baseline_issue_5",
+          "issue": "引入了规范未要求的“准备停止/减速”内部动作或状态语义，并且没有对应转移",
+          "reason": "规范只要求系统持续处于 Approaching，直到准备停止或减速；它没有规定在 Approaching 内执行 `Ready to Stop/Decelerate` 这一动作。模型将其作为状态描述，既改变了语义又没有定义后续行为。",
+          "where": "Approaching 状态中的 `Ready to Stop/Decelerate` 描述"
+        },
+        {
+          "finding_id": "baseline_issue_6",
+          "issue": "发送信号名称与规范不一致",
+          "reason": "规范要求到达时执行 `Stop` 并发送 `Arrived` 信号，即 `Arrived/Stop, Send Arrived`。模型写成 `SendArrived`，缺少规范中的发送动作分隔/空格语义，不能明确表示发送 `Arrived` 信号。",
+          "where": "Arrived 转移标签：`Arrived/Stop, SendArrived`"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run2",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "未显式表示系统从 DoorsClosing 开始",
+          "reason": "规格明确要求系统 starts in DoorsClosing。模型只声明了 DoorsClosing，并直接定义其到 InMotion 的转换，没有顶层初始伪状态[*]到 DoorsClosing 的箭头，因此从模型结构上无法确认系统初始进入 DoorsClosing。",
+          "where": "顶层状态初始化；DoorsClosing 附近"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "缺少发送“Send”信号的动作",
+          "reason": "规格要求进入 Approaching 后系统发送“Send”信号并继续接近目的地。模型仅有“Nearing Destination”和“Ready to Stop/Decelerate”两条状态注释，没有 Send 动作或发送信号的转换。",
+          "where": "InMotion 内的 Approaching 状态"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "未明确建模发送“Obstacle Detected”信号",
+          "reason": "规格将“检测到障碍物”作为进入 EmergencyStopping 的条件，并要求该状态执行“Emergency Stop”且发送“Obstacle Detected”信号。模型的转换标签只有 Obstacle Detected（更像触发条件），状态体中的“EmergencyStopping: Obstacle Detected”只是状态描述，不表示发送动作，因此缺少明确的信号发送语义。",
+          "where": "InMotion --> EmergencyStopping: Obstacle Detected；EmergencyStopping 状态体"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "动作名称写成 SendArrived，未按规格写成 Send Arrived",
+          "reason": "规格指定到达事件的信号/动作为“Arrived/Stop, Send Arrived”。模型写成“Arrived/Stop, SendArrived”，文本标识与规定的动作名称不一致；若信号名按字面匹配，这会导致动作名称不符合规格。",
+          "where": "InMotion --> Stopping 转换"
+        }
+      ]
+    },
+    {
+      "cell": "baseline_run3",
+      "status": "ok",
+      "findings": [
+        {
+          "finding_id": "baseline_issue_1",
+          "issue": "从 InMotion 进入 EmergencyStopping 的触发条件和信号标注不完整/不一致。",
+          "reason": "规格要求在检测到障碍物时进入该状态，并执行“Emergency Stop”且发送“Obstacle Detected”信号。模型只把 `Obstacle Detected` 写成转移标签，没有明确体现“检测到障碍物”这一触发事件与发送该信号的动作之间的关系；同时 EmergencyStopping 内部虽有 `Entry: Emergency Stop` 和状态说明 `Obstacle Detected`，但未明确建模发送信号的动作。",
+          "where": "`InMotion --> EmergencyStopping: Obstacle Detected`"
+        },
+        {
+          "finding_id": "baseline_issue_2",
+          "issue": "EmergencyStopping 状态中的“Obstacle Detected”未明确表示发送信号动作。",
+          "reason": "规格明确要求进入 EmergencyStopping 时发送 `Obstacle Detected` 信号。该模型行是状态内部描述/注释式状态文本，而不是带有 `send` 语义的进入动作、do 动作或转移动作，因此不能确认实现了发送信号。",
+          "where": "`state EmergencyStopping { ... EmergencyStopping: Obstacle Detected }`"
+        },
+        {
+          "finding_id": "baseline_issue_3",
+          "issue": "Approaching 子状态未建模为持续保持状态的行为或循环。",
+          "reason": "规格要求系统在接近目的地时保持在 Approaching，直到准备停止或减速。模型只包含两条状态描述，没有自循环、内部转移或明确的保持语义；其中 `Ready to Stop/Decelerate` 还被表示成静态文本，未表示事件触发的行为。",
+          "where": "`state Approaching { Approaching: Nearing Destination; Approaching: Ready to Stop/Decelerate }`"
+        },
+        {
+          "finding_id": "baseline_issue_4",
+          "issue": "Approaching 子状态的要求“发送 Send 信号”缺失。",
+          "reason": "规格第9条明确要求在 Approaching 中发送 `Send` 信号。模型中没有 `Send` 动作或信号标注，只有 `Nearing Destination` 和 `Ready to Stop/Decelerate` 两条描述，因此该要求未被实现。",
+          "where": "整个 `state Approaching { ... }` 定义"
+        },
+        {
+          "finding_id": "baseline_issue_5",
+          "issue": "“Entry/Accelerate”动作的建模位置与规格语义不完全匹配。",
+          "reason": "规格要求“进入 Accelerating 子状态时”执行 `Entry/Accelerate`。模型将 `Entry/Accelerate` 放在初始伪状态到 Accelerating 的转移标签上，而不是 Accelerating 的 entry 动作；若从其他路径重新进入 Accelerating，模型也没有保证执行该 entry 动作。",
+          "where": "`[*] --> Accelerating : Entry/Accelerate`"
+        }
+      ]
+    }
+  ],
+  "judgement": {
+    "pair": "0014",
+    "ledger_assessments": [
+      {
+        "ledger_id": "EIS-0014-01",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:llms_emp_feedback_final_0014"
+          ],
+          "reason": "根初始契约 issue 直接指认根入口没有到 DoorsClosing 的初始转移。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:llms_emp_feedback_final_0014",
+            "hypothesis:314d372dbe9e15f9"
+          ],
+          "reason": "根初始契约和根目标错误 issue 直接指认系统未从 DoorsClosing 开始。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:initial_contract:llms_emp_feedback_final_0014"
+          ],
+          "reason": "根初始契约 issue 直接指认 root entry 未到 DoorsClosing。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格没有指认根层初始伪状态缺失。",
+          "confidence": null
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1"
+          ],
+          "reason": "baseline_issue_1 直接指认没有顶层初始伪状态到 DoorsClosing。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格没有指认根层初始伪状态缺失。",
+          "confidence": null
+        }
+      },
+      {
+        "ledger_id": "EIS-0014-02",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:lifecycle_action:InMotion.Accelerating:entry:Accelerate"
+          ],
+          "reason": "lifecycle issue 直接指认 Accelerating 缺少 entry Accelerate。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "相关 hypothesis 只指认初始迁移带触发，性质是初始迁移契约，不是 entry 动作槽位错位。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "相关 hypothesis 只指认初始迁移被降低为事件触发，未主张 Accelerating entry 动作缺失或错位。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_3"
+          ],
+          "reason": "baseline_issue_3 指认 Accelerate 被放在初始迁移标签而非 Accelerating entry 动作位置。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格没有指认 Accelerating entry 动作的槽位错位。",
+          "confidence": null
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_5"
+          ],
+          "reason": "baseline_issue_5 指认 Entry/Accelerate 在迁移标签而非 Accelerating entry 动作。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0014-03",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:lifecycle_action:EmergencyStopping:None:Emergency Stop"
+          ],
+          "reason": "lifecycle issue 直接指认 EmergencyStopping 缺少 Emergency Stop 动作。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "hypothesis:64a501852f9a090c",
+            "source:lifecycle_action:EmergencyStopping:None:Emergency Stop"
+          ],
+          "reason": "hypothesis 和 lifecycle issue 均直接指认 EmergencyStopping 未拥有 Emergency Stop 动作。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:lifecycle_action:EmergencyStopping:during:Emergency Stop",
+            "hypothesis:d1ae640ecf2b3bba"
+          ],
+          "reason": "lifecycle issue 和组合 hypothesis 直接指认 EmergencyStopping 缺少 Emergency Stop 状态动作。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格未主张 Emergency Stop 动作缺失。",
+          "confidence": null
+        },
+        "baseline_run2": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格只主张 Obstacle Detected 输出缺失，未主张 Emergency Stop 动作缺失。",
+          "confidence": null
+        },
+        "baseline_run3": {
+          "hit": false,
+          "supporting_finding_ids": [],
+          "reason": "该格说明 Emergency Stop 文本存在但未明确发送信号，未主张 Emergency Stop 动作本身缺失。",
+          "confidence": null
+        }
+      },
+      {
+        "ledger_id": "VU-0014-01",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:lifecycle_action:EmergencyStopping:None:Obstacle Detected"
+          ],
+          "reason": "lifecycle issue 直接指认 EmergencyStopping 缺少 Obstacle Detected 输出。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "hypothesis:60d01a614f3199fc",
+            "source:lifecycle_action:EmergencyStopping:None:Obstacle Detected"
+          ],
+          "reason": "hypothesis 和 lifecycle issue 直接指认 EmergencyStopping 未实现该状态拥有的输出。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:lifecycle_action:EmergencyStopping:during:Obstacle Detected",
+            "hypothesis:d1ae640ecf2b3bba"
+          ],
+          "reason": "lifecycle issue 和组合 hypothesis 直接指认 EmergencyStopping 缺少该输出。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1",
+            "baseline_issue_2"
+          ],
+          "reason": "baseline_issue_1 和 baseline_issue_2 都指认 EmergencyStopping 内没有明确的 Obstacle Detected 发送动作。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_3"
+          ],
+          "reason": "baseline_issue_3 明确区分输入触发与 EmergencyStopping 状态内发送信号的缺失。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_1",
+            "baseline_issue_2"
+          ],
+          "reason": "baseline_issue_1 和 baseline_issue_2 直接指认 EmergencyStopping 未建模发送 Obstacle Detected。",
+          "confidence": "high"
+        }
+      },
+      {
+        "ledger_id": "EIS-0014-04",
+        "method_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "source:lifecycle_action:InMotion.Approaching:None:Send"
+          ],
+          "reason": "lifecycle issue 直接指认 Approaching 缺少 Send 输出。",
+          "confidence": "high"
+        },
+        "method_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "hypothesis:77d7c6675317c046",
+            "source:lifecycle_action:InMotion.Approaching:during:Send"
+          ],
+          "reason": "hypothesis 和 lifecycle issue 直接指认 Approaching 缺少 Send 输出。",
+          "confidence": "high"
+        },
+        "method_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "hypothesis:75e2b7e21250c007",
+            "source:lifecycle_action:InMotion.Approaching:during:Send"
+          ],
+          "reason": "hypothesis 和 lifecycle issue 直接指认 Approaching 缺少 Send 输出。",
+          "confidence": "high"
+        },
+        "baseline_run1": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_4"
+          ],
+          "reason": "baseline_issue_4 直接指认 Approaching 缺少 Send 动作。",
+          "confidence": "high"
+        },
+        "baseline_run2": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_2"
+          ],
+          "reason": "baseline_issue_2 直接指认 Approaching 缺少 Send 输出。",
+          "confidence": "high"
+        },
+        "baseline_run3": {
+          "hit": true,
+          "supporting_finding_ids": [
+            "baseline_issue_4"
+          ],
+          "reason": "baseline_issue_4 直接指认 Approaching 缺少 Send 输出。",
+          "confidence": "high"
+        }
+      }
+    ],
+    "emission_assessments": [
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:unreachable_component:DoorsClosing",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张的是组件从根不可达，属于可达性后果，不是根层初始伪状态缺失本身。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:unreachable_component:InMotion",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张的是 InMotion 组件不可达，不是台账所列的具体动作、输出或初始槽位问题。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:unreachable_component:Stopping",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张的是 Stopping 组件不可达，台账没有该位置的不可达条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:unreachable_component:EmergencyStopping",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张的是 EmergencyStopping 不可达，不是该状态动作或输出缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:initial_contract:InMotion",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 InMotion 初始伪状态出边带触发，性质是初始迁移契约违规，不是 Accelerating entry 动作相位错位。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:lifecycle_action:EmergencyStopping:None:Emergency Stop",
+        "matched_ledger_ids": [
+          "EIS-0014-03"
+        ],
+        "false_positive": false,
+        "reason": "直接指认 EmergencyStopping 未拥有 Emergency Stop 生命周期动作，覆盖该状态动作缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:lifecycle_action:EmergencyStopping:None:Obstacle Detected",
+        "matched_ledger_ids": [
+          "VU-0014-01"
+        ],
+        "false_positive": false,
+        "reason": "直接指认 EmergencyStopping 未拥有 Obstacle Detected 输出，覆盖该状态输出缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:lifecycle_action:InMotion.Accelerating:entry:Accelerate",
+        "matched_ledger_ids": [
+          "EIS-0014-02"
+        ],
+        "false_positive": false,
+        "reason": "直接指认 Accelerating 缺少 entry 阶段 Accelerate 动作，位置和性质均一致。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:lifecycle_action:InMotion.Approaching:None:Send",
+        "matched_ledger_ids": [
+          "EIS-0014-04"
+        ],
+        "false_positive": false,
+        "reason": "直接指认 Approaching 缺少 Send 输出，覆盖该子状态输出缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:unreachable_event_consumers:DoorsClosing",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 Closed 事件消费者在 DoorsClosing 不可达，是事件消费可达性问题，不是根层初始伪状态缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:unreachable_event_consumers:InMotion",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 InMotion 内事件消费者不可达，台账五项没有该事件消费可达性性质。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:unreachable_event_consumers:InMotion.Accelerating",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 Accelerating 内事件消费者不可达，不是 entry 动作槽位问题。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:unreachable_event_consumers:InMotion.Cruising",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 Cruising 内事件消费者不可达，台账没有该位置的不可达条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:event_missing_scope:InMotion:tr_0002",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 Entry/Accelerate 事件没有 InMotion 范围消费者，属于事件作用域问题，不是 Accelerating entry 动作缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run1",
+        "emitted_id": "source:initial_contract:llms_emp_feedback_final_0014",
+        "matched_ledger_ids": [
+          "EIS-0014-01"
+        ],
+        "false_positive": false,
+        "reason": "直接主张根入口没有到 DoorsClosing 的初始转移并导致根不可达，覆盖根层初始伪状态缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:unreachable_component:DoorsClosing",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "组件不可达不是根层初始伪状态缺失本身。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:unreachable_component:InMotion",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "组件不可达不是台账五项中的同性质缺陷。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:unreachable_component:Stopping",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "Stopping 不可达不对应冻结条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:unreachable_component:EmergencyStopping",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "EmergencyStopping 不可达不等同于其动作或输出缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:initial_contract:InMotion",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "这是初始出边带触发的契约问题，不是 Accelerating entry 动作的相位问题。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:transition:DoorsClosing:when the doors are closed, triggered by the \"Closed/SendDeparted\" signal:InMotion",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 DoorsClosing 到 InMotion 的迁移条件缺失；台账 E01 是根初始边缺失，方向和性质不同。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:transition:InMotion:when it arrives, indicated by the \"Arrived/Stop, Send Arrived\" signal:Stopping",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 InMotion 到 Stopping 的迁移缺失，冻结台账没有该迁移条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:transition:InMotion.Accelerating:once cruising speed is reached, as indicated by the \"Reached Cruising/Cruise\" signal:InMotion.Cruising",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 Accelerating 到 Cruising 的迁移缺失，非 entry 动作问题。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:transition:InMotion.Accelerating:approaches its destination, upon receiving the \"Approached/Decelerate\" signal:InMotion.Approaching",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 Accelerating 到 Approaching 的迁移缺失，非 entry 动作问题。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:transition:InMotion.Cruising:when it approaches the destination, triggered by the \"Approached/Decelerate\" signal:InMotion.Approaching",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 Cruising 到 Approaching 的迁移缺失，冻结台账没有该迁移条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:initial_contract:llms_emp_feedback_final_0014",
+        "matched_ledger_ids": [
+          "EIS-0014-01"
+        ],
+        "false_positive": false,
+        "reason": "直接主张根入口没有初始进入 DoorsClosing，覆盖根层初始伪状态缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:e8947e185d5480d7",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张初始迁移带 Entry_Accelerate 触发，性质是初始迁移无触发契约，不是 entry 动作槽位错位。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:64a501852f9a090c",
+        "matched_ledger_ids": [
+          "EIS-0014-03"
+        ],
+        "false_positive": false,
+        "reason": "主张 EmergencyStopping 未拥有正式 Emergency Stop 生命周期动作，覆盖该动作缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:60d01a614f3199fc",
+        "matched_ledger_ids": [
+          "VU-0014-01"
+        ],
+        "false_positive": false,
+        "reason": "主张 EmergencyStopping 未实现状态拥有的 Obstacle Detected 输出，覆盖该输出缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:77d7c6675317c046",
+        "matched_ledger_ids": [
+          "EIS-0014-04"
+        ],
+        "false_positive": false,
+        "reason": "主张 Approaching 缺少 Send 输出，位置和性质一致。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "hypothesis:314d372dbe9e15f9",
+        "matched_ledger_ids": [
+          "EIS-0014-01"
+        ],
+        "false_positive": false,
+        "reason": "直接主张根初始目标不是 DoorsClosing，覆盖初始状态缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:guard_presence:DoorsClosing:InMotion",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 DoorsClosing 到 InMotion 的独立 guard 缺失，台账 E01 不是该迁移 guard 性质。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:lifecycle_action:EmergencyStopping:None:Emergency Stop",
+        "matched_ledger_ids": [
+          "EIS-0014-03"
+        ],
+        "false_positive": false,
+        "reason": "直接指认 Emergency Stop 动作未由 EmergencyStopping 拥有。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:lifecycle_action:EmergencyStopping:None:Obstacle Detected",
+        "matched_ledger_ids": [
+          "VU-0014-01"
+        ],
+        "false_positive": false,
+        "reason": "直接指认 EmergencyStopping 缺少 Obstacle Detected 输出。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run2",
+        "emitted_id": "source:lifecycle_action:InMotion.Approaching:during:Send",
+        "matched_ledger_ids": [
+          "EIS-0014-04"
+        ],
+        "false_positive": false,
+        "reason": "直接指认 Approaching 缺少 Send 输出。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:unreachable_component:DoorsClosing",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "组件不可达不是根初始伪状态缺失本身。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:unreachable_component:InMotion",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "组件不可达不对应冻结台账条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:unreachable_component:Stopping",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "Stopping 不可达不对应任何冻结条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:unreachable_component:EmergencyStopping",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "状态不可达不等同于 EmergencyStopping 内动作或输出缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:initial_contract:InMotion",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张初始伪状态出边带触发，属于独立契约问题。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:initial_contract:llms_emp_feedback_final_0014",
+        "matched_ledger_ids": [
+          "EIS-0014-01"
+        ],
+        "false_positive": false,
+        "reason": "直接主张根入口不能进入 DoorsClosing，覆盖根初始伪状态缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:unreachable_event_consumers:DoorsClosing",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "事件消费者不可达不是根初始边缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:unreachable_event_consumers:InMotion",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "InMotion 事件消费作用域不可达不对应冻结条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:unreachable_event_consumers:InMotion.Accelerating",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "Accelerating 事件消费者不可达不是 entry 动作槽位问题。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:unreachable_event_consumers:InMotion.Cruising",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "Cruising 事件消费者不可达不对应冻结条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:lifecycle_action:EmergencyStopping:during:Emergency Stop",
+        "matched_ledger_ids": [
+          "EIS-0014-03"
+        ],
+        "false_positive": false,
+        "reason": "直接指认 EmergencyStopping 缺少 Emergency Stop 状态动作。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:lifecycle_action:EmergencyStopping:during:Obstacle Detected",
+        "matched_ledger_ids": [
+          "VU-0014-01"
+        ],
+        "false_positive": false,
+        "reason": "直接指认 EmergencyStopping 缺少 Obstacle Detected 输出。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "source:lifecycle_action:InMotion.Approaching:during:Send",
+        "matched_ledger_ids": [
+          "EIS-0014-04"
+        ],
+        "false_positive": false,
+        "reason": "直接指认 Approaching 缺少 Send 输出。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "hypothesis:ca42983e04b8588d",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 InMotion 初始进入带事件触发，属于初始迁移契约，不是 Accelerating entry 动作错位。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "hypothesis:d1ae640ecf2b3bba",
+        "matched_ledger_ids": [
+          "EIS-0014-03",
+          "VU-0014-01"
+        ],
+        "false_positive": false,
+        "reason": "同一 EmergencyStopping 位置同时主张 Emergency Stop 动作和 Obstacle Detected 输出未作为状态动作实现，分别覆盖两条冻结条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "method_run3",
+        "emitted_id": "hypothesis:75e2b7e21250c007",
+        "matched_ledger_ids": [
+          "EIS-0014-04"
+        ],
+        "false_positive": false,
+        "reason": "主张 Approaching 缺少状态拥有的 Send 输出。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "VU-0014-01"
+        ],
+        "false_positive": false,
+        "reason": "虽同时讨论障碍输入迁移，但明确主张 EmergencyStopping 内没有发送 Obstacle Detected 的语义，覆盖该输出缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "VU-0014-01"
+        ],
+        "false_positive": false,
+        "reason": "直接指认 EmergencyStopping 内文本不是发送动作，覆盖 Obstacle Detected 输出缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [
+          "EIS-0014-02"
+        ],
+        "false_positive": false,
+        "reason": "直接指认 Entry/Accelerate 放在初始迁移标签而非 Accelerating entry 动作位置。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [
+          "EIS-0014-04"
+        ],
+        "false_positive": false,
+        "reason": "直接指认 Approaching 缺少 Send 动作。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_5",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张多余的 Ready to Stop/Decelerate 内部语义，冻结台账没有该多余项。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run1",
+        "emitted_id": "baseline_issue_6",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 Arrived 信号名称格式不一致，冻结台账没有该名称问题。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "EIS-0014-01"
+        ],
+        "false_positive": false,
+        "reason": "直接指认没有顶层初始伪状态指向 DoorsClosing。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "EIS-0014-04"
+        ],
+        "false_positive": false,
+        "reason": "直接指认 Approaching 缺少 Send 输出动作。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [
+          "VU-0014-01"
+        ],
+        "false_positive": false,
+        "reason": "明确指出 EmergencyStopping 状态体文字不表示发送 Obstacle Detected，覆盖该输出缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run2",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 SendArrived 命名/分隔不符，冻结台账没有该问题。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_1",
+        "matched_ledger_ids": [
+          "VU-0014-01"
+        ],
+        "false_positive": false,
+        "reason": "明确指出 EmergencyStopping 内未建模发送 Obstacle Detected，覆盖该输出缺失。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_2",
+        "matched_ledger_ids": [
+          "VU-0014-01"
+        ],
+        "false_positive": false,
+        "reason": "直接指认状态内 Obstacle Detected 文本不是发送动作。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_3",
+        "matched_ledger_ids": [],
+        "false_positive": true,
+        "reason": "主张 Approaching 保持/循环行为缺失，冻结台账没有该行为条目。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_4",
+        "matched_ledger_ids": [
+          "EIS-0014-04"
+        ],
+        "false_positive": false,
+        "reason": "直接指认 Approaching 缺少 Send 输出。",
+        "confidence": "high"
+      },
+      {
+        "cell": "baseline_run3",
+        "emitted_id": "baseline_issue_5",
+        "matched_ledger_ids": [
+          "EIS-0014-02"
+        ],
+        "false_positive": false,
+        "reason": "直接指认 Entry/Accelerate 位于迁移标签而非 Accelerating entry 动作位置。",
+        "confidence": "high"
+      }
+    ],
+    "pair_reason": "按同一位置与同一性质逐项对齐。五条冻结条目中，方法三轮稳定覆盖动作/输出缺失以及根初始缺失；初始迁移契约、事件消费者不可达、迁移缺失和 guard 缺失等虽相关但不是冻结条目的同一缺陷。baseline 对应覆盖了根初始、Accelerating entry、EmergencyStopping 输出和 Approaching Send；未把名称问题、保持循环或仅提及 Emergency Stop 的 issue 误计为命中。"
+  },
+  "status": "ok",
+  "attempts": 2
+}
