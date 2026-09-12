@@ -10,7 +10,7 @@
 | 图 4：冻结的关系优先判定规则（画板，2026-09-11 第六轮起只保留单面板，原 (b) 路径面板按用户决定删除） | §5.4 | [adjudication.svg](./figures/adjudication.svg)；S7 | 0.45 页 |
 | 图 5：四模型分层覆盖 | §6.1 | [coverage.svg](./figures/coverage.svg)；S1 | 0.45 页 |
 | 图 6：四模型配对差值与九簇区间 | §6.2 | [main_delta.svg](./figures/main_delta.svg)；S1 | 0.35 页 |
-| 图 7：关闭检视事实的配对差值（RQ3） | §6.3 | [rq3_delta.svg](./figures/rq3_delta.svg)；S2 | 0.30 页 |
+| 图 7：四模型关闭检视事实的配对差值（RQ3；2026-09-12 起含 A1-ext 三模型） | §6.3 | [rq3_delta.svg](./figures/rq3_delta.svg)；S2 | 0.35 页 |
 | 图 8：移除中间引导的配对差值（RQ4） | §6.4 | [rq4_delta.svg](./figures/rq4_delta.svg)；S3 | 0.35 页 |
 | 图 9：屏蔽执行反馈（RQ5；纵轴从 60% 起，用户 2026-09-11 决定保持） | §6.5 | [rq5_execution.svg](./figures/rq5_execution.svg)；S4 | 0.35 页 |
 | 表 1：最接近工作四维比较 | §2.2 | S7 closest-work 矩阵 | 0.35 页 |
@@ -20,7 +20,7 @@
 | 表 5：基线与消融条件 | §5.3 | S1–S4 的真实干预合同 | 0.22 页 |
 | 表 6：gpt-5.6-luna 基线与 Full 完整结果（含严格覆盖与 D2-only 覆盖） | §6.1 | S1/S5；D2-only 与严格覆盖由 cells.json 与 raw 逐报告重算 | 0.30 页 |
 | 表 7：四模型基线与 Full（含严格与 D2-only 覆盖） | §6.2 | S1/S5；8 行 | 0.40 页 |
-| 表 8：关闭检视事实 | §6.3 | S2 | 0.30 页 |
+| 表 8：四模型关闭检视事实（8 行，含 L2 hit@1 与 L2 hit@all） | §6.3 | S2（A1 + A1-ext） | 0.40 页 |
 | 表 9：移除中间引导 | §6.4 | S3；8 行 | 0.35 页 |
 | 表 10：Full 各阶段产出计数 | §6.4 | E2 raw 逐格 `stage_outputs.execute_batch` 计数器与 v61 raw method 输出；候选总数 = admitted_llm + frontier（含 unresolved 与 domain_invariant）+ exact_s2_scout + execution_probe，源迁移闭合不计入 | 0.30 页 |
 | 表 11：屏蔽执行反馈 | §6.5 | S4；8 行 | 0.30 页 |

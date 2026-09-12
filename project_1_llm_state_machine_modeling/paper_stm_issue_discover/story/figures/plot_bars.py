@@ -18,6 +18,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 E2 = ROOT / 'final_results' / 'e2_20260907'
 A1 = ROOT / 'final_results' / 'a1_no_inspect_vs_v61_20260906' / 'results.json'
+A1EXT = ROOT / 'final_results' / 'a1_ext_20260911' / 'results.json'
 A3 = ROOT / 'final_results' / 'a3_open_judge_20260910' / 'four_model_summary.json'
 A4 = ROOT / 'reports' / 'a4_20260910'
 LEDGER = ROOT / 'discover_matrix' / 'ledger_v2'
@@ -310,23 +311,37 @@ def fig_main_delta():
     save(fig, 'main_delta')
 
 
+def rq3_arms():
+    """Full and no-inspection-facts metrics plus paired comparison for the four models (gpt-5.6-luna from A1, others from A1-ext)."""
+    a1 = load(A1); ext = load(A1EXT)['models']
+    arms = {'luna': (a1['v61']['metrics'], a1['a1']['metrics'], a1['comparison'])}
+    for key in ('sonnet', 'qwen', 'muse'):
+        arms[key] = (ext[key]['full']['metrics'], ext[key]['a1ext']['metrics'], ext[key]['comparison'])
+    assert (arms['luna'][0]['hit1']['numerator'], arms['luna'][1]['hit1']['numerator']) == (323, 233)
+    assert [arms[k][1]['hit1']['numerator'] for k in ('sonnet', 'qwen', 'muse')] == [201, 240, 215]
+    assert [arms[k][1]['reports'] for k in ('sonnet', 'qwen', 'muse')] == [536, 738, 690]
+    for k in ('sonnet', 'qwen', 'muse'):
+        assert arms[k][0]['hit1']['numerator'] == e2_metrics(k)['ours']['hit1']['numerator']
+    return arms
+
+
 def fig_rq3_delta():
-    c = load(A1)['comparison']; d, b = c['delta_pp'], c['cluster_bootstrap_95pct']
-    keys = [('hit1', 'hit@1'), ('hit3', 'hit@3'), ('hitall', 'hit@all'), ('L0_hit1', 'L0 hit@1'), ('L1_hit1', 'L1 hit@1'),
-            ('L2_hit1', 'L2 hit@1'), ('precision', 'P')]
-    keys = [(k, l) for k, l in keys if k in d and k in b]
-    vals = [(d[k],) + ci(b[k]) for k, _ in keys]
-    assert round(vals[0][0], 2) == -20.69 and (round(vals[0][1], 2), round(vals[0][2], 2)) == (-36.0, -9.22)
-    fig, ax = plt.subplots(figsize=(8.6, 2.6))
-    xs = range(len(keys))
-    ax.errorbar(list(xs), [v[0] for v in vals], yerr=[[v[0] - v[1] for v in vals], [v[2] - v[0] for v in vals]],
-                fmt='o', color=C_ABL, ecolor=C_ABL, elinewidth=1.1, capsize=2.5, markersize=5.5, zorder=3)
-    for x, v in zip(xs, vals):
-        ax.text(x + 0.12, v[0], f'{v[0]:+.2f}', va='center', fontsize=7.5)
-    ax.axhline(0, color='#202833', linewidth=0.8); ax.set_xticks(list(xs), [l for _, l in keys]); ax.set_xlim(-0.5, len(keys) - 0.3)
-    ax.set_ylabel('No inspection facts − Full (pp)'); ax.set_title('Removing model inspection facts on gpt-5.6-luna (nine-cluster paired bootstrap, 95%)', fontsize=9.5)
-    ax.grid(axis='y', color='#e3e5e8', linewidth=0.6, zorder=0)
-    fig.subplots_adjust(left=0.08, right=0.99, top=0.86, bottom=0.16)
+    arms = rq3_arms()
+    cov_keys = [('hit1', 'hit@1'), ('hit3', 'hit@3'), ('hitall', 'hit@all'), ('L2_hit1', 'L2 hit@1')]
+    cov, prec = {}, {}
+    for key in MODELS:
+        c = arms[key][2]; d, b = c['delta_pp'], c['cluster_bootstrap_95pct']
+        cov[key] = [(d[k],) + ci(b[k]) for k, _ in cov_keys]
+        prec[key] = [(d['precision'],) + ci(b['precision'])]
+    assert round(cov['luna'][0][0], 2) == -20.69 and (round(cov['luna'][0][1], 2), round(cov['luna'][0][2], 2)) == (-36.0, -9.22)
+    assert [round(cov[k][0][0], 2) for k in ('sonnet', 'qwen', 'muse')] == [-20.69, -16.32, -24.60]
+    assert [round(cov[k][3][0], 2) for k in ('sonnet', 'qwen', 'muse')] == [-46.15, -26.50, -42.74]
+    assert [round(prec[k][0][0], 2) for k in ('sonnet', 'qwen', 'muse')] == [-5.27, -3.34, -7.84]
+    fig, axes = plt.subplots(1, 2, figsize=(8.6, 2.8), gridspec_kw={'width_ratios': [2.2, 1]})
+    delta_panel(axes[0], [l for _, l in cov_keys], cov, 'No inspection facts − Full (pp)', '(a) Coverage differences')
+    delta_panel(axes[1], ['P'], prec, '', '(b) Precision difference')
+    fig.subplots_adjust(left=0.08, right=0.995, top=0.88, wspace=0.22)
+    fig_legend(fig, axes[0], bottom=0.24)
     save(fig, 'rq3_delta')
 
 
@@ -366,16 +381,11 @@ def tables():
     out.append(f"| P | {frac(b['precision'])} | {frac(o['precision'])} | {precision(o) - precision(b):+.2f} |")
     out.append(f"| P_strict | {frac(b['strict']['precision'])} | {frac(o['strict']['precision'])} | {strict(o) - strict(b):+.2f} |")
 
-    d = load(A1)
-    f, a = d['v61']['metrics'], d['a1']['metrics']
-    out.append('\n## RQ3 table')
-    for name, get in (('hit@1', lambda m: m['hit1']), ('hit@3', lambda m: m['hit3']), ('hit@all', lambda m: m['hitall']),
-                      ('L0 hit@1', lambda m: m['tiers']['L0']['hit1']), ('L1 hit@1', lambda m: m['tiers']['L1']['hit1']),
-                      ('L2 hit@1', lambda m: m['tiers']['L2']['hit1']), ('L2 hit@all', lambda m: m['tiers']['L2']['hitall'])):
-        out.append(f"| {name} | {frac(get(f))} | {frac(get(a))} | {rate(get(a)) - rate(get(f)):+.2f} |")
-    out.append(f"| R；K/N/I | {f['reports']}；{f['K']}/{f['N']}/{f['I']} | {a['reports']}；{a['K']}/{a['N']}/{a['I']} | — |")
-    out.append(f"| P | {frac(f['precision'])} | {frac(a['precision'])} | {precision(a) - precision(f):+.2f} |")
-    out.append(f"| P_strict | {frac(f['strict']['precision'])} | {frac(a['strict']['precision'])} | {strict(a) - strict(f):+.2f} |")
+    out.append('\n## RQ3 table (four models)')
+    for k, name in MODELS.items():
+        f, a, _ = rq3_arms()[k]
+        for cond, m in (('Full', f), ('无检视事实', a)):
+            out.append(f"| {name} | {cond} | {m['reports']} | {m['K']}/{m['N']}/{m['I']} | {frac(m['hit1'])} | {m['strict']['hit1']['numerator']}/435 | {m['hit3']['numerator']}/145 | {m['hitall']['numerator']}/145 | {m['tiers']['L2']['hit1']['numerator']}/117 | {m['tiers']['L2']['hitall']['numerator']}/39 | {precision(m):.2f}% | {strict(m):.2f}% |")
 
     d = load(A3)['models']
     out.append('\n## RQ4 table')
