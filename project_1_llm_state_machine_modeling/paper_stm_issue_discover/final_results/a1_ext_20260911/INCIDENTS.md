@@ -18,7 +18,7 @@ Muse run `6ea657d77bf04d6982e38786edfd8519` 正常完成（162/162 completed，5
 
 原隧道所在 tmux 窗口 `0:51 e2-qwen-tunnel` 消失，时间与 I-3 的清理操作重合；此后 `curl 127.0.0.1:8100` connection refused，远程 SGLang Qwen 服务本身正常（GPU 满载、远程回环可用）。Qwen run `1dc566e6` 的格数从 14:38 起停在 69/162，`logs/qwen-method.log` 连续 `stream_chunk_timeout`。左侧监控会话于 14:53:55 以 tmux 会话 `qwen-tunnel-8100` 重建隧道（ssh pid 1741078，8100 监听挂在 ControlMaster mux pid 1740069 名下，属正常复用）。14:56 Qwen 泳道恢复写入，至 15:00 为 72 格，其中 0 格落为 provider 失败：中断期间在途请求由 method 内部 8 次 transport retry 吸收（截至 15:00 共 40 条 retry 记录，分布在 5 格），属事前登记允许的 provider 侧瞬态失败处理。新增 `tunnel_watchdog.sh`（tmux `a1ext-tunnel-watchdog`）每 60 秒探测 8100，连续两次失败写 ATTENTION 并在无进程监听时拉起备用隧道 `a1ext-tunnel-8100`。
 
-## I-5 8100 隧道第二次中断（约 15:02 至 15:10）
+## I-5 8100 隧道第二次中断（约 15:02 至 15:10，另 15:13 至 15:14 再断约 1 分钟）
 
 左侧监控会话 14:53:55 重建的隧道把 8100 监听挂在共享 ControlMaster mux（pid 1740069）名下；`~/.ssh/config` 的 `Host xai` 配了 `ControlMaster auto` + `ControlPersist 10m` + `ProxyCommand`，所有 `-L` 转发共享同一 mux 主进程，主进程因代理抖动退出时转发一并消失。第一版 watchdog 于 15:05:18 报警并拉起备用隧道，但备用命令同样经 mux，`mux_client_forward: Port forwarding failed` 即刻退出，且它只在第 2 次失败时尝试一次、之后不再重试（缺陷）。Qwen 从 15:02 起停在 84/162 约 8 分钟。15:09:51 我方以 `-S none` 循环会话重建隧道（ssh pid 1752979，独占连接）；左侧监控会话同时也在重建，其消息把 pid 1752979 记为对方会话，我方据此在 15:13 误停了自己的循环会话，隧道再断约 1 分钟，15:14 以 `-o ControlMaster=no -o ControlPath=none` 的专用会话 `a1ext-tunnel-8100` 重建。watchdog 换为 `tunnel_watchdog3.sh`：连续两次探测失败即告警，此后每分钟在“无进程监听且精确会话不存在”时以同样参数拉起专用隧道。远程 SGLang Qwen 服务全程正常。中断期间 Qwen 无格落为 provider 失败，在途请求由 method transport retry 吸收（截至 15:11 累计 112 条 retry 记录）。原始运行三天的旧隧道（pid 495067）同为 `-S none`，与根因一致。
 
@@ -39,3 +39,6 @@ Muse r3 judge run `076b959315ba4d809c4591f9052b02da` 完成 53/54 pair，pair 00
 ## 收尾（21:06）
 
 三模型 486 格 method 与 486 格 judge 全部完成：Sonnet r1–r3、Muse r1–r3（r3 含 0059 重采样）、Qwen r1–r3 全部 rc=0，pending=0。DONE 于 21:06 写入。远程 Qwen 服务（xai GPU 4-7，tmux `paper1-a1ext-qwen`）与本机 8100 专用隧道（tmux `a1ext-tunnel-8100`）及 watchdog 保持运行，未擅自停止，等用户裁定。最终同格配对表由 `compare2.py` 生成并存为 `final_comparison.md`；`compare.py` / `compare2.py` 副本随目录保存。
+
+
+补记（2026-09-12 归档时）：Qwen run `1dc566e6` 五个 `failed_with_receipt` 格的终止码分别为 `0009/r1` `provider_error: Connection error.`（15:17:07）、`0019/r1` `provider_error: Connection error.`（15:19:56）、`0009/r2` `limit_exceeded`（由 10 次 `provider_timeout` 诱发）、`0029/r1` `provider_timeout: provider model call exceeded 600 seconds`、`0039/r1` `provider_timeout: provider model call exceeded 600 seconds`（15:41:29）。主 run 全部 162 格共 424 条 transport retry 记录，全部带 `recorded_at_utc`，按 UTC 半小时分布为 13:30 起 1、14:00 起 14、14:30 起 192、15:00 起 184、15:30 起 24、16:00 起 9（归档 `results.json` 的 `main_run_transport_retries`）；两次隧道中断窗口所在的 14:30 至 15:30 区间占 376 条（88.7%）。冻结进 judge_source 的 162 格（5 格为恢复格）合计 328 条。五个恢复格全部 completed 并替换进 judge_source，原失败回执保留在主 run；替换格进入统计，原失败回执与 Sonnet 403 run 不进入统计。

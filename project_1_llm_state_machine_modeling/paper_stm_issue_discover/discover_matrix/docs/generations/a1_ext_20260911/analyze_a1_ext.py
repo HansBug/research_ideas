@@ -35,6 +35,8 @@ def validate_arm(arm, items, label):
     assert canonical(per_round(arm["reports"], items)) == arm["per_round"], (label, "per-round metrics")
     assert canonical(content_breakdown(arm["reports"], items)) == arm["content"], (label, "content split")
     assert arm["funnel"]["published"] == len(arm["reports"]) and arm["funnel"]["cells"] == 162, label
+    if "judge_audit" in arm:
+        assert arm["judge_audit"]["judged_pairs"] == 162, label
 
 
 def verify(archive=ARCHIVE):
@@ -151,6 +153,18 @@ def tables(data, items, luna):
         per = [v["hit1"] for v in c["per_cluster_delta_pp"].values() if v["hit1"] is not None]
         loo = [v["hit1"] for v in c["leave_one_cluster_out_delta_pp"].values()]; loop = [v["precision"] for v in c["leave_one_cluster_out_delta_pp"].values()]
         print(f"| {NAMES[model]} | {sum(1 for x in per if x < 0)}/{len(per)} | [{min(per):+.2f}, {max(per):+.2f}] | [{min(loo):+.2f}, {max(loo):+.2f}] | [{min(loop):+.2f}, {max(loop):+.2f}] |")
+    print("\n表 10a：judge 装置审计（来自冻结 judge 输出）")
+    print("| 模型 | 裁定格 | 有效性仲裁凭证 | 关系仲裁 | judge 结构化调用 | judge 输入 token | judge 输出 token |")
+    print("| --- | --- | --- | --- | --- | --- | --- |")
+    for model in MODELS:
+        ja = data["models"][model]["a1ext"]["judge_audit"]
+        print(f"| {NAMES[model]} | {ja['judged_pairs']} | {ja['validity_arbitration_certificates']} | {ja['relation_arbitration_responses']} | {ja['call_receipts']} | {ja['input_tokens']} | {ja['output_tokens']} |")
+    print("\n表 10b：主 method run 的 transport retry 记录按 UTC 半小时分布（含被替换的失败格）")
+    print("| 模型 | 合计 | 带时间戳 | 分布 |")
+    print("| --- | --- | --- | --- |")
+    for model in MODELS:
+        rd = data["models"][model]["a1ext"]["main_run_transport_retries"]
+        print(f"| {NAMES[model]} | {rd.get('total')} | {rd.get('with_timestamp')} | {', '.join(f'{k} {v}' for k, v in rd.get('by_utc_half_hour', {}).items()) or '无'} |")
     print("\n表 10：judge 与 method 运行审计")
     print("| 模型 | method run | 24 workers | 恢复替换格 | 带诊断格 | 结构化调用 | schema 反馈修订 | transport retry 记录 | judge runs（轮:run_id 前 8 位:rc） |")
     print("| --- | --- | --- | --- | --- | --- | --- | --- | --- |")

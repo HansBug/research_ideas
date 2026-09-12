@@ -50,6 +50,40 @@ def judge_pairs(run, model):
     return out
 
 
+def judge_audit(run, model, judges):
+    """Judge-side apparatus counts from the frozen judge pair outputs (arbitration certificates, calls, usage)."""
+    audit = Counter()
+    for _, judge in judges.values():
+        audit["judged_pairs"] += 1
+        audit["validity_arbitration_certificates"] += len(judge.get("validity_arbitration_certificates") or [])
+        audit["relation_arbitration_responses"] += len(judge.get("relation_arbitration_responses") or [])
+        for receipt in judge.get("call_receipts") or []:
+            audit["call_receipts"] += 1
+            for u in receipt.get("usage") or []:
+                audit["input_tokens"] += u.get("input_tokens") or 0
+                audit["output_tokens"] += u.get("output_tokens") or 0
+    return dict(audit)
+
+
+def main_run_retry_distribution(run, model):
+    """Transport retry records of the main method run (all 162 original cells, failed ones included), by UTC half hour."""
+    runs = sorted((run / "method" / model).glob("*/run_manifest.json"), key=lambda p: p.stat().st_mtime)
+    if not runs:
+        return {}
+    total, stamped, buckets = 0, 0, Counter()
+    for path in (runs[-1].parent / "method").glob("*/round-*.json"):
+        for call in read(path).get("llm_calls", []):
+            for attempt in call.get("attempts", []):
+                for record in attempt.get("retry_records") or []:
+                    total += 1
+                    at = record.get("recorded_at_utc")
+                    if at:
+                        stamped += 1
+                        buckets[at[11:13] + (":00" if at[14] < "3" else ":30")] += 1
+    return {"total": total, "with_timestamp": stamped, "by_utc_half_hour": dict(sorted(buckets.items())),
+            "basis": "Main run only; recovery runs and the excluded 403 attempt are not counted here."}
+
+
 def judge_runs(run, model):
     lines = [l for l in (run / "logs" / f"{model}-judge.exit").read_text().splitlines() if l.strip()]
     rows = []
@@ -108,6 +142,7 @@ def a1ext_arm(run, model, items, clusters):
     assert len(cells) == 162 and set(judges) == {(c["pair_id"], c["round"]) for c in cells}
     arm = {"label": f"A1-ext no-inspect / {PROFILES[model]}", "profile": PROFILES[model], "ledger_hash": digest(PAPER / "discover_matrix/ledger_v2/ledger.json"),
            "judge_source_manifest_sha256": digest(src / "MANIFEST.json"), "judge_runs": judge_runs(run, model),
+           "judge_audit": judge_audit(run, model, judges), "main_run_transport_retries": main_run_retry_distribution(run, model),
            "coverage": {"planned_cells": 162, "eligible_cells": sum(c["eligible"] for c in cells), "judged_cells": len(cells),
                         "planned_expected_rounds": 3 * len(items), "unjudged_reports": 0,
                         "degraded_cells": sum(1 for c in cells if not c["status"].startswith("completed")),

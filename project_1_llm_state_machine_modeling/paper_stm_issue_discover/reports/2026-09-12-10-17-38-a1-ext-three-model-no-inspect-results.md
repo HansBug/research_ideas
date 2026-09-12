@@ -22,7 +22,7 @@
 
 **报告有效比例的变化依模型而异。** 普通 precision 在 Sonnet、Muse 上下降 5.27、7.84 pp，九簇区间不跨零；在 Qwen、Luna 上下降 3.34、3.71 pp，区间跨零。strict precision 三个新模型区间全部跨零，Luna 归档为 +2.31 pp。因此结论应写成“覆盖一致下降，有效比例方向依模型”，不能写成“四模型精度统一下降”。[clm-main] [clm-ci]
 
-**下降集中在需要结构事实的台账类。** 意外终止（unintended_terminal）类的 FULL 命中从 48/37/42/52 降到 12/3/9/8，触发类从 64/59/60/66 降到 18/31/24/26，全局或 pair 级条目从 95/82/77/95 降到 43/25/47/51；效果、状态类命中在多数模型上持平或略升。候选层面，带谓词候选与 W2 候选在三模型上都少了一半以上。三组来源可核查的案例与这些计数相容：死端状态与带触发的初始边在四模型的无检视条件下全部零命中，而不可达类命中在 Qwen、Muse 的无检视条件下反而增加。[clm-content] [clm-funnel] [clm-case-deadend] [clm-case-initial] [clm-case-unreachable]
+**下降集中在需要结构事实的台账类。** 意外终止（unintended_terminal）类的 FULL 命中从 48/37/42/52 降到 12/3/9/8，触发类从 64/59/60/66 降到 18/31/24/26，全局或 pair 级条目从 95/82/77/95 降到 43/25/47/51；效果、状态类命中在多数模型上持平或略升。候选层面，带谓词候选与 W2 候选在三模型上都少了一半以上。三组来源可核查的案例与这些计数相容：死端状态与带触发的初始边在四模型的无检视条件下全部零命中，而 pair 0002 的不可达条目在 Qwen、Muse 的无检视条件下反而更常命中；不可达类整体在 Sonnet、Muse 上下降，在 Qwen、Luna 上几乎不变。[clm-content] [clm-funnel] [clm-case-deadend] [clm-case-initial] [clm-case-unreachable]
 
 ## 2. 干预：no-inspect 关闭什么、保留什么
 
@@ -60,19 +60,19 @@
 | --- | --- | --- |
 | I-1 Sonnet 首次启动 162/162 格 Anthropic 403（tmux 会话缺代理环境） | 整 run 移出，脚本导出代理后以新 run 重启 | 否 |
 | I-3 旧编排器未被挂起，起了重复的 Muse r2 judge run `71922e9b`（约 7 分钟、3/54 pair） | 杀掉并移至 `judge/_aborted`，合法 run `c387e3c6` 完整 | 否 |
-| I-4、I-5 本机到 GPU 节点的 8100 隧道两次中断（约 14:41 至 14:54、约 15:02 至 15:14 UTC） | 隧道重建并改为不依赖 ControlMaster 的专用连接；在途请求由 method 的 transport retry 吸收 | Qwen 5 格因重试耗尽落为 provider 失败（4 格 `Connection error`/`provider_timeout`、1 格由 10 次 `provider_timeout` 诱发 `limit_exceeded`），按登记以同一 profile 单格隔离重跑一次并替换，原失败回执保留 |
+| I-4、I-5 本机到 GPU 节点的 8100 隧道两次中断（约 14:41 至 14:54、约 15:02 至 15:10 UTC，另 15:13 至 15:14 再断约 1 分钟） | 隧道重建并改为不依赖 ControlMaster 的专用连接；在途请求由 method 的 transport retry 吸收 | Qwen 5 格落为 provider 失败（`0009/r1`、`0019/r1` 为 `Connection error`，`0029/r1`、`0039/r1` 为 600 秒 `provider_timeout`，`0009/r2` 由 10 次 `provider_timeout` 诱发 `limit_exceeded`），按登记以同一 profile 单格隔离重跑一次并替换进统计，原失败回执保留、不进入统计 |
 | I-6 Muse r3 judge 在 pair 0059 上第二读连续 6 轮给出校验器拒绝的同一组合（D1 与核心子句 REFUTED 并存），`turns limit exceeded` | 非 provider 故障；按 v61 与 A4 先例以同一冻结代码重采样一次，成功；原失败 run 保留 | 重采样格进入统计，原失败保留为审计 |
 | I-7 编排器在启动 Qwen r3 judge 后过早写 DONE | 人工接管，judge 独立会话不受影响 | 无影响 |
 
-完整时间线与根因见归档内 [INCIDENTS.md](../final_results/a1_ext_20260911/INCIDENTS.md)。上述处置全部在事前登记 §3 的失败处理口径内；不能把本次写成“零重试、零故障”。Qwen 的 328 条 transport retry 记录绝大多数来自两次隧道中断，Sonnet 为 0，Muse 为 8。[src-incidents] [clm-sources]
+完整时间线与根因见归档内 [INCIDENTS.md](../final_results/a1_ext_20260911/INCIDENTS.md)。method 格的重跑按事前登记 §3 的口径执行，但机制上以隔离 run 代替登记所写的同目录 `--resume`，因为 `--resume` 只跳过已有轮次、不重跑失败轮；judge 侧的重采样是登记未预先覆盖的情形，依据为 v61 与 A4 先例。不能把本次写成“零重试、零故障”。冻结进 judge_source 的 Qwen 162 格带 328 条 transport retry 记录，Sonnet 0 条、Muse 8 条；Qwen 主 run 全部 162 格（含被替换的 5 格）共 424 条，其中 376 条（88.7%）记录在 14:30 至 15:30 UTC，即两次隧道中断所在的时段（表 10b）。[src-incidents] [clm-sources]
 
 ### 3.3 判定装置
 
-每份发布报告由 `gpt-5.6-luna` 独立完成两次有效性阅读，分歧时进入必要仲裁，再按 `relation_first` 协议在隔离步骤判定与台账条目的 FULL/PARTIAL 关系。有效性步骤只读报告、NL、作者源与允许的制品事实，不读 ledger、方法内部标签、执行 verdict 或 Full 裁定。三模型分别产生 528/678/732 份有效性仲裁凭证、145/193/178 次关系仲裁、891/976/1080 次 judge 结构化调用，judge 侧输入 token 合计约 3.15 亿。judge 与方法中的 Luna 即使同名也是不同角色和调用；“独立”指材料与流程隔离，不代表人工金标准。本次新增人工确认为 0，机器可复算指冻结标签的算术可复算。[clm-eval]
+每份发布报告由 `gpt-5.6-luna` 独立完成两次有效性阅读，分歧时进入必要仲裁，再按 `relation_first` 协议在隔离步骤判定与台账条目的 FULL/PARTIAL 关系。有效性步骤只读报告、NL、作者源与允许的制品事实，不读 ledger、方法内部标签、执行 verdict 或 Full 裁定。三模型分别产生 528/678/732 份有效性仲裁凭证、145/193/178 次关系仲裁、891/976/1080 次 judge 结构化调用，judge 侧输入 token 合计约 3.15 亿（归档 `results.json` 各模型的 `judge_audit`，见 [cmd-tables] 表 10a）。judge 与方法中的 Luna 即使同名也是不同角色和调用；“独立”指材料与流程隔离，不代表人工金标准。本次新增人工确认为 0，机器可复算指冻结标签的算术可复算。[clm-eval]
 
 ### 3.4 与 Full 对照的历史差异
 
-Full 来自 E2 冻结归档：Sonnet 源 `839cfb793`/`f52507d1a`，Qwen `839cfb793`，Muse `3b9068928`，运行于 2026-09-07 前后，method 最多 16 workers，Sonnet 有 51 格、Qwen 3 格带诊断；本次 no-inspect 于 2026-09-11 运行，24 workers，源 `7ef78e604`。两批的服务、日期、随机性未同步，Full 与 no-inspect 的方法源码也不是同一提交；本文不声称二者的默认路径逐字节等价。judge 提供方均为 gpt-5.6-luna，E2 走 sub2api 通道，本次走 aizzz 通道。上述差异限定“差值可全部归因于检视事实”的强度，不改变冻结计数。[src-e2] [clm-limits]
+Full 来自 E2 冻结归档：Sonnet 源 `839cfb793`/`f52507d1a`，Qwen `839cfb793`，Muse `3b9068928`，运行于 2026-09-07 前后，method 最多 16 workers，Sonnet 有 51 格、Qwen 3 格带诊断；本次 no-inspect 于 2026-09-11 运行，24 workers，源 `7ef78e604`。两批的服务、日期、随机性未同步，Full 与 no-inspect 的方法源码也不是同一提交；本文不声称二者的默认路径逐字节等价。judge 模型均为 gpt-5.6-luna，E2 除首批 6 格 Sonnet judge 外走 sub2api 通道，本次走 aizzz 通道。上述差异限定“差值可全部归因于检视事实”的强度，不改变冻结计数。[src-e2] [clm-limits]
 
 ## 4. 主指标与分层
 
@@ -100,9 +100,9 @@ hit@1 为三轮 expected-round 的 FULL 命中数除以 435，同一台账条目
 | Qwen3.8-27B | 855 → 634 | −25.85% | +1 | −3.34 | +0.59 | −16.32 | −16.55 |
 | gpt-5.6-luna | 759 → 654 | −13.83% | +16 | −3.71 | +2.31 | −20.69 | −18.85 |
 
-三个新模型的有效报告合计从 2347 降至 1606（−31.57%），无效报告从 344 变为 358（+14）；四模型等权 hit@1 从 71.67% 降至 51.09%（−20.57 pp），L2 hit@1 从 73.94% 降至 35.04%（−38.90 pp）。Sonnet 的 I 绝对数下降而 precision 仍下降，是因为有效报告减少得更多；Muse 的 I 上升 21。这些合计描述两批报告的组成变化，没有逐条语义配对，不能称为“若干有效报告转成了无效”。[clm-main]
+三个新模型的有效报告合计从 2347 降至 1606（−31.57%），无效报告从 344 变为 358（+14）；四模型等权 hit@1 从 71.67% 降至 51.09%（−20.57 pp），L2 hit@1 从 73.93% 降至 35.04%（−38.89 pp）。Sonnet 的 I 绝对数下降而 precision 仍下降，是因为有效报告减少得更多；Muse 的 I 上升 21。这些合计描述两批报告的组成变化，没有逐条语义配对，不能称为“若干有效报告转成了无效”。[clm-main]
 
-事后描述性对照：E2 同模型直接发现基线的 hit@1 为 Sonnet 241/435（55.40%）、Muse 247/435（56.78%）、Qwen 225/435（51.72%），L2 hit@1 为 56/117、39/117、49/117；no-inspect 的 hit@1 在 Sonnet、Muse 上低于基线 9.19、7.35 pp，Qwen 高于基线 3.45 pp，L2 hit@1 在三模型上都不高于基线。这一比较未在事前登记中列为主指标，基线运行条件与 Full 相同地属于历史批次，只用于说明关闭检视事实后完整方法相对直接发现的行为层覆盖增益在这三个配置上不再出现。[clm-baseline] [src-e2]
+事后描述性对照：E2 同模型直接发现基线的 hit@1 为 Sonnet 241/435（55.40%）、Muse 247/435（56.78%）、Qwen 225/435（51.72%），L2 hit@1 为 56/117、39/117、49/117；no-inspect 的 hit@1 在 Sonnet、Muse 上低于基线 9.20、7.36 pp，Qwen 高于基线 3.45 pp，L2 hit@1 在三模型上都不高于基线。这一比较未在事前登记中列为主指标，基线运行条件与 Full 相同地属于历史批次，只用于说明关闭检视事实后完整方法相对直接发现的行为层覆盖增益在这三个配置上不再出现。[clm-baseline] [src-e2]
 
 表 3：逐轮结果，每行 54 格，hit 分母 145。[clm-rounds]
 
@@ -236,7 +236,7 @@ strict 口径只把有效且外部 D1/D2 的报告计入分子，分母不变；
 
 ## 7. 历史偏离与可解释边界
 
-1. **对照不是同批运行。** Full 来自 2026-09-07 至 09-08 的 E2，本次 no-inspect 于 09-11 运行，方法源码相隔多次提交，judge 通道由 sub2api 换为 aizzz，并发由 16 换为 24。差值不能全归因于检视事实。[clm-limits]
+1. **对照不是同批运行。** Full 来自 2026-09-07 前后的 E2，本次 no-inspect 于 09-11 运行，方法源码相隔多次提交，judge 通道由 sub2api（E2 首批 6 格 Sonnet judge 除外）换为 aizzz，并发由 16 换为 24。差值不能全归因于检视事实。[clm-limits]
 2. **provider 故障与恢复如实保留。** Qwen 5 格隔离恢复、Muse 1 格 judge 重采样、Sonnet 一次整 run 排除、两次隧道中断，处置均在事前登记口径内，逐条见 INCIDENTS.md；不能写成“零重试、零故障”。[src-incidents]
 3. **自动 judge 有具体误读风险。** 三模型合计 1938 份有效性仲裁凭证，本次新增人工确认为 0；Muse 0059 r3 的第二读在一个报告上连续六轮坚持校验器拒绝的组合，暴露评审端 prompt 对该互斥关系引导不足，已登记为待修。[clm-eval] [clm-limits]
 4. **Sonnet 的 40 格带 d_adjudication 诊断。** 内部 D 结构化输出及其一次定向修复未闭合全部义务，剩余单元保留为未解决；这些格全部 eligible 并进入统计，E2 Full 的 Sonnet 也有 51 格同类诊断。[clm-sources]
@@ -296,7 +296,7 @@ strict 口径只把有效且外部 D1/D2 的报告计入分子，分母不变；
 | --- | --- | --- | --- | --- | --- | --- |
 | <a id="clm-design"></a>[clm-design] | no-inspect 关闭检视事实链、保留 FCSTM/谓词/发布/外部 judge | classification | [src-prereg] §2；A1 协议 | 人工对照 | high | 组合干预，非等预算 |
 | <a id="clm-sources"></a>[clm-sources] | 486 格 method、486 格 judge 闭合；恢复与排除项 | trace | [src-source]、[src-incidents]、[src-results] coverage | [cmd-verify] | high | 原件仅本地 |
-| <a id="clm-eval"></a>[clm-eval] | 两读加仲裁、K/N/I、strict、hit 定义 | classification | [src-prereg] §2；[src-code] | [cmd-verify] | high | 自动标签，人工确认 0 |
+| <a id="clm-eval"></a>[clm-eval] | 两读加仲裁、K/N/I、strict、hit 定义与 judge 装置计数 | classification / count | [src-prereg] §2；[src-code]；[src-results] `judge_audit` | [cmd-verify] [cmd-tables] 表 10a | high | 自动标签，人工确认 0 |
 | <a id="clm-main"></a>[clm-main] | 表 1、表 2 与四模型合计 | count | [src-results] metrics | [cmd-tables] | high | 三轮 pooled；计数差非语义迁移 |
 | <a id="clm-rounds"></a>[clm-rounds] | 表 3 与 12/12 同向 | count | [src-results] per_round | [cmd-tables] | high | 轮次相关 |
 | <a id="clm-coverage"></a>[clm-coverage] | 表 4、表 5 | count | [src-results] metrics.tiers、comparison.lost/gained | [cmd-tables] | high | 集合键为 ID×轮次 |
@@ -376,7 +376,7 @@ for model in ('sonnet', 'muse', 'qwen'):
 git log --follow --date=iso -- project_1_llm_state_machine_modeling/paper_stm_issue_discover/reports/2026-09-12-10-17-38-a1-ext-three-model-no-inspect-results.md
 ```
 
-**运行原件边界。** 方法与 judge 的原始 prompt、响应流、usage 与恢复工具只保存在 gitignored `runs/paper1/a1_ext_20260911/`，`source_manifest.json` 记录其 975 个原件的 SHA-256；公开归档足以复算全部冻结标签的算术，但 fresh clone 不能重放私有请求。费用只保存声明费率与用量口径，不推算未记录费用。
+**运行原件边界。** 方法与 judge 的原始 prompt、响应流、usage 与恢复工具只保存在 gitignored `runs/paper1/a1_ext_20260911/`，`source_manifest.json` 记录其 972 个原件（486 个 judge_source 方法格加 486 个 judge 输出）的路径、大小与 SHA-256，另记 3 个 judge_source MANIFEST 的 hash；公开归档足以复算全部冻结标签的算术，但 fresh clone 不能重放私有请求。费用只保存声明费率与用量口径，不推算未记录费用。
 
 [src-prereg]: ../discover_matrix/docs/generations/a1_ext_20260911/preregistered.md
 [src-results]: ../final_results/a1_ext_20260911/results.json

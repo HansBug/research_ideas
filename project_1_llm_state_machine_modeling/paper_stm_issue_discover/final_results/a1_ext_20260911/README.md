@@ -19,8 +19,8 @@
 
 | 文件 | 用途 |
 | --- | --- |
-| [results.json](./results.json) | 三模型两臂逐报告冻结判定、162 格来源 hash、435 个 expected-round、metrics、逐轮、内容轴、候选/证据资格组成、call audit、judge run 清单、配对比较（seed 20260906、10000 次九簇 bootstrap）、strict 区间扩展，以及 Luna A1 归档的只读指针 |
-| [source_manifest.json](./source_manifest.json) | method run manifest hash、被排除的失败尝试、隔离恢复 run、judge_source MANIFEST、被中止的重复 judge 目录、975 个原件的路径/大小/SHA-256 |
+| [results.json](./results.json) | 三模型两臂逐报告冻结判定、162 格来源 hash、435 个 expected-round、metrics、逐轮、内容轴、候选/证据资格组成、call audit、judge 装置审计、主 run 重试时间分布、judge run 清单、配对比较（seed 20260906、10000 次九簇 bootstrap）、strict 区间扩展，以及 Luna A1 归档的只读指针 |
+| [source_manifest.json](./source_manifest.json) | method run manifest hash、被排除的失败尝试、隔离恢复 run、judge_source MANIFEST、被中止的重复 judge 目录、972 个原件（486 个 judge_source 方法格加 486 个 judge 输出）的路径、大小与 SHA-256，另记 3 个 judge_source MANIFEST 的 hash |
 | [archive_manifest.json](./archive_manifest.json) | 本目录四个文件的 SHA-256 与 ledger hash |
 | [INCIDENTS.md](./INCIDENTS.md)、[RUN_RECORD.md](./RUN_RECORD.md) | 运行事故 I-1 至 I-7 与自动汇编的 run record，原样复制自本地运行目录 |
 | [analyze_a1_ext.py](../../discover_matrix/docs/generations/a1_ext_20260911/analyze_a1_ext.py) | stdlib-only、provider-free 校验与全部表格导出；不重新裁定 |
@@ -38,4 +38,4 @@ python -m pytest -q project_1_llm_state_machine_modeling/paper_stm_issue_discove
 
 ## 来源边界
 
-三模型 no-inspect 的 method 与 judge 均运行于源提交 `7ef78e604`（含事前登记），协议、prompt、12 谓词与 ledger 与 A1 #205 相同；judge 为 `gpt-5.6-luna`、协议 `v3.11`、两读加必要仲裁、`relation_first`、`full` closure，走 aizzz 通道，与 A1 的 Luna judge 同一提供方。Full 对照来自 E2 冻结归档（Sonnet 源 `839cfb793`/`f52507d1a`，Qwen `839cfb793`，Muse `3b9068928`），运行日期、服务与随机性未与本次同步，因此这是同模型配对比较，不是严格单因素因果估计。Qwen 有 5 格在 provider 故障后按事前登记以同一 profile 单格隔离重跑一次并替换进 judge 来源，原失败回执保留；Muse r3 pair 0059 的 judge 因结构性 schema 死路以同一代码重采样一次；Sonnet 首次启动的 162 格 HTTP 403 尝试整体排除。这些偏离逐条记录在 INCIDENTS.md，不进入任何统计。自动 Luna 判定与人工确认分开记录，**本次新结果人工确认数为 0**。
+三模型 no-inspect 的 method 与 judge 均运行于源提交 `7ef78e604`（含事前登记），协议、prompt、12 谓词与 ledger 与 A1 #205 相同；judge 为 `gpt-5.6-luna`、协议 `v3.11`、两读加必要仲裁、`relation_first`、`full` closure，走 aizzz 通道，与 A1 的 Luna judge 同一提供方。Full 对照来自 E2 冻结归档（Sonnet 源 `839cfb793`/`f52507d1a`，Qwen `839cfb793`，Muse `3b9068928`），运行日期、服务与随机性未与本次同步，因此这是同模型配对比较，不是严格单因素因果估计。Qwen 有 5 格在 provider 故障后按事前登记以同一 profile 单格隔离重跑一次并替换进 judge 来源，原失败回执保留；Muse r3 pair 0059 的 judge 因结构性 schema 死路以同一代码重采样一次；Sonnet 首次启动的 162 格 HTTP 403 尝试整体排除。这些偏离逐条记录在 INCIDENTS.md；替换格与重采样格进入统计，原失败回执与 403 run 不进入统计。自动 Luna 判定与人工确认分开记录，**本次新结果人工确认数为 0**。
