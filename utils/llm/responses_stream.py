@@ -80,6 +80,10 @@ class _StreamState:
                 "server_error", "internal_error", "internal_server_error",
                 "rate_limit_exceeded", "rate_limit_error", "overloaded",
                 "service_unavailable", "timeout", "request_timeout",
+                # Relay dropped its upstream read mid-stream at HTTP 200 (aizzz: A1
+                # grounding lens 2026-09-06; method cell 0053 contract_extraction
+                # 2026-09-11). The exact request is replayable, so it is transient.
+                "stream_read_error",
             }
             if code == "upstream_error" and error.get("message") == "Upstream service temporarily unavailable":
                 retryable = True
